@@ -7,9 +7,10 @@ import {
   useLaterPages,
   type OrderSubmissionOwner,
   type RegisterEntry,
+  READ_TIMING,
+  registerKey,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { firstOfEach, guarded } from './registerReads';
 
 export function registerEntriesKey(owner: OrderSubmissionOwner) {

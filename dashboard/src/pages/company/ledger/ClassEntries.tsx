@@ -6,10 +6,10 @@ import {
   type OrderSubmissionOwner,
   type RegisterEntry,
   type TokenHoldersResponse,
+  useOwnAppointments,
 } from '@ledova/shared';
 import { LoadError, Loading, MoreToggle, Status } from '@components/Ledger';
 import { LoadMore } from '@components/List';
-import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
 import { entryDate, entryLabel, entryName } from '@pages/company/shared/proposals';
 import { useRegisterEntries } from '@pages/company/ledger/shared/useRegisterEntries';

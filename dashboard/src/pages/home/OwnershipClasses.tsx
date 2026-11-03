@@ -6,11 +6,12 @@ import {
   searchRows,
   sharePercentage,
   type OwnershipClass,
+  PAGE_SIZE,
 } from '@ledova/shared';
 import { ListSearch, Pager } from '@components/List';
 import { OwnershipRing } from './OwnershipRing';
 import { ownershipColor } from './ownershipColors';
-import { PAGE_SIZE, type ListParams } from '@hooks/useListParams';
+import type { ListParams } from '@hooks/useListParams';
 
 export function OwnershipClasses({
   classes,

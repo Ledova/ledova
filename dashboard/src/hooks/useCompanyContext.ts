@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { useOwnershipCompanies, OwnershipCompany } from './useOwnershipCompanies';
+import type { useOwnershipCompanies, OwnershipCompany } from '@ledova/shared';
 
 export interface CompanyContextValue {
   directory: ReturnType<typeof useOwnershipCompanies>;

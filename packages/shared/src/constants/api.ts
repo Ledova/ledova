@@ -11,6 +11,15 @@ export const CACHE_TIMING = {
   EXTRA_LONG_GC_TIME: 24 * 60 * 60 * 1000,
 } as const;
 
+export const READ_TIMING = {
+  staleTime: CACHE_TIMING.SHORT_STALE_TIME,
+  gcTime: CACHE_TIMING.MEDIUM_GC_TIME,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+};
+
+export const PAGE_SIZE = 25;
+
 export const AUTH_ENDPOINTS = {
   SIGNIN: '/api/signin/',
   SIGNOUT: '/api/signout/',

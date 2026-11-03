@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { getRegisterTransferMembers, isRegisterImportMembers, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  getRegisterTransferMembers,
+  isRegisterImportMembers,
+  type OrderSubmissionOwner,
+  READ_TIMING,
+  registerKey,
+} from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
 export function allPeopleKey(owner: OrderSubmissionOwner) {
   return [...registerKey(owner), 'people'];

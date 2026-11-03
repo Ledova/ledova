@@ -17,10 +17,11 @@ import {
   type RegisterEvidence,
   type RegisterMemberDocument,
   type RegisterMemberDocumentRequest,
+  READ_TIMING,
+  ownAppointmentsKey,
+  useOwnAppointments,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
-import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { saveFile } from '@utils/saveFile';
 import type { DocumentDraft } from './documentAttachmentDraft';
 

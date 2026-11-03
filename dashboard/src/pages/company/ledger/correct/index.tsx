@@ -10,6 +10,7 @@ import {
   appointmentForRegisterStep,
   type OrderSubmissionOwner,
   type RegisterEntry,
+  useOwnAppointments,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
@@ -19,7 +20,6 @@ import { describeEntry } from '@pages/company/shared/proposals';
 import { useRegisterClasses } from '@hooks/useRegisterClasses';
 
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { CorrectionForm } from './CorrectionForm';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 

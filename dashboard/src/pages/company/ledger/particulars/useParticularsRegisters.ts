@@ -1,6 +1,5 @@
 import { useQueries } from '@tanstack/react-query';
-import type { OrderSubmissionOwner } from '@ledova/shared';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
+import { READ_TIMING, type OrderSubmissionOwner } from '@ledova/shared';
 import { registersQuery } from '@pages/company/shared/useCompanyRegister';
 import { peopleKey, readPeople } from '@pages/company/ledger/shared/usePeople';
 

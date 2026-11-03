@@ -6,11 +6,12 @@ import {
   useCompanyMemberAccess,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
+  READ_TIMING,
+  registerKey,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { type Problems } from '@hooks/useErrorSummary';
 import { invitationMembers } from '@ledova/shared';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
 type MemberField = 'member' | 'email' | 'reason';
 

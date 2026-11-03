@@ -7,11 +7,12 @@ import {
   type TokenHoldersResponse,
   sharePercentage,
   type Person,
+  PAGE_SIZE,
 } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
 import { PageActions, PageLink } from '@components/Page';
-import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
+import { useListParams } from '@hooks/useListParams';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 
 type Holding = { register: TokenHoldersResponse; holder: TokenHoldersResponse['holders'][number] };

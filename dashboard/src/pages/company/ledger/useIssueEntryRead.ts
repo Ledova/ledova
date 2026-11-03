@@ -5,9 +5,10 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  ownAppointmentsKey,
+  registerClassesKey,
+  registerHoldersKey,
 } from '@ledova/shared';
-import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { registerClassesKey, registerHoldersKey } from '@hooks/useRegisterClasses';
 import { grantsKey } from './shared/useRegisterGrants';
 import { allotmentsKey } from './useRegisterAllotments';
 import { awardsKey } from './shared/useRegisterAwards';

@@ -37,8 +37,9 @@ folder names, with relative imports and no path aliases:
 | `config/`, `styles/`  |                         | Network policy and public links; the theme                                    |
 
 Shared register UI (fields and document sharing) lives in `components/register`, and its styles in
-`hooks/`. Production screens import no other area's internals. Profile, operator and member reads
-live in `packages/shared`, with native session, result and transport policies kept in the client.
+`hooks/`. Production screens import no other area's internals. Profile, operator, member, company list,
+appointment and company ownership reads live in `packages/shared`, with native session, result and
+transport policies kept in the client: the app passes its session to each shared read.
 
 ### Shared package resolution
 
@@ -84,19 +85,32 @@ Data and privacy, open while one of them is shown. Every other choice opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
 (`Section`) use the web's phone sizes: 16-point margins and gaps, and cards with 16-point padding and
 corners under a 20-point title; the page's own title is the top bar's. Dashboard
-(`mobile/src/screens/holdings/DashboardScreen.tsx`) follows the web's per-company Dashboard. The
-selected company is remembered per account under the web's key (`ledova.company.<user>.<account>`, in
-AsyncStorage), and is otherwise the first by name. With several companies, **Switch company** opens
-the web's company popover beneath its icon (`FilterPopover` with `CompanyPicker`): a search field
-("Type a company name") over the companies, the current one ticked on the left and highlighted
-(owner, 3 November 2026). Its Ownership overview comes from the shared `ownershipView`, read from the
-member record's shared ownership, or from the member's own shares when the company does not share
-its totals: your shares, issued shares, current shareholders and share classes, then each class,
-ranked by the shared `rankOwnershipClasses`, with its issued count, percentage and your holding.
-Choosing a class adds the web's trail and class card (share class, issued shares, your shares and
-your share of the class) with **Certificates**, and the member's awards follow with the
-web's award status and details. With no member records it shows Your companies and Accept an
-invitation. The Invitation screen takes the
+(`mobile/src/screens/holdings/DashboardScreen.tsx`) follows the web's per-company Dashboard. Its
+companies are the web's list from the shared `useOwnershipCompanies` (owner, 3 November 2026): every
+company the person administers, is appointed to or holds shares in, by name. The selected company is
+remembered per account under the web's key (`ledova.company.<user>.<account>`, in AsyncStorage), and
+is otherwise the first. With several companies, **Switch company** opens the web's company popover
+beneath its icon (`FilterPopover` with `CompanyPicker`): a search field ("Type a company name") over
+the companies, each with the web's detail (Company administrator or Company access, and Member), the
+current one ticked on the left and highlighted (owner, 3 November 2026). For a company whose register
+the person may read, Dashboard is the web's officer view, read through the shared
+`useCompanyOwnership` with the class and holder page kept in the screen: Ownership overview with the
+person's role, issued shares, current shareholders and share classes (your shares first for a member)
+and the classes ranked by issued shares; choosing a class adds the trail and a class card with its
+current shareholders, largest first, 25 to a page with the web's pager, and the member's own position
+and awards where they hold shares. It has the web's loading, incomplete-total, unopened-class, no
+shareholder and failure states with Try again, and the trail returns from a class the overview no
+longer lists. The app does not yet have the web's Getting started card or the class card's **Class
+details** row, whose pages it lacks. For a company where the person is only a member, the Ownership
+overview comes from the shared `ownershipView`, read from the member record's shared ownership, or
+from the member's own shares when the company does not share its totals: your shares, issued shares,
+current shareholders and share classes, then each class, ranked by the shared `rankOwnershipClasses`,
+with its issued count, percentage and your holding. Choosing a class adds the web's trail and class
+card (share class, issued shares, your shares and your share of the class) with **Certificates**, and
+the member's awards follow with the web's award status and details. Without any company it shows Your
+companies and Accept an invitation. Pulling down rereads the member records and, unless the person is
+only a member of the selected company, the company list and any register they may read. The
+Invitation screen takes the
 pasted invitation link or its code (the text after the last `#`, trimmed), previews the inviting
 company, the recorded shareholder, the invited email and the deadline, and accepts it through the
 member-records state, reporting acceptance only once the server does. Documents, and a class's
@@ -105,7 +119,8 @@ member-records state, reporting acceptance only once the server does. Documents,
 share class, newest first. For a member with more than one class, Filters opens the web's panel under its
 button (`FilterPopover`) with Share class and Apply. Each record shows the shareholder and change,
 the entry and its date (and ledger date), with no action. A class the member is not recorded in says
-so, and a failed read offers Try again.
+so, as does a company that has no member record for the person, whose company certificate records
+stay on the web; a failed read offers Try again.
 Settings has the web's three pages for a member
 (`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form
@@ -117,8 +132,9 @@ details shows member since and last login; and Invitations' **Shareholder invita
 **Accept**, which opens the Member invitation page. Its rows follow the web's: the label on the left, and its status, one action
 or switch on the right. Data and privacy (`DataPrivacy`) has the same rows: Export data, whose **Export** saves or shares the
 file, and Delete account with **Delete**; a screen reader hears the row and then the action, named
-Export data or Delete account. The theme is the menu's switch. The member pages share one member-records state
-(`MemberRecordsProvider`), so an invitation acceptance whose outcome is uncertain stays recoverable,
+Export data or Delete account. The theme is the menu's switch. The pages share one state
+(`MemberRecordsProvider`) holding the company list, the selected company and the member records, so an
+invitation acceptance whose outcome is uncertain stays recoverable,
 with its original code, after leaving the page, and the pages show a loading line rather than an
 empty one while the list rereads. Only the focused page selects its record and class.
 A notification, tapped in that list or as a push, opens its screen: vested shares open Dashboard on

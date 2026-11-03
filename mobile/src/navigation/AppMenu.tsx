@@ -308,7 +308,7 @@ export function AppMenu({
                   color: theme.colors.text.muted,
                 }}
               >
-                {company.company.name}
+                {company.name}
               </Text>
             )}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

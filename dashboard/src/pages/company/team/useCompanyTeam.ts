@@ -1,4 +1,3 @@
-import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import {
   getCompanyTeam,
   getCompanyTeamInvitations,
@@ -9,6 +8,8 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   failureSentence,
+  useOwnAppointments,
+  ownAppointmentsKey,
 } from '@ledova/shared';
 import { appointmentReceipt, currentAppointment, sameScope } from '@pages/company/shared/appointments';
 import apiClient from '@services/apiClient';

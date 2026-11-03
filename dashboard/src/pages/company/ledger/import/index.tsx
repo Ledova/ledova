@@ -17,13 +17,15 @@ import {
   type RegisterImport,
   type TokenHoldersResponse,
   type RegisterTransferMembers,
+  registerClassesKey,
+  useOwnAppointments,
+  ownAppointmentsKey,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
-import { useRegisterClasses, registerClassesKey } from '@hooks/useRegisterClasses';
+import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { importsKey, useRegisterImports } from '@pages/company/ledger/shared/useRegisterImports';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 import { peopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { ImportForm } from './ImportForm';

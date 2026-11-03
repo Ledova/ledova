@@ -22,8 +22,8 @@ import {
   type ClassRightsAttributes,
   type OrderSubmissionOwner,
   type RegisterEvidence,
+  READ_TIMING,
 } from '@ledova/shared';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
 import {

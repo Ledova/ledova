@@ -132,7 +132,7 @@ inspection arrangements remain with the company.
 These charts count issued shares, not voting power or value; different classes can carry different
 rights. Class-rights disclosure remains separate work. Mobile **Dashboard** shows the same overview
 for the selected company, with the class card and the member's awards; **Switch company** chooses
-among the member's companies. The web and mobile both keep employee awards
+among the person's companies. The web and mobile both keep employee awards
 separate, with the original promise and its remaining and ended quantities. The
 web award bar includes unvested, vested but unissued, issued and ended rights; issued award shares
 already belong to the holding. Its summary shows the promise and nonzero quantities, with the full

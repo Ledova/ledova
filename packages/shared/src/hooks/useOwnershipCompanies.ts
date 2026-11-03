@@ -1,22 +1,17 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  CACHE_TIMING,
-  OWN_APPOINTMENTS_QUERY_KEY,
-  USER_PREFERENCES_QUERY_KEY,
-  canAdministerCompany,
-  getCompanies,
-  getOwnMemberRecords,
-  hasCurrentRegisterReadAuthority,
-  ownCompaniesKey,
-  ownMemberRecordsKey,
-  readEveryPage,
-  useSubmissionOwner,
-  useUserPreferences,
-  type OrderSubmissionOwner,
-  type OwnMemberRecord,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
+import { READ_TIMING } from '../constants/api';
+import { getCompanies } from '../services/companies';
+import { getOwnMemberRecords } from '../services/member-access';
+import type { OwnMemberRecord } from '../types';
+import { readEveryPage } from '../utils/pagination';
+import { hasCurrentRegisterReadAuthority } from '../utils/register-commands';
+import { useApiClient } from './useApiClient';
+import { canAdministerCompany, ownCompaniesKey } from './useCompanySelection';
+import { ownMemberRecordsKey } from './useMemberRecords';
+import { OWN_APPOINTMENTS_QUERY_KEY, ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
+import { useSubmissionOwner } from './useSubmissionOwner';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
+import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 
 export interface OwnershipCompany {
   uuid: string;
@@ -40,8 +35,9 @@ function confirmedMemberRows(rows: OwnMemberRecord[]) {
   );
 }
 
-export function useOwnershipCompanies() {
-  const { owner, boundary } = useSubmissionOwner();
+export function useOwnershipCompanies(session?: OrderSubmissionSession) {
+  const apiClient = useApiClient();
+  const { owner, boundary } = useSubmissionOwner(session);
   const preferences = useUserPreferences();
   const client = useQueryClient();
   const known = !!owner && !!preferences.preferences && !preferences.isError;
@@ -51,19 +47,17 @@ export function useOwnershipCompanies() {
     if (!owner || boundary.get() !== owner || current?.status !== 'success' || current.fetchStatus !== 'idle')
       throw new Error('Your signed-in account changed. Reopen your companies.');
   };
-  const timing = {
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-    gcTime: CACHE_TIMING.MEDIUM_GC_TIME,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  };
   const companyRows = useQuery({
     queryKey: ownershipCompaniesKey(owner),
     enabled: ready,
     queryFn: async ({ signal }) => {
       const rows = await readEveryPage(async (page) => {
         guard();
-        const result = await getCompanies(apiClient, page, { signal, ledovaSubmissionGuard: guard });
+        const result = await getCompanies(apiClient, page, {
+          ...session?.requestConfig(),
+          signal,
+          ledovaSubmissionGuard: guard,
+        });
         guard();
         return result;
       });
@@ -71,26 +65,31 @@ export function useOwnershipCompanies() {
         throw new Error('Your company list could not be confirmed.');
       return rows;
     },
-    ...timing,
+    ...READ_TIMING,
   });
   const appointments = useOwnAppointments(owner!, guard, {
     queryKey: owner ? ownAppointmentsKey(owner) : [...OWN_APPOINTMENTS_QUERY_KEY, null],
     enabled: ready,
+    session,
   });
   const memberRows = useQuery({
-    queryKey: ownMemberRecordsKey(owner),
+    queryKey: ownMemberRecordsKey(owner, session?.getEpoch() ?? 0),
     enabled: ready,
     queryFn: async ({ signal }) => {
       const rows = await readEveryPage(async (page) => {
         guard();
-        const result = await getOwnMemberRecords(apiClient, page, { signal, ledovaSubmissionGuard: guard });
+        const result = await getOwnMemberRecords(apiClient, page, {
+          ...session?.requestConfig(),
+          signal,
+          ledovaSubmissionGuard: guard,
+        });
         guard();
         return result;
       });
       if (!confirmedMemberRows(rows)) throw new Error('Your member associations could not be confirmed.');
       return rows;
     },
-    ...timing,
+    ...READ_TIMING,
   });
   const isRefreshing = companyRows.isFetching || appointments.isFetching || memberRows.isFetching;
   const hasError =

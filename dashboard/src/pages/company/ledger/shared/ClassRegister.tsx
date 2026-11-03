@@ -7,9 +7,9 @@ import {
   formatShareCount,
   type TokenHoldersResponse,
   formatDate,
+  PAGE_SIZE,
 } from '@ledova/shared';
 import { LoadMore } from '@components/List';
-import { PAGE_SIZE } from '@hooks/useListParams';
 import { Rows, Row, Section, Status, ShowMore } from '@components/Ledger';
 import { PageLink } from '@components/Page';
 import { shareholderPath } from './shareholders';

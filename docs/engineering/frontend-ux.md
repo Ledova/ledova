@@ -60,7 +60,8 @@ position, followed by the ranked holder list, 25 to a page, only for company-aut
 card has no **Filters**: the class rows switch classes, the trail's **Company ownership** returns to
 the overview, also from a class the overview no longer lists, and shareholder search stays on
 Shareholders (owner, 3 November 2026). For company-authorised readers, a **Class details** row at the
-end of the card opens the class's Ledger page. A member without register access gets a
+end of the card opens the class's Ledger page; the app leaves it out until it has that page. A member
+without register access gets a
 **Certificates** row there for a class they hold, as on mobile. Each
 compact holder row aligns the shareholder's name, a
 horizontal bar, exact shares and percentage of the class. Hover and keyboard focus emphasise the row
@@ -663,7 +664,8 @@ companies with the current one ticked. Its label remains accessible but visually
 switch request closes the panel and returns focus to its icon; the existing form confirmation and
 held-work guards still decide navigation. Company selection has no separate row above the ownership
 view; class exploration keeps its breadcrumb. The app's **Switch company** opens the same popover and
-list, with its search field starting empty; choosing the current company only closes it.
+list, with the same companies and details, its search field starting empty; choosing the current
+company only closes it.
 
 A single company opens directly and hides the switcher. With several companies, an address that names
 no company, including sign-in, opens the company the person used last in this browser (remembered per

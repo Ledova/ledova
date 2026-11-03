@@ -59,20 +59,20 @@ frame share, and `packages/shared` holds what both clients share.
 | `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes, each page loaded on demand from `lazyPages.ts` under one `Suspense` with `RouteLoading`) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                            |
 | `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                  |
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `auth/`, and single components several areas show (`AwardStatus.tsx`) |
-| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register access, sign-out, theme, identity verification                                                                                                                                                                                                               |
+| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register classes, sign-out, theme, identity verification                                                                                                                                                                                                              |
 | `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`), the query client it reads the session from (`queryClient.ts`) and the device stores built from the shared store factories                                                                                                       |
 | `utils/`              | Browser and pure helpers used by more than one area or the frame (`siteUrl.ts`, `saveFile.ts`, the session resets) and the web-only paths (`paths.ts`)                                                                                                                                                                             |
 | `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                            |
 | `testSupport/`        | Render helpers for tests in more than one folder, and the one import path to `packages/shared/tests/fixtures`                                                                                                                                                                                                                      |
 
-| `packages/shared/src/` | Owns                                                                                                                                            |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `constants/`           | Endpoints and cache timing (`api.ts`), `DESTINATIONS` and the design tokens (`ui/`), copy and business constants (`business/`)                  |
-| `generated/`           | `api.ts`, generated from the OpenAPI schema and never edited                                                                                    |
-| `types/`               | Domain types derived from the generated contracts (`domain/`) and request, contract and validation types                                        |
-| `services/`            | One function per API operation, taking the caller's axios instance first                                                                        |
-| `utils/`               | Pure logic both clients run: pagination, proposal checks, share arithmetic, formatting, error reading, store factories over an injected storage |
-| `hooks/`               | TanStack Query hooks both clients use, and `ApiClientProvider` with `useApiClient`                                                              |
+| `packages/shared/src/` | Owns                                                                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `constants/`           | Endpoints, cache and read timing and the page size (`api.ts`), `DESTINATIONS` and the design tokens (`ui/`), copy and business constants (`business/`) |
+| `generated/`           | `api.ts`, generated from the OpenAPI schema and never edited                                                                                           |
+| `types/`               | Domain types derived from the generated contracts (`domain/`) and request, contract and validation types                                               |
+| `services/`            | One function per API operation, taking the caller's axios instance first                                                                               |
+| `utils/`               | Pure logic both clients run: pagination, proposal checks, share arithmetic, formatting, error reading, store factories over an injected storage        |
+| `hooks/`               | TanStack Query hooks both clients use, and `ApiClientProvider` with `useApiClient`                                                                     |
 
 Where today's code differs from these standards:
 
@@ -102,7 +102,7 @@ existing code is being brought in line under [#1065](https://github.com/Ledova/l
 | Page files (beside the entry)          | The page's sections and dialogs, its hooks and its pure helpers, told apart by file name                                                     | `components/` or `hooks/` subfolders; a file a second page imports                            | `dashboard/src/pages/documents/certificates/CertificateRecords.tsx`, `dashboard/src/pages/home/ownershipColors.ts` |
 | Shared page code (`shared/`)           | Files that two or more pages under that page folder import                                                                                   | Route entries; a file one page alone uses                                                     | `dashboard/src/pages/company/shared/RegisterDecisions.tsx`                                                         |
 | UI kit and frame (`components/`)       | The kit, the frame and public layout with their contexts, and group folders or single components for UI that several areas or the frame show | Imports of `pages/` or `routes/`; in kit files, queries or domain rules                       | `dashboard/src/components/Ledger.tsx`, `dashboard/src/components/auth/`                                            |
-| Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render   | JSX; another module's key written out; raw error text                                         | `dashboard/src/hooks/useOwnershipCompanies.ts`                                                                     |
+| Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render   | JSX; another module's key written out; raw error text                                         | `packages/shared/src/hooks/useOwnershipCompanies.ts`                                                               |
 | Services (`services/`)                 | `apiClient` (CSRF retry, the submission guard, friendly network errors) and the browser device stores                                        | API call functions; React                                                                     | `dashboard/src/services/apiClient.ts`                                                                              |
 | Utils (`utils/`)                       | Client-only helpers and web-only paths used by more than one area or the frame                                                               | React; API calls; logic mobile also needs on the same libraries                               | `dashboard/src/utils/siteUrl.ts`                                                                                   |
 | Types                                  | A type beside its only user; API-derived and cross-client types in `packages/shared/src/types`                                               | Hand-written API shapes; a dashboard `types/` folder; client prop types in the shared package | `packages/shared/src/types/domain/member-access.ts`                                                                |
@@ -160,7 +160,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   owner guard and invalidation, lives in a `use<Thing>.ts` hook, and only `main.tsx`, hooks and
   `services/` import `apiClient`. A thin read hook may return its query as it is; a hook that shapes
   its result names the fields `isLoading`, `hasError`, `isRefreshing` and `retry`
-  (`dashboard/src/hooks/useOwnershipCompanies.ts`). Older hooks still use other names, such as
+  (`packages/shared/src/hooks/useOwnershipCompanies.ts`). Older hooks still use other names, such as
   `useSettingsNavigation` (`isError`, `isFetching`), the dashboard's `useUserProfile` (`isError`,
   `isFetching`, `refreshProfile`), `useRegisterEntries` (`isPending`, `isFetching`) and
   `useIdentityVerification` (`isLoadingStatus`).
@@ -563,9 +563,9 @@ use exact share arithmetic; only normalised drawing coordinates use JavaScript n
 represents issued share counts, not voting power or economic value.
 
 Company-authorised ownership overviews read company-scoped aggregates, then fetch the selected class's holders with
-server-side search and paging. The selected class uses one ranked horizontal bar list in the server's
+server-side paging, on the web and in the app. The selected class uses one ranked horizontal bar list in the server's
 largest-first order, with exact quantities and within-class percentages always visible. Bars use the
-full class's issued shares on a shared 0–100% scale through search and paging; do not renormalise the
+full class's issued shares on a shared 0–100% scale across pages; do not renormalise the
 visible subset, inflate tiny holdings or introduce an Other group. Do not fetch every shareholder in
 every class to draw an overview.
 Bind detail reads to the overview's register sequence; a changed sequence rereads the overview.
@@ -759,10 +759,12 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   only one company remains. Selection still uses `CompanyContextProvider` and its navigation guards.
   Company and class context belong in the address, so browser Back/Forward and task links retain the
   selected scope.
-  `dashboard/src/pages/home/useCompanyOwnership.ts` owns company aggregates and sequence-bound
-  holder reads. `dashboard/src/pages/home/useOwnershipMember.ts` reads only the selected member
-  association. `dashboard/src/hooks/useOwnershipCompanies.ts` merges company and member indexes with
-  current appointments for the directory. The overview keeps its ownership ring
+  `packages/shared/src/hooks/useCompanyOwnership.ts` owns company aggregates and sequence-bound
+  holder reads for both clients; the web gives it the class and holder page from the address
+  (`useListParams`), and the app keeps them in the screen. `dashboard/src/pages/home/useOwnershipMember.ts`
+  reads only the selected member association. `packages/shared/src/hooks/useOwnershipCompanies.ts`
+  merges company and member indexes with current appointments (`useOwnAppointments`, beside it) for
+  the directory, which the app's Dashboard lists too ([navigation](mobile.md#navigation)). The overview keeps its ownership ring
   (`dashboard/src/pages/home/OwnershipRing.tsx`), linked class list and exact metrics in the page folder. Company-authorised readers obtain sequence-bound, server-paged holder details;
   members obtain only their own position and the optional shared aggregates from the existing
   association-bound read. A real member link, not a matching name or company appointment, supplies

@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { getRegisterTransfers, readEveryPage, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  getRegisterTransfers,
+  readEveryPage,
+  type OrderSubmissionOwner,
+  READ_TIMING,
+  registerKey,
+} from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
 export const transfersKey = (owner: OrderSubmissionOwner, token: string) => [...registerKey(owner), 'transfers', token];
 export function useRegisterTransfers(owner: OrderSubmissionOwner, company: string, token: string, guard: () => void) {

@@ -13,11 +13,12 @@ import {
   registerCompanyPerson,
   type OrderSubmissionOwner,
   type RegisterPersonRegistrationRequest,
+  READ_TIMING,
+  ownAppointmentsKey,
+  useOwnAppointments,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
 import type { Problems } from '@hooks/useErrorSummary';
-import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { allPeopleKey } from './shared/usePeople';
 
 export function usePersonRegistration({

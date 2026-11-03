@@ -3,7 +3,6 @@
 import { Sidebar } from '@components/Sidebar';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
-import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
@@ -14,6 +13,8 @@ import {
   type RegisterAllotment,
   type RegisterTransfer,
   type OwnCompanyAppointment,
+  ownAppointmentsKey,
+  registerClassesKey,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -26,7 +27,6 @@ import { choose, companyPreferences, renderCompanyPage } from '../../../testSupp
 
 import { allotmentsKey } from './useRegisterAllotments';
 import { TransferForm } from './transfer/TransferForm';
-import { registerClassesKey } from '@hooks/useRegisterClasses';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 const save = vi.hoisted(() => vi.fn());

@@ -7,6 +7,7 @@ import {
   downloadRegisterAwardVestingReversalFile,
   type OrderSubmissionOwner,
   type RegisterAward,
+  ownAppointmentsKey,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { retainedName } from '@pages/company/shared/proposals';
@@ -19,7 +20,6 @@ import {
   type useRegisterAwardVestingReversals,
   type useRegisterAwardVestings,
 } from '@pages/company/ledger/shared/useRegisterAwards';
-import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { saveFile } from '@utils/saveFile';
 
 export function useAwardRecordDownload(

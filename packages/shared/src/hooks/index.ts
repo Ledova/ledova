@@ -48,7 +48,16 @@ export { useCompanyMemberAccess } from './useCompanyMemberAccess';
 
 export { SIGNUP_AUTHORITY_QUERY_KEY } from './useSignupCompanyAuthority';
 
-export { OWN_APPOINTMENTS_QUERY_KEY } from './useCompanyActivation';
+export { OWN_APPOINTMENTS_QUERY_KEY, ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
+export { ownershipCompaniesKey, useOwnershipCompanies } from './useOwnershipCompanies';
+export type { OwnershipCompany } from './useOwnershipCompanies';
+export {
+  REGISTER_QUERY_KEY,
+  registerClassesKey,
+  registerHoldersKey,
+  registerKey,
+  useCompanyOwnership,
+} from './useCompanyOwnership';
 
 export { useUserProfile } from './useUserProfile';
 export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';

@@ -1,19 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  failureStatus,
-  getRegisterClasses,
-  readEveryPage,
-  getClassOwnershipHolders,
-  getCompanyOwnership,
-  type CompanyOwnershipSummary,
-  type ClassOwnershipHolders,
-  type OrderSubmissionOwner,
-} from '@ledova/shared';
-import { registerHoldersKey, registerClassesKey } from '@hooks/useRegisterClasses';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
-import { PAGE_SIZE, useListParams } from '@hooks/useListParams';
-import apiClient from '@services/apiClient';
+import { PAGE_SIZE, READ_TIMING } from '../constants/api';
+import { getClassOwnershipHolders, getCompanyOwnership, getRegisterClasses } from '../services/company-tokens';
+import type { ClassOwnershipHolders, CompanyOwnershipSummary } from '../types';
+import { failureStatus } from '../utils/errors';
+import { readEveryPage } from '../utils/pagination';
+import { useApiClient } from './useApiClient';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
+
+export const REGISTER_QUERY_KEY = ['register'] as const;
+
+export function registerKey(owner: OrderSubmissionOwner | null) {
+  return [...REGISTER_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid];
+}
+
+export function registerClassesKey(owner: OrderSubmissionOwner) {
+  return [...registerKey(owner), 'classes'];
+}
+
+export function registerHoldersKey(owner: OrderSubmissionOwner) {
+  return [...registerKey(owner), 'holders'];
+}
 
 const WHOLE = /^(0|[1-9][0-9]*)$/;
 const count = (value: number | null): value is number => value !== null && Number.isSafeInteger(value) && value >= 0;
@@ -74,19 +81,19 @@ export function useCompanyOwnership(
   guard: () => void,
   companyUuid: string,
   enabled: boolean,
+  place: { token: string; page: number; toFirstPage: () => void },
+  session?: OrderSubmissionSession,
 ) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
+  const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: guard });
   const classes = useQuery({
     queryKey: [...registerClassesKey(owner), 'company', companyUuid],
     enabled: enabled && !!companyUuid,
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
-        const response = await getRegisterClasses(
-          apiClient,
-          { page, company_uuid: companyUuid },
-          { ledovaSubmissionGuard: guard },
-        );
+        const response = await getRegisterClasses(apiClient, { page, company_uuid: companyUuid }, config());
         guard();
         if (response.data.results.some((row) => row.companyUuid !== companyUuid))
           throw new Error('The share classes belong to another company.');
@@ -96,7 +103,6 @@ export function useCompanyOwnership(
   });
   const [unconfirmed, setUnconfirmed] = useState<string | null>(null);
   const handledDenial = useRef<unknown>(null);
-  const list = useListParams(['class']);
   const listed = classes.data ?? [];
   const company = enabled && companyUuid ? { uuid: companyUuid } : undefined;
   const expected = listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
@@ -105,14 +111,14 @@ export function useCompanyOwnership(
     enabled: !!company && classes.isSuccess && !classes.isFetching,
     queryFn: async () => {
       guard();
-      const { data } = await getCompanyOwnership(apiClient, company!.uuid, { ledovaSubmissionGuard: guard });
+      const { data } = await getCompanyOwnership(apiClient, company!.uuid, config());
       guard();
       return checkOverview(data, company!.uuid, expected);
     },
     ...READ_TIMING,
   });
   const ready = classes.isSuccess && !classes.isFetching && overview.isSuccess && !overview.isFetching;
-  const selected = ready ? overview.data.classes.find(({ uuid }) => uuid === list.filters.class) : undefined;
+  const selected = ready ? overview.data.classes.find(({ uuid }) => uuid === place.token) : undefined;
   const held = !!company && unconfirmed === company.uuid;
   const holders = useQuery({
     queryKey: [
@@ -121,7 +127,7 @@ export function useCompanyOwnership(
       company?.uuid,
       selected?.uuid,
       selected?.sequence,
-      list.page,
+      place.page,
     ],
     enabled: ready && !held && !!selected?.initialized && selected.issuedSupply !== null && selected.sequence !== null,
     queryFn: async () => {
@@ -129,11 +135,11 @@ export function useCompanyOwnership(
       const { data } = await getClassOwnershipHolders(
         apiClient,
         selected!.uuid,
-        { sequence: selected!.sequence!, page: list.page, page_size: PAGE_SIZE },
-        { ledovaSubmissionGuard: guard },
+        { sequence: selected!.sequence!, page: place.page, page_size: PAGE_SIZE },
+        config(),
       );
       guard();
-      return checkHolders(data, selected!, list.page);
+      return checkHolders(data, selected!, place.page);
     },
     ...READ_TIMING,
     retry: false,
@@ -148,10 +154,6 @@ export function useCompanyOwnership(
       void overview.refetch();
     }
   }, [holders.error, denied, company?.uuid]);
-  const select = (uuid: string | null) => {
-    list.clear();
-    list.setFilter('class', uuid ?? '');
-  };
   return {
     classes,
     overview,
@@ -167,14 +169,12 @@ export function useCompanyOwnership(
         if (!snapshot.isSuccess || snapshot.data.company !== company.uuid) return;
         await client.resetQueries({ queryKey: [...registerHoldersKey(owner), 'ownership-holders', company.uuid] });
         guard();
-        if (failureStatus(holders.error) === 404 && list.page > 1) list.setPage(1, true);
+        if (failureStatus(holders.error) === 404 && place.page > 1) place.toFirstPage();
         setUnconfirmed(null);
       } catch {
         return;
       }
     },
-    select,
     holders,
-    list,
   };
 }

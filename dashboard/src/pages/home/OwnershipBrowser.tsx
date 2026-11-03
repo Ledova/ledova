@@ -6,6 +6,7 @@ import {
   formatShareCount,
   ownershipView,
   sharePercentage,
+  useCompanyOwnership,
   useSubmissionOwner,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
@@ -18,8 +19,8 @@ import { ICON_MD } from '@components/iconSizes';
 import { OwnershipMetrics } from './OwnershipMetrics';
 import { ownershipColor } from './ownershipColors';
 import { useCompanyContext } from '@hooks/useCompanyContext';
+import { useListParams } from '@hooks/useListParams';
 import { useOwnershipMember } from './useOwnershipMember';
-import { useCompanyOwnership } from './useCompanyOwnership';
 import { OwnershipClasses } from './OwnershipClasses';
 import { OwnershipHolders } from './OwnershipHolders';
 import { OwnershipLoading } from './OwnershipLoading';
@@ -61,7 +62,16 @@ function SignedInOwnership({
     },
     [owner, currentOwner],
   );
-  const ownership = useCompanyOwnership(owner, guard, company?.uuid ?? '', current && !!company?.canReadRegister);
+  const list = useListParams(['class']);
+  const ownership = useCompanyOwnership(owner, guard, company?.uuid ?? '', current && !!company?.canReadRegister, {
+    token: list.filters.class,
+    page: list.page,
+    toFirstPage: () => list.setPage(1, true),
+  });
+  const select = (uuid: string | null) => {
+    list.clear();
+    list.setFilter('class', uuid ?? '');
+  };
   const memberSummary = directory?.members.find(
     (row) => row.company.uuid === company?.uuid && company?.memberUuids.includes(row.uuid),
   );
@@ -87,7 +97,7 @@ function SignedInOwnership({
   const view = useMemo(() => ownershipView(summary, record), [summary, record]);
   const activated = !['draft', 'submitted', 'review', 'info_required', 'approved'].includes(company?.status ?? '');
   const registered = !!summary?.classes.some(({ initialized }) => initialized);
-  const selected = ownership.list.filters.class;
+  const selected = list.filters.class;
   const selectedClass = view?.classes.find(({ uuid }) => uuid === selected);
   const details = useRef<HTMLHeadingElement>(null);
   const previous = useRef({ companyUuid, selected });
@@ -167,7 +177,7 @@ function SignedInOwnership({
             <nav aria-label="Ownership trail" className="flex min-w-0 flex-wrap items-center gap-3 text-sm">
               <button
                 type="button"
-                onClick={() => ownership.select(null)}
+                onClick={() => select(null)}
                 className="max-w-full break-words py-2 text-text-muted hover:text-text-primary"
               >
                 Company ownership
@@ -256,8 +266,8 @@ function SignedInOwnership({
                         personalOnly={view.personalOnly}
                         hasMember={!!record}
                         selected={selected || null}
-                        onSelect={ownership.select}
-                        list={ownership.list}
+                        onSelect={select}
+                        list={list}
                       />
                     </Section>
                     {selected && (
@@ -338,7 +348,7 @@ function SignedInOwnership({
                                     {ownership.holders.isSuccess && !ownership.holders.isFetching && (
                                       <Pager
                                         label="Class shareholders"
-                                        list={ownership.list}
+                                        list={list}
                                         noun={['shareholder', 'shareholders']}
                                         count={ownership.holders.data.count}
                                       />

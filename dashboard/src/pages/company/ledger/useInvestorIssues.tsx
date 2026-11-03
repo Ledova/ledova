@@ -1,4 +1,3 @@
-import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { generatePath } from 'react-router-dom';
 import { pageTitle } from '@utils/destinations';
@@ -11,6 +10,9 @@ import {
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
   peopleFrom,
+  registerHoldersKey,
+  useOwnAppointments,
+  ownAppointmentsKey,
 } from '@ledova/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { registerSteps } from '@pages/company/shared/proposals';
@@ -18,7 +20,6 @@ import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
-import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { allPeopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 

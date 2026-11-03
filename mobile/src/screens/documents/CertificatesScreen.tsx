@@ -11,7 +11,7 @@ import {
 } from '@ledova/shared';
 import { SelectField } from '../../components/SelectField';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, Actions, FormActions, Rows, Section } from '../../components/Ledger';
+import { Action, Actions, FormActions, LoadError, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -46,11 +46,11 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
   const styles = useCompanyStyles();
   const look = useCertificateStyles();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
-  const { company, selectCompany } = useMemberRecordsState();
+  const { directory, company, member, selectCompany } = useMemberRecordsState();
   const opened = route.params?.record;
   const openedToken = route.params?.token;
   const [chosen, setChosen] = useState<string | null>(openedToken ?? null);
-  const { read, record, selected, focused } = useCompanyRecord(opened ?? company?.uuid ?? '');
+  const { read, record, selected, focused } = useCompanyRecord(opened ?? member?.uuid ?? '');
   useEffect(() => {
     if (!opened || !record || !selectCompany(record.company.uuid)) return;
     setChosen(openedToken ?? null);
@@ -98,11 +98,19 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
         <Actions>
           <Action label="Try again" disabled={read.busy} onPress={() => void read.refresh()} />
         </Actions>
-      ) : !opened && !company ? (
-        read.listReady ? (
-          !read.error && <Text style={styles.muted}>Choose a company on Dashboard.</Text>
-        ) : (
+      ) : !opened && directory.hasError ? (
+        <LoadError retry={directory.retry} busy={directory.isRefreshing}>
+          Your company access could not be confirmed.
+        </LoadError>
+      ) : !opened && !member ? (
+        !read.listReady || directory.isLoading || (directory.companies.length > 0 && !company) ? (
           <Text style={styles.muted}>Loading certificate records…</Text>
+        ) : (
+          !read.error && (
+            <Text style={styles.muted}>
+              {company ? 'Your account has no member record for this company.' : 'Choose a company on Dashboard.'}
+            </Text>
+          )
         )
       ) : (
         <RecordGate read={read} record={record} ready={!!selected}>

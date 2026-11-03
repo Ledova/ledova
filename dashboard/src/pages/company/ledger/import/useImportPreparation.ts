@@ -25,11 +25,11 @@ import {
   REGISTER_IMPORT_UNMET_COPY,
   refusalSentence,
   utcToday,
+  registerKey,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
 import { importsKey } from '@pages/company/ledger/shared/useRegisterImports';
-import { registerKey } from '@hooks/useRegisterAccess';
 import type { RegisterSteps } from '@pages/company/shared/proposals';
 
 import {

@@ -1,8 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RefreshControl, Text } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { useMemberRecords, type OwnMemberRecord } from '@ledova/shared';
+import { useMemberRecords, useOwnershipCompanies, type OwnershipCompany, type OwnMemberRecord } from '@ledova/shared';
 import { Action, Actions } from '../../components/Ledger';
 import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -12,22 +12,28 @@ type Read = ReturnType<typeof useMemberRecords>;
 
 interface MemberRecords {
   read: Read;
+  directory: ReturnType<typeof useOwnershipCompanies>;
   select: (uuid: string) => void;
-  companies: OwnMemberRecord[];
-  company: OwnMemberRecord | undefined;
+  companies: OwnershipCompany[];
+  company: OwnershipCompany | undefined;
+  member: OwnMemberRecord | undefined;
   selectCompany: (companyUuid: string) => boolean;
 }
 
 const MemberRecordsContext = createContext<MemberRecords | null>(null);
 
+export function memberOf(company: OwnershipCompany | undefined, records: OwnMemberRecord[]) {
+  return company
+    ? records.find((row) => row.company.uuid === company.uuid && company.memberUuids.includes(row.uuid))
+    : undefined;
+}
+
 export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   const read = useMemberRecords(orderSubmissionSession);
+  const directory = useOwnershipCompanies(orderSubmissionSession);
   const busy = read.busy || !!read.retry;
-  const companies = useMemo(
-    () => [...read.records].sort((left, right) => left.company.name.localeCompare(right.company.name)),
-    [read.records],
-  );
-  const key = read.owner ? `ledova.company.${read.owner.userUuid}.${read.owner.ownerAccountUuid}` : null;
+  const { companies, owner } = directory;
+  const key = owner ? `ledova.company.${owner.userUuid}.${owner.ownerAccountUuid}` : null;
   const [chosen, setChosen] = useState<{ key: string; company: string | null } | null>(null);
   useEffect(() => {
     if (!key) return;
@@ -41,10 +47,10 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
   }, [key]);
   const remembered = key && chosen?.key === key ? chosen.company : undefined;
   const company =
-    remembered === undefined ? undefined : (companies.find((row) => row.company.uuid === remembered) ?? companies[0]);
+    remembered === undefined ? undefined : (companies.find((row) => row.uuid === remembered) ?? companies[0]);
   const selectCompany = useCallback(
     (companyUuid: string) => {
-      if (!key || busy || !companies.some((row) => row.company.uuid === companyUuid)) return false;
+      if (!key || busy || !companies.some((row) => row.uuid === companyUuid)) return false;
       if (remembered === companyUuid) return true;
       setChosen({ key, company: companyUuid });
       AsyncStorage.setItem(key, companyUuid).catch(() => undefined);
@@ -56,12 +62,14 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
     <MemberRecordsContext.Provider
       value={{
         read,
+        directory,
         select: (uuid) => {
           if (read.busy || read.retry || read.selectedUuid === uuid) return;
           read.select(uuid);
         },
         companies,
         company,
+        member: memberOf(company, read.records),
         selectCompany,
       }}
     >
@@ -135,7 +143,7 @@ export function RecordGate({
   return <>{children}</>;
 }
 
-export function useMemberRefresh(read: Read, testID?: string) {
+export function useMemberRefresh(read: Read, testID?: string, refresh: () => Promise<unknown> = read.refresh) {
   const theme = useAppTheme();
   const [refreshing, setRefreshing] = useState(false);
   return (
@@ -146,7 +154,7 @@ export function useMemberRefresh(read: Read, testID?: string) {
       onRefresh={() => {
         if (read.busy || refreshing) return;
         setRefreshing(true);
-        void read.refresh().finally(() => setRefreshing(false));
+        void refresh().finally(() => setRefreshing(false));
       }}
     />
   );

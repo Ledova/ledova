@@ -2,7 +2,6 @@
 
 import { TestRouter } from '../../testSupport/TestRouter';
 
-import { registerKey } from '@hooks/useRegisterAccess';
 import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
@@ -18,6 +17,7 @@ import {
   type TokenHoldersResponse,
   type OwnMemberRecord,
   DESTINATIONS,
+  registerKey,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';

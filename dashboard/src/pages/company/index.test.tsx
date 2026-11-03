@@ -6,9 +6,9 @@ import {
   COMPANY_TOKEN_ENDPOINTS,
   type Company,
   type OwnCompanyAppointment,
+  ownAppointmentsKey,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
-import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CompanyProfile } from '@pages/settings/CompanyProfile';

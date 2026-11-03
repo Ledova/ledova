@@ -62,8 +62,8 @@ stay here as history and are marked where they appear.
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)                 | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile superseded 26 October                                             |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                    | 14 October 2026                                | Current; #1040                                                                                                                     |
 | [Frontend UX standards](#frontend-ux-standards)                                                                    | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201)                      |
-| [Mobile app for shareholders](#mobile-app-for-shareholders)                                                        | 26 October 2026                                | Current; delivered under #1201; tabs, no drawer and the removal of investor eligibility superseded 31 October                      |
-| [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                                  | 31 October 2026                                | Current; phase 1 delivered, phase 2 per company; eligibility brought forward (#1464), removed 2 November                           |
+| [Mobile app for shareholders](#mobile-app-for-shareholders)                                                        | 26 October 2026                                | Current; #1201; tabs, no drawer and the removal of investor eligibility superseded 31 October; shareholder-only scope 3 November   |
+| [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                                  | 31 October 2026                                | Current; phase 1 delivered, phase 2 per company; eligibility brought forward, removed 2 November; company side from 3 November     |
 | [The account-data export](#the-account-data-export)                                                                | 23 September 2026                              | Current                                                                                                                            |
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                               | 3 October 2026                                 | Current                                                                                                                            |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                              | Undated                                        | Current                                                                                                                            |
@@ -2102,8 +2102,9 @@ went with investor eligibility on 2 November 2026
 
 Its three tabs and no drawer, its holdings across companies and its removal of the investor's
 eligibility pages were superseded on 31 October 2026 by the
-[web's phone frame, per-company pages and eligibility brought forward](#mobile-app-like-the-web-at-phone-width);
-the rest stands. Investor eligibility then left the web and the app on 2 November 2026
+[web's phone frame, per-company pages and eligibility brought forward](#mobile-app-like-the-web-at-phone-width),
+and its shareholder-only scope on 3 November 2026 by the
+[company side, built section by section](#mobile-app-like-the-web-at-phone-width); the rest stands. Investor eligibility then left the web and the app on 2 November 2026
 ([verification limited to ID checks](#verification-limited-to-id-checks)). Members do receive class totals where a company shares its ownership with members.
 
 On 26 October 2026 the owner made the mobile app a shareholder app: "make mobile shareholder-only.
@@ -2203,11 +2204,20 @@ it sits before **Review**.
 card took a shareholder to Team's company-officer form, while the app's opened the shareholder
 invitation. The owner chose "Two rows, like the app" ([#1464](https://github.com/Ledova/ledova/issues/1464)).
 The card is now **Invitations**, with two rows:
+
 - a **Shareholder invitation** row, whose page takes a pasted link or code, on both web and app;
 - on the web, a **Company officer invitation** row opening Team, for anyone who can't manage the
   company.
 
 The app's invitation page sits in the web's **Access to your shares** card.
+
+**The company side, decided on 3 November 2026.** The owner decided to build the company
+administrator's side of the app natively now, one section per pull request under
+[#1464](https://github.com/Ledova/ledova/issues/1464), starting with company access. The app's
+Dashboard lists every company the person administers, is appointed to or holds shares in, as the web
+does, and shows a company's administrators and register readers the web's officer view: the ownership
+overview and each class's ranked, paged shareholders. Later sections bring the remaining company
+pages, such as the Ledger's class page.
 
 ## The signed-in app
 

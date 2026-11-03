@@ -1,9 +1,11 @@
 import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
+  COMPANY_ENDPOINTS,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
+  ownershipCompaniesKey,
   type OwnMemberRecord,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -90,6 +92,20 @@ const OWNED_RECORD = {
     ],
   },
 };
+const ADMINISTERED = {
+  uuid: '26262626-2626-4626-8626-262626262626',
+  name: 'Synthetic Administered Company',
+  isOwner: true,
+  status: 'active',
+  administrativeAccess: { capabilities: ['admin'], draftSetup: false },
+};
+const FOUNDERS = { uuid: '27272727-2727-4727-8727-272727272727', name: 'Founders', symbol: 'FND' };
+const HOLDERS = Array.from({ length: 26 }, (_, index) => ({
+  member: `holder-${index + 1}`,
+  name: `Synthetic Holder ${index + 1}`,
+  balance: index === 0 ? '5' : '1',
+  percentage: '0',
+}));
 const SECOND_ENTRY = {
   ...MEMBER_ENTRY,
   uuid: '19191919-1919-4919-8919-191919191919',
@@ -98,16 +114,31 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, lists and opens an administered company’s overview with its paged shareholders, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   let ownRecord: OwnMemberRecord = OWNED_RECORD;
   let associated = false;
   let refused = false;
-  api.get.mockReset().mockImplementation(async (url) => {
+  let administered = false;
+  api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
+    if (url === COMPANY_ENDPOINTS.BASE) return page(administered ? [ADMINISTERED] : []);
+    if (url === '/api/v1/company-authority/appointments/') return page([]);
+    if (url === URLS.REGISTER) return page([{ uuid: FOUNDERS.uuid, companyUuid: ADMINISTERED.uuid }]);
+    if (url === URLS.OWNERSHIP) {
+      const founders = { ...FOUNDERS, tokenType: 'ordinary', initialized: true, recordedAt: '2026-11-01T00:00:00Z' };
+      const totals = { issuedSupply: '30', totalHolders: 26 };
+      const classes = [{ ...founders, ...totals, sequence: 1 }];
+      return { data: { company: ADMINISTERED.uuid, asAt: '2026-11-01T00:00:00Z', complete: true, ...totals, classes } };
+    }
+    if (url === URLS.OWNERSHIP_HOLDERS(FOUNDERS.uuid)) {
+      const shown = (config?.params as { page: number }).page;
+      const results = HOLDERS.slice((shown - 1) * 25, shown * 25);
+      return { data: { count: 26, token: FOUNDERS.uuid, sequence: 1, issuedSupply: '30', results } };
+    }
     if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current member access refused'), { response: { status: 404 } });
@@ -280,6 +311,41 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByText('Certificate records')).toBeNull();
   await view.rerender(certificatesPage);
   await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
+  expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
+  const registerReads = () =>
+    api.get.mock.calls.filter(([url]) => url === URLS.REGISTER || url === URLS.OWNERSHIP || url.endsWith('-holders/'));
+  expect(registerReads()).toHaveLength(0);
+  administered = true;
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: ownershipCompaniesKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
+    });
+  });
+  await view.rerender(dashboard);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Switch company' }));
+  expect(screen.getByRole('button', { name: `${PAST_RECORD.company.name}, Member` })).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: `${ADMINISTERED.name}, Company administrator` }));
+  expect(await screen.findByLabelText('Issued shares: 30')).toBeTruthy();
+  expect(screen.getByText('Company administrator')).toBeTruthy();
+  expect(screen.getByLabelText('Current shareholders: 26')).toBeTruthy();
+  expect(screen.queryByLabelText(/^Your shares/)).toBeNull();
+  await fireEvent.press(
+    screen.getByRole('button', { name: 'Explore Founders (FND), 30 issued shares, 100.00% of company issued shares' }),
+  );
+  expect(
+    await screen.findByRole('button', { name: 'Highlight Synthetic Holder 1’s holding, 5 shares, 16.67% of FND' }),
+  ).toBeTruthy();
+  expect(screen.getByText('1–25 of 26 shareholders')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Next (Class shareholders)' }));
+  expect(await screen.findByText('26–26 of 26 shareholders')).toBeTruthy();
+  expect(
+    registerReads().every(
+      ([url, config]) =>
+        url === URLS.OWNERSHIP_HOLDERS(FOUNDERS.uuid) ||
+        Object.values((config as { params: object }).params).includes(ADMINISTERED.uuid),
+    ),
+  ).toBe(true);
+  await view.rerender(certificatesPage);
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
   refused = true;
   await act(async () => {

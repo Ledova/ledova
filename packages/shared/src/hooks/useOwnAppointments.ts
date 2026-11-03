@@ -1,19 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  getOwnCompanyAppointments,
-  readEveryPage,
-  type OrderSubmissionOwner,
-  OWN_APPOINTMENTS_QUERY_KEY,
-  CACHE_TIMING,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
+import { READ_TIMING } from '../constants/api';
+import { getOwnCompanyAppointments } from '../services/company-authority';
+import { readEveryPage } from '../utils/pagination';
+import { useApiClient } from './useApiClient';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
-export const READ_TIMING = {
-  staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-  gcTime: CACHE_TIMING.MEDIUM_GC_TIME,
-  refetchOnWindowFocus: false,
-  refetchOnReconnect: false,
-};
+export const OWN_APPOINTMENTS_QUERY_KEY = ['company-appointments'] as const;
 
 export function ownAppointmentsKey(owner: OrderSubmissionOwner) {
   return [...OWN_APPOINTMENTS_QUERY_KEY, owner.userUuid, owner.ownerAccountUuid];
@@ -27,14 +19,19 @@ export function useOwnAppointments(
     enabled?: boolean;
     timing?: Partial<Pick<typeof READ_TIMING, 'staleTime' | 'gcTime'>>;
     passive?: boolean;
+    session?: OrderSubmissionSession;
   } = {},
 ) {
+  const apiClient = useApiClient();
   return useQuery({
     queryKey: policy.queryKey ?? ownAppointmentsKey(owner),
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
-        const result = await getOwnCompanyAppointments(apiClient, page, { ledovaSubmissionGuard: guard });
+        const result = await getOwnCompanyAppointments(apiClient, page, {
+          ...policy.session?.requestConfig(),
+          ledovaSubmissionGuard: guard,
+        });
         guard();
         return result;
       }),

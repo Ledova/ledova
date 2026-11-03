@@ -12,12 +12,12 @@ import {
   type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  useOwnAppointments,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 import { ParticularsForm } from './ParticularsForm';
 

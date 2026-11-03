@@ -1,8 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { getCompanyOwnership, type OrderSubmissionOwner } from '@ledova/shared';
+import { getCompanyOwnership, type OrderSubmissionOwner, READ_TIMING, registerHoldersKey } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
-import { registerHoldersKey } from '@hooks/useRegisterClasses';
 
 export function useStartedClasses<T extends { uuid: string }>(
   owner: OrderSubmissionOwner,

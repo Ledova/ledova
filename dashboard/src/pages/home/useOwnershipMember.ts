@@ -6,8 +6,8 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   useSubmissionOwner,
   type OwnMemberRecord,
+  READ_TIMING,
 } from '@ledova/shared';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
 import apiClient from '@services/apiClient';
 
 export function useOwnershipMember(company: string, summary: OwnMemberRecord | undefined, enabled: boolean) {

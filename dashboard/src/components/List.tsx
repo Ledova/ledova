@@ -1,8 +1,8 @@
 import { useId, useRef, type ReactNode } from 'react';
-import { formatShareCount } from '@ledova/shared';
+import { formatShareCount, PAGE_SIZE } from '@ledova/shared';
 import { FIELD_BASE, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
-import { PAGE_SIZE, type ListParams } from '@hooks/useListParams';
+import type { ListParams } from '@hooks/useListParams';
 import { LoadError } from '@components/Ledger';
 
 export type Noun = readonly [string, string];

@@ -1,9 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { getCompanyTokenHolders, hasCurrentRegisterReadAuthority, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  getCompanyTokenHolders,
+  hasCurrentRegisterReadAuthority,
+  type OrderSubmissionOwner,
+  READ_TIMING,
+  registerHoldersKey,
+  useOwnAppointments,
+} from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING } from '@hooks/useRegisterAccess';
-import { registerHoldersKey, useRegisterClasses } from '@hooks/useRegisterClasses';
-import { useOwnAppointments } from '@hooks/useOwnAppointments';
+import { useRegisterClasses } from '@hooks/useRegisterClasses';
 
 export async function readRegister(uuid: string, guard: () => void) {
   guard();

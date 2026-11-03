@@ -1,7 +1,5 @@
 // @vitest-environment jsdom
 
-import { REGISTER_QUERY_KEY, registerKey } from '@hooks/useRegisterAccess';
-import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import {
   CACHE_TIMING,
   COMPANY_TOKEN_ENDPOINTS,
@@ -11,6 +9,9 @@ import {
   ownershipSummary,
   type CompanyOwnershipSummary,
   type TokenHoldersResponse,
+  REGISTER_QUERY_KEY,
+  registerKey,
+  registerHoldersKey,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';

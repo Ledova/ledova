@@ -10,12 +10,12 @@ import {
   isRegisterParticularsEditReceipt,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  registerKey,
+  registerHoldersKey,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { registerKey } from '@hooks/useRegisterAccess';
-import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import { allPeopleKey } from '@pages/company/ledger/shared/usePeople';
 import { particularsKey } from '@pages/company/ledger/shared/useRegisterParticulars';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
