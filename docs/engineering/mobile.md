@@ -32,15 +32,17 @@ folder names, with relative imports and no path aliases:
 | `navigation/`         | `routes/` and the frame | The root stack, the sign-up gate and the signed-in frame                      |
 | `screens/<area>/`     | `pages/`                | An area's screens with their hooks and helpers                                |
 | `components/`         | `components/`           | `Page`, `Ledger` and groups such as `modal/` and `register/`                  |
-| `hooks/`, `contexts/` | `hooks/`                | App-wide hooks; the app-lock and theme contexts                               |
+| `hooks/`, `contexts/` | `hooks/`                | App-wide hooks; the app-lock, theme and member records contexts               |
 | `services/`           | `services/`             | `apiClient`, the session scope, token storage, document copies, notifications |
 | `config/`, `styles/`  |                         | Network policy and public links; the theme                                    |
 
 Shared register UI (fields and document sharing) lives in `components/register`, and its styles in
-`hooks/`. Production screens import no other area's internals. Profile, operator, member, company list,
-appointment and company ownership reads, and Team's reads and forms, live in `packages/shared`, with
-native session, result and transport policies kept in the client: the app passes its session to each
-shared read and request.
+`hooks/`. The signed-in member records state is a context
+(`mobile/src/contexts/MemberRecordsContext.tsx`), with its notices and pull to refresh in
+`mobile/src/components/MemberRecords.tsx`. Production screens import no other area's internals.
+Profile, operator, member, company list, appointment and company ownership reads, and Team's reads
+and forms, live in `packages/shared`, with native session, result and transport policies kept in the
+client: the app passes its session to each shared read and request.
 
 ### Shared package resolution
 
@@ -138,7 +140,7 @@ Its rows follow the web's: the label on the left, and its status, one action
 or switch on the right. Data and privacy (`DataPrivacy`) has the same rows: Export data, whose **Export** saves or shares the
 file, and Delete account with **Delete**; a screen reader hears the row and then the action, named
 Export data or Delete account. The theme is the menu's switch. The pages share one state
-(`MemberRecordsProvider`) holding the company list, the selected company and the member records, so an
+(`MemberRecordsProvider`, in `contexts/`) holding the company list, the selected company and the member records, so an
 invitation acceptance whose outcome is uncertain stays recoverable,
 with its original code, after leaving the page, and the pages show a loading line rather than an
 empty one while the list rereads. Only the focused page selects its record and class.

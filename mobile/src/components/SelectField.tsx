@@ -14,7 +14,7 @@ export function SelectField<T extends string>({
 }: {
   label: string;
   value: T;
-  options: readonly { value: T; label: string }[];
+  options: readonly { value: T; label: string; reference?: string }[];
   onChange: (value: T) => void;
   disabled?: boolean;
   error?: string | null;
@@ -50,7 +50,12 @@ export function SelectField<T extends string>({
     chosen: { backgroundColor: theme.colors.surface.tertiary },
   }));
   const [open, setOpen] = useState(false);
-  const current = options.find((option) => option.value === value)?.label ?? '';
+  const labelOf = (option: (typeof options)[number]) =>
+    option.reference && options.filter(({ label }) => label === option.label).length > 1
+      ? `${option.label} · ${option.reference}`
+      : option.label;
+  const picked = options.find((option) => option.value === value);
+  const current = picked ? labelOf(picked) : '';
   return (
     <View style={form.group}>
       <Text style={form.text}>{label}</Text>
@@ -83,7 +88,7 @@ export function SelectField<T extends string>({
                 }}
                 style={[styles.option, selected && styles.chosen]}
               >
-                <Text style={styles.value}>{option.label}</Text>
+                <Text style={styles.value}>{labelOf(option)}</Text>
                 {selected && <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.brand.light} />}
               </Pressable>
             );

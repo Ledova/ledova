@@ -12,17 +12,11 @@ import {
 import { SelectField } from '../../components/SelectField';
 import { FilterPopover } from '../../components/FilterPopover';
 import { Action, Actions, FormActions, LoadError, Rows, Section } from '../../components/Ledger';
+import { MemberNotice, RecordGate, useMemberRefresh } from '../../components/MemberRecords';
 import { Page } from '../../components/Page';
-import { useThemedStyles } from '../../contexts';
+import { useCompanyRecord, useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
-import {
-  MemberNotice,
-  RecordGate,
-  useCompanyRecord,
-  useMemberRecordsState,
-  useMemberRefresh,
-} from '../holdings/MemberRecordsProvider';
 
 type Entry = ReturnType<typeof useMemberRecords>['entries'][number];
 

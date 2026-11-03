@@ -15,6 +15,7 @@ import {
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { AxiosInstance } from 'axios';
+import { MemberRecordsProvider } from '../../contexts';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
@@ -23,7 +24,6 @@ import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { TeamScreen } from '../settings/TeamScreen';
 import { DashboardScreen } from './DashboardScreen';
 import { InvitationScreen } from './InvitationScreen';
-import { MemberRecordsProvider } from './MemberRecordsProvider';
 
 const mockNavigate = jest.fn();
 
@@ -423,6 +423,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ).toBeTruthy();
   expect(await screen.findByText(/^Revoked /)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/ })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: /^Revoke appointment \(Synthetic Administered Company/ }));
+  expect(screen.getByText(/^Permanently remove your appointment for Synthetic Administered Company\?/)).toBeTruthy();
+  expect(revocations()).toHaveLength(1);
   await view.rerender(certificatesPage);
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
   refused = true;

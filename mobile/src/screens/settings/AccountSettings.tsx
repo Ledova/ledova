@@ -4,11 +4,10 @@ import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { VERIFICATION_TONES, formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
 import { Action, Fact, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
-import { useAppLock, useThemedStyles } from '../../contexts';
+import { useAppLock, useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
-import { useMemberRecordsState } from '../holdings/MemberRecordsProvider';
 import { useSettings } from './useSettings';
 
 function useAccountStyles() {

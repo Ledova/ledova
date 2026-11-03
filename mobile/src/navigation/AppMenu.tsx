@@ -14,12 +14,11 @@ import {
   XIcon,
   type IconProps,
 } from 'phosphor-react-native';
-import { useAppTheme, useThemeChoice } from '../contexts';
+import { useAppTheme, useMemberRecordsState, useThemeChoice } from '../contexts';
 import { SignOutModal } from '../components/auth/SignOutModal';
 import { LogoMark } from '../components/LogoMark';
 import { useSignOut } from '../hooks/useSignOut';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { useMemberRecordsState } from '../screens/holdings/MemberRecordsProvider';
 
 export type Section = 'Dashboard' | 'Documents' | 'Settings';
 

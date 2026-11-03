@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, RefreshControl, Text, View, type ScrollView } from 'react-native';
+import { Keyboard, Pressable, RefreshControl, Text, View, type ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
+  APPOINTMENT_SOURCE_LABELS,
   APPOINTMENT_STATUS_LABELS,
   currentAppointment,
   delegationLabel,
@@ -21,20 +22,13 @@ import { Action, Actions, FormActions, LoadError, Rows, Section } from '../../co
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
 import { SelectField } from '../../components/SelectField';
-import { useAppTheme, useThemedStyles } from '../../contexts';
+import { useAppTheme, useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { useMemberRecordsState } from '../holdings/MemberRecordsProvider';
 import { AcceptInvitationForm, TeamInvitationForm } from './TeamForms';
 
 const LEDE = 'Manage company appointments and invitations.';
-
-const SOURCES: Record<(OwnCompanyAppointment | CompanyTeamAppointment)['source'], string> = {
-  initial: 'Initial self-declaration',
-  invitation: 'Company invitation',
-  legacy_owner: 'Legacy company owner',
-};
 
 function useTeamStyles() {
   return useThemedStyles((theme) => {
@@ -139,6 +133,7 @@ function OwnTeam({
   }, [task]);
   const endTask = () => {
     if (disabled) return;
+    Keyboard.dismiss();
     setStarted(true);
     setTask(null);
   };
@@ -332,6 +327,7 @@ function OwnTeam({
                 ...sources.map((item) => ({
                   value: item.uuid,
                   label: `Appointed ${formatDate(item.createdAt)} · ${scopeLabels(item.delegatableCapabilities)}`,
+                  reference: formatDateTime(item.createdAt),
                 })),
               ]}
               value={sourceId}
@@ -456,7 +452,7 @@ function AppointmentRecord({
             : 'No expiry'}
         </Text>
         <Text style={look.muted}>
-          {SOURCES[appointment.source]} · {formatDateTime(appointment.createdAt)}
+          {APPOINTMENT_SOURCE_LABELS[appointment.source]} · {formatDateTime(appointment.createdAt)}
         </Text>
       </View>
       {appointment.status !== 'revoked' && (

@@ -13,3 +13,9 @@ export const APPOINTMENT_STATUS_LABELS: Record<OwnCompanyAppointment['status'], 
   expired: 'Expired',
   revoked: 'Revoked',
 };
+
+export const APPOINTMENT_SOURCE_LABELS: Record<OwnCompanyAppointment['source'], string> = {
+  initial: 'Initial self-declaration',
+  invitation: 'Company invitation',
+  legacy_owner: 'Legacy company owner',
+};
