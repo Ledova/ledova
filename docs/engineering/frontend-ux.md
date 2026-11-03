@@ -260,7 +260,9 @@ two signed movements, with **Show all N share changes** for the rest. Entries st
 inspect retained supporting records and permitted downloads. The same view holds capability-guarded
 correction, copied-opening and particulars workflows. Certificate
 preparation belongs in Documents. Keep maintenance controllers mounted so unfinished work and original-request recovery
-survive navigation. Documents has one **Certificates** page for company and member records, plus
+survive navigation. The app's Corrections has the same rows and records at phone width, with each
+decision's review in place of the records and the opening records read-only. Documents has one
+**Certificates** page for company and member records, plus
 **Inspection copies** and **Company pack** where company access permits them, on the web and, at
 phone width, in the app. Inspection
 copies shows one selected class, with **Share class** in the page heading's Filters popover when there is more than one.

@@ -4,8 +4,8 @@
 
 How a company keeps the register of members of each share class in Ledova, and what the web Ledger
 page shows; of the register administration, the mobile app has the Ledger overview, each share class's
-page, Issue shares, Transfer shares, Shareholders, a shareholder's page, the Employee share scheme with
-each award's page, and Member access
+page, Issue shares, Transfer shares, Corrections, Shareholders, a shareholder's page, the Employee share
+scheme with each award's page, and Member access
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). It is for company representatives,
 product owners, support staff and engineers learning the domain. Issuing shares is in
 [share classes and issuing shares](issuing-shares.md); copies, certificates and member access are in
@@ -200,7 +200,9 @@ together; for a class opened from the chain it adds particulars and former membe
 Ledova, and its holdings must match the stored register. An import never changes the name or
 residential address of a member linked to a Ledova account: their holding and everything else the
 import records are applied, and the register keeps the particulars from their Profile
-([particulars from Profile](member-records.md#particulars-from-profile)). On the web:
+([particulars from Profile](member-records.md#particulars-from-profile)). Bringing records in, like
+the rest of register setup, is on the web only; the app's Corrections lists the opening records
+without it. On the web:
 
 1. On Ledger, choose **Add share class**; or choose Corrections, the class, then Bring records
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
@@ -294,13 +296,13 @@ agreement or receipt evidence.
 
 ### Correcting the copied opening
 
-In Ledger's Corrections view, under Opening records, choose Correct copied opening to replace the
-latest applied import's shareholder rows in full, in the same forms and keeping each member ID, with a current
-source and a reason. Applying keeps the earlier snapshot, decisions and opening entry, adds a Copied
-opening correction entry for the exact difference (none when only particulars change) and records
-the new particulars. It is refused once the class has later share activity, a deployment, or
-member-access or particulars activity; the company then resolves its records and uses the supported
-workflow.
+On the web, in Ledger's Corrections view, under Opening records, choose Correct copied opening to
+replace the latest applied import's shareholder rows in full, in the same forms and keeping each member
+ID, with a current source and a reason. Applying keeps the earlier snapshot, decisions and opening
+entry, adds a Copied opening correction entry for the exact difference (none when only particulars
+change) and records the new particulars. It is refused once the class has later share activity, a
+deployment, or member-access or particulars activity; the company then resolves its records and uses
+the supported workflow.
 
 ### Opening from the chain
 
@@ -336,7 +338,8 @@ A correction exactly reverses one entry, which stays and is named by it. An entr
 once, and a correction can itself be corrected; partial corrections and replacement transactions are
 not built.
 
-1. In Ledger's Corrections view, choose Correct on the entry, which shows the exact inverse.
+1. On the web or in the app, in Ledger's Corrections view, choose Correct on the entry, which shows
+   the exact inverse.
 2. Upload the authority document and give the authority, approving director, reference, reason and
    an effective date of today (UTC) or earlier; a later date would hold back later issues and
    transfers.
@@ -363,7 +366,7 @@ page shows "They keep their name and address up to date in their Ledova profile.
    choose **Save change**.
 3. The change applies at once, dated today (UTC), and opens on its record in **Ledger** →
    **Corrections**, which shows the particulars before and after. In the app it returns to the
-   shareholder's page, which says Particulars changed.
+   shareholder's page, which says Particulars changed., and the change is listed under Corrections.
 
 **Change particulars** is offered to an administrator, or to an appointment holding prepare, approve
 and apply: whoever could already finish a change alone
@@ -606,10 +609,11 @@ The Ledger view shows:
   [register setup](#bringing-in-existing-records) for the selected company.
 
 The mobile app's Ledger shows the same cards, each with **Class details**, for a register reader of the
-selected company, and lists Issue shares and Transfer shares beneath it
+selected company, and lists Issue shares, Transfer shares and Corrections beneath it
 ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
-[non-paid transfers](#non-paid-transfers-between-members)); register setup, and so **Add share class**,
-and Corrections stay on the web.
+[non-paid transfers](#non-paid-transfers-between-members),
+[compensating corrections](#compensating-corrections)); register setup, and so **Add share class**,
+stays on the web.
 
 Ledger's three web sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the overview cards: Issue shares
@@ -647,6 +651,13 @@ cards and the shareholder list rather than implying holdings are zero.
 
 The focused views reuse the existing controllers, authority checks and original-request recovery.
 The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
+
+The mobile app's Corrections has the same Changes, corrections with their decisions, Opening records
+and Particulars changes at phone width, for a register reader of the selected company. **Share class**
+is in Filters and stays locked while a review or an uncertain decision is open, Correct opens the
+preparation on its own page, a decision's review replaces the records, and documents go to the
+phone's share sheet. Opening records are read-only there: Bring records, Correct copied opening and
+the reviewing and confirming of copied openings stay on the web.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage

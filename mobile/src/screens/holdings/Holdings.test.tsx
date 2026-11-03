@@ -9,6 +9,7 @@ import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_ALLOTMENT_COPY,
   REGISTER_AWARD_COPY,
+  REGISTER_CORRECTION_COPY,
   REGISTER_GRANT_COPY,
   REGISTER_TRANSFER_COPY,
   USER_PREFERENCES_QUERY_KEY,
@@ -32,11 +33,15 @@ import {
   type RegisterAwardPreparation,
   type RegisterAwardVesting,
   type RegisterAwardVestingPreparation,
+  type RegisterCorrection,
+  type RegisterCorrectionPreparation,
   type RegisterDecideRequest,
   type RegisterEntry,
   type RegisterGrant,
   type RegisterGrantPreparation,
+  type RegisterImport,
   type RegisterMemberDocumentRequest,
+  type RegisterParticularsChange,
   type RegisterTransfer,
   type RegisterTransferDecideRequest,
   type RegisterTransferDecisionRequest,
@@ -63,6 +68,8 @@ import { destinationOf } from '../../components/notifications/NotificationsPanel
 import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { CompanyPackScreen } from '../documents/CompanyPackScreen';
 import { InspectionCopiesScreen } from '../documents/InspectionCopiesScreen';
+import { CorrectionPreparationScreen } from '../ledger/CorrectionPreparationScreen';
+import { CorrectionsScreen } from '../ledger/CorrectionsScreen';
 import { IssueSharesScreen } from '../ledger/IssueSharesScreen';
 import { LedgerScreen } from '../ledger/LedgerScreen';
 import { ShareClassScreen } from '../ledger/ShareClassScreen';
@@ -336,6 +343,108 @@ const CERTIFIED: RegisterEntry = {
   changes: [{ member: 'holder-1', name: 'Synthetic Holder 1', shares: '5' }],
 };
 const DIGEST = 'b'.repeat(64);
+const correctionFrom = ({
+  operationId,
+  correctsId,
+  appointment,
+  ...request
+}: RegisterCorrectionPreparation): RegisterCorrection => ({
+  ...request,
+  uuid: operationId,
+  company: ADMINISTERED.uuid,
+  register: FOUNDERS.uuid,
+  corrects: correctsId,
+  changes: CERTIFIED.changes.map(({ member, shares }) => ({ member, shares: String(-BigInt(shares)) })),
+  approvingDirector: request.approvingDirector ?? '',
+  preparingAppointment: appointment,
+  preparedByName: 'Synthetic Preparer',
+  providedBy: 'company',
+  status: 'submitted',
+  stage: 'submitted',
+  decisions: [],
+  baseHash: 'a'.repeat(64),
+  baseSequence: 13,
+  appliedEntry: null,
+  evidenceFingerprint: 'a'.repeat(64),
+  evidenceSnapshot: {},
+  sourceDocument: null,
+  rejectionReason: '',
+  reviewedAt: null,
+  reviewedBy: null,
+  submittedBy: 1,
+  createdAt: '2026-11-04T05:00:00Z',
+});
+const OPENING: RegisterImport = {
+  uuid: '49494949-4949-4949-8949-494949494949',
+  company: ADMINISTERED.uuid,
+  token: FOUNDERS.uuid,
+  asAt: '2026-10-26',
+  members: [
+    {
+      member: HOLDER_A.member,
+      name: HOLDER_A.name,
+      residentialAddress: `${HOLDER_A.name} address`,
+      shares: '5',
+      enteredOn: '2026-10-26',
+      amountPaid: null,
+    },
+  ],
+  formerMembers: [],
+  approvingDirector: 'Synthetic Director',
+  authority: 'director_resolution',
+  authorityReference: 'Synthetic opening minute',
+  reason: 'Opening records',
+  sourceReference: '',
+  sourceConfirmed: false,
+  sourceDocument: null,
+  registerEvidence: null,
+  registerSequence: null,
+  asicDocument: null,
+  asicEvidence: null,
+  asicFingerprint: '',
+  asicIssuedTotal: null,
+  asicMemberCount: null,
+  asicSnapshot: {},
+  correctionAllowed: false,
+  correctionOf: null,
+  decisions: [],
+  evidenceFingerprint: '',
+  evidenceSnapshot: {},
+  preparedByName: 'Synthetic Preparer',
+  preparingAppointment: ADMINISTRATION.uuid,
+  providedBy: 'company',
+  rejectionReason: '',
+  reviewedAt: null,
+  reviewedBy: null,
+  status: 'submitted',
+  stage: 'submitted',
+  submittedBy: 1,
+  createdAt: '2026-10-26T00:00:00Z',
+};
+const PARTICULARS_EDIT: RegisterParticularsChange = {
+  uuid: '50505050-5050-4050-8050-505050505050',
+  company: ADMINISTERED.uuid,
+  member: HOLDER_A.member,
+  name: HOLDER_A.name,
+  residentialAddress: `${HOLDER_A.name} new address`,
+  asAt: '2026-10-28',
+  reason: '',
+  previousParticulars: { name: HOLDER_A.name, residentialAddress: `${HOLDER_A.name} address`, asAt: '2026-10-26' },
+  preparingAppointment: ADMINISTRATION.uuid,
+  preparedByName: 'Synthetic Preparer',
+  providedBy: 'company',
+  status: 'applied',
+  stage: 'applied',
+  decisions: [],
+  evidenceFingerprint: '',
+  evidenceSnapshot: {},
+  supportingEvidence: null,
+  rejectionReason: '',
+  reviewedAt: '2026-10-28T00:00:00Z',
+  reviewedBy: 1,
+  submittedBy: 1,
+  createdAt: '2026-10-28T00:00:00Z',
+};
 const SECOND_ENTRY = {
   ...MEMBER_ENTRY,
   uuid: '19191919-1919-4919-8919-191919191919',
@@ -363,6 +472,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let allotments: RegisterAllotment[] = [];
   let grants: RegisterGrant[] = [];
   let transfers: RegisterTransfer[] = [];
+  let corrections: RegisterCorrection[] = [];
   api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
@@ -421,6 +531,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.REGISTER_GRANTS) return page(grants);
     if (url === URLS.REGISTER_ALLOTMENTS) return page(allotments);
     if (url === URLS.REGISTER_TRANSFERS) return page(transfers);
+    if (url === URLS.REGISTER_CORRECTIONS) return page(corrections);
+    if (url === URLS.REGISTER_IMPORTS) return page([OPENING]);
+    if (url === URLS.REGISTER_PARTICULARS_CHANGES) return page([PARTICULARS_EDIT]);
     if (url === URLS.MEMBER_INVITATIONS) return page([]);
     if (url === URLS.REGISTER_ENTRIES(FOUNDERS.uuid)) return { data: { results: [CERTIFIED], next: null, count: 1 } };
     if (url === URLS.DETAIL(FOUNDERS.uuid)) {
@@ -734,6 +847,43 @@ it('associates a member by invitation code, switches to their company on Dashboa
       ];
       return { data: transfers[0] };
     }
+    if (url === URLS.REGISTER_CORRECTIONS) {
+      corrections = [correctionFrom(value as RegisterCorrectionPreparation)];
+      return { data: corrections[0] };
+    }
+    if (corrections[0] && url === URLS.REGISTER_CORRECTION_PREVIEW(corrections[0].uuid)) {
+      const { changes, effectiveOn } = corrections[0];
+      const originalChanges = CERTIFIED.changes.map(({ member, shares }) => ({ member, shares }));
+      const preview = { changes, effectiveOn, originalChanges, previewDigest: DIGEST, registerSequence: 13 };
+      return { data: { ...preview, canDecide: true, unmetRequirements: [] } };
+    }
+    if (corrections[0] && url === URLS.REGISTER_CORRECTION_DECIDE(corrections[0].uuid)) {
+      const request = value as RegisterDecideRequest;
+      const decidedAt = request.kind === 'apply' ? '2026-11-04T06:00:00Z' : '2026-11-04T05:30:00Z';
+      const decision = {
+        uuid: request.idempotencyKey,
+        appointment: request.appointment,
+        kind: request.kind,
+        digest: request.previewDigest,
+        idempotencyKey: request.idempotencyKey,
+        reason: request.reason ?? '',
+        decidedAt,
+        decidedBy: 1,
+        decidedByName: PROFILE.fullName,
+      };
+      const applied =
+        request.kind === 'apply'
+          ? {
+              status: 'applied' as const,
+              stage: 'applied',
+              appliedEntry: '52525252-5252-4252-8252-525252525252',
+              reviewedAt: decidedAt,
+              reviewedBy: 1,
+            }
+          : { stage: 'approved' };
+      corrections = [{ ...corrections[0], ...applied, decisions: [...corrections[0].decisions, decision] }];
+      return { data: corrections[0] };
+    }
     if (url === URLS.REGISTER_MEMBER_DOCUMENTS) {
       const request = value as RegisterMemberDocumentRequest;
       const snapshot = {
@@ -951,7 +1101,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByRole('button', { name: 'Documents', selected: true })).toBeTruthy();
   expect(
     screen.queryByRole('button', {
-      name: /Ledger|Issue shares|Transfer shares|Inspection copies|Company pack|Documents navigation|Shareholders|Employee scheme|Member access/,
+      name: /Ledger|Issue shares|Transfer shares|Corrections|Inspection copies|Company pack|Documents navigation|Shareholders|Employee scheme|Member access/,
     }),
   ).toBeNull();
   const shareholder = { company: ADMINISTERED.uuid, member: HOLDER_A.member };
@@ -980,6 +1130,15 @@ it('associates a member by invitation code, switches to their company on Dashboa
     <LedgerScreen key="ledger" />,
     <IssueSharesScreen key="issues" route={{ key: 'issues', name: 'IssueShares', params: undefined }} />,
     <TransferSharesScreen key="transfers" route={{ key: 'transfers', name: 'TransferShares', params: undefined }} />,
+    <CorrectionsScreen key="corrections" route={{ key: 'corrections', name: 'Corrections', params: undefined }} />,
+    <CorrectionPreparationScreen
+      key="correction"
+      route={{
+        key: 'correction',
+        name: 'CorrectionPreparation',
+        params: { company: MEMBER_RECORD.company.uuid, token, entry: MEMBER_ENTRY.uuid },
+      }}
+    />,
     <TransferPreparationScreen
       key="transfer"
       route={{
@@ -1006,7 +1165,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   }
   const peopleReads = () =>
     api.get.mock.calls.filter(([url]) =>
-      /\/(register-people|register-award[a-z-]*|register-allotments|register-grants|register-transfers|member-invitations|member-associations)\//.test(
+      /\/(register-people|register-award[a-z-]*|register-allotments|register-grants|register-transfers|register-corrections|register-imports|register-particulars-changes|member-invitations|member-associations)\//.test(
         url,
       ),
     );
@@ -1117,10 +1276,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
     'Member access',
   ]);
   await fireEvent.press(screen.getByRole('button', { name: 'Expand Ledger navigation' }));
-  expect(screen.getAllByText(/^(Issue shares|Transfer shares)$/).map(({ props }) => props.children)).toEqual([
-    'Issue shares',
-    'Transfer shares',
-  ]);
+  expect(
+    screen.getAllByText(/^(Issue shares|Transfer shares|Corrections)$/).map(({ props }) => props.children),
+  ).toEqual(['Issue shares', 'Transfer shares', 'Corrections']);
   await view.rerender(<LedgerScreen />);
   expect(await screen.findByText('Founders · FND')).toBeTruthy();
   expect(screen.getByLabelText('Issued shares: 8')).toBeTruthy();
@@ -1436,6 +1594,82 @@ it('associates a member by invitation code, switches to their company on Dashboa
     [URLS.REGISTER_TRANSFER_PREVIEW(transfer.uuid), { ...decision('approve'), ...completed }, expect.anything()],
     [URLS.REGISTER_TRANSFER_DECIDE(transfer.uuid), { ...decided('approve'), ...completed }, expect.anything()],
   ]);
+  const correctionPosts = () => api.post.mock.calls.filter(([url]) => url.startsWith(URLS.REGISTER_CORRECTIONS));
+  const certified = `issue of ${formatDate(CERTIFIED.companyEventOn)}`;
+  await view.rerender(<CorrectionsScreen route={{ key: 'corrections', name: 'Corrections', params: undefined }} />);
+  const correct = await screen.findByRole('button', { name: `Correct (${certified}, Synthetic Holder 1)` });
+  expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
+  expect(await screen.findByText('Copied opening')).toBeTruthy();
+  expect(await screen.findByText(`${HOLDER_A.name} new address`)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Review|Confirm)/ })).toBeNull();
+  await fireEvent.press(correct);
+  const correcting = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, entry: CERTIFIED.uuid };
+  expect(mockNavigate).toHaveBeenLastCalledWith('CorrectionPreparation', correcting);
+  await view.rerender(
+    <CorrectionPreparationScreen route={{ key: 'correct', name: 'CorrectionPreparation', params: correcting }} />,
+  );
+  await fireEvent.changeText(
+    await screen.findByLabelText(REGISTER_CORRECTION_COPY.APPROVING_DIRECTOR),
+    'Synthetic Director',
+  );
+  expect(screen.getByText('Synthetic Holder 1: -5')).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_CORRECTION_COPY.AUTHORITY_REFERENCE), 'Synthetic minute');
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_CORRECTION_COPY.REASON), 'Issued in error');
+  await fireEvent.press(screen.getByRole('button', { name: 'Authority document. Choose file' }));
+  await screen.findByRole('button', { name: 'Authority document, synthetic.pdf. Choose file' });
+  expect(correctionPosts()).toHaveLength(0);
+  await fireEvent.press(screen.getByRole('button', { name: REGISTER_CORRECTION_COPY.SUBMIT }));
+  await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('Corrections', expect.anything()));
+  const correction = corrections[0];
+  const preparedCorrection = {
+    company: ADMINISTERED.uuid,
+    token: FOUNDERS.uuid,
+    record: correction.uuid,
+    outcome: REGISTER_CORRECTION_COPY.PREPARED,
+  };
+  expect(mockNavigate).toHaveBeenLastCalledWith('Corrections', preparedCorrection);
+  expect(correctionPosts()).toEqual([
+    [
+      URLS.REGISTER_CORRECTIONS,
+      {
+        operationId: correction.uuid,
+        appointment: ADMINISTRATION.uuid,
+        correctsId: CERTIFIED.uuid,
+        authorityEvidence: evidence,
+        effectiveOn: utcToday(),
+        authority: 'director_resolution',
+        approvingDirector: 'Synthetic Director',
+        authorityReference: 'Synthetic minute',
+        reason: 'Issued in error',
+      },
+      expect.anything(),
+    ],
+  ]);
+  await view.rerender(
+    <CorrectionsScreen route={{ key: 'corrected', name: 'Corrections', params: preparedCorrection }} />,
+  );
+  expect(await screen.findByText(REGISTER_CORRECTION_COPY.PREPARED)).toBeTruthy();
+  await settled();
+  await fireEvent.press(
+    screen.getByRole('button', { name: `Approve (correction of the ${certified}, Synthetic Holder 1)` }),
+  );
+  await fireEvent.press(await screen.findByRole('button', { name: 'Approve correction', disabled: false }));
+  await waitFor(() => expect(correctionPosts()).toHaveLength(3));
+  await settled();
+  await fireEvent.press(
+    screen.getByRole('button', { name: `Apply (correction of the ${certified}, Synthetic Holder 1)` }),
+  );
+  expect(await screen.findByText(REGISTER_CORRECTION_COPY.COMPENSATION_NOTE)).toBeTruthy();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Apply correction', disabled: false }));
+  await waitFor(() => expect(correctionPosts()).toHaveLength(5));
+  await settled();
+  expect(screen.queryByRole('button', { name: /^(Approve|Apply|Reject) \(correction/ })).toBeNull();
+  expect(correctionPosts().slice(1)).toEqual([
+    [URLS.REGISTER_CORRECTION_PREVIEW(correction.uuid), decision('approve'), expect.anything()],
+    [URLS.REGISTER_CORRECTION_DECIDE(correction.uuid), decided('approve'), expect.anything()],
+    [URLS.REGISTER_CORRECTION_PREVIEW(correction.uuid), decision('apply'), expect.anything()],
+    [URLS.REGISTER_CORRECTION_DECIDE(correction.uuid), decided('apply'), expect.anything()],
+  ]);
   await view.rerender(awardPage);
   await fireEvent.press(
     await screen.findByRole('button', {
@@ -1482,6 +1716,22 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByText('Founders · FND')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Transfer shares|Issue shares to them)/ })).toBeNull();
   expect(transferPosts()).toHaveLength(3);
+  const pendingCorrection = {
+    ...correction,
+    uuid: '51515151-5151-4151-8151-515151515151',
+    createdAt: '2026-11-04T07:00:00Z',
+  };
+  corrections = [pendingCorrection, ...corrections];
+  await view.rerender(
+    <CorrectionsScreen route={{ key: 'read-only-corrections', name: 'Corrections', params: undefined }} />,
+  );
+  await act(async () => screen.getByTestId('corrections-scroll').props.refreshControl.props.onRefresh());
+  expect(await screen.findByText(REGISTER_CORRECTION_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  await waitFor(() => expect(screen.getAllByText(`Correction of the ${certified}`)).toHaveLength(2));
+  await settled();
+  expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Correct|Approve|Apply|Reject) \(/ })).toBeNull();
+  expect(correctionPosts()).toHaveLength(5);
   await view.rerender(<ShareClassScreen route={{ key: 'founders', name: 'ShareClass', params: founders }} />);
   expect(await screen.findByText('No rights recorded.')).toBeTruthy();
   expect(screen.getByText('FND · Ordinary')).toBeTruthy();

@@ -17,7 +17,7 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, FormActions, LoadError, Loading, Section } from '../../components/Ledger';
+import { Action, FormActions, LoadError, LoadMore, Loading, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { Field } from '../../components/register/RegisterFields';
 import { SelectField } from '../../components/SelectField';
@@ -213,25 +213,9 @@ function CertificateRecords({
           ))}
         </View>
       )}
-      {source && !editing && <LoadMore more={source.more} disabled={!source.readReady} />}
+      {source && !editing && <LoadMore noun="register entries" {...source.more} disabled={!source.readReady} />}
     </>
   );
-}
-
-function LoadMore({ more, disabled }: { more: Source['more']; disabled: boolean }) {
-  if (more.failed)
-    return (
-      <LoadError retry={more.onLoad} busy={disabled}>
-        More register entries could not be loaded. The list is incomplete.
-      </LoadError>
-    );
-  return more.hasMore ? (
-    <Action
-      label={more.loading ? 'Loading register entries…' : 'Load more register entries'}
-      disabled={disabled || more.loading}
-      onPress={() => void more.onLoad()}
-    />
-  ) : null;
 }
 
 function CertificateFilters({

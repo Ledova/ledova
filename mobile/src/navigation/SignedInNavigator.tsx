@@ -12,6 +12,8 @@ import { CompanyPackScreen } from '../screens/documents/CompanyPackScreen';
 import { InspectionCopiesScreen } from '../screens/documents/InspectionCopiesScreen';
 import { DashboardScreen } from '../screens/holdings/DashboardScreen';
 import { InvitationScreen } from '../screens/holdings/InvitationScreen';
+import { CorrectionPreparationScreen } from '../screens/ledger/CorrectionPreparationScreen';
+import { CorrectionsScreen } from '../screens/ledger/CorrectionsScreen';
 import { IssueSharesScreen } from '../screens/ledger/IssueSharesScreen';
 import { LedgerScreen } from '../screens/ledger/LedgerScreen';
 import { ShareClassScreen } from '../screens/ledger/ShareClassScreen';
@@ -38,6 +40,8 @@ export type SignedInStackParamList = {
   IssueShares: { company: string; token: string; member?: string; award?: string; record?: string } | undefined;
   TransferShares: { company: string; token: string; record?: string; outcome?: string } | undefined;
   TransferPreparation: { company: string; token: string; fromMember?: string };
+  Corrections: { company: string; token: string; record?: string; outcome?: string } | undefined;
+  CorrectionPreparation: { company: string; token: string; entry: string };
   Shareholders: undefined;
   Shareholder: { company: string; member: string; outcome?: string };
   ShareholderParticulars: { company: string; member: string };
@@ -94,6 +98,12 @@ export function SignedInNavigator() {
             <Stack.Screen name="IssueShares" component={IssueSharesScreen} options={topBar('Ledger')} />
             <Stack.Screen name="TransferShares" component={TransferSharesScreen} options={topBar('Ledger')} />
             <Stack.Screen name="TransferPreparation" component={TransferPreparationScreen} options={topBar('Ledger')} />
+            <Stack.Screen name="Corrections" component={CorrectionsScreen} options={topBar('Ledger')} />
+            <Stack.Screen
+              name="CorrectionPreparation"
+              component={CorrectionPreparationScreen}
+              options={topBar('Ledger')}
+            />
             <Stack.Screen name="Shareholders" component={ShareholdersScreen} options={topBar('Shareholders')} />
             <Stack.Screen name="Shareholder" component={ShareholderScreen} options={topBar('Shareholders')} />
             <Stack.Screen
