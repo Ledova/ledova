@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { READ_TIMING, type OrderSubmissionOwner, type OwnCompanyAppointment } from '@ledova/shared';
-import { entriesKey, readClassEntry } from '@pages/company/ledger/shared/useRegisterEntries';
+import { READ_TIMING, entriesKey, type OrderSubmissionOwner, type OwnCompanyAppointment } from '@ledova/shared';
+import { readClassEntry } from '@pages/company/ledger/shared/useRegisterEntries';
 
 export function useCorrectionEntry(
   owner: OrderSubmissionOwner,

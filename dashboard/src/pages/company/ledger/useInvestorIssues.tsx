@@ -18,9 +18,9 @@ import {
   registerSteps,
   allotmentsKey,
   useRegisterAllotments,
+  entriesKey,
 } from '@ledova/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';

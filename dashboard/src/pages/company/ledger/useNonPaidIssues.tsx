@@ -19,11 +19,11 @@ import {
   useRegisterAward,
   useRegisterGrants,
   registerSteps,
+  entriesKey,
 } from '@ledova/shared';
 
 import { GrantForm } from './GrantForm';
 import { GrantRecord } from './GrantRecord';
-import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { LoadError, Loading } from '@components/Ledger';
 
 export function useNonPaidIssues({

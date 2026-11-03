@@ -77,7 +77,7 @@ export { useUserProfile } from './useUserProfile';
 export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
 export { readRegister, registersKey, registersQuery, useRegisters } from './useRegisters';
 export { allPeopleKey, peopleKey, readPeople, usePeople } from './usePeople';
-export { registerEntriesKey, useShareholder } from './useShareholder';
+export { entriesKey, registerEntriesKey, useShareholder } from './useShareholder';
 export { usePersonRegistration } from './usePersonRegistration';
 export { INVITATION_FIELDS, useMemberAccessForm } from './useMemberAccessForm';
 export { particularsKey, useParticularsEdit } from './useParticularsEdit';
