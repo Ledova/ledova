@@ -39,10 +39,13 @@ folder names, with relative imports and no path aliases:
 Shared register UI (fields and document sharing) lives in `components/register`, and its styles in
 `hooks/`. The signed-in member records state is a context
 (`mobile/src/contexts/MemberRecordsContext.tsx`), with its notices and pull to refresh in
-`mobile/src/components/MemberRecords.tsx`. Production screens import no other area's internals.
+`mobile/src/components/MemberRecords.tsx`, and the account check and company notice that several
+areas show (`AccountCheck.tsx`, `CompanyContextNotice.tsx`) in `components/`. Production screens
+import no other area's internals.
 Profile, operator, member, company list, appointment and company ownership reads, Team's reads
-and forms, Activation's company read and confirmation, and representative authority's reads, actions
-and request form live in `packages/shared`, with native session, result and transport policies kept
+and forms, Activation's company read and confirmation, representative authority's reads, actions
+and request form, and Documents' class source, certificate records, preparations and prepared
+outputs live in `packages/shared`, with native session, result and transport policies kept
 in the client: the app passes its session to each shared read and request.
 
 ### Shared package resolution
@@ -81,12 +84,14 @@ The menu (`AppMenu`) slides in from the left like the
 web's phone drawer, 208 points wide: Dashboard, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
-loses focus, and it marks the section the page belongs to: Documents for Certificates, Settings for
-Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like the web's
-sidebar, it marks Team on Representative authority and its requests. Choosing Dashboard returns to it.
-Documents opens Certificates and Settings opens Profile. Documents is one link, as the web shows a
-member, and like the web's groups Settings' caret shows its pages beneath it, open while one of them
-is shown: Profile, Account and Data and privacy, then Team when the selected company's `canManage`
+loses focus, and it marks the section the page belongs to: Documents for Certificates, Inspection
+copies and Company pack, Settings for Profile, Account, Data and privacy, Team and Activation,
+Dashboard for Invitation. Like the web's sidebar, it marks Team on Representative authority and its
+requests. Choosing Dashboard returns to it. Documents opens Certificates and Settings opens Profile.
+Like the web's groups, a caret shows a group's pages beneath it, open while one of them is shown.
+Documents lists Certificates, Inspection copies and Company pack when the selected company's
+`canReadRegister` allows it, as the web's sidebar does, and is otherwise one link to Certificates.
+Settings lists Profile, Account and Data and privacy, then Team when the selected company's `canManage`
 allows it, and Activation after it when the person also has a current own appointment with `admin`
 (the shared `hasCurrentAdminAppointment`) or Activation is shown, as on the web. On a Settings page
 the menu doesn't list,
@@ -124,12 +129,39 @@ pasted invitation link or its code (the text after the last `#`, trimmed), previ
 company, the recorded shareholder, the invited email and the deadline, and accepts it through the
 member-records state, reporting acceptance only once the server does. Documents, and a class's
 **Certificates**, open the selected company's Certificates page
-(`mobile/src/screens/documents/CertificatesScreen.tsx`), the web's: the member's own entries in one
-share class, newest first. For a member with more than one class, Filters opens the web's panel under its
-button (`FilterPopover`) with Share class and Apply. Each record shows the shareholder and change,
-the entry and its date (and ledger date), with no action. A class the member is not recorded in says
-so, as does a company that has no member record for the person, whose company certificate records
-stay on the web; a failed read offers Try again.
+(`mobile/src/screens/documents/CertificatesScreen.tsx`), the web's. For a company whose register the
+person may read (`canReadRegister`) it is the web's company view (`CompanyCertificates.tsx`), read
+through the shared `useCompanyCertificates` with the app's session and no member record: Certificate
+records for one share class, each issue or transfer newest first with its shareholders and changes,
+kind, class and entry, date (and ledger date) and **Certificate:** Can prepare or None due, the entry
+was reversed, and **Prepare certificate** at the row's end. Filters holds the web's drafts, Share class
+when there is more than one, Shareholder and Certificate status, with **Clear**, which keeps the class,
+and **Apply**; the server filters the whole history before paging, and **Load more register entries**
+reads the next page, a failed one leaving the list marked incomplete. **Prepare certificate** opens the
+web's form in its row, hiding the other rows and holding the filters (`ClassCertificate.tsx`, through
+the shared `useClassCertificate`): the share movements, company date, entry, ledger date and
+recording time, **Preview**, which adds the PDF's page count, then **Download PDF**, which shares the
+unsigned certificate ([document view copies](#document-view-copies)). For anyone else it is the member's own
+entries in one share class, newest first. For a member with more than one class, Filters opens the
+web's panel under its button (`FilterPopover`) with Share class and Apply. Each record shows the
+shareholder and change, the entry and its date (and ledger date), with no action. A class the member
+is not recorded in says so, as does a company that records neither register access nor a member
+record for the person; a failed read offers Try again.
+Inspection copies (`InspectionCopiesScreen.tsx`) is the web's page for a register reader of the
+selected company: the selected class's name, with **Share class** in Filters when there is more than
+one, then the Inspection copy card read through the shared `useClassRegister`,
+`useInspectionCopies` and `useClassInspectionCopy`: Prepared copies (each recipient, request date,
+any late delivery, who prepared it and when, and the instruction), then **Prepare inspection copy**,
+which opens the web's form beneath them. Its request date is typed as `YYYY-MM-DD` (Sydney), starting
+at today; **Preview inspection copy** shows the request's rows and **Confirm and download inspection
+copy** shares the CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack card, through
+the shared `useCompanyPackAuthority`, `useCompanyPacks` and `useCompanyPack`: for a current
+administrator, Prepared packs and **Prepare company pack**, whose form takes the instruction and
+recipient, keeps the web's included records and limitations behind **Show included records and
+limitations** and shares the ZIP; for any other register reader, the web's notice that administration
+is required. Both pages show the web's loading, failure and empty states, and without register access
+for the selected company they read nothing and point to Dashboard. Pulling down rereads Certificates,
+Inspection copies or Company pack while no preparation is open.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
 Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form
@@ -317,8 +349,11 @@ A representative authority request's evidence is picked with `expo-file-system`'
 (`File.pickFileAsync`), so no picker module returns. On iOS it hands over a copy in the temporary
 folder's `-Inbox` folder, deleted when another file replaces it, the form goes (its request recorded
 or the page left) or the session changes; a closed form keeps it with its draft. On Android it hands
-over the chosen document itself, which the app never deletes, named from its address or, without a
-name there, `document` with its type's extension.
+over the chosen document itself, which the app never deletes, named from its address. As on the web,
+a file whose name ends in a PDF, PNG or JPEG extension that doesn't match its type is refused. Any
+other name, with no extension, as Android's names from an address usually are, or ending in something
+else, such as `Payslip 04.11.2026`, becomes `document` with its type's extension from the shared
+`UPLOAD_TYPES` (`uploadType` reads the extension).
 
 For one release, each app start and session change still delete the copies an earlier build's
 picker and uploads left behind (`sweepEarlierUploadCopies` in
@@ -333,7 +368,17 @@ release after that removes it.
 Viewing a document downloads it into the app-owned `ledova-document-views-v1` cache directory and
 hands the copy to the share sheet (`shareDocumentCopy`). Data and privacy shares the
 [account-data export](records.md#account-data-export) this way, as one JSON copy, and a
-representative authority request's page its evidence, under its original file name.
+representative authority request's page its evidence, under its original file name. Documents'
+unsigned certificate, inspection copy and company pack arrive as bytes, through `SHARE_SHEET_FILES`
+in `mobile/src/services/documentCopies.ts`, the app's file delivery for the shared output hooks
+([downloads](frontend.md#client-sessions-and-caches)): checked as on the web, by the response's
+content type, since React Native's Android blobs carry none, and shared under the web's file name.
+Documents' outputs and the authority evidence, shared from their pages, go through `shareFile`: a
+sheet that fails to open reports the failure, and one still open after 1.5 seconds counts as
+delivered, because iOS never settles a cancelled Save to Files. Data and privacy's export instead
+waits for its sheet to close (`Sharing.shareAsync`): the sheet is presented from the export's dialog,
+a native modal that closes once the export succeeds and would dismiss the sheet with it, so on iOS a
+cancelled Save to Files leaves that dialog busy.
 
 A view is bound to the session current when tapped: its download carries that epoch
 ([session scope](#session-scope)), and a session change before the write stops it without an alert.

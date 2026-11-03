@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react';
 import {
+  CERTIFICATE_STATES,
   REGISTER_CORRECTION_COPY,
   certificateStatus,
   formatDate,
+  isCertificateEntry,
   shareChange,
-  type CertificateStatus,
+  type CertificateFilterValues,
   type OrderSubmissionOwner,
   type OwnMemberEntry,
   type OwnMemberRecord,
@@ -14,7 +16,6 @@ import {
 } from '@ledova/shared';
 import { LoadMore, TABLE_SCROLL_CLASS, TABLE_HEADER_CLASS } from '@components/List';
 import { ClassCertificate } from './ClassCertificate';
-import type { CertificateFilterValues } from './useCompanyCertificates';
 
 export type CertificateClass = Pick<OwnMemberRecord['classes'][number], 'uuid' | 'name' | 'symbol'>;
 export type CompanyCertificateSource = {
@@ -32,10 +33,6 @@ type CertificateRecord = { uuid: string; company?: RegisterEntry; own?: OwnMembe
 const COMPANY_COLUMNS =
   'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_10rem]';
 const OWN_COLUMNS = 'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]';
-const CERTIFICATE_STATES: Record<Exclude<CertificateStatus, 'all'>, string> = {
-  can_prepare: 'Can prepare',
-  reversed: 'None due, the entry was reversed',
-};
 
 export function CertificateRecords({
   selectedClass,
@@ -59,12 +56,7 @@ export function CertificateRecords({
     [onEditingChange],
   );
   const records: CertificateRecord[] = company
-    ? company.entries
-        .filter(
-          (entry) =>
-            ['issue', 'transfer'].includes(entry.kind) && Number.isSafeInteger(entry.sequence) && entry.sequence > 0,
-        )
-        .map((entry) => ({ uuid: entry.uuid, company: entry }))
+    ? company.entries.filter(isCertificateEntry).map((entry) => ({ uuid: entry.uuid, company: entry }))
     : (own?.entries ?? []).map((entry) => ({ uuid: entry.uuid, own: entry }));
   const ordered = records.sort((a, b) =>
     (b.company?.recordedAt ?? b.own?.createdAt ?? '').localeCompare(a.company?.recordedAt ?? a.own?.createdAt ?? ''),

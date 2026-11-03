@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { FIELD_LIMITS, failureSentence, formatDate } from '@ledova/shared';
-import { Action, Actions, Fact, FormActions, Rows, Section, Status } from '../../components/Ledger';
+import { Action, Actions, Fact, FormActions, Outcome, Rows, Section } from '../../components/Ledger';
 import { Field } from '../../components/register/RegisterFields';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -60,11 +60,7 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
             {!isEditing && <Fact label="Address">{userProfile.residentialAddress || 'Not provided'}</Fact>}
             <Fact label="Citizenship">{userProfile.citizenshipCountryName || 'Not provided'}</Fact>
           </Rows>
-          {savedFor !== null && savedFor === ownerKey && (
-            <View accessibilityLiveRegion="polite">
-              <Status tone="done">Your personal details were saved.</Status>
-            </View>
-          )}
+          {savedFor !== null && savedFor === ownerKey && <Outcome>Your personal details were saved.</Outcome>}
           {!isEditing && (
             <FormActions>
               <Action

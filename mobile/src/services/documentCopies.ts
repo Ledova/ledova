@@ -1,15 +1,11 @@
 import { Platform } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
-import { uploadType } from '@ledova/shared';
+import * as Sharing from 'expo-sharing';
+import { UPLOAD_TYPES, uploadType, type FileDelivery } from '@ledova/shared';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from './sessionScope';
 
 const PICKER_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9_-]{0,32})?$/i;
 const PICKING_CANCELLED = ['ERR_FILE_PICKING_CANCELLED', 'ERR_PICKER_CANCELLED'];
-const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': '.pdf',
-  'image/png': '.png',
-  'image/jpeg': '.jpg',
-};
 const picked = new Set<string>();
 let viewing: number | undefined;
 
@@ -103,6 +99,24 @@ async function writeViewCopy(
   return { uri: copy.uri, type };
 }
 
+const SHARE_HANDOVER_MS = 1500;
+
+export async function shareFile(uri: string, options: Sharing.SharingOptions): Promise<void> {
+  const sharing = Sharing.shareAsync(uri, options);
+  sharing.catch(() => undefined);
+  let handover: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      sharing,
+      new Promise<void>((resolve) => {
+        handover = setTimeout(resolve, SHARE_HANDOVER_MS);
+      }),
+    ]);
+  } finally {
+    clearTimeout(handover);
+  }
+}
+
 export async function shareDocumentCopy(
   sessionEpoch: number,
   download: () => Promise<DocumentView>,
@@ -136,10 +150,25 @@ export async function pickDocument(): Promise<PickedDocument | null> {
     return null;
   }
   const type = file.type ?? '';
+  const extension = Object.keys(UPLOAD_TYPES).find((key) => UPLOAD_TYPES[key] === type) ?? '';
   return {
     uri: file.uri,
-    name: uploadType(file.name) === type ? file.name : `document${EXTENSION_BY_MIME_TYPE[type] ?? ''}`,
+    name: uploadType(file.name) ? file.name : `document${extension}`,
     type,
     size: file.size ?? 0,
   };
 }
+
+export const SHARE_SHEET_FILES: FileDelivery = {
+  responseType: 'arraybuffer',
+  save: async (data, name, type) => {
+    if (!(data instanceof ArrayBuffer)) throw new Error('The file could not be read.');
+    const sessionEpoch = getSessionEpoch();
+    if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing is not available on this device.');
+    await shareDocumentCopy(
+      sessionEpoch,
+      async () => ({ name, type, bytes: new Uint8Array(data) }),
+      (uri, mimeType) => shareFile(uri, { mimeType }),
+    );
+  },
+};

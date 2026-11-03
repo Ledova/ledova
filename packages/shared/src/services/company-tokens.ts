@@ -61,10 +61,15 @@ export const createRegisterInspectionCopy = (
   data: RegisterInspectionRequest,
   config: AxiosRequestConfig = {},
 ) =>
-  apiClient.post<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), data, {
-    ...config,
-    responseType: 'blob',
-  });
+  config.responseType === 'arraybuffer'
+    ? apiClient.post<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), data, {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.post<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_INSPECTION_COPY(uuid), data, {
+        ...config,
+        responseType: 'blob',
+      });
 
 export const getRegisterCertificatePreview = (
   apiClient: AxiosInstance,
@@ -82,4 +87,12 @@ export const createRegisterCertificate = (
   data: RegisterCertificateRequest,
   config: AxiosRequestConfig = {},
 ) =>
-  apiClient.post<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_CERTIFICATE(uuid), data, { ...config, responseType: 'blob' });
+  config.responseType === 'arraybuffer'
+    ? apiClient.post<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_CERTIFICATE(uuid), data, {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.post<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_CERTIFICATE(uuid), data, {
+        ...config,
+        responseType: 'blob',
+      });

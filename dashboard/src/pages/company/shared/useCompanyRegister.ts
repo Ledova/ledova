@@ -6,9 +6,9 @@ import {
   READ_TIMING,
   registerHoldersKey,
   useOwnAppointments,
+  useRegisterClasses,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { useRegisterClasses } from '@hooks/useRegisterClasses';
 
 export async function readRegister(uuid: string, guard: () => void) {
   guard();

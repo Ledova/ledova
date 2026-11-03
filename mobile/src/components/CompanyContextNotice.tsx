@@ -1,9 +1,9 @@
 import { Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMemberRecordsState, useThemedStyles } from '../../contexts';
-import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
+import { useMemberRecordsState, useThemedStyles } from '../contexts';
+import { useCompanyStyles } from '../hooks/useCompanyStyles';
+import type { SignedInStackParamList } from '../navigation/SignedInNavigator';
 
 export function CompanyContextNotice() {
   const styles = useCompanyStyles();

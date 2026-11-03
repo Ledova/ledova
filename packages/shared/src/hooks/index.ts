@@ -63,6 +63,15 @@ export {
   registerKey,
   useCompanyOwnership,
 } from './useCompanyOwnership';
+export { useRegisterClasses } from './useRegisterClasses';
+export { useClassRegister } from './useClassRegister';
+export { useCompanyCertificates } from './useCompanyCertificates';
+export type { CertificateFilterValues } from './useCompanyCertificates';
+export { useClassCertificate } from './useClassCertificate';
+export type { ClassCertificateSource } from './useClassCertificate';
+export { useClassInspectionCopy } from './useClassInspectionCopy';
+export { useCompanyPack, useCompanyPackAuthority } from './useCompanyPack';
+export { companyPacksKey, inspectionCopiesKey, useCompanyPacks, useInspectionCopies } from './useOutputHistory';
 
 export { useUserProfile } from './useUserProfile';
 export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';

@@ -94,7 +94,15 @@ export { isPreparedRegisterTransfer } from './register-transfers';
 export { ownershipSummary } from './register-ownership';
 export { hasWholeShares, wholeShares } from './share-quantities';
 export { ownershipColorIndex, ownershipView, rankOwnershipClasses, type OwnershipClass } from './memberOwnership';
-export { CERTIFICATE_STATUSES, certificateStatus, type CertificateStatus } from './certificateRecords';
+export {
+  CERTIFICATE_STATES,
+  CERTIFICATE_STATUSES,
+  canPrepareCertificate,
+  certificateStatus,
+  isCertificateEntry,
+  type CertificateStatus,
+} from './certificateRecords';
+export type { FileDelivery } from './downloads';
 export { parseTheme } from './theme';
 
 export {

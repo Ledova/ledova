@@ -1,16 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import {
-  createRegisterInspectionCopy,
-  isCalendarDate,
-  sydneyToday,
-  getRegisterInspectionPreview,
-  type RegisterInspectionPreview,
-  type RegisterInspectionRequest,
-  type TokenHoldersResponse,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { saveFile } from '@utils/saveFile';
+import { createRegisterInspectionCopy, getRegisterInspectionPreview } from '../services/company-tokens';
+import type { RegisterInspectionPreview, RegisterInspectionRequest, TokenHoldersResponse } from '../types';
+import { isCalendarDate, sydneyToday } from '../utils/date';
+import { downloadedFile, type FileDelivery } from '../utils/downloads';
+import { useApiClient } from './useApiClient';
+import { hasProblems, type Problems } from './useErrorSummary';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 
 type Draft = { instruction: string; recipient: string; requestedOn: string };
 
@@ -21,12 +16,17 @@ export function useClassInspectionCopy({
   guard,
   sourceReady,
   onDownloaded,
+  files,
+  session,
 }: {
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady: boolean;
   onDownloaded?: () => void;
+  files: FileDelivery;
+  session?: OrderSubmissionSession;
 }) {
+  const apiClient = useApiClient();
   const today = sydneyToday();
   const [draft, setDraft] = useState<Draft>({ instruction: '', recipient: '', requestedOn: today });
   const [target, setTarget] = useState<Target | null>(null);
@@ -74,6 +74,7 @@ export function useClassInspectionCopy({
     try {
       assertCurrent(controller);
       const { data } = await getRegisterInspectionPreview(apiClient, register.token.uuid, {
+        ...session?.requestConfig(),
         signal: controller.signal,
         ledovaSubmissionGuard: () => assertCurrent(controller),
       });
@@ -109,14 +110,20 @@ export function useClassInspectionCopy({
     setError('');
     try {
       assertCurrent(controller);
-      const { data } = await createRegisterInspectionCopy(apiClient, register.token.uuid, target.request, {
+      const response = await createRegisterInspectionCopy(apiClient, register.token.uuid, target.request, {
+        ...session?.requestConfig(),
+        responseType: files.responseType ?? 'blob',
         signal: controller.signal,
         ledovaSubmissionGuard: () => assertCurrent(controller),
       });
       assertCurrent(controller);
-      if (!(data instanceof Blob) || !/^text\/csv(?:;|$)/.test(data.type))
-        throw new Error('The inspection copy could not be confirmed.');
-      saveFile(data, `register-${register.token.symbol ?? register.token.uuid}-inspection-copy.csv`);
+      const file = downloadedFile(response);
+      if (!file || !/^text\/csv(?:;|$)/.test(file.type)) throw new Error('The inspection copy could not be confirmed.');
+      await files.save(
+        file.data,
+        `register-${register.token.symbol ?? register.token.uuid}-inspection-copy.csv`,
+        file.type,
+      );
       setTarget(null);
       setDownloaded(true);
       onDownloaded?.();

@@ -1,19 +1,24 @@
-import { formatDate, formatDateTime, formatRegisterChanges } from '@ledova/shared';
+import {
+  canPrepareCertificate,
+  formatDate,
+  formatDateTime,
+  formatRegisterChanges,
+  useClassCertificate,
+  type ClassCertificateSource,
+} from '@ledova/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Outcome, Row, Rows, Failure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
-import { useClassCertificate, type Source } from './useClassCertificate';
+import { BROWSER_FILES } from '@utils/saveFile';
 
 type Editing = { onEditingChange?: (entry: string, open: boolean) => void };
 
-export function ClassCertificate({ sourceKey, onEditingChange, ...source }: Source & Editing & { sourceKey: string }) {
-  if (
-    !['issue', 'transfer'].includes(source.entry.kind) ||
-    source.entry.correctedBy ||
-    !Number.isSafeInteger(source.entry.sequence) ||
-    source.entry.sequence < 1
-  )
-    return null;
+export function ClassCertificate({
+  sourceKey,
+  onEditingChange,
+  ...source
+}: ClassCertificateSource & Editing & { sourceKey: string }) {
+  if (!canPrepareCertificate(source.entry)) return null;
   return (
     <CertificateRequest
       key={JSON.stringify([source.register, source.entry, sourceKey, source.sourceReady])}
@@ -23,7 +28,7 @@ export function ClassCertificate({ sourceKey, onEditingChange, ...source }: Sour
   );
 }
 
-function CertificateRequest({ onEditingChange, ...source }: Source & Editing) {
+function CertificateRequest({ onEditingChange, ...source }: ClassCertificateSource & Editing) {
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
@@ -56,7 +61,13 @@ function CertificateRequest({ onEditingChange, ...source }: Source & Editing) {
   );
 }
 
-function CertificateForm({ register, entry, guard, sourceReady, close }: Source & { close: () => void }) {
+function CertificateForm({
+  register,
+  entry,
+  guard,
+  sourceReady,
+  close,
+}: ClassCertificateSource & { close: () => void }) {
   const previewButton = useRef<HTMLButtonElement>(null);
   useEffect(() => previewButton.current?.focus(), []);
   const { target, busy, error, downloaded, blocked, preview, download } = useClassCertificate({
@@ -64,6 +75,7 @@ function CertificateForm({ register, entry, guard, sourceReady, close }: Source 
     entry,
     guard,
     sourceReady,
+    files: BROWSER_FILES,
   });
   const context = `unsigned certificate for entry ${entry.sequence}`;
   return (

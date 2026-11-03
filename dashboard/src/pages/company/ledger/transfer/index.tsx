@@ -12,11 +12,11 @@ import {
   type OrderSubmissionOwner,
   peopleFrom,
   useOwnAppointments,
+  useRegisterClasses,
 } from '@ledova/shared';
 import { Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { usePeople } from '@pages/company/ledger/shared/usePeople';
 import { TransferForm } from './TransferForm';

@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { Field, TextInput } from '@components/Field';
-import { FIELD_LIMITS, type OrderSubmissionOwner, type TokenHoldersResponse, formatDate } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  inspectionCopiesKey,
+  useClassInspectionCopy,
+  type OrderSubmissionOwner,
+  type TokenHoldersResponse,
+  formatDate,
+} from '@ledova/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { Outcome, Row, Rows, Failure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { useClassInspectionCopy } from './useClassInspectionCopy';
+import { BROWSER_FILES } from '@utils/saveFile';
 import { InspectionCopyHistory } from './OutputHistory';
-import { inspectionCopiesKey } from './useOutputHistory';
 
 export function ClassInspectionCopy({
   owner,
@@ -62,7 +68,7 @@ function InspectionForm({
     return () => onEditingChange?.(editingKey, false);
   }, [editingKey, onEditingChange, open]);
   const { today, draft, setDraft, target, setTarget, busy, error, downloaded, problems, blocked, preview, download } =
-    useClassInspectionCopy({ register, guard, sourceReady, onDownloaded: onPrepared });
+    useClassInspectionCopy({ register, guard, sourceReady, onDownloaded: onPrepared, files: BROWSER_FILES });
   const checks = useErrorSummary(problems);
   useEffect(() => {
     if (open) (target ? heading.current : firstField.current)?.focus();

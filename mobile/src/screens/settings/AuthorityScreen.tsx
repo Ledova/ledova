@@ -22,14 +22,14 @@ import {
   Section,
   Status,
 } from '../../components/Ledger';
+import { AccountCheck } from '../../components/AccountCheck';
+import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Page } from '../../components/Page';
 import { useAppTheme, useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { AccountCheck } from './AccountCheck';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
-import { CompanyContextNotice } from './CompanyContextNotice';
 
 const TITLE = 'Representative authority';
 
