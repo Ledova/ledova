@@ -22,10 +22,10 @@ function useStyles() {
       overflow: 'hidden' as const,
       backgroundColor: theme.colors.surface.tertiary,
     },
-    part: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.sm },
-    swatch: { width: 10, height: 10, borderRadius: 2 },
-    label: { flex: 1, fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
-    quantity: { fontFamily: theme.fontFamily.medium, fontSize: 14, color: theme.colors.text.primary },
+    term: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.sm },
+    swatch: { width: 10, height: 10, borderRadius: 4 },
+    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.muted },
+    quantity: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
     unvested: { backgroundColor: theme.colors.text.muted, opacity: 0.35 },
     available: { backgroundColor: theme.colors.brand.mid, opacity: 0.45 },
     issued: { backgroundColor: theme.colors.brand.mid },
@@ -70,18 +70,17 @@ export function AwardStatus({ award }: { award: Award }) {
       {parts
         .filter((part) => part.quantity > 0n)
         .map((part) => (
-          <View
-            key={part.label}
-            accessible
-            accessibilityLabel={`${part.label}: ${shareCount(String(part.quantity))}`}
-            style={styles.part}
-          >
-            <View style={[styles.swatch, part.look]} />
-            <Text style={styles.label}>{part.label}</Text>
+          <View key={part.label} accessible accessibilityLabel={`${part.label}: ${shareCount(String(part.quantity))}`}>
+            <View style={styles.term}>
+              <View style={[styles.swatch, part.look]} />
+              <Text style={styles.label}>{part.label}</Text>
+            </View>
             <Text style={styles.quantity}>{shareCount(String(part.quantity))}</Text>
           </View>
         ))}
-      <Text style={styles.note}>Issued award shares are already included in the holding.</Text>
+      {BigInt(award.issuedShares) > 0n && (
+        <Text style={styles.note}>Issued award shares are already included in the holding.</Text>
+      )}
     </View>
   );
 }

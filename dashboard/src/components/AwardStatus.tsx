@@ -43,6 +43,11 @@ export function AwardStatus({
     { label: COPY.ENDED_VESTED, quantity: BigInt(endedVestedShares), look: 'bg-text-muted/70' },
   ];
   const shown = parts.filter((part) => part.quantity > 0n);
+  const notes = [
+    !compact &&
+      `${shareCount(remainingUnissuedShares)} ${remainingUnissuedShares === '1' ? 'remains' : 'remain'} unissued.`,
+    BigInt(issuedShares) > 0n && 'Issued award shares are already included in the holding.',
+  ].filter(Boolean);
   return (
     <div className="space-y-3">
       <p className="text-sm text-text-muted">
@@ -74,11 +79,7 @@ export function AwardStatus({
           </div>
         ))}
       </dl>
-      <p className="text-xs text-text-muted">
-        {!compact &&
-          `${shareCount(remainingUnissuedShares)} ${remainingUnissuedShares === '1' ? 'remains' : 'remain'} unissued. `}
-        Issued award shares are already included in the holding.
-      </p>
+      {notes.length > 0 && <p className="text-xs text-text-muted">{notes.join(' ')}</p>}
     </div>
   );
 }
