@@ -15,14 +15,14 @@ import {
   type UserFriendlyError,
 } from '@ledova/shared';
 import { Action, Actions, Fact, FormActions, Rows, Section } from '../../components/Ledger';
+import { MemberNotice } from '../../components/MemberRecords';
 import { Page } from '../../components/Page';
 import { Field } from '../../components/register/RegisterFields';
-import { useThemedStyles } from '../../contexts';
+import { useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { apiClient } from '../../services/apiClient';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { MemberNotice, useMemberRecordsState } from './MemberRecordsProvider';
 
 export function InvitationScreen() {
   const styles = useCompanyStyles();

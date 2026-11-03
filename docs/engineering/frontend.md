@@ -875,6 +875,16 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   unreadable holding and a correction lookup answering with entries it was not asked for fail the
   read. Each repeated control is named for screen readers after its visible label and its entry or
   proposal.
+- Team (`dashboard/src/pages/company/team`, and the app's Team screen,
+  [navigation](mobile.md#navigation)): `packages/shared/src/hooks/useCompanyTeam.ts` reads the
+  person's appointments, the selected company's team and the invitations they issued, under keys that
+  carry the owner (`ownAppointmentsKey`, `companyTeamKey`, `teamInvitationsKey`), and holds the owner
+  guard, the revocation and its confirmation. `useAcceptInvitationForm` and `useTeamInvitationForm`
+  beside it send an acceptance and an invitation, and `packages/shared/src/utils/appointments.ts`
+  holds the appointment helpers both clients render with. Each client passes the selected company:
+  the web from its company context (or the address's `company` without one), and the app from its
+  company list, with its session and Expo Crypto's `randomUUID` for invitation keys. The web's date
+  fields add `useIncompleteDates`.
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
   personal and company sections, keeping each editor's data and authority separate. Account's

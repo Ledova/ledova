@@ -4,17 +4,14 @@ import {
   formatDateTime,
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
+  APPOINTMENT_SOURCE_LABELS,
   APPOINTMENT_STATUS_LABELS,
+  currentAppointment,
+  delegationLabel,
+  scopeLabels,
 } from '@ledova/shared';
 import { MoreToggle } from '@components/Ledger';
 import { PageAction } from '@components/Page';
-import { currentAppointment, delegationLabel, scopeLabels } from '@pages/company/shared/appointments';
-
-const SOURCES: Record<(OwnCompanyAppointment | CompanyTeamAppointment)['source'], string> = {
-  initial: 'Initial self-declaration',
-  invitation: 'Company invitation',
-  legacy_owner: 'Legacy company owner',
-};
 
 export function AppointmentRecord({
   appointment,
@@ -73,7 +70,7 @@ export function AppointmentRecord({
           )}
         </p>
         <p>
-          {SOURCES[appointment.source]} ·{' '}
+          {APPOINTMENT_SOURCE_LABELS[appointment.source]} ·{' '}
           <span className="whitespace-nowrap">{formatDateTime(appointment.createdAt)}</span>
         </p>
       </div>

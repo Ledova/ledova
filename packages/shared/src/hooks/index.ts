@@ -49,6 +49,9 @@ export { useCompanyMemberAccess } from './useCompanyMemberAccess';
 export { SIGNUP_AUTHORITY_QUERY_KEY } from './useSignupCompanyAuthority';
 
 export { OWN_APPOINTMENTS_QUERY_KEY, ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
+export { companyTeamKey, teamInvitationsKey, useCompanyTeam } from './useCompanyTeam';
+export { useTeamInvitationForm } from './useTeamInvitationForm';
+export { useAcceptInvitationForm } from './useAcceptInvitationForm';
 export { ownershipCompaniesKey, useOwnershipCompanies } from './useOwnershipCompanies';
 export type { OwnershipCompany } from './useOwnershipCompanies';
 export {

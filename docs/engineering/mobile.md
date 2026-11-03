@@ -32,14 +32,17 @@ folder names, with relative imports and no path aliases:
 | `navigation/`         | `routes/` and the frame | The root stack, the sign-up gate and the signed-in frame                      |
 | `screens/<area>/`     | `pages/`                | An area's screens with their hooks and helpers                                |
 | `components/`         | `components/`           | `Page`, `Ledger` and groups such as `modal/` and `register/`                  |
-| `hooks/`, `contexts/` | `hooks/`                | App-wide hooks; the app-lock and theme contexts                               |
+| `hooks/`, `contexts/` | `hooks/`                | App-wide hooks; the app-lock, theme and member records contexts               |
 | `services/`           | `services/`             | `apiClient`, the session scope, token storage, document copies, notifications |
 | `config/`, `styles/`  |                         | Network policy and public links; the theme                                    |
 
 Shared register UI (fields and document sharing) lives in `components/register`, and its styles in
-`hooks/`. Production screens import no other area's internals. Profile, operator, member, company list,
-appointment and company ownership reads live in `packages/shared`, with native session, result and
-transport policies kept in the client: the app passes its session to each shared read.
+`hooks/`. The signed-in member records state is a context
+(`mobile/src/contexts/MemberRecordsContext.tsx`), with its notices and pull to refresh in
+`mobile/src/components/MemberRecords.tsx`. Production screens import no other area's internals.
+Profile, operator, member, company list, appointment and company ownership reads, and Team's reads
+and forms, live in `packages/shared`, with native session, result and transport policies kept in the
+client: the app passes its session to each shared read and request.
 
 ### Shared package resolution
 
@@ -78,10 +81,12 @@ web's phone drawer, 208 points wide: Dashboard, Documents and Settings, and a fo
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Documents for Certificates, Settings for
-Profile, Account and Data and privacy, Dashboard for Invitation. Choosing Dashboard returns to it.
+Profile, Account, Data and privacy and Team, Dashboard for Invitation. Choosing Dashboard returns to it.
 Documents opens Certificates and Settings opens Profile. Documents is one link, as the web shows a
 member, and like the web's groups Settings' caret shows its pages beneath it, Profile, Account and
-Data and privacy, open while one of them is shown. Every other choice opens
+Data and privacy, then Team when the selected company's `canManage` allows it, as on the web, open
+while one of them is shown. On a Settings page the menu doesn't list,
+such as Team opened from Account, Settings itself is marked. Every other choice opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
 (`Section`) use the web's phone sizes: 16-point margins and gaps, and cards with 16-point padding and
 corners under a 20-point title; the page's own title is the top bar's. Dashboard
@@ -121,22 +126,36 @@ button (`FilterPopover`) with Share class and Apply. Each record shows the share
 the entry and its date (and ledger date), with no action. A class the member is not recorded in says
 so, as does a company that has no member record for the person, whose company certificate records
 stay on the web; a failed read offers Try again.
-Settings has the web's three pages for a member
-(`mobile/src/screens/settings/index.tsx`). Profile, the `Settings` route, is the web's Personal
+Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`) and
+Team. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form
 in the card. Pulling down refreshes the profile. Account (`Account`) has the web's three cards. Security
 shows the identity check status from the profile (the app has no identity check flow, so there is no
 **Review**), **Change** for the password, and the app's biometric sign-in and App lock switches, with
 **Biometric security is not available on this device.** beneath them only where that applies; Account
 details shows member since and last login; and Invitations' **Shareholder invitation** row has
-**Accept**, which opens the Member invitation page. Its rows follow the web's: the label on the left, and its status, one action
+**Accept**, which opens the Member invitation page, and, as on the web, a **Company officer
+invitation** row for anyone who can't manage the selected company has **Accept**, which opens Team.
+Its rows follow the web's: the label on the left, and its status, one action
 or switch on the right. Data and privacy (`DataPrivacy`) has the same rows: Export data, whose **Export** saves or shares the
 file, and Delete account with **Delete**; a screen reader hears the row and then the action, named
 Export data or Delete account. The theme is the menu's switch. The pages share one state
-(`MemberRecordsProvider`) holding the company list, the selected company and the member records, so an
+(`MemberRecordsProvider`, in `contexts/`) holding the company list, the selected company and the member records, so an
 invitation acceptance whose outcome is uncertain stays recoverable,
 with its original code, after leaving the page, and the pages show a loading line rather than an
 empty one while the list rereads. Only the focused page selects its record and class.
+Team (`mobile/src/screens/settings/TeamScreen.tsx`, its forms in `TeamForms.tsx`) is the web's Team
+page at phone width, read and sent through the shared `useCompanyTeam`, `useAcceptInvitationForm`
+and `useTeamInvitationForm` with the selected company: Your appointments, **Accept a company
+invitation**, the company's Team, **Invite a company user** and Invitations you issued, with the
+web's rows, wording, loading, empty and failure states. The Team list is read only with a current
+own administration appointment for that company; otherwise it says that authority is required.
+Accepting and inviting replace the page with the web's inline form, which keeps its draft when
+closed; someone with no appointments who owns no company opens on accepting. The capabilities are
+checkboxes, the invitation deadline and appointment expiry are typed as `YYYY-MM-DD` (UTC) with the
+web's checks, and the one-time code shows once as selectable text to copy. **Revoke appointment**
+asks first in the web's dialog. Pulling down rereads the page while no form or revocation is open.
+The web's **Representative authority** is not in the app yet.
 A notification, tapped in that list or as a push, opens its screen: vested shares open Dashboard on
 the award's company (with its class, where the overview lists it) and issued shares Certificates for
 that class, each saying so when that company no longer records you. A certificate-ready notice sent

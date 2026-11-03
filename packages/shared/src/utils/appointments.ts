@@ -4,10 +4,8 @@ import {
   COMPANY_AUTHORITY_DECLARATION_VERSION,
   COMPANY_SIGNUP_DECLARATION,
   COMPANY_SIGNUP_DECLARATION_VERSION,
-  type CompanyCapability,
-  type CompanyTeamAppointment,
-  type OwnCompanyAppointment,
-} from '@ledova/shared';
+} from '../constants/business/company-authority';
+import type { CompanyCapability, CompanyTeamAppointment, OwnCompanyAppointment } from '../types';
 
 export function currentAppointment(appointment: OwnCompanyAppointment | CompanyTeamAppointment) {
   return (

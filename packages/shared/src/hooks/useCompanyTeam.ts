@@ -1,22 +1,14 @@
-import {
-  getCompanyTeam,
-  getCompanyTeamInvitations,
-  readEveryPage,
-  revokeCompanyAppointment,
-  USER_PREFERENCES_QUERY_KEY,
-  type CompanyTeamAppointment,
-  type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
-  failureSentence,
-  useOwnAppointments,
-  ownAppointmentsKey,
-} from '@ledova/shared';
-import { appointmentReceipt, currentAppointment, sameScope } from '@pages/company/shared/appointments';
-import apiClient from '@services/apiClient';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useCompanyContext } from '@hooks/useCompanyContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getCompanyTeam, getCompanyTeamInvitations, revokeCompanyAppointment } from '../services/company-authority';
+import type { CompanyTeamAppointment, OwnCompanyAppointment } from '../types';
+import { appointmentReceipt, currentAppointment, sameScope } from '../utils/appointments';
+import { failureSentence } from '../utils/errors';
+import { readEveryPage } from '../utils/pagination';
+import { useApiClient } from './useApiClient';
+import { ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
+import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 
 export function teamInvitationsKey(owner: OrderSubmissionOwner) {
   return ['company-team-invitations', owner.userUuid, owner.ownerAccountUuid];
@@ -29,12 +21,19 @@ export function companyTeamKey(owner: OrderSubmissionOwner, company: string) {
 export function useCompanyTeam({
   owner,
   currentOwner,
+  company: selected,
+  companyName: selectedName,
   editing = false,
+  session,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  company: string | null;
+  companyName?: string;
   editing?: boolean;
+  session?: OrderSubmissionSession;
 }) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
   const mounted = useRef(true);
   const guard = useCallback(() => {
@@ -47,9 +46,6 @@ export function useCompanyTeam({
   }, [client, currentOwner, owner]);
   const ownKey = ownAppointmentsKey(owner);
   const invitationKey = teamInvitationsKey(owner);
-  const location = useLocation();
-  const context = useCompanyContext();
-  const selectedCompany = new URLSearchParams(location.search).get('company');
   const [sourceId, setSourceId] = useState('');
   const [formBusy, setFormBusy] = useState(false);
   const [revoking, setRevoking] = useState(false);
@@ -70,7 +66,7 @@ export function useCompanyTeam({
     };
   }, []);
   const refreshReady = !editing && !formBusy && !revoking && !confirmation;
-  const own = useOwnAppointments(owner, guard, { queryKey: ownKey, timing: {}, enabled: refreshReady });
+  const own = useOwnAppointments(owner, guard, { queryKey: ownKey, timing: {}, enabled: refreshReady, session });
   const invitations = useQuery({
     queryKey: invitationKey,
     enabled: refreshReady,
@@ -79,16 +75,17 @@ export function useCompanyTeam({
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
-        const result = await getCompanyTeamInvitations(apiClient, page, { ledovaSubmissionGuard: guard });
+        const result = await getCompanyTeamInvitations(apiClient, page, {
+          ...session?.requestConfig(),
+          ledovaSubmissionGuard: guard,
+        });
         guard();
         return result;
       }),
   });
   const appointments = own.isError ? [] : (own.data ?? []);
   const companies = [...new Map(appointments.map((item) => [item.company, item.companyName])).entries()];
-  const company = context
-    ? (context.companyUuid ?? '')
-    : (selectedCompany ?? (companies.length === 1 ? companies[0][0] : ''));
+  const company = selected ?? (companies.length === 1 ? companies[0]?.[0] : undefined) ?? '';
   const sources = appointments.filter(
     (item) => item.company === company && currentAppointment(item) && item.delegatableCapabilities.length > 0,
   );
@@ -107,7 +104,10 @@ export function useCompanyTeam({
     refetchOnReconnect: false,
     queryFn: async () => {
       guard();
-      const result = await getCompanyTeam(apiClient, company, { ledovaSubmissionGuard: guard });
+      const result = await getCompanyTeam(apiClient, company, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: guard,
+      });
       guard();
       if (result.data.some((item) => item.company !== company))
         throw new Error('The company team outcome could not be confirmed.');
@@ -156,7 +156,10 @@ export function useCompanyTeam({
           throw new Error('Your company appointment changed. Check the current record before revoking it.');
       };
       check();
-      const { data } = await revokeCompanyAppointment(apiClient, target.uuid, { ledovaSubmissionGuard: check });
+      const { data } = await revokeCompanyAppointment(apiClient, target.uuid, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: check,
+      });
       guard();
       if (
         !appointmentReceipt(data) ||
@@ -219,7 +222,7 @@ export function useCompanyTeam({
     )
       throw new Error('Your company appointment changed. Reopen the invitation and select a current source.');
   };
-  const companyName = companies.find(([uuid]) => uuid === company)?.[1] ?? context?.company?.name ?? '';
+  const companyName = companies.find(([uuid]) => uuid === company)?.[1] ?? selectedName ?? '';
   return {
     guard,
     company,

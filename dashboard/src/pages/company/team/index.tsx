@@ -6,6 +6,7 @@ import { FormActions, Page, PageAction, PageLink } from '@components/Page';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   formatDate,
   useSubmissionOwner,
@@ -14,12 +15,14 @@ import {
   type OwnCompanyAppointment,
   formatDateTime,
   DESTINATIONS,
+  delegationLabel,
+  scopeLabels,
+  invitationOpen,
+  useCompanyTeam,
 } from '@ledova/shared';
-import { delegationLabel, scopeLabels, invitationOpen } from '@pages/company/shared/appointments';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
 import { AppointmentRecord } from './AppointmentRecord';
 import { TeamInvitationForm } from './TeamInvitationForm';
-import { useCompanyTeam } from './useCompanyTeam';
 import { AccountCheck } from '@components/AccountCheck';
 
 export default function CompanyTeamPage() {
@@ -43,6 +46,7 @@ function OwnTeam({
 }) {
   const settings = useSettingsNavigation();
   const context = useCompanyContext();
+  const location = useLocation();
   const [task, setTask] = useState<'accept' | 'invite' | null>(null);
   const [returnFocus, setReturnFocus] = useState<'accept' | 'invite' | null>(null);
   const [draftSource, setDraftSource] = useState<OwnCompanyAppointment | null>(null);
@@ -74,7 +78,13 @@ function OwnTeam({
     revoke,
     issueGuard,
     companyName,
-  } = useCompanyTeam({ owner, currentOwner, editing: task !== null });
+  } = useCompanyTeam({
+    owner,
+    currentOwner,
+    editing: task !== null,
+    company: context ? (context.companyUuid ?? '') : new URLSearchParams(location.search).get('company'),
+    companyName: context?.company?.name,
+  });
   const [started, setStarted] = useState(false);
   if (!started && own.isSuccess && !own.isFetching && !settings.isLoading) {
     setStarted(true);

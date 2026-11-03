@@ -21,14 +21,14 @@ import {
 } from '@ledova/shared';
 import { FilterPopover } from '../../components/FilterPopover';
 import { Action, Actions, Fact, LinkRow, LoadError, Rows, Section } from '../../components/Ledger';
+import { MemberNotice, useMemberRefresh } from '../../components/MemberRecords';
 import { Page } from '../../components/Page';
-import { useAppTheme, useThemedStyles } from '../../contexts';
+import { memberOf, useAppTheme, useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { AwardStatus } from './AwardStatus';
 import { CompanyPicker } from './CompanyPicker';
-import { MemberNotice, memberOf, useMemberRecordsState, useMemberRefresh } from './MemberRecordsProvider';
 
 type Read = ReturnType<typeof useMemberRecords>;
 type Ownership = NonNullable<ReturnType<typeof ownershipView>>;

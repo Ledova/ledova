@@ -1,19 +1,25 @@
-import { acceptCompanyTeamInvitation, failureSentence, isInvitationCode } from '@ledova/shared';
-import { appointmentReceipt } from '@pages/company/shared/appointments';
-import apiClient from '@services/apiClient';
 import { useEffect, useRef, useState } from 'react';
+import { isInvitationCode } from '../constants/business/field-limits';
+import { acceptCompanyTeamInvitation } from '../services/company-authority';
+import { appointmentReceipt } from '../utils/appointments';
+import { failureSentence } from '../utils/errors';
+import { useApiClient } from './useApiClient';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 
 export function useAcceptInvitationForm({
   disabled,
   guard,
   onRecorded,
   onBusy,
+  session,
 }: {
   disabled: boolean;
   guard: () => void;
   onRecorded: () => void;
   onBusy: (value: boolean) => void;
+  session?: OrderSubmissionSession;
 }) {
+  const apiClient = useApiClient();
   const [code, setCode] = useState('');
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -41,7 +47,10 @@ export function useAcceptInvitationForm({
     setReceipt('');
     try {
       check();
-      const { data } = await acceptCompanyTeamInvitation(apiClient, code, { ledovaSubmissionGuard: check });
+      const { data } = await acceptCompanyTeamInvitation(apiClient, code, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: check,
+      });
       check();
       if (!appointmentReceipt(data) || data.source !== 'invitation')
         throw new Error('The appointment outcome could not be confirmed. Retry the same code.');

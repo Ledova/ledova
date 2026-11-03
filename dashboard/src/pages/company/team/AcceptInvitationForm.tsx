@@ -9,8 +9,8 @@ import {
   COMPANY_AUTHORITY_DECLARATION_VERSION,
   INVITATION_CODE_PROBLEM,
   isInvitationCode,
+  useAcceptInvitationForm,
 } from '@ledova/shared';
-import { useAcceptInvitationForm } from './useAcceptInvitationForm';
 
 export function AcceptInvitationForm({
   disabled,

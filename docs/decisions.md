@@ -2193,7 +2193,7 @@ layout proposed with a mockup, the same on web and app
 ([#1495](https://github.com/Ledova/ledova/issues/1495)): a Security card (the identity check with
 **Review** on the web, the password with **Change**, and the app's biometric sign-in and App lock),
 an Account details card (member since and last login, in one date-time format on both) and a Company
-invitation card (one line and **Accept invitation**; on the web two rows since 3 November, below), each row with its label on the left and its
+invitation card (one line and **Accept invitation**; two rows since 3 November, below), each row with its label on the left and its
 status, one short action or switch on the right. The owner also asked to remove the app's Rate the app
 and Share with friends, which went with their code. Reviewing the build, the owner asked for the
 identity check's status to sit on its line, aligned right like the buttons ("The verified with the
@@ -2209,7 +2209,8 @@ The card is now **Invitations**, with two rows:
 - on the web, a **Company officer invitation** row opening Team, for anyone who can't manage the
   company.
 
-The app's invitation page sits in the web's **Access to your shares** card.
+The app's invitation page sits in the web's **Access to your shares** card. Since the app gained
+Team later on 3 November 2026, its Invitations card has the same Company officer invitation row.
 
 **The company side, decided on 3 November 2026.** The owner decided to build the company
 administrator's side of the app natively now, one section per pull request under
