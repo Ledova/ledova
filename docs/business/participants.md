@@ -279,11 +279,14 @@ action and what it does on the left, with **Export** or **Delete** on the right.
   records and share register entries are kept. The confirmation says so, and the browser's copy of
   the account's data is cleared once the server confirms.
 
-On mobile, Settings has the same three pages for the selected company, and Account the web's three
-cards. Security shows the identity status but no **Review**, since the app has no identity check
-flow, then **Change** for the password and the biometric sign-in (such as **Face ID sign-in**) and
-**App lock** switches, App lock asking for biometrics when you come back to the app. **Accept
-invitation** opens the app's member [invitation](member-records.md#accepting-an-invitation). On
+On mobile, Settings has the same three pages for the selected company, then
+[Team](companies.md#team-invitations-and-appointments) where that company can be managed, and
+Account the web's three cards. Security shows the identity status but no **Review**, since the app
+has no identity check flow, then **Change** for the password and the biometric sign-in (such as
+**Face ID sign-in**) and **App lock** switches, App lock asking for biometrics when you come back to
+the app. Invitations' **Shareholder invitation** row opens the app's member
+[invitation](member-records.md#accepting-an-invitation), and its **Company officer invitation** row,
+for anyone who can't manage the company, opens Team, as on the web. Activation is web only. On
 Data and privacy, **Export** saves or shares a private JSON file. **Sign out** and the **Dark
 theme** switch, saved on the device, are in the menu.
 

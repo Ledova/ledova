@@ -214,8 +214,9 @@ confirmed, and a confirmed one is not yet final ([chain](../engineering/chain.md
 
 The web dashboard reaches the records and workflows described here. The mobile app holds a person's
 own records and account, and lists the same companies as the web: a company's administrators and
-register readers see its ownership overview and each class's shareholders there, while company tasks
-stay on the web ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
+register readers see its ownership overview and each class's shareholders there, and the web's Team
+manages appointments and invitations, while other company tasks stay on the web
+([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
 retains its existing route checks;
 company actions follow the person's current appointments, and
 the server decides what each person may read. Every page withholds stale records and their actions
@@ -268,7 +269,7 @@ and charts rather than showing zero. Detailed history and every action are on th
 The same web Dashboard shows the person's own register records, with no wallet needed. A company can opt into sharing an aggregate ownership overview with its current
 linked members on the web: all class totals and each member's own position, without other
 shareholders' identities or private records. Mobile shows a register reader the same company overview
-and a member their own records. A member's
+and a member their own records, with any overview their company shares. A member's
 certificate records are in Documents → Certificates on the web and on mobile
 ([member records](member-records.md)).
 
@@ -276,7 +277,8 @@ The mobile app has the web's phone frame: a top bar with the menu and the notifi
 slide-out menu with the Dark theme switch. It opens on **Dashboard**, the selected company's ownership
 overview, as on the web; **Switch company** changes the company. **Documents** holds that company's Certificates, as the web shows a member, and **Settings** opens
 the web's Profile for that company, with Account (accepting an invitation and the app's own settings)
-and Data and privacy beneath it ([Profile and Settings](participants.md#profile-and-settings)).
+and Data and privacy beneath it, then the web's Team where the company can be managed
+([Profile and Settings](participants.md#profile-and-settings)).
 Mobile signup creates individual accounts only ([investor signup](participants.md#investor-signup)).
 
 Each page is described in the domain document for its process below;

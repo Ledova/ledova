@@ -43,9 +43,8 @@ choice starts each option with its appointment date. Team's appointment rows sho
 person, actions, any delegation (**May delegate all of these** when it matches the actions), status
 or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
-acceptance or deadline and the appointment's expiry.
-their creation and record actions in the same footer. Their short named/status summaries keep
-secondary facts and copyable technical references on demand.
+acceptance or deadline and the appointment's expiry. The app's Team has the same cards, rows and
+inline tasks at phone width, without Representative authority.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
 Employee share scheme, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
@@ -411,15 +410,16 @@ opening the people list. Documents uses the same pattern for **Certificates** (t
 **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
-**Team** and **Activation** where permitted, without an extra overview page. A group with only one
+**Team** and **Activation** where permitted, without an extra overview page; the app's menu has Team
+where the selected company may be managed, and no Activation yet. A group with only one
 permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
 there. Profile always holds personal information. Team, Activation and
 Company details follow current company access. Personal edits never change company-recorded particulars.
 Account has three cards: **Security** (the identity check's status with **Review**, which the app
 leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
 switches), **Account details** (**Member since** and **Last login**) and **Invitations**: a
-**Shareholder invitation** row with **Accept**, and on the web a **Company officer invitation** row
-with **Accept** for anyone who can't manage the company. Each row has its label on the left and its status, one short action
+**Shareholder invitation** row with **Accept**, and a **Company officer invitation** row with
+**Accept**, opening Team, for anyone who can't manage the company. Each row has its label on the left and its status, one short action
 or switch on the right, vertically centred at every width, and the facts are label and value rows. Keep export and deletion on Data and privacy, in the same rows (Export data with **Export**, Delete
 account with **Delete**), with their existing confirmations. The
 theme switch sits beside Sign out in the sidebar's footer, not in Settings. Show company
@@ -944,7 +944,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     `useErrorSummary` (`packages/shared/src/hooks/useErrorSummary.ts`)
     reads the form's problems, keyed by field, and forms that share one summary, such as Member
     access's invitation, revocation and certificate instruction, check only the fields their action
-    needs. A box that must be ticked is a `CheckboxField`,
+    needs. The app's Team forms use it too, showing each problem under its field without a summary.
+    A box that must be ticked is a `CheckboxField`,
     except sign-up pre-screening's four declarations,
     which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking
     to a field, and lists the problems current at the time. Its shareholder editor lists the problems
@@ -962,7 +963,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     retry of an interrupted request is not checked again.
   - **Shared wording.** A rule both clients apply has one sentence in `packages/shared`: a new
     password (`PASSWORD_PROBLEMS`, which sign-up's shared hook gives both) and an invitation code
-    (`INVITATION_CODE_PROBLEM`, used by the web's team invitations and mobile's Invitation screen).
+    (`INVITATION_CODE_PROBLEM`, used by team invitations on both clients and mobile's Invitation
+    screen).
     A pasted code is trimmed before its length limit applies; web member invitations use email links
     instead of a code field. The web's new-person fields take their
     sentences from `NEW_PERSON_PROBLEMS`.
@@ -973,7 +975,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     as empty, so an optional one would be dropped silently. `useIncompleteDates`
     (`dashboard/src/hooks/useIncompleteDates.ts`) notes the browser's `badInput` on each keystroke,
     input and blur, and the form treats it as a problem: the team invitation's deadline and
-    appointment expiry and a representative authority request's expiry.
+    appointment expiry and a representative authority request's expiry. The app's Team takes the
+    invitation's dates as typed `YYYY-MM-DD` text, which the same checks read as written.
 
 - **Request errors.** A failure reads as one `role="alert"` sentence, `Failure`
   (`dashboard/src/components/Ledger.tsx`, which renders nothing without a sentence), from

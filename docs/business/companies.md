@@ -7,8 +7,9 @@ team invitations and appointments, company information, and activation. It is wr
 for company representatives, support staff and anyone learning how company authority is established. The representative declares their own authority and Ledova does
 not verify it ([self-declaration decision](../decisions.md#company-representative-verification));
 who holds which capability is in [company capabilities](README.md#company-capabilities). All of it
-happens on the web. The mobile app shows a company's administrators and register readers only its
-ownership overview ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)).
+happens on the web, and the mobile app also has the web's [Team](#team-invitations-and-appointments)
+and shows a company's administrators and register readers its ownership overview
+([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)).
 
 - [Company signup](#company-signup)
 - [Representative authority requests](#representative-authority-requests)
@@ -116,7 +117,9 @@ can open it too: accepting an invitation or reading your appointments needs no c
 appointments, the selected company's team and issued invitations; **Invite a company user** and
 **Accept a company invitation** open focused inline forms. Someone with no appointments, other than
 a company's owner, lands straight on accepting an invitation. It also keeps the owner's contextual Representative authority
-task.
+task. The mobile app has the same Team, in its Settings menu where the selected company can be
+managed and from the same Account row, without Representative authority; there you type the
+invitation's dates as `YYYY-MM-DD` and copy the one-time code by selecting it.
 
 1. To invite someone, choose one of your current appointments that can delegate for the selected
    company. Choose the personal capabilities and, separately, any onward delegation for the invitee. Set an

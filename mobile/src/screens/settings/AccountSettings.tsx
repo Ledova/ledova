@@ -8,6 +8,7 @@ import { useAppLock, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
+import { useMemberRecordsState } from '../holdings/MemberRecordsProvider';
 import { useSettings } from './useSettings';
 
 function useAccountStyles() {
@@ -51,6 +52,7 @@ export function AccountSettings() {
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   const lock = useAppLock();
   const { userProfile } = useUserProfile();
+  const { company } = useMemberRecordsState();
   const verification = getUserVerificationStatus(userProfile);
   const settings = useSettings();
   const [changing, setChanging] = useState(false);
@@ -181,17 +183,32 @@ export function AccountSettings() {
         </Section>
       )}
       <Section title="Invitations">
-        <SettingRow
-          label="Shareholder invitation"
-          detail={<Text style={styles.muted}>Use the link or code from your company’s email.</Text>}
-          action={
-            <Action
-              label="Accept"
-              accessibilityLabel="Accept shareholder invitation"
-              onPress={() => navigation.navigate('Invitation')}
+        <Rows>
+          <SettingRow
+            label="Shareholder invitation"
+            detail={<Text style={styles.muted}>Use the link or code from your company’s email.</Text>}
+            action={
+              <Action
+                label="Accept"
+                accessibilityLabel="Accept shareholder invitation"
+                onPress={() => navigation.navigate('Invitation')}
+              />
+            }
+          />
+          {!company?.canManage && (
+            <SettingRow
+              label="Company officer invitation"
+              detail={<Text style={styles.muted}>Use the code the company gave you.</Text>}
+              action={
+                <Action
+                  label="Accept"
+                  accessibilityLabel="Accept company officer invitation"
+                  onPress={() => navigation.navigate('Team')}
+                />
+              }
             />
-          }
-        />
+          )}
+        </Rows>
       </Section>
       <CustomModal
         visible={changing}

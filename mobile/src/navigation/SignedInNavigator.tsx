@@ -12,6 +12,7 @@ import { DashboardScreen } from '../screens/holdings/DashboardScreen';
 import { InvitationScreen } from '../screens/holdings/InvitationScreen';
 import { MemberRecordsProvider } from '../screens/holdings/MemberRecordsProvider';
 import { AccountScreen, DataPrivacyScreen, SettingsScreen } from '../screens/settings';
+import { TeamScreen } from '../screens/settings/TeamScreen';
 import type { MenuRoute, Section } from './AppMenu';
 import { TopBar } from './headers';
 
@@ -21,6 +22,7 @@ export type SignedInStackParamList = {
   Settings: undefined;
   Account: undefined;
   DataPrivacy: undefined;
+  Team: undefined;
   Invitation: undefined;
 };
 
@@ -60,6 +62,7 @@ export function SignedInNavigator() {
             <Stack.Screen name="Settings" component={SettingsScreen} options={topBar('Settings')} />
             <Stack.Screen name="Account" component={AccountScreen} options={topBar('Settings')} />
             <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} options={topBar('Settings')} />
+            <Stack.Screen name="Team" component={TeamScreen} options={topBar('Settings')} />
             <Stack.Screen name="Invitation" component={InvitationScreen} options={topBar('Dashboard')} />
           </Stack.Navigator>
           <NotificationsPanel anchor={notificationsAnchor} onClose={closeNotifications} />

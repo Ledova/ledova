@@ -23,7 +23,7 @@ import { useMemberRecordsState } from '../screens/holdings/MemberRecordsProvider
 
 export type Section = 'Dashboard' | 'Documents' | 'Settings';
 
-export type MenuRoute = 'Dashboard' | 'Certificates' | 'Settings' | 'Account' | 'DataPrivacy';
+export type MenuRoute = 'Dashboard' | 'Certificates' | 'Settings' | 'Account' | 'DataPrivacy' | 'Team';
 
 type MenuItem = {
   name: Section;
@@ -37,7 +37,7 @@ const SECTIONS: MenuItem[] = [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
   { name: 'Documents', label: 'Documents', icon: FilesIcon, route: 'Certificates' },
 ];
-const YOURS: MenuItem[] = [
+const yours = (canManage: boolean): MenuItem[] => [
   {
     name: 'Settings',
     label: 'Settings',
@@ -47,6 +47,7 @@ const YOURS: MenuItem[] = [
       { route: 'Settings', label: 'Profile' },
       { route: 'Account', label: 'Account' },
       { route: 'DataPrivacy', label: 'Data and privacy' },
+      ...(canManage ? [{ route: 'Team' as const, label: 'Team' }] : []),
     ],
   },
 ];
@@ -160,7 +161,7 @@ export function AppMenu({
   });
   const item = (section: MenuItem) => {
     const active = section.name === current;
-    const here = active && !section.items;
+    const here = active && !section.items?.some((child) => child.route === route);
     const expanded = toggled[section.name] ?? active;
     const Icon = section.icon;
     const Caret = expanded ? CaretDownIcon : CaretRightIcon;
@@ -282,7 +283,7 @@ export function AppMenu({
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: theme.spacing.md, gap: theme.spacing.lg }}
           >
             <View style={{ gap: 4 }}>{SECTIONS.map(item)}</View>
-            <View style={{ gap: 4 }}>{YOURS.map(item)}</View>
+            <View style={{ gap: 4 }}>{yours(!!company?.canManage).map(item)}</View>
           </ScrollView>
           <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.border.subtle, padding: 12, gap: 4 }}>
             {person && (
