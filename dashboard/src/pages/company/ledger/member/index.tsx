@@ -8,6 +8,7 @@ import {
   REGISTER_CORRECTION_COPY,
   REGISTER_PARTICULARS_COPY,
   USER_PREFERENCES_QUERY_KEY,
+  appointmentForParticularsEdit,
   appointmentForRegisterStep,
   formatDate,
   formatDateTime,
@@ -102,7 +103,9 @@ function OwnShareholder({
     appointments.isSuccess &&
     !appointments.isFetching &&
     !!appointmentForRegisterStep(appointments.data, company, 'prepare');
-  const guardPreparation = () => {
+  const edit =
+    appointments.isSuccess && !appointments.isFetching && !!appointmentForParticularsEdit(appointments.data, company);
+  const guardEdit = () => {
     guard();
     for (const key of [
       USER_PREFERENCES_QUERY_KEY,
@@ -112,16 +115,15 @@ function OwnShareholder({
     ]) {
       const current = client.getQueryState(key);
       if (current?.status !== 'success' || current.fetchStatus !== 'idle')
-        throw new Error('Refresh the register and your current preparation appointment.');
+        throw new Error('Refresh the register and your current appointment.');
     }
     if (
-      !appointmentForRegisterStep(
+      !appointmentForParticularsEdit(
         client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
         company,
-        'prepare',
       )
     )
-      throw new Error('A current company preparation appointment is required.');
+      throw new Error('A current company appointment that can change particulars is required.');
   };
   const authorised =
     appointments.isSuccess &&
@@ -187,9 +189,6 @@ function OwnShareholder({
       : recorded?.name || former[0]?.row.name || REGISTER_PARTICULARS_COPY.UNNAMED_MEMBER;
     const current = access.access?.associations.find((row) => row.member === member && row.current);
     const invited = access.access?.invitations.find((row) => row.member === member && row.status === 'pending');
-    const waiting = (access.requests?.certificates ?? []).filter(
-      (row) => row.member === member && row.status === 'requested',
-    );
     const issueClass = [...holdings.map(({ register }) => register), ...registers].find(
       (register) => register.initialized && register.token.status === 'draft',
     )?.token.uuid;
@@ -216,25 +215,29 @@ function OwnShareholder({
                 <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
               </Rows>
             ))}
-            {prepare && (holdings.length > 0 || recorded?.onRegister === false) && (
-              <PageLink
-                to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
-                label={REGISTER_PARTICULARS_COPY.PREPARE}
-                onClick={(event) => {
-                  try {
-                    guardPreparation();
-                    setNavigationError(false);
-                  } catch {
-                    event.preventDefault();
-                    setNavigationError(true);
-                  }
-                }}
-              />
-            )}
+            {settled(data.particulars) &&
+              (recorded?.followsProfile ? (
+                <p className="text-sm text-text-muted">{REGISTER_PARTICULARS_COPY.FOLLOWS_PROFILE}</p>
+              ) : (
+                edit &&
+                (holdings.length > 0 || recorded?.onRegister === false) && (
+                  <PageLink
+                    to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
+                    label={REGISTER_PARTICULARS_COPY.PREPARE}
+                    onClick={(event) => {
+                      try {
+                        guardEdit();
+                        setNavigationError(false);
+                      } catch {
+                        event.preventDefault();
+                        setNavigationError(true);
+                      }
+                    }}
+                  />
+                )
+              ))}
             {navigationError && (
-              <Failure>
-                Refresh the register and your current preparation appointment before changing particulars.
-              </Failure>
+              <Failure>Refresh the register and your current appointment before changing particulars.</Failure>
             )}
           </Section>
           <Section title="Holdings">
@@ -356,28 +359,14 @@ function OwnShareholder({
               />
             </Section>
           )}
-          {waiting.length > 0 && (
-            <Section title="Requests from them">
-              {waiting.map((row) => (
-                <p key={row.uuid} className="text-sm text-text-primary">
-                  They asked the company for a certificate.
-                </p>
-              ))}
-              <PageLink
-                to={`${DESTINATIONS.companyRegister.path}?company=${company}#member-requests`}
-                state={{ registerCompany: company }}
-                label="Open member requests"
-              />
-            </Section>
-          )}
           {access.access && (
             <Section title="Access to their own records">
               <p className="text-sm text-text-primary">
                 {current
-                  ? 'They can see their own holdings, history and certificates.'
+                  ? 'They can see their own holdings and history.'
                   : invited
                     ? `Invited, waiting for them to accept until ${formatDateTime(invited.acceptanceDeadline)}.`
-                    : 'No access yet. An invitation lets them see their own holdings, history and certificates.'}
+                    : 'No access yet. An invitation lets them see their own holdings and history.'}
               </p>
               {!current && !invited && (
                 <PageLink

@@ -14,7 +14,6 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.tasks.deployment import PENDING_DEPLOYMENT_AGE
-from users.models import InvestorClassification
 from whitelist.models import WhitelistApproval, WhitelistEntry
 from whitelist.services.identity import unnameable_addresses
 
@@ -71,12 +70,6 @@ def worklist() -> list[WorklistRow]:
             "Company applications waiting",
             Company.objects.awaiting_review().count(),
             _changelist("companies", "company", "?status__in=submitted,review,info_required"),
-            SEVERITY_WARNING,
-        ),
-        WorklistRow(
-            "Investor classifications awaiting verification",
-            InvestorClassification.objects.submitted().count(),
-            _changelist("users", "investorclassification", "?status__exact=submitted"),
             SEVERITY_WARNING,
         ),
         WorklistRow(

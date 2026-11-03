@@ -14,7 +14,6 @@ export {
   REGISTER_IMPORT_DECISIONS,
   REGISTER_GRANT_DECISIONS,
   REGISTER_TRANSFER_DECISIONS,
-  REGISTER_PARTICULARS_DECISIONS,
   useRegisterDecision,
 } from './useRegisterDecision';
 export type { RegisterDecisionFamily, RegisterDecisionOptions, RegisterDecisionTarget } from './useRegisterDecision';
@@ -25,14 +24,6 @@ export {
   COMPANY_QUERY_KEY,
   ownCompaniesKey,
 } from './useCompanySelection';
-export { useResolutionStatus } from './useResolutionStatus';
-export {
-  INVESTOR_CLASSIFICATIONS_QUERY_KEY,
-  investorClassificationsKey,
-  useInvestorClassifications,
-} from './useInvestorClassifications';
-export { useInvestorEligibility } from './useInvestorEligibility';
-export { useInvestorWithdrawal } from './useInvestorWithdrawal';
 export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
 export { SIGNUP_RESTART_FIELDS, useSignupRestart } from './useSignupRestart';
 export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';
@@ -49,17 +40,6 @@ export {
 } from './useSignupReview';
 export { useLaterPages } from './useLaterPages';
 export { useCompanyActivation } from './useCompanyActivation';
-export {
-  useParticipantEligibilityRecords,
-  useCompanyEligibilityRecords,
-  isCurrentEligibilityAppointment,
-  ELIGIBILITY_RECORDS_NOTICE,
-} from './useCompanyEligibilityRecords';
-export type {
-  EligibilityAction,
-  EligibilityRequestDraft,
-  EligibilityDecisionDraft,
-} from './useCompanyEligibilityRecords';
 export { REGISTER_ALLOTMENT_DECISIONS } from './useRegisterDecision';
 
 export { ownMemberRecordsKey, useMemberRecords } from './useMemberRecords';
@@ -68,8 +48,7 @@ export { useCompanyMemberAccess } from './useCompanyMemberAccess';
 
 export { SIGNUP_AUTHORITY_QUERY_KEY } from './useSignupCompanyAuthority';
 
-export { OWN_APPOINTMENTS_QUERY_KEY, eligibilityRecordsKey } from './useCompanyEligibilityRecords';
+export { OWN_APPOINTMENTS_QUERY_KEY } from './useCompanyActivation';
 
 export { useUserProfile } from './useUserProfile';
 export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
-export { usePublications, PUBLICATIONS_QUERY_KEY, PERSONAL_NOTICES_QUERY_KEY } from './usePublications';

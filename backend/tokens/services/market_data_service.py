@@ -7,11 +7,31 @@ from shared.db import principal_of, use_operator
 from shared.utils.token_amounts import token_full_units
 from tokens.exceptions import SettlementContextChanged
 from tokens.models import ShareToken, SwapOrder, TransferOrder
-from users.services.eligibility import secondary_company_ids
+from users.models import UserAccount
+from users.services.participants import participant_requirements
+from whitelist.models import WhitelistApproval
+
+
+def market_company_ids(user):
+    principal = principal_of()
+    if user is None or not user.is_authenticated or principal != str(user.pk):
+        return frozenset()
+    with use_operator(), _requester_principal(principal):
+        approvals = (
+            WhitelistApproval.objects.live()
+            .filter(entry__wallet__user_account__in=UserAccount.objects.for_holder(user).investing())
+            .select_related("company", "entry__wallet__user_account__user_profile__user")
+            .order_by("company_id", "uuid")
+        )
+        return frozenset(
+            approval.company_id
+            for approval in approvals
+            if not participant_requirements(approval.entry.wallet.user_account, approval.company)
+        )
 
 
 def list_market_tokens(user):
-    return ShareToken.objects.with_company().deployed_with_contract().filter(company_id__in=secondary_company_ids(user))
+    return ShareToken.objects.with_company().deployed_with_contract().filter(company_id__in=market_company_ids(user))
 
 
 def _payment_decimals(protocol_version, captured_decimals):

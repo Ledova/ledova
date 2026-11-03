@@ -3,12 +3,6 @@ from django.db.models.expressions import RawSQL
 from django.utils import timezone
 
 
-def administrable_company(actor, company_id):
-    from companies.models import Company
-
-    return Company.objects.administrable_by(actor).filter(pk=company_id).first()
-
-
 class CompanyQuerySet(QuerySet):
 
     def for_activation(self, user, company_id):

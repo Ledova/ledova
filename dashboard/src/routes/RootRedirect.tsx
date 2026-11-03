@@ -8,7 +8,6 @@ import { AccountUnavailable, SessionUnavailable } from './AccountUnavailable';
 import { SIGNUP_RESUMES_AT } from '@utils/paths';
 import { LoadError, Loading } from '@components/Ledger';
 import { pendingMemberInvitation } from '@utils/memberInvitation';
-import { pendingRequestLink } from '@utils/requestLink';
 import { MEMBER_INVITATION_PATH } from '@utils/paths';
 
 export function RootRedirect() {
@@ -32,8 +31,6 @@ export function RootRedirect() {
       />
     );
   if (pendingMemberInvitation()) return <Navigate to={MEMBER_INVITATION_PATH} replace />;
-  const requestLink = pendingRequestLink();
-  if (requestLink) return <Navigate to={requestLink} replace />;
   if (preferences.isError || (!preferences.isLoading && !preferences.isFetching && !preferences.userAccount))
     return (
       <PageTitle.Provider value="Dashboard">

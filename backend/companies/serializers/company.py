@@ -1,8 +1,7 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from companies.models import Company, CompanyCapability, CompanyDocument, CompanyStatus
-from companies.serializers.document import CompanyDocumentSerializer
+from companies.models import Company, CompanyCapability, CompanyStatus
 from companies.services.activation import company_activation
 from companies.services.administration import (
     company_administrative_access,
@@ -83,16 +82,12 @@ class CompanyListSerializer(_CompanyAdministrativeSerializer):
         read_only_fields = fields
 
 
-class CompanyActivationAttemptSerializer(serializers.Serializer):
+class CompanyActivationReceiptSerializer(serializers.Serializer):
     uuid = serializers.UUIDField(read_only=True)
     idempotency_key = serializers.UUIDField(read_only=True)
-    appointment = serializers.UUIDField(source="initiating_appointment_id", read_only=True)
+    appointment = serializers.UUIDField(source="appointment_id", read_only=True)
     lifecycle_revision = serializers.IntegerField(read_only=True)
-    status = serializers.ChoiceField(choices=["pending", "passed", "failed"], read_only=True)
-    reason = serializers.CharField(read_only=True)
-    started_at = serializers.DateTimeField(read_only=True)
-    completed_at = serializers.DateTimeField(read_only=True, allow_null=True)
-    applied_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    activated_at = serializers.DateTimeField(read_only=True)
     declaration_version = serializers.CharField(read_only=True)
     declaration_text = serializers.CharField(read_only=True)
 
@@ -102,7 +97,6 @@ class CompanyActivationSerializer(serializers.Serializer):
     lifecycle_revision = serializers.IntegerField(read_only=True)
     declaration_version = serializers.CharField(read_only=True)
     declaration_text = serializers.CharField(read_only=True)
-    latest_attempt = CompanyActivationAttemptSerializer(read_only=True, allow_null=True)
 
 
 class CompanyActivateSerializer(serializers.Serializer):
@@ -129,17 +123,6 @@ class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
     )
     email = serializers.SerializerMethodField()
     primary_contact = serializers.SerializerMethodField()
-    documents = serializers.SerializerMethodField()
-
-    @extend_schema_field(CompanyDocumentSerializer(many=True))
-    def get_documents(self, obj):
-        actor = getattr(self.context.get("request"), "user", None)
-        if actor is None:
-            return CompanyDocumentSerializer(obj.documents.all(), many=True, context=self.context).data
-        documents = CompanyDocument.objects.filter(
-            company_id=obj.pk, company__in=Company.objects.administrable_by(actor)
-        )
-        return CompanyDocumentSerializer(documents, many=True, context=self.context).data
 
     @extend_schema_field(serializers.EmailField(allow_null=True))
     def get_email(self, obj):
@@ -204,7 +187,6 @@ class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
             "ownership_sharing_changed_by",
             "ownership_sharing_changed_at",
             "primary_contact",
-            "documents",
             "created_at",
             "updated_at",
             "activation",

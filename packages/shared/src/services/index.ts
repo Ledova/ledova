@@ -34,8 +34,6 @@ export {
   registerCompany,
   getCompany,
   updateCompany,
-  uploadCompanyDocument,
-  deleteCompanyDocument,
   activateCompany,
   createCompanyPack,
   getCompanyPacks,
@@ -90,36 +88,12 @@ export {
 } from './register-corrections';
 export {
   getRegisterParticularsChanges,
-  prepareRegisterParticularsChange,
-  previewRegisterParticularsChangeDecision,
-  decideRegisterParticularsChange,
+  editRegisterParticulars,
   downloadRegisterParticularsChangeFile,
 } from './register-particulars';
-export {
-  getInvestorClassifications,
-  submitInvestorClassification,
-  deleteInvestorClassification,
-} from './investorClassifications';
 export { getOperator } from './operator';
-export {
-  getPublications,
-  getPublicationsNextPage,
-  openPublication,
-  downloadPublication,
-  castBallot,
-} from './publications';
-export * from './company-eligibility';
 
 export * from './register-allotments';
 
 export * from './member-access';
 export * from './register-people';
-
-export {
-  listDocuments,
-  getDocument,
-  uploadDocument,
-  deleteDocument,
-  attachDocument,
-  type UploadDocumentInput,
-} from './documents';

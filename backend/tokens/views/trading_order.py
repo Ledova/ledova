@@ -158,7 +158,7 @@ class TradingOrderViewSet(AuthenticatedListViewSet):
                         {"type": "object", "additionalProperties": {}},
                     ]
                 },
-                description="Retained eligibility refusal, or an ordinary signature refusal.",
+                description="Retained refusal of a participant who is not current, or an ordinary signature refusal.",
             ),
             404: OpenApiResponse(response=OpenApiTypes.OBJECT, description="No currently authorized submission."),
             409: OpenApiResponse(
@@ -242,7 +242,7 @@ class TradingOrderViewSet(AuthenticatedListViewSet):
     @extend_schema(
         responses={
             200: OrderSubmissionSerializer,
-            400: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Invalid request or new-order eligibility."),
+            400: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Invalid request or new-order terms."),
             401: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Authentication required."),
             404: OpenApiResponse(response=OpenApiTypes.OBJECT, description="No currently authorized submission."),
             409: OpenApiResponse(response=OpenApiTypes.OBJECT, description="Original submission terms conflict."),

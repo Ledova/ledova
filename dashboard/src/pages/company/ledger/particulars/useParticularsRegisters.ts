@@ -6,12 +6,12 @@ import { peopleKey, readPeople } from '@pages/company/ledger/shared/usePeople';
 
 export function useParticularsRegisters(
   owner: OrderSubmissionOwner,
-  preparing: { classes: string[] }[],
+  editing: { classes: string[] }[],
   guard: () => void,
 ) {
-  const registers = useQueries({ queries: preparing.map((company) => registersQuery(owner, company.classes, guard)) });
+  const registers = useQueries({ queries: editing.map((company) => registersQuery(owner, company.classes, guard)) });
   const people = useQueries({
-    queries: preparing.map((company) => ({
+    queries: editing.map((company) => ({
       queryKey: peopleKey(owner, company.classes[0] ?? ''),
       enabled: company.classes.length > 0,
       queryFn: () => readPeople(company.classes[0], guard),

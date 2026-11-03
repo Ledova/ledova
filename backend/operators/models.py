@@ -1,7 +1,7 @@
 import re
 
 from django.conf import settings
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db import models
 
 from assets.models import AssetType
@@ -65,6 +65,13 @@ class Operator(models.Model):
     @classmethod
     def get(cls) -> "Operator":
         operator, _ = cls.objects.get_or_create(pk=SINGLETON_PK, defaults={"name": settings.OPERATOR_NAME})
+        return operator
+
+    @classmethod
+    def configured(cls) -> "Operator":
+        operator = cls.objects.filter(pk=SINGLETON_PK).first()
+        if operator is None:
+            raise ImproperlyConfigured("Operator configuration is missing.")
         return operator
 
     def save(self, *args, **kwargs):

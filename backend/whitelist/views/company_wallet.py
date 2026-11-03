@@ -39,31 +39,26 @@ from whitelist.services.wallet_nominations import (
 )
 
 
-@extend_schema_view(
-    list=extend_schema(
-        parameters=[OpenApiParameter("request", OpenApiTypes.UUID), OpenApiParameter("company", OpenApiTypes.UUID)]
-    )
-)
+@extend_schema_view(list=extend_schema(parameters=[OpenApiParameter("company", OpenApiTypes.UUID)]))
 class WalletNominationViewSet(AuthenticatedReadOnlyViewSet):
     queryset = CompanyWalletNomination.objects.none()
     serializer_class = WalletNominationSerializer
     scoped_model = CompanyWalletNomination
     operator_actions = frozenset({"list", "retrieve", "preview", "create"})
     operator_actions_because = (
-        "Private proof associations are consumed only by the actual participant's own eligibility request; "
+        "Private proof associations are consumed only by the actual participant's own nomination; "
         "the response shares only the selected wallet facts."
     )
     http_method_names = ["get", "post", "head", "options"]
     ordering = ["-submitted_at", "-uuid"]
 
     def narrow(self, queryset):
-        return queryset.owned_by(self.request.user).select_related("company", "request__user_account", "decision")
+        return queryset.owned_by(self.request.user).select_related("company")
 
     def filter_queryset(self, queryset):
         queryset = super().filter_queryset(queryset)
-        for name in ("request", "company"):
-            if value := self.request.query_params.get(name):
-                queryset = queryset.filter(**{f"{name}_id": value})
+        if value := self.request.query_params.get("company"):
+            queryset = queryset.filter(company_id=value)
         return queryset
 
     @extend_schema(request=WalletNominationPreviewSerializer, responses=WalletNominationPreviewResultSerializer)
@@ -92,26 +87,21 @@ class CompanyWalletNominationViewSet(AuthenticatedReadOnlyViewSet):
     operator_actions = frozenset({"list", "retrieve"})
     operator_actions_because = (
         "Current personal company register readers receive only explicitly nominated address "
-        "and eligibility/proof completion facts; no account-wide wallet directory or proof bytes are read."
+        "and proof completion facts; no account-wide wallet directory or proof bytes are read."
     )
     http_method_names = ["get", "head", "options"]
     ordering = ["-submitted_at", "-uuid"]
 
     def narrow(self, queryset):
-        return queryset.register_readable_by(self.request.user).select_related(
-            "company", "request__user_account", "decision"
-        )
+        return queryset.register_readable_by(self.request.user).select_related("company")
 
     def filter_queryset(self, queryset):
         queryset = super().filter_queryset(queryset)
-        for name in ("company", "request"):
-            if value := self.request.query_params.get(name):
-                queryset = queryset.filter(**{f"{name}_id": value})
+        if value := self.request.query_params.get("company"):
+            queryset = queryset.filter(company_id=value)
         return queryset
 
-    @extend_schema(
-        parameters=[OpenApiParameter("company", OpenApiTypes.UUID), OpenApiParameter("request", OpenApiTypes.UUID)]
-    )
+    @extend_schema(parameters=[OpenApiParameter("company", OpenApiTypes.UUID)])
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 

@@ -3,27 +3,17 @@
 import {
   addCalendarDays,
   utcToday,
-  COMPANY_QUERY_KEY,
   COMPANY_TOKEN_ENDPOINTS,
   type Company,
-  type CompanyDocument,
   type OwnCompanyAppointment,
-  type CompanyEligibilityRequest,
-  USER_PREFERENCES_QUERY_KEY,
-  AUTH_QUERY_KEY,
-  eligibilityRecordsKey,
-  DESTINATIONS,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
-import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { Link, useLocation } from 'react-router-dom';
 import { CompanyProfile } from '@pages/settings/CompanyProfile';
-import CompanyDocumentsPage from '@pages/documents/company';
 import CompanyTeamPage from './team';
-import CompanyEligibilityPage from './eligibility';
-import { APPOINTMENT, companyPreferences, companyRecord, renderCompanyPage } from '../../testSupport/company';
+import { APPOINTMENT, companyRecord, renderCompanyPage } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -34,19 +24,8 @@ const scrollIntoView = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 's
 let client: QueryClient;
 let company: Company;
 let failed: string | null;
-function CompanyView() {
-  return useLocation().pathname === DESTINATIONS.companyDocuments.path ? <CompanyDocumentsPage /> : <CompanyProfile />;
-}
 function show() {
-  return renderCompanyPage(
-    client,
-    <>
-      <CompanyView />
-      <Link to={DESTINATIONS.companyDocuments.path}>Open company documents</Link>
-    </>,
-    'Profile',
-    { entry: '/settings', path: '*' },
-  );
+  return renderCompanyPage(client, <CompanyProfile />, 'Profile', { entry: '/settings', path: '*' });
 }
 beforeEach(() => {
   vi.resetAllMocks();
@@ -76,7 +55,7 @@ afterEach(() => {
   else Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
 });
 
-it('shows focused company details without share classes, and uploads documents to the selected company and type', async () => {
+it('shows focused company details without share classes, and keeps team drafts across closing', async () => {
   show();
   await screen.findByText(company.name);
   expect(screen.getByText(/Company information is provided by the company/)).toBeTruthy();
@@ -98,69 +77,6 @@ it('shows focused company details without share classes, and uploads documents t
     expect.objectContaining({ ledovaSubmissionGuard: expect.any(Function) }),
   );
   expect(screen.getByText('Shared with members')).toBeTruthy();
-
-  const file = new File(['Synthetic company supporting copy'], 'company-constitution.pdf', { type: 'application/pdf' });
-  const companyDocument: CompanyDocument = {
-    uuid: 'document-one',
-    company: company.uuid,
-    documentType: 'constitution',
-    documentTypeDisplay: 'Company Constitution',
-    name: file.name,
-    fileUrl: '/private/company-constitution.pdf',
-    createdAt: '2026-10-14T00:00:00Z',
-    isVerified: false,
-    verifiedAt: null,
-  };
-  api.post.mockImplementation(async (url: string, body: FormData, config: { ledovaSubmissionGuard: () => void }) => {
-    config.ledovaSubmissionGuard();
-    expect(url).toBe(`${COMPANY}documents/`);
-    expect(body.get('document_type')).toBe('constitution');
-    expect(body.get('name')).toBe(file.name);
-    expect((body.get('file') as File).name).toBe(file.name);
-    expect((body.get('file') as File).size).toBe(file.size);
-    company = { ...company, documents: [...company.documents, companyDocument] };
-    return { data: companyDocument };
-  });
-  fireEvent.click(screen.getByRole('link', { name: 'Open company documents' }));
-  const uploadOpener = await screen.findByRole('button', { name: 'Upload document' });
-  fireEvent.click(uploadOpener);
-  let uploadForm = await screen.findByRole('form', { name: 'Upload Other documents' });
-  expect(screen.queryByRole('dialog')).toBeNull();
-  fireEvent.click(within(uploadForm).getByRole('button', { name: 'Cancel' }));
-  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Upload document' })));
-  fireEvent.click(screen.getByRole('button', { name: 'Upload document' }));
-  uploadForm = await screen.findByRole('form', { name: 'Upload Other documents' });
-  fireEvent.change(within(uploadForm).getByLabelText('Category'), { target: { value: 'constitution' } });
-  uploadForm = await screen.findByRole('form', { name: 'Upload Company Constitution' });
-  fireEvent.change(within(uploadForm).getByLabelText('File'), { target: { files: [file] } });
-  company = {
-    ...company,
-    documents: [
-      {
-        ...companyDocument,
-        uuid: 'document-other-admin',
-        name: 'another-admin-constitution.pdf',
-        fileUrl: '/private/another-admin-constitution.pdf',
-      },
-    ],
-  };
-  await act(async () => {
-    await client.invalidateQueries({ queryKey: COMPANY_QUERY_KEY });
-  });
-  uploadForm = await screen.findByRole('form', { name: 'Upload Company Constitution' });
-  expect((within(uploadForm).getByLabelText('Category') as HTMLSelectElement).value).toBe('constitution');
-  expect(within(uploadForm).getByRole('option', { name: 'Company Constitution' })).toBeTruthy();
-  expect((within(uploadForm).getByLabelText('File') as HTMLInputElement).files?.[0]).toBe(file);
-  fireEvent.click(within(uploadForm).getByRole('button', { name: 'Upload' }));
-  await waitFor(() => expect(screen.queryByRole('form', { name: 'Upload Company Constitution' })).toBeNull());
-  expect(api.post).toHaveBeenCalledTimes(1);
-  expect(screen.getByRole('link', { name: `View ${file.name}` }).getAttribute('href')).toBe(companyDocument.fileUrl);
-  fireEvent.click(screen.getByRole('button', { name: 'Upload document' }));
-  uploadForm = await screen.findByRole('form', { name: 'Upload Other documents' });
-  expect(within(uploadForm).queryByRole('option', { name: 'Company Constitution' })).toBeNull();
-  expect(within(uploadForm).getByRole('option', { name: 'Other documents' })).toBeTruthy();
-  expect((within(uploadForm).getByLabelText('Category') as HTMLSelectElement).value).toBe('other');
-  fireEvent.click(within(uploadForm).getByRole('button', { name: 'Cancel' }));
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain(CLASSES);
 
   cleanup();
@@ -234,180 +150,5 @@ it('shows focused company details without share classes, and uploads documents t
   await screen.findAllByText('Your appointments could not be loaded.');
   expect(screen.queryAllByText('Private team administrator')).toHaveLength(0);
   expect((screen.getByRole('button', { name: 'Invite a company user' }) as HTMLButtonElement).disabled).toBe(true);
-  expect(api.post).toHaveBeenCalledTimes(1);
-
-  cleanup();
-  client.clear();
-  failed = null;
-  const queueUrl = `${COMPANY}eligibility-requests/`;
-  const requestUuid = '00000000-0000-4000-8000-000000000072';
-  const expiresAt = `${addCalendarDays(utcToday(), 1)}T12:00`;
-  const eligibility: CompanyEligibilityRequest = {
-    uuid: requestUuid,
-    company: company.uuid,
-    userAccount: 'participant-account',
-    source: '00000000-0000-4000-8000-000000000073',
-    category: 'professional_investor',
-    outcome: 'pending',
-    decision: null,
-    withdrawal: null,
-    digest: 'synthetic-request-digest',
-    evidenceHash: 'synthetic-evidence-hash',
-    sourceFingerprint: 'synthetic-source-fingerprint',
-    idempotencyKey: '00000000-0000-4000-8000-000000000074',
-    requestedExpiresAt: expiresAt,
-    submittedAt: '2026-10-25T00:00:00Z',
-    submittedBy: 1,
-    version: '1',
-    sharedSummary: {
-      category: 'professional_investor',
-      source: '00000000-0000-4000-8000-000000000073',
-      userAccount: 'participant-account',
-      company: company.uuid,
-      declarationText: 'Synthetic private eligibility declaration',
-      submittedAt: '2026-10-25T00:00:00Z',
-      requestedExpiresAt: expiresAt,
-    },
-  };
-  let authorityGate: Promise<void> | null = null;
-  let otherAccount = false;
-  api.get.mockImplementation(async (url: string) => {
-    if (url === failed) throw new Error('Unavailable');
-    if (url === appointmentsUrl) {
-      if (authorityGate) await authorityGate;
-      return {
-        data: { ...EMPTY, results: otherAccount ? [] : [{ ...appointment, capabilities: ['prepare', 'approve'] }] },
-      };
-    }
-    if (url === queueUrl) return { data: { ...EMPTY, count: 1, results: [eligibility] } };
-    if (url === `${queueUrl}${requestUuid}/`) return { data: eligibility };
-    throw new Error(`Unexpected eligibility request: ${url}`);
-  });
-  api.post.mockImplementation(async (url: string) => {
-    expect(url).toBe(`${queueUrl}${requestUuid}/decision-preview/`);
-    return { data: { canDecide: true, previewDigest: 'synthetic-decision-digest', unmetRequirements: [] } };
-  });
-  renderCompanyPage(client, <CompanyEligibilityPage />, 'Company eligibility', {
-    entry: `/company/eligibility?company=${company.uuid}`,
-    path: '/company/eligibility',
-  });
-  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  await screen.findByRole('button', { name: /^View request/ });
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(screen.queryByRole('button', { name: /Refresh/ })).toBeNull();
-  const queueReads = () => api.get.mock.calls.filter(([url]) => url === queueUrl).length;
-  const beforeSource = ownReads();
-  const beforeQueue = queueReads();
-  let releaseAuthority!: () => void;
-  authorityGate = new Promise<void>((resolve) => {
-    releaseAuthority = resolve;
-  });
-  await act(async () => {
-    window.dispatchEvent(new Event('focus'));
-  });
-  expect(ownReads()).toBe(beforeSource);
-  expect(queueReads()).toBe(beforeQueue);
-  let authorityRead: Promise<unknown> = Promise.resolve();
-  await act(async () => {
-    authorityRead = client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  });
-  await waitFor(() => expect(ownReads()).toBeGreaterThan(beforeSource));
-  expect(queueReads()).toBe(beforeQueue);
-  expect(screen.queryByText(/You need a prepare or approve appointment/)).toBeNull();
-  await act(async () => {
-    authorityGate = null;
-    releaseAuthority();
-    await authorityRead;
-    await client.invalidateQueries({ queryKey: eligibilityRecordsKey('company', ['profile-one', 'account-one', 0]) });
-  });
-  await waitFor(() => expect(queueReads()).toBeGreaterThan(beforeQueue));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  fireEvent.click(screen.getByRole('button', { name: /^View request/ }));
-  fireEvent.change(await screen.findByLabelText('Acceptance expiry (local date and time)'), {
-    target: { value: expiresAt },
-  });
-  expect(screen.queryByLabelText('Your appointment')).toBeNull();
-  const previewOpener = screen.getByRole('button', { name: 'Preview company decision' });
-  previewOpener.focus();
-  fireEvent.click(previewOpener);
-  const reviewHeading = await screen.findByRole('heading', { name: 'Review and confirm' });
-  await waitFor(() => expect(document.activeElement).toBe(reviewHeading));
-  expect(screen.queryByRole('heading', { name: 'Requests' })).toBeNull();
-  const duringReview = ownReads();
-  await act(async () => {
-    window.dispatchEvent(new Event('focus'));
-    await new Promise((resolve) => setTimeout(resolve, 300));
-  });
-  expect(ownReads()).toBe(duringReview);
-  expect(screen.getByRole('heading', { name: 'Review and confirm' })).toBe(reviewHeading);
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  await waitFor(() => expect(document.activeElement).toBe(previewOpener));
-  expect((screen.getByLabelText('Acceptance expiry (local date and time)') as HTMLInputElement).value).toBe(expiresAt);
-  const beforeAccountChange = ownReads();
-  otherAccount = true;
-  await act(async () => {
-    const preferences = companyPreferences();
-    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-      data: { ...preferences, userAccount: { ...preferences.userAccount!, uuid: 'account-two' } },
-    });
-  });
-  await waitFor(() => expect(ownReads()).toBeGreaterThan(beforeAccountChange));
-  expect(screen.queryByText('Synthetic private eligibility declaration')).toBeNull();
-  expect(screen.queryByLabelText('Acceptance expiry (local date and time)')).toBeNull();
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  const beforeNewSession = ownReads();
-  await act(async () => {
-    client.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
-  });
-  await act(async () => {
-    client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
-  });
-  await waitFor(() => expect(ownReads()).toBeGreaterThan(beforeNewSession));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  otherAccount = false;
-  await act(async () => {
-    client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: companyPreferences() });
-  });
-  await screen.findByRole('button', { name: /^View request/ });
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  const beforeAuthorityFailure = queueReads();
-  failed = appointmentsUrl;
-  const beforeIdleAuthorityRead = ownReads();
-  await act(async () => {
-    window.dispatchEvent(new Event('focus'));
-  });
-  expect(ownReads()).toBe(beforeIdleAuthorityRead);
-  expect(queueReads()).toBe(beforeAuthorityFailure);
-  expect(screen.getByRole('button', { name: /^View request/ })).toBeTruthy();
-  await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true }));
-  await screen.findByText("The company's eligibility records could not be loaded.");
-  expect(queueReads()).toBe(beforeAuthorityFailure);
-  expect(screen.queryByRole('button', { name: /^View request/ })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Preview company decision' })).toBeNull();
-
-  cleanup();
-  client.clear();
-  failed = null;
-  const beforeUnavailableCompany = queueReads();
-  renderCompanyPage(client, <CompanyEligibilityPage />, 'Company eligibility', {
-    entry: '/company/eligibility?company=unavailable-company',
-    path: '/company/eligibility',
-  });
-  await screen.findByText(/You need a prepare or approve appointment for this company/);
-  expect(screen.queryByText(/authority is required to read this company/)).toBeNull();
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(queueReads()).toBe(beforeUnavailableCompany);
-  expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
-  expect(screen.queryByText('Synthetic private eligibility declaration')).toBeNull();
-
-  cleanup();
-  client.clear();
-  renderCompanyPage(client, <CompanyEligibilityPage />, 'Company eligibility', {
-    entry: '/company/eligibility',
-    path: '/company/eligibility',
-  });
-  await screen.findByRole('link', { name: 'Choose company on Dashboard' });
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(queueReads()).toBe(beforeUnavailableCompany);
+  expect(api.post).not.toHaveBeenCalled();
 });

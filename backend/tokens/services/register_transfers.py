@@ -30,6 +30,7 @@ from tokens.models import (
     ShareToken,
     ShareTokenStatus,
 )
+from tokens.services.member_events import current_associations
 from tokens.services.register import _snapshot, imported_membership_dates
 from tokens.services.register_authority import (
     holds,
@@ -104,6 +105,7 @@ def register_people(company_id, actor, token=None):
         recipients = set(
             RegisterAward.objects.readable_by(actor).filter(company_id=company_id).values_list("member", flat=True)
         )
+        following = set(current_associations(company_id=company_id).values_list("member", flat=True))
         return {
             "award_recipients": [],
             "members": [
@@ -126,6 +128,7 @@ def register_people(company_id, actor, token=None):
                     "particulars_retained": member.pk in held,
                     "on_register": member.pk in registered,
                     "has_awards": member.pk in recipients,
+                    "follows_profile": member.pk in following,
                 }
                 for member in members
                 if member.pk in registered or member.pk not in awarded or member.pk in recipients

@@ -3,11 +3,8 @@ import { COMPANY_TOKEN_ENDPOINTS } from '../constants/api';
 import type {
   PaginatedResponse,
   RegisterParticularsChange,
-  RegisterParticularsChangeDecideRequest,
-  RegisterParticularsChangeDecisionPreview,
-  RegisterParticularsChangeDecisionRequest,
-  RegisterParticularsChangePreparation,
   RegisterParticularsChangeQueryParams,
+  RegisterParticularsEdit,
 } from '../types';
 
 export const getRegisterParticularsChanges = (
@@ -20,35 +17,11 @@ export const getRegisterParticularsChanges = (
     params,
   });
 
-export const prepareRegisterParticularsChange = (
+export const editRegisterParticulars = (
   apiClient: AxiosInstance,
-  data: RegisterParticularsChangePreparation,
+  data: RegisterParticularsEdit,
   config: AxiosRequestConfig = {},
 ) => apiClient.post<RegisterParticularsChange>(COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGES, data, config);
-
-export const previewRegisterParticularsChangeDecision = (
-  apiClient: AxiosInstance,
-  uuid: string,
-  data: RegisterParticularsChangeDecisionRequest,
-  config: AxiosRequestConfig = {},
-) =>
-  apiClient.post<RegisterParticularsChangeDecisionPreview>(
-    COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGE_PREVIEW(uuid),
-    data,
-    config,
-  );
-
-export const decideRegisterParticularsChange = (
-  apiClient: AxiosInstance,
-  uuid: string,
-  data: RegisterParticularsChangeDecideRequest,
-  config: AxiosRequestConfig = {},
-) =>
-  apiClient.post<RegisterParticularsChange>(
-    COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGE_DECIDE(uuid),
-    data,
-    config,
-  );
 
 export const downloadRegisterParticularsChangeFile = (
   apiClient: AxiosInstance,

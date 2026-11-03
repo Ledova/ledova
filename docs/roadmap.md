@@ -14,7 +14,7 @@ sets the order below. Reuse these issues rather than creating a parallel backlog
 
 The company-managed register foundation is delivered under
 [#860](https://github.com/Ledova/ledova/issues/860): one registry product,
-company authority and activation, company eligibility decisions, the
+company authority and activation, the
 company-run register with imports, corrections, openings and wallet links,
 non-paid grants and transfers, company-authorised chain actions, employee
 awards with recorded vesting, fully paid external allotments, members' own
@@ -26,7 +26,21 @@ increment with its guide and pull request. Since
 chain actions run through the API only: the web app has no wallets or on-chain features
 ([decision](decisions.md#wallets-removed-from-the-web-app)). Members' particulars requests were
 removed on 31 October 2026; members tell the company directly
-([decision](decisions.md#member-particulars-requests-removed)).
+([decision](decisions.md#member-particulars-requests-removed)), and since 1 November the company
+changes a member's particulars in one step ([decision](decisions.md#one-step-particulars-edit)).
+Since 2 November a member linked to a Ledova account keeps their own register particulars up to date
+from their Profile
+([decision](decisions.md#register-particulars-follow-the-linked-members-profile)).
+Members' certificate requests were removed on 2 November 2026: the company prepares, signs and
+delivers its certificates, and Ledova keeps each one's fingerprint
+([decision](decisions.md#member-certificate-requests-removed)). Shareholder publications went the
+same day: the company gives notices to its members and pays dividends itself, and Ledova keeps the
+register ([decision](decisions.md#shareholder-publications-removed)). Investor eligibility, the ABR
+company check and company documents went the same day: classification claims, Supporting payslips,
+company eligibility decisions, registry checks and company documents with their staff verification
+are gone, the only verification of a person is the identity check, and retained register
+instructions take the company's own evidence
+([decision](decisions.md#verification-limited-to-id-checks)).
 
 The development workflow ([#943](https://github.com/Ledova/ledova/issues/943),
 closed 11 October) now uses fresh PostgreSQL migrations, minimum test suites
@@ -53,7 +67,8 @@ its phase issues:
 - Company-scoped on-chain approvals with expiry ([#648](https://github.com/Ledova/ledova/issues/648)).
 - Shareholder publications ([#649](https://github.com/Ledova/ledova/issues/649)):
   documents, resolutions and dividends published by platform staff on the
-  company's instruction ([shareholder publications](business/publications.md)).
+  company's instruction, removed on 2 November 2026
+  ([decision](decisions.md#shareholder-publications-removed)).
 - Reporting and portability ([#650](https://github.com/Ledova/ledova/issues/650)):
   the [company pack](business/member-records.md#the-company-pack) and the
   [account-data export](engineering/records.md#account-data-export).

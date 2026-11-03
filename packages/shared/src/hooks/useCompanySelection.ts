@@ -143,12 +143,6 @@ export function useCompanySelection({
       guard();
       if (data.uuid !== companyUuid || !readable(data))
         throw createUserFriendlyError('The company information or your authority changed. Refresh before continuing.');
-      if (
-        !Array.isArray(data.documents) ||
-        data.documents.some((document) => document.company !== companyUuid) ||
-        new Set(data.documents.map((document) => document.uuid)).size !== data.documents.length
-      )
-        throw createUserFriendlyError('The company documents could not be confirmed.');
       return data;
     },
   });
@@ -171,7 +165,6 @@ export function useCompanySelection({
               selectedCompany && !canAdministerCompany(selectedCompany)
                 ? selectedCompany.administrativeAccess
                 : detail.data.administrativeAccess,
-            documents: [],
             email: null,
             primaryContact: null,
           }),

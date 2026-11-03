@@ -26,10 +26,6 @@ class OrderActionSubmission(BaseModel):
     order = models.ForeignKey("tokens.TransferOrder", on_delete=models.PROTECT, related_name="actions")
     wallet = models.ForeignKey("wallets.Wallet", on_delete=models.PROTECT, related_name="+")
     token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="+")
-    eligibility_decision = models.ForeignKey(
-        "users.CompanyEligibilityDecision", on_delete=models.PROTECT, related_name="+", null=True, blank=True
-    )
-    eligibility_admitted_at = models.DateTimeField(null=True, blank=True)
     initiated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
     wallet_address = models.CharField(max_length=42, editable=False)
     chain_id = models.PositiveBigIntegerField(editable=False)
@@ -54,16 +50,6 @@ class OrderActionSubmission(BaseModel):
 
     class Meta:
         constraints = [
-            models.CheckConstraint(
-                condition=models.Q(eligibility_decision__isnull=True, eligibility_admitted_at__isnull=True)
-                | models.Q(
-                    purpose="modify",
-                    status="applied",
-                    eligibility_decision__isnull=False,
-                    eligibility_admitted_at__isnull=False,
-                ),
-                name="order_action_eligibility_modify_pair",
-            ),
             models.UniqueConstraint(fields=["owner_account", "action_id"], name="order_action_account_key"),
             models.CheckConstraint(
                 condition=models.Q(protocol_version=1, chain_id__gt=0)

@@ -28,10 +28,10 @@ the replaced cases or the approval, and independent review checks them
 
 | Suite               | Delivered cases | Maximum | Essential coverage                                                                                                             |
 | ------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Backend, PostgreSQL | 28              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
-| Dashboard unit      | 19              | 20      | Main pages, sign-in, core flows                                                                                                |
+| Backend, PostgreSQL | 27              | 150     | Core API happy paths, tenant isolation, company authority, ownership totals and issuance idempotency, one fake-scanner refusal |
+| Dashboard unit      | 20              | 20      | Main pages, sign-in, core flows and the particulars edit's conflict baseline                                                   |
 | Playwright smoke    | 7               | 9       | Core browser journeys and route wiring                                                                                         |
-| Mobile Jest         | 5               | 10      | App start, sign-in, signup completion, member records, a recoverable certificate request and an eligibility claim's evidence   |
+| Mobile Jest         | 5               | 10      | App start, sign-in, signup completion, member records and a retried invitation acceptance                                      |
 | Shared package      | 9               | 10      | Essential shared behaviour                                                                                                     |
 | Contracts           | 14              | 20      | Who can mint, pause and transfer                                                                                               |
 
@@ -85,20 +85,26 @@ The backend suite covers:
 - Company A cannot read or change company B through the API or the database.
 - A user without the necessary appointment cannot approve, issue or allot, and a staff account
   without the company change permission cannot change a company's status.
-- A member without a full name is never named by their email address.
+- A member without a full name is never named by their email address, and a company sees only that
+  its wallet nominee is no longer current, never why.
 - Issued shares equal holdings, and a repeated request produces one issue.
 - One fake-scanner test refuses infected or unscannable uploads. The ordinary suite stubs the
   scanner and cache and needs no chain node or scanner service.
 
 The company setup journey covers signup without a supporting file, initial representative
-admission without an ABR lookup, activation with one and later checked company documents, with
-the identity, versioned acknowledgement and company authority checks in that path; resuming signup
+admission, activation with its retained receipt returned again to an identical retry, and a later
+checked upload of the company's own evidence, with the identity, versioned acknowledgement and company authority checks
+in that path; resuming signup
 uses current administrator authority and a retained current Terms receipt without rewriting
 historical permissions or declarations.
-Member invitations, own records and certificate requests have one core journey, and the
-tenant controls include foreign invitation and revoked association refusals. One output case covers
-real company and member PDFs, pack provenance and file integrity; a request creates no output until
-company fulfilment retains the actual recipient-only file. Two mirror cases cover complete copied
+Member invitations and own records have one core journey. It also finds no certificate request
+route and checks that the register follows a linked member's profile: linking and a profile save
+record the member's dated changes, the company's edit is refused until the link is revoked, and the
+database refuses a member's change to another member's particulars. The tenant controls include
+foreign invitation and revoked association refusals. One
+output case covers real company certificate PDFs, a register reader who lists no member invitations
+or associations and whose access ends with their appointment, pack provenance and file integrity,
+and the purge of export records after the retention floor. Two mirror cases cover complete copied
 holdings and allotments, once-only opening corrections, retained earlier snapshots, stale and
 incomplete requests, and refusal after later ownership or member-access activity. They exercise
 the API and PostgreSQL guards; they establish no genuine legal register or source verification.
@@ -110,7 +116,8 @@ their API and database boundaries: a privileged fixture connection alone does no
 isolation, and ordinary `SET ROLE` fixtures are not app-login evidence.
 `backend/shared/tests/test_scoped_access.py` holds them:
 session and principal handling, foreign reads and writes, exact-company binding, foreign approval
-and once-only issue. The PR description records the executed count, the scoped count and any skips.
+and once-only issue. The own-profile case also checks that the operator-connection profile save, with
+its serializer bypassed, cannot change provider identity results or another person's row. The PR description records the executed count, the scoped count and any skips.
 
 ## Client suites
 

@@ -18,6 +18,7 @@ from tokens.models import (
     RegisterGrant,
     RegisterMemberCessation,
     RegisterMemberParticulars,
+    RegisterParticularsChange,
     RegisterPosition,
     ShareToken,
 )
@@ -152,35 +153,36 @@ class ExternalAllotmentTest(CoreFixtures, APITransactionTestCase):
             )
             with self.assertRaises(IntegrityError), atomic():
                 RegisterContribution.objects.filter(pk=proposal.contribution_id).update(amount="249.00")
-        change = self.client.post(
-            "/api/v1/tokens/register-particulars-changes/",
-            {
-                "operation_id": str(uuid4()),
-                "appointment": str(self.appointment.pk),
-                "member": payload["member"],
-                "supporting_evidence": payload["agreement_evidence"],
-                "name": "Synthetic Investor Updated",
-                "residential_address": "5 Example Street, Sydney NSW 2000",
-                "as_at": payload["agreement_on"],
-                "reason": "Apply the company's supported particulars update after allotment",
-            },
-            format="json",
-        )
+        particulars = "/api/v1/tokens/register-particulars-changes/"
+        edit = {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "member": payload["member"],
+            "name": "Synthetic Investor Updated",
+            "residential_address": "5 Example Street, Sydney NSW 2000",
+            "expected": {"name": payload["name"], "residential_address": payload["residential_address"]},
+        }
+        unseen = {**edit, "operation_id": str(uuid4()), "expected": {**edit["expected"], "name": "Synthetic Earlier"}}
+        self.assertEqual(self.client.post(particulars, unseen, format="json").status_code, 409)
+        change = self.client.post(particulars, edit, format="json")
         self.assertEqual(change.status_code, 201, change.content)
-        current = self.client.post(
-            f"/api/v1/tokens/register-particulars-changes/{change.json()['uuid']}/decision-preview/",
-            {"appointment": str(self.appointment.pk), "kind": "approve"},
-            format="json",
+        self.assertEqual(
+            (change.json()["status"], change.json()["reason"], change.json()["supportingEvidence"]),
+            ("applied", "", None),
         )
-        self.assertEqual(current.status_code, 200, current.content)
-        self.assertEqual(current.json()["current"]["sourceAllotment"], identifier)
-        self.decision("/api/v1/tokens/register-particulars-changes/", change.json()["uuid"], "approve")
-        self.decision("/api/v1/tokens/register-particulars-changes/", change.json()["uuid"], "apply")
+        self.assertEqual(
+            (change.json()["previousParticulars"]["name"], change.json()["previousParticulars"]["residentialAddress"]),
+            (payload["name"], payload["residential_address"]),
+        )
+        retried = self.client.post(particulars, edit, format="json")
+        self.assertEqual((retried.status_code, retried.json()["uuid"]), (200, change.json()["uuid"]))
         with use_operator():
             held = RegisterMemberParticulars.objects.get(member_id=payload["member"])
             self.assertEqual(str(held.source_change_id), change.json()["uuid"])
             self.assertIsNone(held.source_allotment_id)
             self.assertEqual(held.name, "Synthetic Investor Updated")
+            replaced = RegisterParticularsChange.objects.get(pk=change.json()["uuid"]).previous_particulars
+            self.assertEqual(replaced["source_allotment"], identifier)
         shared_member = self.allotment_payload()
         shared = self.client.post(endpoint, shared_member, format="json")
         self.assertEqual(shared.status_code, 201, shared.content)

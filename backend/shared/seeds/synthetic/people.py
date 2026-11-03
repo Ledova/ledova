@@ -2,9 +2,7 @@ import hashlib
 from datetime import timedelta
 from decimal import Decimal
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.files.base import ContentFile
 
 from compliance.constants import (
     ASSESSMENT_STATUS_COMPLETE,
@@ -13,31 +11,20 @@ from compliance.constants import (
 )
 from compliance.models import CustomerRiskAssessment
 from compliance.services.risk_assessment import RiskAssessmentService
-from documents.models import (
-    Document,
-    DocumentExtraction,
-    DocumentType,
-    ExtractionStatus,
-)
-from documents.schemas import PayslipExtraction
 from integrations.kyc.pep import pep_data_from_labels
 from integrations.sumsub.client import SumSubService
 from portfolios.models import Portfolio
 from shared.db import atomic, use_migrate
 from shared.seeds.synthetic import keys
 from shared.seeds.synthetic.clock import frozen
-from shared.seeds.synthetic.paper import pdf
 from users.models import (
     DeviceToken,
     FinancialProfile,
-    InvestorClassification,
-    InvestorClassificationStatus,
     Notification,
     UserAccount,
     UserPreferences,
     UserProfile,
 )
-from users.models.investor_classification import DECLARATION_TEXT, InvestorCategory
 from users.services.setup import ensure_defaults
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Holding, Transaction, Wallet
@@ -46,12 +33,6 @@ from wallets.services.registration import register_wallet
 User = get_user_model()
 
 COUNTRY_CODE = "+61"
-PDF = "application/pdf"
-EXTRACTION_FAILURE = "LlmExtractValidationError: Extracted output failed schema validation"
-EVIDENCE_TITLES = {
-    "accountant_certificate": "Qualified accountant's certificate",
-    "professional_investor": "Statement supporting professional investor status",
-}
 
 
 def create_identity(person, seeded):
@@ -107,10 +88,6 @@ def apply_person(person, seeded):
         UserPreferences.objects.filter(user_profile=profile).update(transaction_alerts=person.alerts_enabled)
         for plan in person.wallets:
             _wallet(plan, account, seeded)
-        for claim in person.claims:
-            _claim(claim, person, user, account, seeded)
-        for payslip in person.payslips:
-            _payslip(payslip, user)
         for device in person.devices:
             _device(device, user)
         if person.last_login:
@@ -323,149 +300,6 @@ def _transaction(transfer, wallet, seeded):
     if transfer.settled_at != transfer.recorded_at:
         Transaction.objects.filter(pk=record.pk).update(updated_at=transfer.settled_at)
     return record
-
-
-def _claim(claim, person, user, account, seeded):
-    if claim.existing:
-        return _adopt_claim(claim, person, account, seeded)
-    certificate = claim.certificate
-    with frozen(claim.submitted_at):
-        classification = InvestorClassification(
-            user_account=account,
-            category=claim.category,
-            status=InvestorClassificationStatus.SUBMITTED,
-            declaration_accepted=True,
-            declaration_text=DECLARATION_TEXT[InvestorCategory(claim.category)],
-            declared_basis=claim.declared_basis,
-            certificate_issued_at=certificate.issued_on if certificate else None,
-            certifier_name=certificate.certifier if certificate else "",
-            certifier_body=certificate.body if certificate else "",
-            certifier_membership_number=certificate.membership if certificate else "",
-            submitted_at=claim.submitted_at,
-        )
-        _save_evidence(classification, claim, person)
-    for payslip in claim.payslips:
-        _payslip(payslip, user, classification, claim.submitted_at)
-    _review(classification, claim, seeded)
-
-
-def _save_evidence(classification, claim, person):
-    lines = [
-        f"Investor: {person.full_name}",
-        f"Basis: {claim.declared_basis}",
-        f"Submitted: {claim.submitted_at:%d %B %Y}",
-    ]
-    certificate = claim.certificate
-    if certificate:
-        lines += [
-            f"Certifier: {certificate.certifier} ({certificate.body.upper().replace('_', ' ')})",
-            f"Membership number: {certificate.membership}",
-            f"Certificate date: {certificate.issued_on:%d %B %Y}",
-        ]
-    content = pdf(EVIDENCE_TITLES[claim.category], lines)
-    classification.evidence_file_size = len(content)
-    classification.evidence_mime_type = PDF
-    classification.evidence_file.save(f"{claim.category}.pdf", ContentFile(content), save=True)
-
-
-def _review(classification, claim, seeded):
-    if claim.status == "submitted":
-        return
-    fields = {"status": claim.status, "reviewed_at": claim.reviewed_at, "updated_at": claim.reviewed_at}
-    if claim.status != "withdrawn":
-        fields.update(
-            reviewed_by=seeded.users[claim.reviewer],
-            expires_at=claim.expires_at,
-            review_notes=claim.review_notes,
-            rejection_reason=claim.rejection_reason,
-        )
-    with use_migrate():
-        InvestorClassification.objects.filter(pk=classification.pk).update(**fields)
-    classification.refresh_from_db()
-
-
-def _adopt_claim(claim, person, account, seeded):
-    classification = (
-        InvestorClassification.objects.filter(
-            user_account=account, category=claim.category, status=InvestorClassificationStatus.VERIFIED
-        )
-        .order_by("created_at")
-        .first()
-    )
-    if classification is None:
-        return
-    with frozen(claim.submitted_at):
-        classification.declaration_text = DECLARATION_TEXT[InvestorCategory(claim.category)]
-        classification.declared_basis = claim.declared_basis
-        classification.submitted_at = claim.submitted_at
-        if not classification.evidence_file:
-            _save_evidence(classification, claim, person)
-        else:
-            classification.save()
-    InvestorClassification.objects.filter(pk=classification.pk).update(
-        created_at=claim.submitted_at,
-        updated_at=claim.reviewed_at,
-        reviewed_at=claim.reviewed_at,
-        reviewed_by=seeded.users[claim.reviewer],
-        review_notes=claim.review_notes,
-    )
-
-
-def _payslip(payslip, user, classification=None, attached_at=None):
-    lines = [
-        f"Employer: {payslip.employer} (ABN {payslip.employer_abn})",
-        f"Employee: {payslip.employee}",
-        f"Pay period: {payslip.period_start:%d/%m/%Y} to {payslip.period_end:%d/%m/%Y}",
-        f"Gross pay: AUD {payslip.gross:,}",
-        f"PAYG tax withheld: AUD {payslip.tax:,}",
-        f"Net pay: AUD {payslip.gross - payslip.tax:,}",
-        f"Superannuation: AUD {payslip.superannuation:,}",
-        f"Year to date gross: AUD {payslip.ytd_gross:,}",
-        f"Year to date tax: AUD {payslip.ytd_tax:,}",
-    ]
-    with frozen(payslip.uploaded_at):
-        document = Document(
-            uploaded_by=user,
-            classification=classification,
-            attached_at=attached_at,
-            document_type=DocumentType.PAYSLIP,
-            original_filename=payslip.filename,
-            mime_type=PDF,
-        )
-        document.file.save(payslip.filename, ContentFile(pdf("Payslip", lines)), save=True)
-    started = payslip.uploaded_at + timedelta(seconds=3)
-    finished = started + timedelta(milliseconds=payslip.duration_ms)
-    fields = {"status": ExtractionStatus.FAILED, "error": EXTRACTION_FAILURE}
-    if payslip.succeeded:
-        extracted = PayslipExtraction(
-            employee_name=payslip.employee,
-            employer_name=payslip.employer,
-            abn=payslip.employer_abn,
-            period_start=payslip.period_start,
-            period_end=payslip.period_end,
-            pay_date=None if payslip.warnings else payslip.period_end,
-            gross_pay=payslip.gross,
-            net_pay=payslip.gross - payslip.tax,
-            tax_withheld=payslip.tax,
-            superannuation=payslip.superannuation,
-            ytd_gross=payslip.ytd_gross,
-            ytd_tax=payslip.ytd_tax,
-            confidence=payslip.confidence,
-            extraction_warnings=list(payslip.warnings),
-        )
-        fields = {
-            "status": ExtractionStatus.SUCCEEDED,
-            "raw_output": extracted.model_dump_json(),
-            "parsed_json": extracted.model_dump(mode="json"),
-            "confidence": payslip.confidence,
-            "warnings": list(payslip.warnings),
-            "model_name": settings.LLM_MODEL,
-        }
-    with frozen(started):
-        extraction = DocumentExtraction.objects.create(
-            document=document, started_at=started, finished_at=finished, duration_ms=payslip.duration_ms, **fields
-        )
-    DocumentExtraction.objects.filter(pk=extraction.pk).update(updated_at=finished)
 
 
 def _device(device, user):

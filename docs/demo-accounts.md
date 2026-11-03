@@ -38,8 +38,8 @@ keeping every earlier record except what #1421 removed, and the demo data below 
 | Person              | Test role                             | Email                      | Password                                      | What to test                                                                     |
 | ------------------- | ------------------------------------- | -------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------- |
 | Alex Demo           | Company administrator and shareholder | `director@ledova.io`       | `5TASnw2RJQcPhZ-u-gXvbmF6nk0cRLVM`            | Company Dashboard, Ledger, Shareholders, Employee scheme, Documents and Settings |
-| Taylor Demo         | Shareholder                           | `shareholder1@ledova.io`   | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares, member documents and company-recorded details                         |
-| Casey Demo          | Employee shareholder                  | `employee1@ledova.io`      | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records, certificates and company-recorded details     |
+| Taylor Demo         | Shareholder                           | `shareholder1@ledova.io`   | `3anR1YOjxLrNKqm8U2QtP3j_IsU7jafd`            | My shares and member documents                                                   |
+| Casey Demo          | Employee shareholder                  | `employee1@ledova.io`      | `Q9NyOM_HQM_E2QxwgpvA9wzs2wXTQ9Mv`            | My shares, employee award records and certificates                               |
 | Quinn Investor Demo | Investor                              | `investor1@ledova.io`      | `TwAFv-SU0E-nrW5je-idauWmZPly8-ZUcMXCTRJMVus` | My shares and investor certificate records                                       |
 | Jordan Ellis        | Second Purpose Demo officer           | `director@blueberry.money` | `sQS6zJDzdXdXO0SsAPCdksvL-kwhP42i`            | Purpose Demo Team and company authority                                          |
 
@@ -65,18 +65,18 @@ flowchart LR
     Login["One sign-in account"] --> Appointment["Company appointment"]
     Login --> Association["Accepted member invitation"]
     Appointment -->|Assigned capabilities| Admin["Company Dashboard, Ledger, Shareholders, Employee scheme and outputs"]
-    Association --> Member["Own shares, awards, certificates and company-recorded details"]
+    Association --> Member["Own shares, awards and certificates"]
 ```
 
 - **Alex Demo:** company administrator for three companies, and a member of Purpose Demo.
   This is the mixed-role example: one account, with independent company and personal access. At
-  Purpose Demo his appointment also prepares and approves, so he decides eligibility requests there;
-  at Banksia and Harbour he is an administrator only.
+  Purpose Demo his appointment also holds prepare and approve; at Banksia and Harbour he is an
+  administrator only.
 - **Taylor Demo:** shareholder/member in three companies; no company administration.
 - **Casey Demo:** employee shareholder/member in Purpose Demo only, with an award and issued shares.
 - **Quinn Investor Demo:** investor/member in Purpose Demo, for personal holdings and certificates;
   no company administration.
-- Taylor, Casey and Quinn are active, identity-verified investors with eligibility claims.
+- Taylor, Casey and Quinn are active, identity-verified investors.
 - **Jordan Ellis:** a second Purpose Demo officer, added on 29 October 2026 to re-appoint Alex with
   prepare and approve.
 
@@ -123,8 +123,13 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
 - **Purpose Demo:**
   - Eligibility requests, each sharing the investor's name: Quinn's and Taylor's accepted, one of
     Casey's refused and two pending, the newer one sent with a later certificate after the refusal.
-  - Member requests: certificate requests from Quinn and Casey.
-  - A constitution, a shareholders agreement and financial statements under Supporting.
+    `users/0003_remove_investor_eligibility` deletes them, with the investors' claims and evidence
+    ([decision](decisions.md#verification-limited-to-id-checks)).
+  - Certificate requests from Quinn and Casey, which `tokens/0005_remove_member_certificate_requests`
+    deletes ([decision](decisions.md#member-certificate-requests-removed)).
+  - A constitution, a shareholders agreement and financial statements under Company files, which
+    `companies/0004_remove_company_documents` deletes with their files
+    ([decision](decisions.md#company-documents-removed)).
   - An inspection copy and a company pack.
 - **Banksia:**
   - An allotment to a fund and a transfer to a family trust.
@@ -133,7 +138,7 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
     2,000.
   - An inspection copy and a company pack.
 - **Harbour:** an allotment, a transfer and an employee award with its first tranche issued.
-- Taylor's request to Banksia was withdrawn.
+- Taylor's eligibility request to Banksia was withdrawn; the same migration deletes it.
 - Inspection copies and packs prepared before #1429 have no record of where they were produced, so
   they stay unlisted.
 - Published stays empty without a chain.

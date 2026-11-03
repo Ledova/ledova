@@ -393,8 +393,8 @@ of the two and makes bare addresses unique. Each company approval is a `Whitelis
 entry and company, mirroring the registry's expiry. `company-wallet-targets/` lists the retained
 CONFIRMED or UNCHANGED ADD journals a REMOVE can name.
 
-A nomination binds one own Base wallet's retained possession proof to the company and its current
-GENERAL eligibility source; the proof, nominee associations and signature bytes are operator-only,
+A nomination binds one own Base wallet's retained possession proof to the company it names, for a
+current participant; the proof, nominee associations and signature bytes are operator-only,
 and historical VERIFIED status is not backfilled into a proof. ADD's registry is the one the
 factory's `registryOf(acn)` reports, and its expiry is in the registry's whole seconds. REMOVE
 freezes a retained CONFIRMED or UNCHANGED ADD journal, historical NULL-source ADDs included, which
@@ -405,9 +405,9 @@ The one write is `setExpiry(address, uint64)`, the finite expiry for ADD and zer
 database trigger binds the change's company, address, action and expiry into that calldata. Staff
 keep retained private entry reads, sync and export and original technical recovery. The target
 advisory lock precedes the company and source locks, and a fresh signature also rechecks the
-captured nomination, proof, GENERAL source and expiry. Permanent source loss on never-signed work
-fails the claim and projects that failure, releasing its target so a genuine eligibility-loss REMOVE
-is not stranded behind it; it invents no withdrawal or wallet-deletion cause.
+captured nomination, proof, participant and expiry. Permanent source loss on never-signed work
+fails the claim and projects that failure, releasing its target so a genuine loss REMOVE is not
+stranded behind it; it invents no standing, identity or wallet-deletion cause.
 
 A change's `pending` and `executing` are unresolved (the nested operation tells PREPARING from
 SIGNED); `confirmed` records the original successful transaction, `unchanged` a real no-transaction
@@ -436,23 +436,24 @@ still move shares, and pausing the token is the operator's lever.
 
 ### Refreshing an approval
 
-`whitelist.services.refresh` keeps technical eligibility invalidation. It submits only REMOVE, under
-the exact recorded company decision or the actual retained standing, identity or wallet-loss cause,
-and never adds or renews approval, authorises a company instruction or treats a possession-proof
-refresh as wallet deletion. A current exact-company GENERAL source can explain why no removal is
-needed; absence of a genuine cause is diagnostic, not permission to write. The sweep reads the
-registry's expiry (an expired address needs no write) and recovers an unresolved predecessor first;
-missing receipts, time or membership never release a signed operation.
+`whitelist.services.refresh` keeps technical invalidation. It submits only REMOVE, under the
+actual retained standing, identity or wallet-loss cause, and never adds or renews approval,
+authorises a company instruction or treats a possession-proof refresh as wallet deletion. A
+participant who is current again explains why a standing or identity loss needs no removal, but a
+wallet removal still removes; absence of a genuine cause is diagnostic, not permission to write.
+The sweep reads the registry's expiry (an expired address needs no write) and recovers an
+unresolved predecessor first; missing receipts, time or membership never release a signed operation.
 
-Source or request withdrawal, company decision revocation, expiry and evidence purge keep their
-decision cause; standing, identity or wallet verification loss or wallet deletion keep the actual
-prior facts and any actor, independent of any new company instruction. Deleting a wallet captures
-its company, registry and address targets before the entry and approval cascade and queues their
+Standing, identity or wallet verification loss and wallet deletion keep the actual prior facts and
+any actor, independent of any new company instruction. The eligibility causes (claim or request
+withdrawal, company revocation, eligibility expiry and evidence purge) went with investor
+eligibility on 2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)).
+Deleting a wallet captures its company, registry and address targets before the entry and approval cascade and queues their
 removal after commit. The `refresh_whitelist_targets` job retries those removals every five minutes,
 with no attempt ceiling, until they finish, never substituting an actor or granting approval; it
 must stay, because the approval sweep (`refresh_whitelist_approvals`) cannot rediscover deleted
 targets. Unavailable providers, actors, causes or workers stay pending or diagnostic rather than
-inventing authority. Legacy accountless treasury entries get no fabricated eligibility or possession
+inventing authority. Legacy accountless treasury entries get no fabricated participant or possession
 source, and their chain history is no treasury-admission policy. Normal intervals do not guarantee a
 removal during a provider outage or an unresolved chain outcome.
 

@@ -13,16 +13,11 @@ class WhitelistAction(models.TextChoices):
 class WhitelistAuthority(models.TextChoices):
     OPERATOR_API = "operator_api", "Operator API"
     WHITELIST_ADMIN = "whitelist_admin", "Whitelist administration"
-    CLASSIFICATION_REFRESH = "refresh", "Eligibility invalidation"
+    REFRESH = "refresh", "Automatic invalidation"
     COMPANY = "company", "Company instruction"
 
 
 class WhitelistInvalidationCause(models.TextChoices):
-    SOURCE_WITHDRAWAL = "source_withdrawal", "Source withdrawn by its holder"
-    REQUEST_WITHDRAWAL = "request_withdrawal", "Company request withdrawn by its holder"
-    COMPANY_REVOCATION = "company_revocation", "Company decision revoked"
-    EXPIRY = "expiry", "Eligibility expired automatically"
-    EVIDENCE_PURGE = "evidence_purge", "Evidence purged automatically"
     STANDING_LOSS = "standing_loss", "Account standing lost"
     IDENTITY_LOSS = "identity_loss", "Configured identity lost"
     WALLET_REMOVAL = "wallet_removal", "Wallet removed or verification lost"
@@ -77,9 +72,6 @@ class WhitelistChange(BaseModel):
     intent = models.JSONField(editable=False)
     initiated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", null=True)
     authority = models.CharField(max_length=20, choices=WhitelistAuthority.choices, editable=False)
-    eligibility_decision = models.ForeignKey(
-        "users.CompanyEligibilityDecision", on_delete=models.PROTECT, related_name="+", null=True, editable=False
-    )
     eligibility_invalidation = models.ForeignKey(
         WhitelistEligibilityInvalidation, on_delete=models.PROTECT, related_name="+", null=True, editable=False
     )

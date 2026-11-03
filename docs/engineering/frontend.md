@@ -83,31 +83,30 @@ Mobile maps onto the same layers, direction and placement, with `navigation/` fo
 `screens/<area>/` for page folders. Its component data calls beyond the reads extracted for key
 ownership remain recorded on [#1072](https://github.com/Ledova/ledova/issues/1072). Shared native UI
 and cross-area reads live outside screen internals ([mobile architecture](mobile.md#architecture)).
-Profile, operator, publication-list and investor classification reads live once in
-`packages/shared`, with the classification claim's checks and withdrawal; client adapters retain
-their current session, cache, labels and result policies. `site/src` is a separate flat app (one
+Profile and operator reads live once in `packages/shared`; client adapters retain their current
+session, cache, labels and result policies. `site/src` is a separate flat app (one
 file per page in `pages/`, `components/`, `styles.ts`) that cannot import the shared
 package; only the file-naming rules apply to it.
 
 ## Frontend layers
 
 Each layer owns one kind of code and imports only the layers below it; code moves up only when a
-second user needs it, as on the [backend](backend.md#backend-layers). `pages/publications/` is the
-reference page. Where a rule and a file disagree, the rule wins and the file is the backlog;
+second user needs it, as on the [backend](backend.md#backend-layers). `pages/documents/certificates/`
+is the reference page. Where a rule and a file disagree, the rule wins and the file is the backlog;
 existing code is being brought in line under [#1065](https://github.com/Ledova/ledova/issues/1065).
 
-| Layer                                  | Owns                                                                                                                                         | Never contains                                                                                | Reference                                                                                        |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Route table and guards (`routes/`)     | `PAGES` keyed by `DESTINATIONS`, the sign-up and public routes, guards with their waiting and failure states, where an account lands         | A page's files other than its entry; page content; reads beyond the session and access checks | `dashboard/src/routes/pages.tsx`                                                                 |
-| Page entry (`index.tsx`)               | One route: its parameters, hash and navigation state, the owner boundary, and `Page` with its title row and sections fed by hooks            | `useQuery`, `useMutation`, `apiClient` or a service call; another page's files                | `dashboard/src/pages/publications/index.tsx`                                                     |
-| Page files (beside the entry)          | The page's sections and dialogs, its hooks and its pure helpers, told apart by file name                                                     | `components/` or `hooks/` subfolders; a file a second page imports                            | `dashboard/src/pages/publications/Resolution.tsx`, `dashboard/src/pages/home/ownershipColors.ts` |
-| Shared page code (`shared/`)           | Files that two or more pages under that page folder import                                                                                   | Route entries; a file one page alone uses                                                     | `dashboard/src/pages/company/shared/RegisterDecisions.tsx`                                       |
-| UI kit and frame (`components/`)       | The kit, the frame and public layout with their contexts, and group folders or single components for UI that several areas or the frame show | Imports of `pages/` or `routes/`; in kit files, queries or domain rules                       | `dashboard/src/components/Ledger.tsx`, `dashboard/src/components/auth/`                          |
-| Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render   | JSX; another module's key written out; raw error text                                         | `dashboard/src/hooks/useOwnershipCompanies.ts`                                                   |
-| Services (`services/`)                 | `apiClient` (CSRF retry, the submission guard, friendly network errors) and the browser device stores                                        | API call functions; React                                                                     | `dashboard/src/services/apiClient.ts`                                                            |
-| Utils (`utils/`)                       | Client-only helpers and web-only paths used by more than one area or the frame                                                               | React; API calls; logic mobile also needs on the same libraries                               | `dashboard/src/utils/siteUrl.ts`                                                                 |
-| Types                                  | A type beside its only user; API-derived and cross-client types in `packages/shared/src/types`                                               | Hand-written API shapes; a dashboard `types/` folder; client prop types in the shared package | `packages/shared/src/types/domain/publication.ts`                                                |
-| Shared package (`packages/shared/src`) | What both clients need (query hooks, pure utils, constants, contract types) and every API call function, even one only one client calls      | JSX beyond `ApiClientProvider`; DOM or native APIs (stores take an injected storage)          | `packages/shared/src/services/publications.ts`                                                   |
+| Layer                                  | Owns                                                                                                                                         | Never contains                                                                                | Reference                                                                                                          |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Route table and guards (`routes/`)     | `PAGES` keyed by `DESTINATIONS`, the sign-up and public routes, guards with their waiting and failure states, where an account lands         | A page's files other than its entry; page content; reads beyond the session and access checks | `dashboard/src/routes/pages.tsx`                                                                                   |
+| Page entry (`index.tsx`)               | One route: its parameters, hash and navigation state, the owner boundary, and `Page` with its title row and sections fed by hooks            | `useQuery`, `useMutation`, `apiClient` or a service call; another page's files                | `dashboard/src/pages/documents/certificates/index.tsx`                                                             |
+| Page files (beside the entry)          | The page's sections and dialogs, its hooks and its pure helpers, told apart by file name                                                     | `components/` or `hooks/` subfolders; a file a second page imports                            | `dashboard/src/pages/documents/certificates/CertificateRecords.tsx`, `dashboard/src/pages/home/ownershipColors.ts` |
+| Shared page code (`shared/`)           | Files that two or more pages under that page folder import                                                                                   | Route entries; a file one page alone uses                                                     | `dashboard/src/pages/company/shared/RegisterDecisions.tsx`                                                         |
+| UI kit and frame (`components/`)       | The kit, the frame and public layout with their contexts, and group folders or single components for UI that several areas or the frame show | Imports of `pages/` or `routes/`; in kit files, queries or domain rules                       | `dashboard/src/components/Ledger.tsx`, `dashboard/src/components/auth/`                                            |
+| Data hooks (`use<Thing>.ts`)           | `useQuery` and `useMutation`, the exported key factory, the owner guard, cache timing and invalidation; values and actions ready to render   | JSX; another module's key written out; raw error text                                         | `dashboard/src/hooks/useOwnershipCompanies.ts`                                                                     |
+| Services (`services/`)                 | `apiClient` (CSRF retry, the submission guard, friendly network errors) and the browser device stores                                        | API call functions; React                                                                     | `dashboard/src/services/apiClient.ts`                                                                              |
+| Utils (`utils/`)                       | Client-only helpers and web-only paths used by more than one area or the frame                                                               | React; API calls; logic mobile also needs on the same libraries                               | `dashboard/src/utils/siteUrl.ts`                                                                                   |
+| Types                                  | A type beside its only user; API-derived and cross-client types in `packages/shared/src/types`                                               | Hand-written API shapes; a dashboard `types/` folder; client prop types in the shared package | `packages/shared/src/types/domain/member-access.ts`                                                                |
+| Shared package (`packages/shared/src`) | What both clients need (query hooks, pure utils, constants, contract types) and every API call function, even one only one client calls      | JSX beyond `ApiClientProvider`; DOM or native APIs (stores take an injected storage)          | `packages/shared/src/services/member-access.ts`                                                                    |
 
 ### Dependency direction and placement
 
@@ -163,8 +162,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   its result names the fields `isLoading`, `hasError`, `isRefreshing` and `retry`
   (`dashboard/src/hooks/useOwnershipCompanies.ts`). Older hooks still use other names, such as
   `useSettingsNavigation` (`isError`, `isFetching`), the dashboard's `useUserProfile` (`isError`,
-  `isFetching`, `refreshProfile`), `useRegisterEntries` (`isPending`, `isFetching`),
-  `usePublications` (`listFailed`) and `useIdentityVerification` (`isLoadingStatus`).
+  `isFetching`, `refreshProfile`), `useRegisterEntries` (`isPending`, `isFetching`) and
+  `useIdentityVerification` (`isLoadingStatus`).
 - **Account boundary.** Work bound to the signed-in account takes its owner from
   `useSubmissionOwner`, and the page renders it in an inner component keyed by the owner, so pending
   work never crosses accounts. Its query keys carry the owner and every request passes
@@ -211,7 +210,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   (`/company/ledger/:uuid` is `pages/company/ledger/detail/`), and a `detail/` folder never holds sub-pages;
   an address that renders another's page (`/member-records`, `/company/ledger/setup`) has no
   folder, and the not-found page is `pages/not-found/`. Page folders and `components/` groups are
-  kebab-case (`eligibility-requests/`, `member-records/`). A file is named after its main export, or after what
+  kebab-case (`member-records/`, `not-found/`). A file is named after its main export, or after what
   small siblings share (`fieldClass.ts`): `PascalCase.tsx` for a component, `use<Thing>.ts` for a
   hook without JSX (`use<Thing>.tsx` for the two Ledger issue hooks, `useInvestorIssues` and
   `useNonPaidIssues`, which return the rendered parts their class page interleaves, and for the
@@ -234,7 +233,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   reaching `testSupport/` and `testSupport/` reaching `packages/shared/tests/fixtures`.
 - **Tests.** A test sits beside the file it covers and takes its name (`index.test.tsx` for a page
   journey); helpers for tests in more than one folder live in `testSupport/`, as in
-  `mobile/src/testSupport/`. A move updates `vi.mock` paths in the same change, because a mock whose
+  `dashboard/src/testSupport/`. A move updates `vi.mock` paths in the same change, because a mock whose
   module no longer holds the export stops mocking without failing, and keeps every case
   ([minimum-test policy](testing.md#minimum-test-policy)).
 
@@ -303,14 +302,12 @@ create-account page and a finished non-company account that opens a sign-up step
 `/` (`RootRedirect`) sends a signed-out visitor to sign in and an unfinished account into sign-up:
 to `/signup/company-registration` when the account may open company pages and its full name has more
 than one word, otherwise to `SIGNUP_RESUMES_AT`. A finished account opens the unified Dashboard.
-Pending member invitations take precedence, then an eligibility request link kept through sign-in
-(`dashboard/src/utils/requestLink.ts`). Sign-in navigates to `/`.
+Pending member invitations take precedence. Sign-in navigates to `/`.
 
 `ProtectedRoute` (`dashboard/src/routes/ProtectedRoute.tsx`) guards each signed-in route with its
 entry's audience:
 
-- A signed-out visitor goes to sign in. On the eligibility request page, a company's request link
-  (`?to=`) is kept for the session first; an account that can't open that page drops it.
+- A signed-out visitor goes to sign in.
 - A session check that fails is not a sign-out. `/auth/verify` answers `valid: false` to anyone
   signed out; that answer, or a 401, means signed out. `useAuth`
   (`packages/shared/src/hooks/useAuth.ts`) retries any other failure once, then reports
@@ -358,31 +355,26 @@ key. Ledger's label opens its overview; a separate caret
 expands Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`),
 marking the active child and opening the group on Ledger routes. The web replaces an incoming
 `#history` with `#corrections` without dropping company/class context; shared task names retain
-History. Shareholders' label opens its people list, with the same caret pattern for Employee scheme,
-Member access and Member requests.
-Documents opens one Certificates page (`/documents/certificates`), with Published (Published to
-your members, `/company/publications`, for the company's own account), Inspection copies and Company
-pack where company access permits them, and Notices (`/publications`) for a member of the selected
-company. There is no separate Your certificates item. Legacy
+History. Shareholders' label opens its people list, with the same caret pattern for Employee scheme
+and Member access.
+Documents opens one Certificates page (`/documents/certificates`), with Inspection copies and Company
+pack where company access permits them; for a member who reads no register, Documents is one link to
+Certificates. There is no separate Your certificates item. Legacy
 Dashboard `#documents` and company Ledger `#certificates` or `#documents` links redirect to Certificates,
 preserving company, class and navigation state. A group without a meaningful overview opens its
 default child, without an extra Overview page or duplicate navigation.
-Company eligibility (`/company/eligibility`) follows Documents for an administrator or a prepare or
-approve appointee (`canReviewEligibility`). Its sidebar label is Eligibility. A company administrator (`canManage`) also
-gets its caret, with Supporting (Company documents, `/documents/company`) beneath it.
 Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
 Team and Activation where permitted. Its default is Profile (`/settings#profile`), combining personal
-details, permitted company information and how the selected company records a linked member. Account
-(`/settings#account`) is one compact card for identity status with Review identity check, Change
-password and Manage account, and Data and privacy (`/settings#data`) holds Export data and Delete
-account. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
+details and permitted company information. Account
+(`/settings#account`) has Security (identity status with Review, the password with Change), Account
+details and Company invitation cards, and Data and privacy (`/settings#data`) holds Export data and
+Delete account in the same rows, with **Export** and **Delete**. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
 sections keep their separate records, editors and authority checks. Existing `/user-profile`,
-`/company` and `/settings#company-recorded-details` links, like any other Settings hash, redirect to
-Profile, and `/company#documents` redirects to Company documents. Activation's identity step links to
-Account.
+`/company` (whatever its hash) and `/settings#company-recorded-details` links, like any other Settings
+hash, redirect to Profile. Activation's identity step links to Account.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
 Team remains available for company-invitation acceptance; Account keeps an acceptance
-entry under Manage account before company access is granted. The sidebar has no More group or Help & Support link;
+entry, its Company invitation card, before company access is granted. The sidebar has no More group or Help & Support link;
 pages without a sidebar item retain their existing audience and permission checks. Team keeps Representative
 authority as a contextual task, with its existing owner and audience checks.
 Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
@@ -481,10 +473,8 @@ Signed-in web pages do not poll while idle or refetch because of window focus, v
 reconnection. Web query defaults enforce that page-data policy. Another person's changes appear on a later
 entry read or browser reload; the interface does not promise live synchronisation. Keep loaded
 content stable until a relevant read is needed, without mounting another workflow's reads behind
-an overview. Certificates re-reads the member list on entry; Profile's company-recorded card reads only the
-selected record and its requests, using the member list the company directory already holds, so opening Profile
-never empties the company context. Both read only while open, retaining original-request recovery across
-navigation.
+an overview. Certificates re-reads the member list on entry and reads only while open; Profile
+reads no member records.
 
 `dashboard/src/hooks/useEntryReads.ts` and
 `dashboard/src/pages/company/ledger/useIssueEntryRead.ts` retain ordered entry reads:
@@ -496,12 +486,11 @@ operation are separate from idle page freshness. Authentication verification alo
 so user preferences still recheck the signed-in identity on focus and reconnect. While a recheck of
 the same account runs, the frame stays, and the web API client refuses every write until it finishes
 ([API client](#frontend-rules)). Pages whose records wait for the recheck show a loading line meanwhile,
-such as the Ledger's "Loading the register…" or "Loading your account…" on the two eligibility pages
-and member records. Work held above that line survives, such as the eligibility drafts; work inside
-it does not: an unsaved Add person form on Shareholders and
-Certificates' unapplied filter choices are lost. The eligibility and activation hooks also close an open
-review as soon as a recheck starts, because their checks need a settled session, so the review must be
-prepared again. A failed
+such as the Ledger's "Loading the register…" or "Loading your account…" on member records. Work held
+above that line survives; work inside it does not: an unsaved Add person form on Shareholders and
+Certificates' unapplied filter choices are lost. The activation hook also closes an open review as
+soon as a recheck starts, because its checks need a settled session, so the review must be prepared
+again. A failed
 check or a changed account withholds
 private content, including after an account changes in another tab. Mobile clears its cache whenever
 the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload, extraction or identity
@@ -524,9 +513,8 @@ Every list follows these rules:
 
 - Web list filters use the UI-only `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`); pages retain their data and field state. Certificates
-  keeps Apply/Clear drafts until a session recheck replaces its list, while Shareholders' class and company eligibility's outcome
-  retain immediate selection. Member requests uses debounced person
-  search inside its panel. Shareholders keeps Search people inside
+  keeps Apply/Clear drafts until a session recheck replaces its list, while Shareholders' class filter
+  retains immediate selection. Shareholders keeps Search people inside
   its panel above the class selector, with its existing debounce, Clear and match counts.
   Every filter icon sits in the page heading's top-right actions, without a separate row or
   card-specific placement, apart from Dashboard's class details card
@@ -634,8 +622,8 @@ commands' client layer went with their pages under
 
 - a service for each list, preview, decision, preparation and document download;
 - a check of each prepared proposal against every field of its request
-  (`isPreparedRegisterImport`, `isPreparedRegisterParticularsChange` and siblings for corrections,
-  grants, transfers and allotments);
+  (`isPreparedRegisterImport` and siblings for corrections, grants, transfers and allotments), and
+  of a particulars change against its one-step edit (`isRegisterParticularsEditReceipt`);
 - the decision families for `useRegisterDecision` (`REGISTER_*_DECISIONS` in
   `packages/shared/src/hooks/useRegisterDecision.ts`) with the generic receipt check;
 - copy with a sentence for every requirement a decision can leave unmet.
@@ -649,9 +637,13 @@ stay unchanged.
 
 The standalone preparations are `companyRegister*` entries in `DESTINATIONS`:
 `/company/ledger/setup`; import, correction and transfer under `/company/ledger/:uuid/`
-(`import`, `correct/:entry`, `transfer`); and particulars changes at
+(`import`, `correct/:entry`, `transfer`); and the particulars change at
 `/company/ledger/members/:member/particulars`. Setup is the import page without a class in its
-address: it chooses or creates a share class, then prepares the mirror import.
+address: it chooses or creates a share class, then prepares the mirror import. The particulars
+change is one step: it sends the name and address the page read as `expected` and, once applied,
+lands on its record under Corrections. `appointmentForParticularsEdit` chooses its appointment: one
+holding `admin`, or `prepare`, `approve` and `apply`. A member row whose `followsProfile` is true
+gets no form: the page shows that the member keeps their particulars in their Ledova profile.
 Non-paid and employee-award grants are prepared inline in Issue shares.
 
 On the web, setup's shareholder editor and later shareholder/class pages share
@@ -672,7 +664,7 @@ neither set nor limit the current holding; new paid/unpaid blanks normalize to z
 ([form conventions](frontend-ux.md#forms)).
 
 Every decision uses the preview-first `useRegisterDecision`, in a dialog or the web's main-page
-issue, transfer and particulars reviews. It previews the exact decision, its unmet requirements in
+issue and transfer reviews. It previews the exact decision, its unmet requirements in
 words and its register effect, takes a rejection reason
 ([how a company decision works](../business/README.md#how-a-company-decision-works)), and confirms
 with a retry key reused only for the same preview while the step's appointment is still the one
@@ -684,7 +676,8 @@ saying so with its confirmation disabled. Form inputs are described with each pr
 
 The web register's repeated row wrappers, stage rows and download failures use
 `dashboard/src/pages/company/ledger/shared/RecordShell.tsx`, and the Ledger's records show their
-decisions through `dashboard/src/pages/company/ledger/DecisionTrail.tsx`. Four records (import, correction, particulars change and transfer) use
+decisions through `dashboard/src/pages/company/ledger/DecisionTrail.tsx`; a particulars change shows its
+before and after instead, and an earlier one its retained decisions. Four records (import, correction, particulars change and transfer) use
 `useRegisterTaskGuard.ts` for their existing visible-task check, while grant, allotment and award
 keep their distinct guards and wrappers. The preparation pages share `PreparationShell.tsx` for
 the account-check page and read-only paragraphs, and
@@ -740,21 +733,16 @@ display text and Instrument Sans for everything else (`@fontsource-variable`).
 Each page links to its business section. Shared destinations use their `DESTINATIONS` audience;
 web-only routes declare the same guard beside their address ([guards](#routes-audiences-and-guards)).
 
-| Page and business section                                                                                    | Routes                                                                                                                                                                       | Audience  |
-| ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| [Dashboard](../business/README.md#the-app-at-a-glance)                                                       | `/home`, `/company/dashboard` and `/member-records` (web aliases); company/class query context                                                                               | everyone  |
-| [Certificates](../business/member-records.md#certificates)                                                   | `/documents/certificates`; legacy Dashboard `#documents` and `/company/ledger#certificates` or `#documents` redirect with company/class context                              | everyone  |
-| [Ledger, Shareholders, Employee share scheme and company outputs](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#member-requests`, `#awards`, `#inspection-copies` (legacy `#ledger-exports`), `#company-pack`; preparation routes | everyone  |
-| [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                                                   | everyone  |
-| [An employee award's page](../business/issuing-shares.md#employee-awards-and-vesting)                        | `/company/ledger/:uuid/awards/:award?company=`                                                                                                                               | everyone  |
-| [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid?company=`                                                                                                                                             | everyone  |
-| [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` and `/company/authority/requests/:uuid` (company), `/company/team`, `/company/listing`                                             | everyone  |
-| [Company documents](../business/companies.md#company-information-and-documents)                              | `/documents/company`; legacy `/company#documents` redirects with company context                                                                                             | everyone  |
-| [Company eligibility](../business/participants.md#company-eligibility-decisions)                             | `/company/eligibility`                                                                                                                                                       | everyone  |
-| [Published to your members](../business/publications.md#the-published-page)                                  | `/company/publications`                                                                                                                                                      | company   |
-| [Notices](../business/publications.md#the-notices-page)                                                      | `/publications`                                                                                                                                                              | everyone  |
-| [Verification, Your company eligibility](../business/participants.md#the-verification-page)                  | `/investor-eligibility`, `/eligibility-requests`                                                                                                                             | investing |
-| [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default), `/settings#account`, `/settings#data`; aliases `/user-profile`, `/company`, `/settings#company-recorded-details`                              | everyone  |
+| Page and business section                                                                                    | Routes                                                                                                                                                   | Audience |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| [Dashboard](../business/README.md#the-app-at-a-glance)                                                       | `/home`, `/company/dashboard` and `/member-records` (web aliases); company/class query context                                                           | everyone |
+| [Certificates](../business/member-records.md#certificates)                                                   | `/documents/certificates`; legacy Dashboard `#documents` and `/company/ledger#certificates` or `#documents` redirect with company/class context          | everyone |
+| [Ledger, Shareholders, Employee share scheme and company outputs](../business/register.md#the-register-page) | `/company/ledger` and `#shareholders`, `#member-access`, `#awards`, `#inspection-copies` (legacy `#ledger-exports`), `#company-pack`; preparation routes | everyone |
+| [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                               | everyone |
+| [An employee award's page](../business/issuing-shares.md#employee-awards-and-vesting)                        | `/company/ledger/:uuid/awards/:award?company=`                                                                                                           | everyone |
+| [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid?company=`                                                                                                                         | everyone |
+| [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` and `/company/authority/requests/:uuid` (company), `/company/team`, `/company/listing`                         | everyone |
+| [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default), `/settings#account`, `/settings#data`; aliases `/user-profile`, `/company`, `/settings#company-recorded-details`          | everyone |
 
 ### Page mechanics
 
@@ -782,29 +770,27 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Getting started lists only incomplete company-administrator tasks and disappears once they are
   complete. Read-only awards remain separate entitlements, with the promise and nonzero lifecycle
   quantities above their full breakdown and terms in **Show award details**.
-- The Certificates page (`dashboard/src/pages/documents/certificates/index.tsx`) combines company-authorised
-  certificate preparation and association-bound member tracking in one class-selected list. Company
-  reads mount only with confirmed register access; member-only access never reads the full company register.
-  `CertificateRecords.tsx` merges matching company and own entries without duplicate rows. Aligned
-  rows show the shareholder or change, shares, entry, date and status, with permitted actions at the
-  row's end and earlier requests beneath; rows don't expand. Each record keeps its class visible; the page heading's
-  top-right icon button with the accessible name and tooltip Filters opens `FilterPopover` for draft class,
-  shareholder search and certificate status. The heading has no repeated filter summary or match
-  count; dismissing the panel preserves the unapplied draft.
-  Apply writes `class`, `q` and `certificate_status` to the URL; Clear preserves the class and removes search and
-  status. Company entries are filtered on the server before paging; own-member history is read
-  fully and filtered locally. Other certificate requests remain outside the entry filters. Request
-  status always comes from the person's own readable requests, separately from company certificate
-  eligibility. Preparation opens a focused main-page form. The existing
-  preparation, request, withdrawal and recipient-download controllers retain their separate guards;
-  preparing a company PDF does not fulfil a member request.
-- Certificates and Profile's company-recorded card share an owner-bound member-records controller.
-  Profile shows the selected company's recorded name and residential address read-only, with no
-  action. Choosing a class on Certificates reads that class's own entries. Active web reads follow
-  [automatic data freshness](#automatic-data-freshness); they never replay a member action.
+- The Certificates page (`dashboard/src/pages/documents/certificates/index.tsx`) shows a register
+  reader the company's certificate preparation and a member who is not one their own entries, in one
+  class-selected list. Company reads mount only with confirmed register access; member-only access
+  never reads the full company register, and a register reader's view uses no member record.
+  `CertificateRecords.tsx` renders aligned rows with the shareholder or change, shares, entry and
+  date, and for a register reader the certificate's status (**Can prepare** or **None due, the
+  entry was reversed**, labelled **Certificate:** below `md`) and **Prepare certificate** at the
+  row's end; rows don't expand. Each record keeps its class visible;
+  the page heading's top-right icon button with the accessible name and tooltip Filters opens
+  `FilterPopover`. A register reader's panel holds draft class, shareholder search and certificate
+  status; a member's holds only the class, and appears only when they have more than one. The
+  heading has no repeated filter summary or match count; dismissing the panel preserves the
+  unapplied draft. Apply writes `class`, `q` and `certificate_status` to the URL; Clear preserves the
+  class and removes search and status. Company entries are filtered on the server before paging;
+  own-member history is read fully. Preparation opens a focused main-page form.
+- Certificates reads the member's records through an owner-bound member-records controller.
+  Choosing a class on Certificates reads that class's own entries. Active web reads follow
+  [automatic data freshness](#automatic-data-freshness); the web takes no member action through it.
 - Ledger on the web (`dashboard/src/pages/company/ledger/index.tsx`): one page renders the
   Ledger overview, Issue shares, Transfer shares, Corrections, Shareholders, Member access,
-  Member requests, Employee share scheme, Inspection copies and Company pack views by hash.
+  Employee share scheme, Inspection copies and Company pack views by hash.
   Legacy certificate hashes redirect to the dedicated Certificates page.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
   card heading, padding and page spacing. Add share class sits in a right-aligned row below the
@@ -813,11 +799,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   ownership overview or header task switches. It keeps every class's controllers for register
   decisions mounted, merely hidden, so changing view, task or class (the Share class selector)
   keeps an unfinished request with its class, payload and retry key. People and member controllers
-  also stay mounted across the three Shareholders views. Member requests keeps the full permitted
-  certificate request array for selected requests and
-  recovery. Member requests stores `q` in the URL; `searchRows` matches every
-  name word, ignoring case and accents, before unmatched rows are hidden. Held work disables its
-  controls and bypasses filtering for the active workflow, without changing any request's status.
+  also stay mounted across the Shareholders views. Held work disables its controls.
   Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
   their task, class and any record (`allotments/`, `transfer/`, `corrections/`, `awards/`, `grants/`;
@@ -839,8 +821,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Company pack stays at company scope. `documentTask` isolates one focused output form in the existing
   frame. Its keyed forms retire previews when their context or source readiness changes; draft
   retention depends on each form's lifetime. Current appointment and exact-source validation still
-  apply. Supporting attachments stay with their person, class or company Settings; member-request
-  fulfilment stays under Shareholders. Employee share scheme uses the
+  apply. Supporting attachments stay with their person or class. Employee share
+  scheme uses the
   shared class-card spacing and shows only the selected class, with one preparation action below its records.
   Share class selection lives in the page heading's Filters popover and locks while award preparation or its recovery is open; all class controllers stay
   mounted. Preparation replaces that class's award list while preserving its controllers. Each award row
@@ -875,7 +857,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   renders the person only while the account, classes and holders are current; particulars, history
   and awards also need `hasCurrentRegisterReadAuthority` on settled appointments and their own settled
   read. Documents reads the person's retained attachments across classes; class details reads the
-  same links for its class. **Change particulars** and adding documents recheck current preparation
+  same links for its class. **Change particulars**, offered only when the member row's
+  `followsProfile` is not true, rechecks a current appointment that can change
+  particulars (`appointmentForParticularsEdit`), adding documents rechecks current preparation
   authority, and attachment downloads require current register-read authority. While register work
   is held, Shareholders' Details links are disabled.
 - Register reads: the web reads the person's appointments through Team's account-bound cache and
@@ -888,15 +872,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   read. Each repeated control is named for screen readers after its visible label and its entry or
   proposal.
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
-- Published to your members: reads the selected company's publications with `issuer` set, newest
-  first, a page at a time with Load more; the card title carries the server's complete count. A
-  document opens only while every loaded page is current.
-- Verification: the claim history has its own cache, and every claim page loads before a submission
-  is offered, so a pending claim on a later page still prevents a second one.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
-  personal and company sections, keeping each editor's data and authority separate. Account's one
-  card holds relevant identity status, password and Manage account; Data and privacy holds export and
-  deletion. Payslip evidence lives with investor classification claims. Documents and Team
+  personal and company sections, keeping each editor's data and authority separate. Account's
+  Security, Account details and Company invitation cards hold identity status, password, account
+  dates and invitation acceptance; Data and privacy holds export and deletion. Documents and Team
   stay focused pages; Activation keeps its existing company workflow. Signup and mobile
   Settings keep their own navigation.
 - Data and privacy on web: account deletion clears cached account data after the server confirms.

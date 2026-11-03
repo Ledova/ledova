@@ -1,16 +1,20 @@
-from unittest.mock import patch
+from uuid import uuid4
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
 from rest_framework.test import APITransactionTestCase
 
-from companies.models import CompanyDocument
 from companies.services.team import revoke_company_appointment
-from documents.models import Document
 from shared.db import atomic, use_operator
 from shared.tests.core_fixtures import CoreFixtures, pdf_bytes, populated_register
 from shared.upload_errors import UploadRejected, UploadUnavailable
-from tokens.models import RegisterGrant, RegisterGrantDecision, RegisterPosition
+from tokens.models import (
+    RegisterEvidence,
+    RegisterEvidenceKind,
+    RegisterGrant,
+    RegisterGrantDecision,
+    RegisterPosition,
+)
 
 
 class RegistrySafeguardsTest(CoreFixtures, APITransactionTestCase):
@@ -65,28 +69,26 @@ class RegistrySafeguardsTest(CoreFixtures, APITransactionTestCase):
 
     def test_fake_scanner_rejects_infected_and_unscannable_files_before_storage(self):
         before = {path for path in self.root.rglob("*") if path.is_file()}
-        with patch("documents.services.document.defer") as enqueue:
-            self.scanner.side_effect = UploadRejected("Synthetic infected file")
-            infected = self.client.post(
-                "/api/v1/documents/",
+        retained = RegisterEvidence.objects.count()
+
+        def upload(name):
+            return self.client.post(
+                "/api/v1/tokens/register-evidence/",
                 {
-                    "documentType": "payslip",
-                    "file": SimpleUploadedFile("infected.pdf", pdf_bytes(), content_type="application/pdf"),
+                    "company_id": str(self.company.pk),
+                    "appointment": str(self.appointment.pk),
+                    "kind": RegisterEvidenceKind.SHARE_REGISTER,
+                    "idempotency_key": str(uuid4()),
+                    "file": SimpleUploadedFile(name, pdf_bytes(), content_type="application/pdf"),
                 },
                 format="multipart",
             )
-            self.assertEqual(infected.status_code, 400, infected.content)
-            self.scanner.side_effect = UploadUnavailable()
-            unavailable = self.client.post(
-                "/api/v1/documents/",
-                {
-                    "documentType": "payslip",
-                    "file": SimpleUploadedFile("unscannable.pdf", pdf_bytes(), content_type="application/pdf"),
-                },
-                format="multipart",
-            )
-            self.assertEqual(unavailable.status_code, 503, unavailable.content)
-            enqueue.assert_not_called()
-        self.assertEqual(Document.objects.count(), 0)
-        self.assertEqual(CompanyDocument.objects.count(), 0)
+
+        self.scanner.side_effect = UploadRejected("Synthetic infected file")
+        infected = upload("infected.pdf")
+        self.assertEqual(infected.status_code, 400, infected.content)
+        self.scanner.side_effect = UploadUnavailable()
+        unavailable = upload("unscannable.pdf")
+        self.assertEqual(unavailable.status_code, 503, unavailable.content)
+        self.assertEqual(RegisterEvidence.objects.count(), retained)
         self.assertEqual({path for path in self.root.rglob("*") if path.is_file()}, before)

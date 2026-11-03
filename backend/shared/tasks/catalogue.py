@@ -12,10 +12,10 @@ SYSTEM_WIDE = {
     "on the operator connection, retaining its original target and signed transaction.",
     "tokens.tasks.deployment.check_pending_swap_approvals": "Recovers admitted swap approvals across issuers "
     "without reopening terminal outcomes or adopting historical deployments.",
-    "whitelist.tasks.refresh.refresh_whitelist_approvals": "Sweeps every company approval on the deployment, "
-    "comparing the expiry the recorded classifications call for with the one the registry holds. It belongs to "
-    "no tenant: it reads staff approvals and staff-reviewed classifications and submits under the staff member "
-    "whose review decided the outcome, listing for staff any row no actor can be attributed to.",
+    "whitelist.tasks.refresh.refresh_whitelist_approvals": "Sweeps every company approval on the deployment and "
+    "submits the removal a retained standing, identity or wallet loss calls for, under the actor that loss "
+    "recorded. It belongs to no tenant and lists for staff any approval whose holder is no longer current "
+    "without a recorded cause.",
     "whitelist.tasks.refresh.refresh_whitelist_targets": "Refreshes the named company approvals after the staff "
     "or holder action that changed them, under operator authority and attributed to that actor. The actor is an "
     "audit actor rather than a tenant principal: a holder can only reach it by removing their own wallet, and "
@@ -54,27 +54,10 @@ SYSTEM_WIDE = {
     "class with an applied opening, that is one opened from the chain, with a fresh canonical chain snapshot and "
     "records the result; a register an import opened is not compared. It is the deployment's statutory register "
     "rather than any owner's data; it writes only reconciliation records.",
-    "shareholders.tasks.publications.purge_publications_past_the_clock": "Deletes publications, their frozen "
-    "rolls, their events (ballots, closes and payment records) and their read records seven years after the "
-    "publication, on the same clock and the same settings constant the register's own outputs use. It belongs to "
-    "no tenant: it sweeps every company's publications on the operator connection, and it is the only deletion "
-    "anyone may perform on those tables, because the app role's policy refuses all three write commands on the "
-    "publications, rolls and events and the app role has no grant on the read records at all.",
-    "shareholders.tasks.publications.tell_the_members": "Announces one publication to every member of the frozen "
-    "roll who has an account, by deferring one ordinary notification each. It belongs to no tenant: it reads a "
-    "whole company's roll on the operator connection, which no member and no issuer may do, and the members it "
-    "writes to are the company's rather than its own. It carries no holding and no document: the notice names "
-    "the publication, and the member's own route re-resolves and audits the read before anything is served.",
-    "shareholders.tasks.resolutions.close_resolutions_past_their_window": "Closes every resolution whose voting "
-    "window has passed and that has no close yet, writing the one close event whose tally the database computes "
-    "from the ballots on the chain. It belongs to no tenant: it sweeps every company's resolutions on the operator "
-    "connection, because the app role's policy refuses every write to the event chain. Two runs at once close each "
-    "resolution once: the trigger serialises them on the publication row and the second finds the close.",
     "tokens.tasks.former_holders.purge_former_members_past_the_clock": "Deletes former-member records "
     "seven years after the date they ceased, imported former members seven years after their date ceased, "
     "member particulars seven years after the member last held shares, and register export records seven "
-    "years after the export, except exports retained by a member certificate fulfilment. These are the only "
-    "deletions anyone may perform on those tables - the app "
+    "years after the export. These are the only deletions anyone may perform on those tables - the app "
     "role's policy refuses all three write commands on the former-member and particulars tables, and the "
     "app role has no grant on export records at all.",
     "tokens.tasks.signing_challenge.purge_signing_challenges": "Deletes challenges that expired unused, past the "
@@ -96,9 +79,6 @@ SYSTEM_WIDE = {
     "tokens.tasks.approval_submissions.recover_swap_approval_submissions": "Replays the exact recorded bytes of "
     "every pending participant-signed approval across both parties and records the receipt it finds; it signs "
     "nothing, allocates no nonce and reads the private journal on the operator connection.",
-    "users.tasks.retention.purge_classification_evidence": "Applies the retention clock across every account.",
-    "documents.tasks.retention.purge_document_evidence": "Purges expired supporting and unattached payslips "
-    "across all uploaders on the operator connection, without a requesting user.",
     "wallets.tasks.chain_observations.observe_wallet_chains": "Polls the chain for every submission whose "
     "watch is due, across all accounts. The chain answers about a transaction, not about whose it is.",
     "wallets.tasks.submissions.recover_wallet_submissions": "Retries every submission left pending across all "
@@ -138,13 +118,6 @@ PRINCIPAL_BEARING = {
     "sync write run inside that context. A user who lost account access after enqueue resolves no wallet, "
     "and the operator sweep remains able to finish it. Compliance screening is durably queued on the "
     "producer connection and handled by a separate operator task.",
-    "documents.tasks.extract.extract_document": "Reads one uploader's document and writes an "
-    "extraction against it. Converted: the principal is a required argument with no default, the "
-    "upload passes its uploader and the staff rerun passes None, because a re-extraction is the "
-    "operator's action and reaches documents no single customer owns. The whole body runs inside "
-    "that context, which is what puts the extraction service's three retention rechecks - the initial "
-    "locked check, the bytes read and the save - on the alias the enqueue chose, around an "
-    "external call no transaction can be held across.",
     "users.tasks.notifications.send_push_notification": "Sends to one user's device tokens. Converted: "
     "the required user_id was already the recipient principal, so the enqueue payload is unchanged and "
     "the whole body - lookup, preferences, inbox insert, device read and invalid-device deactivation - "
@@ -162,7 +135,6 @@ CONVERTED_IN = {
     "tokens.tasks.deployment.deploy_share_token_task": 545,
     "wallets.tasks.confirmation.confirm_pending_transaction": 327,
     "wallets.tasks.sync.sync_wallet": 544,
-    "documents.tasks.extract.extract_document": 525,
     "users.tasks.notifications.send_push_notification": 523,
     "users.tasks.notifications.send_transaction_notification": 523,
 }
@@ -178,11 +150,6 @@ OPERATOR_BOUNDARIES = {
     "the operator connection too.",
     "tokens.services.deployment_journal.mark_projected": "Commits the attributed token projection marker with "
     "one immutable swap approval disposition and its exact recovery job.",
-    "shareholders.services.resolutions.cast_ballot": "Records one member's ballot. The resolution and the "
-    "caller's own roll row are resolved first on the calling connection, under the policies, and a caller with "
-    "no roll row answers the same 404 as a resolution that does not exist. Only the insert runs on the operator "
-    "connection, because the app role may write nothing to the event chain, and the trigger refuses a member's "
-    "ballot whose actor is not the account that roll row names.",
 }
 
 

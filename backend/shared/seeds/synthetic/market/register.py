@@ -5,7 +5,6 @@ from uuid import uuid4
 from django.db.models.functions import Lower
 from web3 import Web3
 
-from companies.services.document_review import private_document_bytes
 from integrations.base_chain import get_base_chain_client
 from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
@@ -17,13 +16,11 @@ from shared.seeds.synthetic.market import trading
 from shared.seeds.synthetic.paper import authority
 from tokens.models import (
     RegisterDecisionKind,
-    RegisterEvidenceKind,
     RegisterMemberWallet,
     RegisterReconciliationStatus,
     SwapOrder,
 )
 from tokens.services.former_holders import fold_former_holders
-from tokens.services.register_evidence import retain_register_evidence
 from tokens.services.register_inclusions import waiting_effects
 from tokens.services.register_instructions import (
     decide_instruction,
@@ -80,7 +77,7 @@ def link_buyers(market, swaps):
     applied = []
     for company_key, rows in sorted(_unlinked(market, swaps).items()):
         company = market.companies[company_key]
-        document = authority(
+        copy = authority(
             company,
             "wallet-links",
             "the wallets of members who bought on the platform",
@@ -88,26 +85,15 @@ def link_buyers(market, swaps):
                 "The directors resolved to enter in the register the wallets below, each as the member who owns it,",
                 "so that the transfers they settled on the platform can be recorded.",
             ],
-            market.documents,
         )
         mapping = [{"address": address, "member": str(member_id(company_key, investor))} for address, investor in rows]
         appointment = historical_owner_appointment(company)
-        evidence, _ = retain_register_evidence(
-            actor=company.owner,
-            company_id=company.pk,
-            appointment=appointment.pk,
-            kind=RegisterEvidenceKind.AUTHORITY,
-            idempotency_key=uuid4(),
-            name=document.name,
-            raw=private_document_bytes(document.file),
-            mime_type=document.mime_type,
-        )
         link, _ = prepare_link(
             actor=company.owner,
             operation_id=uuid4(),
             appointment=appointment.pk,
             company_id=company.pk,
-            authority_evidence=evidence.pk,
+            authority_evidence=copy.pk,
             mapping=mapping,
             authority="director_resolution",
             approving_director=CHAIRS[company_key],
@@ -151,7 +137,7 @@ def instruct_transfers(market, swaps):
             for swap in settled
         ]
         total = sum(swap.share_amount for swap in settled)
-        document = authority(
+        copy = authority(
             market.companies[company_key],
             f"transfers-{token.symbol.lower()}",
             f"transfers of {token.name} settled on the platform",
@@ -159,13 +145,12 @@ def instruct_transfers(market, swaps):
                 f"The directors resolved to register the {len(settled)} transfers of {token.name} settled on the",
                 f"platform today, {total:,} shares in all, each from the seller's wallet to the buyer's.",
             ],
-            market.documents,
         )
         proposal = submit_instruction(
             actor=token.company.owner,
             operation_id=uuid4(),
             token_id=token.pk,
-            document_id=document.pk,
+            authority_evidence=copy.pk,
             kind="transfer",
             items=items,
             approving_director=CHAIRS[company_key],
