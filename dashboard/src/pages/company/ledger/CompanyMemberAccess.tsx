@@ -8,6 +8,8 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
   MEMBER_INVITATION_STATUS_LABELS,
+  INVITATION_FIELDS,
+  useMemberAccessForm,
 } from '@ledova/shared';
 import { Outcome, Section, Loading, LoadError, Failure } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
@@ -15,7 +17,6 @@ import { FormActions, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { INVITATION_FIELDS, useMemberAccessForm } from './useMemberAccessForm';
 
 export function CompanyMemberAccess({
   company,
@@ -49,7 +50,15 @@ export function CompanyMemberAccess({
     held,
     problems,
     refresh,
-  } = useMemberAccessForm({ company, owner, guard, registers, sourceReady, inviteMember });
+  } = useMemberAccessForm({
+    company,
+    owner,
+    guard,
+    registers,
+    sourceReady,
+    inviteMember,
+    newKey: () => crypto.randomUUID(),
+  });
   const checks = useErrorSummary(problems);
   useEffect(() => {
     onHeldChange?.(held);

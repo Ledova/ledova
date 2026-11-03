@@ -1,25 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  FIELD_LIMITS,
-  appointmentForRegisterStep,
-  createUserFriendlyError,
-  failureSentence,
-  failureStatus,
-  getCompanyPeople,
-  hasCurrentRegisterReadAuthority,
-  isRegisterPersonRegistrationReceipt,
-  peopleFrom,
-  registerCompanyPerson,
-  type OrderSubmissionOwner,
-  type RegisterPersonRegistrationRequest,
-  READ_TIMING,
-  ownAppointmentsKey,
-  useOwnAppointments,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import type { Problems } from '@hooks/useErrorSummary';
-import { allPeopleKey } from './shared/usePeople';
+import { READ_TIMING } from '../constants/api';
+import { FIELD_LIMITS } from '../constants/business/field-limits';
+import { getCompanyPeople, registerCompanyPerson } from '../services/register-people';
+import type { RegisterPersonRegistrationRequest } from '../types';
+import { createUserFriendlyError, failureSentence, failureStatus } from '../utils/errors';
+import { peopleFrom } from '../utils/people';
+import { appointmentForRegisterStep, hasCurrentRegisterReadAuthority } from '../utils/register-commands';
+import { isRegisterPersonRegistrationReceipt } from '../utils/register-people';
+import { useApiClient } from './useApiClient';
+import type { Problems } from './useErrorSummary';
+import { ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
+import { allPeopleKey } from './usePeople';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 export function usePersonRegistration({
   owner,
@@ -27,13 +20,18 @@ export function usePersonRegistration({
   guard,
   sourceReady,
   onHeldChange,
+  newKey,
+  session,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
   guard: () => void;
   sourceReady: boolean;
   onHeldChange: (held: boolean) => void;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 }) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState('');
@@ -65,7 +63,8 @@ export function usePersonRegistration({
     if (!live.current) throw createUserFriendlyError('This person form is closed. Reopen Shareholders.');
     if (!ready.current) throw createUserFriendlyError('The current company could not be confirmed. Try again.');
   };
-  const appointments = useOwnAppointments(owner, guard, { enabled: sourceReady });
+  const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: check });
+  const appointments = useOwnAppointments(owner, guard, { enabled: sourceReady, session });
   const readable =
     sourceReady &&
     appointments.isSuccess &&
@@ -76,7 +75,7 @@ export function usePersonRegistration({
     enabled: readable,
     queryFn: async () => {
       check();
-      const { data } = await getCompanyPeople(apiClient, company, { ledovaSubmissionGuard: check });
+      const { data } = await getCompanyPeople(apiClient, company, config());
       check();
       if (data.company !== company) throw new Error('The people do not belong to this company.');
       return peopleFrom({ ...data, awardRecipients: [] });
@@ -134,10 +133,10 @@ export function usePersonRegistration({
           throw createUserFriendlyError('The current company people could not be confirmed. Try again.');
         command = {
           request: {
-            operationId: crypto.randomUUID(),
+            operationId: newKey(),
             company,
             appointment: appointment.uuid,
-            member: crypto.randomUUID(),
+            member: newKey(),
             name: name.trim(),
             residentialAddress: address.trim(),
           },
@@ -148,7 +147,7 @@ export function usePersonRegistration({
         setHeld(true);
       }
       if (!command.confirmed) {
-        const { data } = await registerCompanyPerson(apiClient, command.request, { ledovaSubmissionGuard: check });
+        const { data } = await registerCompanyPerson(apiClient, command.request, config());
         check();
         if (!isRegisterPersonRegistrationReceipt(data, command.request))
           throw createUserFriendlyError('The person receipt could not be confirmed. Retry the original save.');

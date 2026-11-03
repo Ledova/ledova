@@ -17,6 +17,7 @@ export {
   shareCount,
   shortReference,
   sharePercentage,
+  signedShares,
 } from './formatting';
 export {
   isNumericOnly,
@@ -34,7 +35,7 @@ export { formatPhoneForDisplay, formatPhoneWithCountryCode, cleanPhoneNumber } f
 export { formatSourceOfFunds, sourceOfFundsChoices, formatIntendedUse } from './formatting-labels';
 export { validateUserProfileField } from './user-validation';
 export { getUserVerificationStatus, type VerificationStatusType } from './user-verification';
-export { assertNextPageAdvances, getNextPageParam, readEveryPage } from './pagination';
+export { assertNextPageAdvances, firstOfEach, getNextPageParam, readEveryPage } from './pagination';
 export {
   createUserFriendlyError,
   hasServiceErrorDetail,
@@ -124,4 +125,5 @@ export {
   type PersonChoice,
 } from './people';
 export { searchEntries, searchMatches, searchRows, type SearchChoice } from './search';
+export { needsIdentityReview, shareholderList, type Shareholder, type ShareholderHolding } from './shareholders';
 export { isRegisterPersonRegistrationReceipt } from './register-people';

@@ -1,13 +1,12 @@
 import { SelectField } from '@components/SelectField';
 import { FilterPopover } from '@components/FilterPopover';
 import {
-  HOLDER_TYPE_LABELS,
   formatShareCount,
-  searchRows,
+  needsIdentityReview,
+  shareholderList,
   type TokenHoldersResponse,
   sharePercentage,
   type Person,
-  PAGE_SIZE,
 } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
@@ -15,14 +14,7 @@ import { PageActions, PageLink } from '@components/Page';
 import { useListParams } from '@hooks/useListParams';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 
-type Holding = { register: TokenHoldersResponse; holder: TokenHoldersResponse['holders'][number] };
-type Shareholder = { member: string; name: string; holdings: Holding[] };
-
 const NOUN: Noun = ['person', 'people'];
-
-function needsIdentityReview({ holder }: Pick<Holding, 'holder'>) {
-  return holder.holderType === 'ambiguous' || holder.holderType === 'unidentified';
-}
 
 export function CompanyShareholders({
   registers,
@@ -38,46 +30,8 @@ export function CompanyShareholders({
   people?: Person[];
 }) {
   const list = useListParams(['class']);
-  const grouped = new Map<string, Shareholder>();
-  for (const register of registers) {
-    for (const holder of register.holders) {
-      const existing = grouped.get(holder.member);
-      const holding = { register, holder };
-      if (existing) existing.holdings.push(holding);
-      else
-        grouped.set(holder.member, {
-          member: holder.member,
-          name: holder.name || HOLDER_TYPE_LABELS[holder.holderType],
-          holdings: [holding],
-        });
-    }
-  }
-  const shareholders = [...grouped.values()].sort(
-    (left, right) => left.name.localeCompare(right.name) || left.member.localeCompare(right.member),
-  );
-  const classFilter = registers.some(({ token }) => token.uuid === list.filters.class) ? list.filters.class : '';
-  const found = searchRows(
-    classFilter
-      ? shareholders.filter((member) => member.holdings.some(({ register }) => register.token.uuid === classFilter))
-      : shareholders,
-    (member) => [member.name, ...member.holdings.map(({ holder }) => holder.name ?? '')].join(' '),
-    list.search,
-  );
-  const withoutShares = classFilter
-    ? []
-    : searchRows(
-        people.filter((person) => person.onRegister === false && !person.hasAwards && !person.awardOnly),
-        (person) => `${person.name} ${person.residentialAddress}`,
-        list.search,
-      );
-  const count = found.length + withoutShares.length;
-  const visibleClasses = classFilter ? registers.filter(({ token }) => token.uuid === classFilter) : registers;
-  const page = Math.min(list.page, Math.max(1, Math.ceil(count / PAGE_SIZE)));
-  const start = (page - 1) * PAGE_SIZE;
-  const end = page * PAGE_SIZE;
-  const shownShareholders = found.slice(start, end);
-  const shownPeople = withoutShares.slice(Math.max(0, start - found.length), Math.max(0, end - found.length));
-  const unresolved = shareholders.filter(({ holdings }) => holdings.some(needsIdentityReview)).length;
+  const { shareholders, classFilter, count, visibleClasses, shownShareholders, shownPeople, unresolved } =
+    shareholderList(registers, people, { class: list.filters.class, search: list.search, page: list.page });
   const filters = visible && (shareholders.length > 0 || people.length > 0) && (
     <FilterPopover active={!!classFilter || !!list.search}>
       {(close) => (

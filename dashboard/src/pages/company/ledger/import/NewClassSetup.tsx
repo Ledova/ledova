@@ -21,13 +21,14 @@ import {
   useOwnAppointments,
   ownAppointmentsKey,
   useRegisterClasses,
+  peopleKey,
+  usePeople,
 } from '@ledova/shared';
 
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { peopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { ImportForm } from './ImportForm';
 import { LoadError, Loading } from '@components/Ledger';
 

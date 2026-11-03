@@ -632,9 +632,10 @@ commands' client layer went with their pages under
   `packages/shared/src/hooks/useRegisterDecision.ts`) with the generic receipt check;
 - copy with a sentence for every requirement a decision can leave unmet.
 
-The base class read (`packages/shared/src/hooks/useRegisterClasses.ts`) and the web's holder reads in
-`dashboard/src/pages/company/shared/useCompanyRegister.ts` receive their caller's original owner
-guard. Company register controllers use `dashboard/src/pages/company/shared/ownerGuard.ts`.
+The base class read (`packages/shared/src/hooks/useRegisterClasses.ts`) and the holder reads
+(`readRegister`, `registersQuery` and `useRegisters` in `packages/shared/src/hooks/useRegisters.ts`, which
+the web's Ledger combines in `dashboard/src/pages/company/shared/useCompanyRegister.ts`) receive their
+caller's original owner guard. Company register controllers use `dashboard/src/pages/company/shared/ownerGuard.ts`.
 The reads check the guard before and after each request and pass it as `ledovaSubmissionGuard`, so
 a late reply after an account change or reauthentication is discarded. Query keys and cache timing
 stay unchanged.
@@ -852,7 +853,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.
 - Choosing a person on the web: register setup, investor and non-paid issues, transfers and employee
-  awards read one people list (`dashboard/src/pages/company/ledger/shared/usePeople.ts`, the
+  awards read one people list (`packages/shared/src/hooks/usePeople.ts`, the
   `register/members/` read validated by `isRegisterImportMembers`) and render `PersonSelect` and
   `PersonFields` (`shared/PersonPicker.tsx`), the searchable list in
   [choosing a person](frontend-ux.md#choosing-a-person).
@@ -868,7 +869,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   award, and `registerRecord` focuses a listed non-paid issue. `fromMember` chooses a transfer's
   transferor.
 
-- A shareholder's page on the web (`dashboard/src/pages/company/ledger/member`): reads the named
+- A shareholder's page on the web (`dashboard/src/pages/company/ledger/member`): reads, through the shared
+  `useShareholder` (`packages/shared/src/hooks/useShareholder.ts`), the named
   company's classes and holders through the same queries as Ledger, the company's recorded
   particulars (`register/members/` of its first class), every page of the member's entries in each
   class (`register/entries/` with `member`) and their awards (`register-awards/` with `member`). It

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_AWARD_COPY as COPY,
@@ -15,14 +15,14 @@ import {
   useOwnAppointments,
   registerKey,
   useRegisterClasses,
+  allPeopleKey,
+  useRegisters,
 } from '@ledova/shared';
 import { LoadError, Loading } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { registersQuery } from '@pages/company/shared/useCompanyRegister';
-import { allPeopleKey } from '@pages/company/ledger/shared/usePeople';
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
 import { awardsKey, useRegisterAward } from '@pages/company/ledger/shared/useRegisterAwards';
@@ -96,7 +96,7 @@ function OwnAward({
     companyMatches &&
     appointments.isSuccess &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
-  const registers = useQuery(registersQuery(owner, readable ? [token] : [], guard));
+  const registers = useRegisters(owner, readable ? [token] : [], guard);
   const award = useRegisterAward(owner, company, token, uuid, check, readable);
   const grants = useRegisterGrants(owner, company, token, check, readable);
   const register = registers.data?.[0];

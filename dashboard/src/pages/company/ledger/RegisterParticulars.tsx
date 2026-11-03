@@ -1,10 +1,10 @@
-import { usePeople } from '@pages/company/ledger/shared/usePeople';
 import {
   REGISTER_PARTICULARS_COPY,
   hasCurrentRegisterReadAuthority,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
   useOwnAppointments,
+  usePeople,
 } from '@ledova/shared';
 import { Section, LoadError, Loading } from '@components/Ledger';
 

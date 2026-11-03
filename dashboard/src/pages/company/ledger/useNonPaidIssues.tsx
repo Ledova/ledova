@@ -12,6 +12,8 @@ import {
   registerHoldersKey,
   useOwnAppointments,
   ownAppointmentsKey,
+  allPeopleKey,
+  usePeople,
 } from '@ledova/shared';
 
 import { GrantForm } from './GrantForm';
@@ -20,7 +22,6 @@ import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { grantsKey, useRegisterGrants } from '@pages/company/ledger/shared/useRegisterGrants';
 import { awardsKey, useRegisterAward } from '@pages/company/ledger/shared/useRegisterAwards';
-import { allPeopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { LoadError, Loading } from '@components/Ledger';
 
 export function useNonPaidIssues({

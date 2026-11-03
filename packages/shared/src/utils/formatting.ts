@@ -10,6 +10,11 @@ export const shortReference = (uuid: string) => uuid.slice(0, 8);
 export const shareChange = (shares: string) =>
   shares.startsWith('-') ? formatShareCount(shares) : `+${formatShareCount(shares)}`;
 
+export function signedShares(shares: bigint) {
+  const size = formatShareCount((shares < 0n ? -shares : shares).toString());
+  return shares < 0n ? `−${size}` : `+${size}`;
+}
+
 export function shareCount(shares: string | number, kind?: string) {
   const count = String(shares);
   return `${formatShareCount(count)} ${kind ? `${kind} ` : ''}${count === '1' ? 'share' : 'shares'}`;

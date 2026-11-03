@@ -31,6 +31,8 @@ import {
   type ClassRightsRequest,
   type RegisterMemberDocument,
   type RegisterMemberDocumentRequest,
+  peopleKey,
+  readPeople,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
 import apiClient from '@services/apiClient';
@@ -49,7 +51,6 @@ import { MemberDocuments } from './shared/MemberDocuments';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
 import { useNewShareClass } from './import/useNewShareClass';
-import { peopleKey, readPeople } from './shared/usePeople';
 import {
   blankAllotment,
   blankMember,
@@ -2860,11 +2861,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     { members: [], awardRecipients: [{ ...awardOnly, name: '' }] },
   ]) {
     api.get.mockResolvedValue({ data: response });
-    await expect(readPeople(token.uuid, () => {})).rejects.toThrow(/choices could not be confirmed/);
+    await expect(readPeople(apiClient, token.uuid, () => {})).rejects.toThrow(/choices could not be confirmed/);
   }
   const nullableParticulars = { ...trustedRecipient, name: null, residentialAddress: null };
   api.get.mockResolvedValue({ data: { members: [nullableParticulars], awardRecipients: [] } });
-  await expect(readPeople(token.uuid, () => {})).resolves.toEqual({
+  await expect(readPeople(apiClient, token.uuid, () => {})).resolves.toEqual({
     members: [nullableParticulars],
     awardRecipients: [],
   });
@@ -2876,7 +2877,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         completeIdentityRead = () => resolve({ data: { members: [trustedRecipient], awardRecipients: [] } });
       }),
   );
-  const lateIdentityRead = readPeople(token.uuid, () => {
+  const lateIdentityRead = readPeople(apiClient, token.uuid, () => {
     if (!ownerStillCurrent) throw new Error('The account changed before recipient choices returned.');
   });
   ownerStillCurrent = false;

@@ -1,4 +1,3 @@
-import { allPeopleKey } from '@pages/company/ledger/shared/usePeople';
 import { useCallback } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,6 +10,7 @@ import {
   registerHoldersKey,
   useOwnAppointments,
   ownAppointmentsKey,
+  allPeopleKey,
 } from '@ledova/shared';
 import { LoadError, Loading } from '@components/Ledger';
 import { PageLink } from '@components/Page';

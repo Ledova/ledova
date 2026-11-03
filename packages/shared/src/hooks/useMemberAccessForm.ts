@@ -1,17 +1,15 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import {
-  getRegisterAwards,
-  readEveryPage,
-  useCompanyMemberAccess,
-  type OrderSubmissionOwner,
-  type TokenHoldersResponse,
-  READ_TIMING,
-  registerKey,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { type Problems } from '@hooks/useErrorSummary';
-import { invitationMembers } from '@ledova/shared';
+import { READ_TIMING } from '../constants/api';
+import { getRegisterAwards } from '../services/register-awards';
+import type { TokenHoldersResponse } from '../types';
+import { invitationMembers } from '../utils/invitationMembers';
+import { readEveryPage } from '../utils/pagination';
+import { useApiClient } from './useApiClient';
+import { registerKey } from './useCompanyOwnership';
+import { useCompanyMemberAccess } from './useCompanyMemberAccess';
+import type { Problems } from './useErrorSummary';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 type MemberField = 'member' | 'email' | 'reason';
 
@@ -24,6 +22,8 @@ export function useMemberAccessForm({
   registers,
   sourceReady = true,
   inviteMember = '',
+  newKey,
+  session,
 }: {
   company: string;
   owner: OrderSubmissionOwner;
@@ -31,8 +31,11 @@ export function useMemberAccessForm({
   registers: TokenHoldersResponse[];
   sourceReady?: boolean;
   inviteMember?: string;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 }) {
-  const access = useCompanyMemberAccess(company, () => crypto.randomUUID(), undefined, sourceReady);
+  const apiClient = useApiClient();
+  const access = useCompanyMemberAccess(company, newKey, session, sourceReady);
   const guardRecipients = () => {
     guard();
     access.guardAdmin();
@@ -46,7 +49,7 @@ export function useMemberAccessForm({
         const response = await getRegisterAwards(
           apiClient,
           { company, page },
-          { ledovaSubmissionGuard: guardRecipients },
+          { ...session?.requestConfig(), ledovaSubmissionGuard: guardRecipients },
         );
         guardRecipients();
         return response;

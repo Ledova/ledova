@@ -21,13 +21,14 @@ import {
   useOwnAppointments,
   ownAppointmentsKey,
   useRegisterClasses,
+  peopleKey,
+  usePeople,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
 import { importsKey, useRegisterImports } from '@pages/company/ledger/shared/useRegisterImports';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 
-import { peopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
 import { canOpenEmptyRegister } from './preparation';

@@ -1,20 +1,10 @@
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice, PreparationShell } from '@pages/company/ledger/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
-import { useParticularsRegisters } from './useParticularsRegisters';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
-import {
-  HOLDER_TYPE_LABELS,
-  REGISTER_PARTICULARS_COPY,
-  appointmentForParticularsEdit,
-  type CompanyShareTokenListItem,
-  type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
-  useOwnAppointments,
-  useRegisterClasses,
-} from '@ledova/shared';
+import { REGISTER_PARTICULARS_COPY, type OrderSubmissionOwner, useParticularsMember } from '@ledova/shared';
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -25,25 +15,6 @@ const COPY = REGISTER_PARTICULARS_COPY;
 const LEDE =
   "Change a member's name and residential address on the register. The change is recorded at once, dated today " +
   "(UTC), and kept in the register's history.";
-
-type Editing = { uuid: string; name: string; classes: string[]; appointment: OwnCompanyAppointment };
-
-function editingCompanies(classes: CompanyShareTokenListItem[], appointments: OwnCompanyAppointment[]) {
-  const companies = new Map<string, Editing>();
-  for (const item of classes) {
-    const appointment = appointmentForParticularsEdit(appointments, item.companyUuid);
-    if (!appointment) continue;
-    const company = companies.get(item.companyUuid) ?? {
-      uuid: item.companyUuid,
-      name: item.companyName,
-      classes: [],
-      appointment,
-    };
-    company.classes.push(item.uuid);
-    companies.set(item.companyUuid, company);
-  }
-  return [...companies.values()];
-}
 
 export default function CompanyRegisterParticularsPage() {
   const { member = '' } = useParams();
@@ -70,41 +41,7 @@ function OwnParticulars({
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const classes = useRegisterClasses(owner, guard);
-  const appointments = useOwnAppointments(owner, guard);
-  const editing = classes.data && appointments.data ? editingCompanies(classes.data, appointments.data) : [];
-  const { registers, people } = useParticularsRegisters(owner, editing, guard);
-  const found = editing.flatMap<{
-    company: Editing;
-    name: string | null;
-    label: string;
-    read: { isError: boolean; refetch: () => unknown };
-    particulars: (typeof people)[number];
-  }>((company, index) => {
-    const holder = registers[index].data?.flatMap((register) => register.holders).find((row) => row.member === member);
-    if (holder)
-      return [
-        {
-          company,
-          name: holder.name,
-          label: holder.name || HOLDER_TYPE_LABELS[holder.holderType],
-          read: registers[index],
-          particulars: people[index],
-        },
-      ];
-    const recipient = people[index].data?.members.find((row) => row.member === member && row.onRegister === false);
-    return recipient
-      ? [
-          {
-            company,
-            name: recipient.name,
-            label: recipient.name || COPY.UNNAMED_MEMBER,
-            read: people[index],
-            particulars: people[index],
-          },
-        ]
-      : [];
-  })[0];
+  const { classes, appointments, editing, registers, people, found } = useParticularsMember(owner, guard, member);
   const companyMatches = useRecordCompany(found?.company.uuid, guard);
   const [formOpen, setFormOpen] = useState(false);
   if (

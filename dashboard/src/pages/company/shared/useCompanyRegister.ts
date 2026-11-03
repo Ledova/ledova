@@ -1,39 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  getCompanyTokenHolders,
   hasCurrentRegisterReadAuthority,
   type OrderSubmissionOwner,
-  READ_TIMING,
   registerHoldersKey,
+  registersQuery,
   useOwnAppointments,
   useRegisterClasses,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-
-export async function readRegister(uuid: string, guard: () => void) {
-  guard();
-  const { data: register } = await getCompanyTokenHolders(apiClient, uuid, { ledovaSubmissionGuard: guard });
-  guard();
-  const quantities = [
-    register.token.totalSupply,
-    ...register.holders.map(({ balance }) => balance),
-    ...(register.formerMembers ?? []).map(({ sharesAtCessation }) => sharesAtCessation),
-  ];
-  if (register.issuedSupply !== null) quantities.push(register.issuedSupply);
-  if (register.token.uuid !== uuid || quantities.some((value) => !/^\d+$/.test(value))) {
-    throw new Error('Register did not identify exact share quantities for this class');
-  }
-  return register;
-}
-
-export function registersQuery(owner: OrderSubmissionOwner, uuids: string[], guard: () => void) {
-  return {
-    queryKey: [...registerHoldersKey(owner), ...uuids],
-    enabled: uuids.length > 0,
-    queryFn: () => Promise.all(uuids.map((uuid) => readRegister(uuid, guard))),
-    ...READ_TIMING,
-  };
-}
 
 export function useCompanyRegister(
   owner: OrderSubmissionOwner,
@@ -71,7 +45,7 @@ export function useCompanyRegister(
   const uuids = retained?.tokens ?? listed.filter((item) => item.companyUuid === company?.uuid).map(({ uuid }) => uuid);
   const empty = includeEmptyCompanies && !!company && uuids.length === 0;
   const registers = useQuery({
-    ...registersQuery(owner, uuids, guard),
+    ...registersQuery(apiClient, owner, uuids, guard),
     ...(empty
       ? {
           queryKey: [...registerHoldersKey(owner), 'empty', company.uuid],

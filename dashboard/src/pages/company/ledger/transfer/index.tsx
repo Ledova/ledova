@@ -2,7 +2,6 @@ import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany'
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
 import { AccountCheck } from '@components/AccountCheck';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
-import { useTransferRegister } from './useTransferRegister';
 import { useMemo, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -13,12 +12,13 @@ import {
   peopleFrom,
   useOwnAppointments,
   useRegisterClasses,
+  usePeople,
+  useRegisters,
 } from '@ledova/shared';
 import { Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { usePeople } from '@pages/company/ledger/shared/usePeople';
 import { TransferForm } from './TransferForm';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 
@@ -63,7 +63,7 @@ function OwnTransfer({
     companyMatches && listed && appointments.data
       ? appointmentForRegisterStep(appointments.data, listed.companyUuid, 'prepare')
       : undefined;
-  const registers = useTransferRegister(owner, uuid, companyMatches ? listed : undefined, guard);
+  const registers = useRegisters(owner, companyMatches && listed ? [uuid] : [], guard);
   const register = registers.data?.[0];
   const members = usePeople(owner, uuid, guard, !!appointment);
   const busy = classes.isFetching || appointments.isFetching || registers.isFetching || members.isFetching;

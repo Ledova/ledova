@@ -1,15 +1,31 @@
 import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Field, TextArea, TextInput } from '@components/Field';
-import { FIELD_LIMITS } from '@ledova/shared';
-import { useParticularsEdit, type ParticularsFormProps, COPY } from './useParticularsEdit';
+import { FIELD_LIMITS, REGISTER_PARTICULARS_COPY as COPY, useParticularsEdit } from '@ledova/shared';
+import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { Failure } from '@components/Ledger';
 
+type ParticularsFormProps = Omit<Parameters<typeof useParticularsEdit>[0], 'onChanged' | 'newKey' | 'session'>;
+
 export function ParticularsForm(props: ParticularsFormProps) {
-  const { draft, busy, error, conflict, update, reload, problems, submit } = useParticularsEdit(props);
+  const navigate = useNavigate();
+  const { draft, busy, error, conflict, update, reload, problems, submit } = useParticularsEdit({
+    ...props,
+    newKey: () => crypto.randomUUID(),
+    onChanged: (record) => {
+      const place = registerPlace({
+        company: props.company,
+        task: 'corrections',
+        record,
+        outcome: 'Particulars changed.',
+      });
+      navigate(place.to, { state: place.state });
+    },
+  });
   const checks = useErrorSummary(problems);
   const reloadAction = useRef<HTMLButtonElement>(null);
   const nameField = useRef<HTMLInputElement>(null);

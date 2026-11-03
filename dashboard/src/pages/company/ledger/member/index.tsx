@@ -21,16 +21,17 @@ import {
   type OwnCompanyAppointment,
   sharePercentage,
   shareCount,
+  signedShares,
   registerClassesKey,
+  registersKey,
   ownAppointmentsKey,
   useOwnAppointments,
+  useShareholder,
 } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { registersQuery } from '@pages/company/shared/useCompanyRegister';
-import { useShareholder } from './useShareholder';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { awardPath } from '@pages/company/ledger/shared/awards';
 import { AccountCheck } from '@components/AccountCheck';
@@ -44,11 +45,6 @@ interface Read {
   isFetching: boolean;
   fetchStatus: string;
   refetch: () => unknown;
-}
-
-function signed(shares: bigint) {
-  const size = formatShareCount((shares < 0n ? -shares : shares).toString());
-  return shares < 0n ? `−${size}` : `+${size}`;
 }
 
 export default function CompanyShareholderPage() {
@@ -111,7 +107,7 @@ function OwnShareholder({
     for (const key of [
       USER_PREFERENCES_QUERY_KEY,
       registerClassesKey(owner),
-      registersQuery(owner, data.tokens, guard).queryKey,
+      registersKey(owner, data.tokens),
       ownAppointmentsKey(owner),
     ]) {
       const current = client.getQueryState(key);
@@ -311,7 +307,7 @@ function OwnShareholder({
                         {REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]}
                       </span>
                       <span className="tabular-nums text-text-primary">
-                        {signed(
+                        {signedShares(
                           entry.changes
                             .filter((change) => change.member === member)
                             .reduce((sum, change) => sum + BigInt(change.shares), 0n),

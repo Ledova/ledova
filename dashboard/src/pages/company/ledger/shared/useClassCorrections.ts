@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import {
+  firstOfEach,
   getRegisterCorrections,
   readEveryPage,
   type OrderSubmissionOwner,
@@ -9,7 +10,7 @@ import {
   registerKey,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { firstOfEach, guarded } from './registerReads';
+import { guarded } from './registerReads';
 import { readNamedEntries } from './useRegisterEntries';
 
 export type ClassCorrection = { proposal: RegisterCorrection; entry: RegisterEntry };
