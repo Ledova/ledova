@@ -1,22 +1,17 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  CACHE_TIMING,
-  OWN_APPOINTMENTS_QUERY_KEY,
-  USER_PREFERENCES_QUERY_KEY,
-  canAdministerCompany,
-  getCompanies,
-  getOwnMemberRecords,
-  hasCurrentRegisterReadAuthority,
-  ownCompaniesKey,
-  ownMemberRecordsKey,
-  readEveryPage,
-  useSubmissionOwner,
-  useUserPreferences,
-  type OrderSubmissionOwner,
-  type OwnMemberRecord,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
+import { CACHE_TIMING } from '../constants/api';
+import { getCompanies } from '../services/companies';
+import { getOwnMemberRecords } from '../services/member-access';
+import type { OwnMemberRecord } from '../types';
+import { readEveryPage } from '../utils/pagination';
+import { hasCurrentRegisterReadAuthority } from '../utils/register-commands';
+import { useApiClient } from './useApiClient';
+import { canAdministerCompany, ownCompaniesKey } from './useCompanySelection';
+import { ownMemberRecordsKey } from './useMemberRecords';
+import { OWN_APPOINTMENTS_QUERY_KEY, ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
+import { useSubmissionOwner } from './useSubmissionOwner';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
+import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 
 export interface OwnershipCompany {
   uuid: string;
@@ -40,8 +35,9 @@ function confirmedMemberRows(rows: OwnMemberRecord[]) {
   );
 }
 
-export function useOwnershipCompanies() {
-  const { owner, boundary } = useSubmissionOwner();
+export function useOwnershipCompanies(session?: OrderSubmissionSession) {
+  const apiClient = useApiClient();
+  const { owner, boundary } = useSubmissionOwner(session);
   const preferences = useUserPreferences();
   const client = useQueryClient();
   const known = !!owner && !!preferences.preferences && !preferences.isError;
@@ -63,7 +59,11 @@ export function useOwnershipCompanies() {
     queryFn: async ({ signal }) => {
       const rows = await readEveryPage(async (page) => {
         guard();
-        const result = await getCompanies(apiClient, page, { signal, ledovaSubmissionGuard: guard });
+        const result = await getCompanies(apiClient, page, {
+          ...session?.requestConfig(),
+          signal,
+          ledovaSubmissionGuard: guard,
+        });
         guard();
         return result;
       });
@@ -76,14 +76,19 @@ export function useOwnershipCompanies() {
   const appointments = useOwnAppointments(owner!, guard, {
     queryKey: owner ? ownAppointmentsKey(owner) : [...OWN_APPOINTMENTS_QUERY_KEY, null],
     enabled: ready,
+    session,
   });
   const memberRows = useQuery({
-    queryKey: ownMemberRecordsKey(owner),
+    queryKey: ownMemberRecordsKey(owner, session?.getEpoch() ?? 0),
     enabled: ready,
     queryFn: async ({ signal }) => {
       const rows = await readEveryPage(async (page) => {
         guard();
-        const result = await getOwnMemberRecords(apiClient, page, { signal, ledovaSubmissionGuard: guard });
+        const result = await getOwnMemberRecords(apiClient, page, {
+          ...session?.requestConfig(),
+          signal,
+          ledovaSubmissionGuard: guard,
+        });
         guard();
         return result;
       });

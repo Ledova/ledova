@@ -8,12 +8,12 @@ import {
   type CompanyPackRequest,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  ownAppointmentsKey,
+  useOwnAppointments,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { saveFile } from '@utils/saveFile';
-import { useOwnAppointments } from '@hooks/useOwnAppointments';
 
 const FAILED =
   'The company pack could not be downloaded. Check your current company appointment and try again. A full pack is unavailable when it includes unsupported records; use supported inspection copies or unsigned certificates where applicable.';

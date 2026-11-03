@@ -12,6 +12,7 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
+  useOwnAppointments,
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
@@ -36,7 +37,6 @@ import { RegisterParticulars } from './RegisterParticulars';
 import { RegisterSetup } from './RegisterSetup';
 import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 import { AccountCheck } from '@components/AccountCheck';
 

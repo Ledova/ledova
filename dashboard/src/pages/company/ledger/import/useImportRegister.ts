@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { OrderSubmissionOwner } from '@ledova/shared';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
+import { READ_TIMING, registerKey, type OrderSubmissionOwner } from '@ledova/shared';
 import { readRegister } from '@pages/company/shared/useCompanyRegister';
 
 export function importRegisterKey(owner: OrderSubmissionOwner, uuid: string) {

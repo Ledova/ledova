@@ -1,7 +1,12 @@
-import { DESTINATIONS, REGISTER_COPY, appointmentForRegisterStep, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  REGISTER_COPY,
+  appointmentForRegisterStep,
+  type OrderSubmissionOwner,
+  useOwnAppointments,
+} from '@ledova/shared';
 import { Section, LoadError, Loading } from '@components/Ledger';
 import { PageLink } from '@components/Page';
-import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 

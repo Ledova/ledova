@@ -8,9 +8,8 @@ import {
   type BlockerFunction,
   type Location,
 } from 'react-router-dom';
-import { DESTINATIONS, useSubmissionOwner } from '@ledova/shared';
+import { DESTINATIONS, useSubmissionOwner, useOwnershipCompanies } from '@ledova/shared';
 import { CompanyContext } from '@hooks/useCompanyContext';
-import { useOwnershipCompanies } from '@hooks/useOwnershipCompanies';
 import { documentView } from '@utils/destinations';
 import { lastCompany, rememberCompany } from '@utils/lastCompany';
 import { useLedgerNavigation, type LedgerNavigationState } from './LedgerNavigation';

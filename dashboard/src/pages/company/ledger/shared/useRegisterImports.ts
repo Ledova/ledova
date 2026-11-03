@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { getRegisterImports, readEveryPage, type OrderSubmissionOwner } from '@ledova/shared';
+import { getRegisterImports, readEveryPage, type OrderSubmissionOwner, READ_TIMING, registerKey } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
 export function importsKey(owner: OrderSubmissionOwner, token: string) {
   return [...registerKey(owner), 'imports', token];

@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 
-import { ApiClientProvider, COMPANY_ENDPOINTS, USER_PREFERENCES_QUERY_KEY, DESTINATIONS } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  COMPANY_ENDPOINTS,
+  USER_PREFERENCES_QUERY_KEY,
+  DESTINATIONS,
+  ownershipCompaniesKey,
+  ownAppointmentsKey,
+} from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
 import type { AxiosInstance } from 'axios';
@@ -19,8 +26,6 @@ import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { ownershipCompaniesKey } from '@hooks/useOwnershipCompanies';
-import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { useSignupFinished } from '@hooks/useSignupFinished';
 import { RootRedirect } from './RootRedirect';
 import { SIGNUP_RESUMES_AT } from '@utils/paths';

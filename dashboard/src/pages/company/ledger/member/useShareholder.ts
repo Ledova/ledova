@@ -4,9 +4,10 @@ import {
   hasValidRegisterAwardTotals,
   readEveryPage,
   type OrderSubmissionOwner,
+  READ_TIMING,
+  registerKey,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { registersQuery } from '@pages/company/shared/useCompanyRegister';
 import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { readMemberEntries, registerEntriesKey } from '@pages/company/ledger/shared/useRegisterEntries';

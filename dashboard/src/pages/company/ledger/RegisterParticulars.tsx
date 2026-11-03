@@ -4,12 +4,12 @@ import {
   hasCurrentRegisterReadAuthority,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
+  useOwnAppointments,
 } from '@ledova/shared';
 import { Section, LoadError, Loading } from '@components/Ledger';
 
 import { ParticularsRecord } from './ParticularsRecord';
 import { registerMembers } from '@pages/company/shared/proposals';
-import { useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useRegisterParticulars } from '@pages/company/ledger/shared/useRegisterParticulars';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 

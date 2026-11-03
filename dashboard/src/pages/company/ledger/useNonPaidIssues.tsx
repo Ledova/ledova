@@ -1,4 +1,3 @@
-import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -10,13 +9,15 @@ import {
   REGISTER_GRANT_COPY as COPY,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
+  registerHoldersKey,
+  useOwnAppointments,
+  ownAppointmentsKey,
 } from '@ledova/shared';
 
 import { GrantForm } from './GrantForm';
 import { GrantRecord } from './GrantRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
-import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { grantsKey, useRegisterGrants } from '@pages/company/ledger/shared/useRegisterGrants';
 import { awardsKey, useRegisterAward } from '@pages/company/ledger/shared/useRegisterAwards';
 import { allPeopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';

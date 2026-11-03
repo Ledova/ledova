@@ -3,7 +3,6 @@ import { useLocation, useNavigate, type Location } from 'react-router-dom';
 
 const SEARCH_DELAY_MS = 300;
 const SEARCH_MAX_LENGTH = 100;
-export const PAGE_SIZE = 25;
 
 export interface ListParams<F extends string> {
   typed: string;

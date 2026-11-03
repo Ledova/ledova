@@ -1,4 +1,3 @@
-import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import { useCallback } from 'react';
 import { generatePath } from 'react-router-dom';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
@@ -8,6 +7,9 @@ import {
   REGISTER_IMPORT_COPY,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
+  registerHoldersKey,
+  useOwnAppointments,
+  ownAppointmentsKey,
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
 
@@ -15,7 +17,6 @@ import { ImportRecord } from './ImportRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { importsKey, useRegisterImports } from '@pages/company/ledger/shared/useRegisterImports';
-import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 
 export function ClassImports({
   owner,

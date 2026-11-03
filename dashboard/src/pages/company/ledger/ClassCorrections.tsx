@@ -1,4 +1,3 @@
-import { registerHoldersKey } from '@hooks/useRegisterClasses';
 import { allPeopleKey } from '@pages/company/ledger/shared/usePeople';
 import { useCallback } from 'react';
 import { generatePath } from 'react-router-dom';
@@ -9,6 +8,9 @@ import {
   hasCurrentRegisterReadAuthority,
   type TokenHoldersResponse,
   type OrderSubmissionOwner,
+  registerHoldersKey,
+  useOwnAppointments,
+  ownAppointmentsKey,
 } from '@ledova/shared';
 import { LoadError, Loading } from '@components/Ledger';
 import { PageLink } from '@components/Page';
@@ -18,7 +20,6 @@ import { ClassEntries } from './ClassEntries';
 import { entryLabel, registerSteps } from '@pages/company/shared/proposals';
 import { correctionsKey, useClassCorrections } from '@pages/company/ledger/shared/useClassCorrections';
 import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
-import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 
 const COPY = REGISTER_CORRECTION_COPY;

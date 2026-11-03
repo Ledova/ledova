@@ -1,11 +1,8 @@
 // @vitest-environment jsdom
 
-import { registerKey } from '@hooks/useRegisterAccess';
-import { ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { awardsKey } from './shared/useRegisterAwards';
 import { grantsKey } from './shared/useRegisterGrants';
 import { allotmentsKey } from './useRegisterAllotments';
-import { registerClassesKey, registerHoldersKey } from '@hooks/useRegisterClasses';
 
 import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
@@ -15,6 +12,10 @@ import {
   ApiClientProvider,
   USER_PREFERENCES_QUERY_KEY,
   formatDate,
+  registerKey,
+  ownAppointmentsKey,
+  registerClassesKey,
+  registerHoldersKey,
 } from '@ledova/shared';
 import type {
   OwnCompanyAppointment,

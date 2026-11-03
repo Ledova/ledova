@@ -10,9 +10,10 @@ import {
   hasValidRegisterAwardVestingReversal,
   readEveryPage,
   type OrderSubmissionOwner,
+  READ_TIMING,
+  registerKey,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
 export const awardsKey = (owner: OrderSubmissionOwner, token: string) => [...registerKey(owner), 'awards', token];
 export const awardVestingsKey = (owner: OrderSubmissionOwner, award: string) => [

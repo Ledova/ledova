@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { getRegisterParticularsChanges, readEveryPage, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  getRegisterParticularsChanges,
+  readEveryPage,
+  type OrderSubmissionOwner,
+  READ_TIMING,
+  registerKey,
+} from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { firstOfEach } from './registerReads';
 
 export function particularsKey(owner: OrderSubmissionOwner, company: string) {

@@ -21,14 +21,15 @@ import {
   type OwnCompanyAppointment,
   sharePercentage,
   shareCount,
+  registerClassesKey,
+  ownAppointmentsKey,
+  useOwnAppointments,
 } from '@ledova/shared';
 import { LinkRow, Row, Rows, Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { registersQuery } from '@pages/company/shared/useCompanyRegister';
-import { registerClassesKey } from '@hooks/useRegisterClasses';
-import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
 import { useShareholder } from './useShareholder';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { awardPath } from '@pages/company/ledger/shared/awards';

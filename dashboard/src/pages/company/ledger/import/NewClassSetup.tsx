@@ -17,14 +17,16 @@ import {
   type OrderSubmissionOwner,
   type TokenType,
   type RegisterTransferMembers,
+  registerClassesKey,
+  useOwnAppointments,
+  ownAppointmentsKey,
 } from '@ledova/shared';
 
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { useRegisterClasses, registerClassesKey } from '@hooks/useRegisterClasses';
+import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { useOwnAppointments, ownAppointmentsKey } from '@hooks/useOwnAppointments';
 import { peopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { ImportForm } from './ImportForm';
 import { LoadError, Loading } from '@components/Ledger';

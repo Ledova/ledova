@@ -5,9 +5,10 @@ import {
   type OrderSubmissionOwner,
   type RegisterCorrection,
   type RegisterEntry,
+  READ_TIMING,
+  registerKey,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 import { firstOfEach, guarded } from './registerReads';
 import { readNamedEntries } from './useRegisterEntries';
 

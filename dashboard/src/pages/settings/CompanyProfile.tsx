@@ -1,8 +1,7 @@
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { REGISTER_QUERY_KEY } from '@hooks/useRegisterAccess';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { type Company, ownCompaniesKey, useCompanySelection } from '@ledova/shared';
+import { type Company, ownCompaniesKey, useCompanySelection, REGISTER_QUERY_KEY } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';

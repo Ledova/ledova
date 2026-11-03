@@ -12,10 +12,14 @@ import {
   type OwnCompanyAppointment,
   CERTIFICATE_STATUSES,
   type CertificateStatus,
+  ownAppointmentsKey,
+  useOwnAppointments,
+  registerClassesKey,
+  registerHoldersKey,
+  READ_TIMING,
+  registerKey,
 } from '@ledova/shared';
-import { ownAppointmentsKey, useOwnAppointments } from '@hooks/useOwnAppointments';
-import { registerClassesKey, registerHoldersKey, useRegisterClasses } from '@hooks/useRegisterClasses';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
+import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import apiClient from '@services/apiClient';
 
 type RegisterClass = NonNullable<ReturnType<typeof useRegisterClasses>['data']>[number];

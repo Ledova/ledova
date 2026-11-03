@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { getCompanyPacks, getRegisterInspectionCopies, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  getCompanyPacks,
+  getRegisterInspectionCopies,
+  type OrderSubmissionOwner,
+  READ_TIMING,
+  registerKey,
+} from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { READ_TIMING, registerKey } from '@hooks/useRegisterAccess';
 
 export function inspectionCopiesKey(owner: OrderSubmissionOwner, token: string) {
   return [...registerKey(owner), 'inspection-copies', token];

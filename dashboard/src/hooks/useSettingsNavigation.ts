@@ -11,10 +11,11 @@ import {
   useSubmissionOwner,
   useUserPreferences,
   CACHE_TIMING,
+  ownAppointmentsKey,
+  useOwnAppointments,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { SETTINGS_VIEWS } from '@utils/destinations';
-import { ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
 
 export function useSettingsNavigation() {
   const { owner, boundary } = useSubmissionOwner();

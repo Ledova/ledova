@@ -10,11 +10,13 @@ import {
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
   peopleFrom,
+  ownAppointmentsKey,
+  READ_TIMING,
+  useOwnAppointments,
+  registerKey,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
-import { ownAppointmentsKey, READ_TIMING, useOwnAppointments } from '@hooks/useOwnAppointments';
-import { registerKey } from '@hooks/useRegisterAccess';
 import { allPeopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { awardsKey, useRegisterAwards } from '@pages/company/ledger/shared/useRegisterAwards';
 import { awardPath } from '@pages/company/ledger/shared/awards';
