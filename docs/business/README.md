@@ -267,7 +267,8 @@ and charts rather than showing zero. Detailed history and every action are on th
 
 The same web Dashboard shows the person's own register records, with no wallet needed. A company can opt into sharing an aggregate ownership overview with its current
 linked members on the web: all class totals and each member's own position, without other
-shareholders' identities or private records. Mobile retains its own-records view. A member's
+shareholders' identities or private records. Mobile shows a register reader the same company overview
+and a member their own records. A member's
 certificate records are in Documents → Certificates on the web and on mobile
 ([member records](member-records.md)).
 

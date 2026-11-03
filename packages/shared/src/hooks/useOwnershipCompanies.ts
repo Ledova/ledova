@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CACHE_TIMING } from '../constants/api';
+import { READ_TIMING } from '../constants/api';
 import { getCompanies } from '../services/companies';
 import { getOwnMemberRecords } from '../services/member-access';
 import type { OwnMemberRecord } from '../types';
@@ -47,12 +47,6 @@ export function useOwnershipCompanies(session?: OrderSubmissionSession) {
     if (!owner || boundary.get() !== owner || current?.status !== 'success' || current.fetchStatus !== 'idle')
       throw new Error('Your signed-in account changed. Reopen your companies.');
   };
-  const timing = {
-    staleTime: CACHE_TIMING.SHORT_STALE_TIME,
-    gcTime: CACHE_TIMING.MEDIUM_GC_TIME,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  };
   const companyRows = useQuery({
     queryKey: ownershipCompaniesKey(owner),
     enabled: ready,
@@ -71,7 +65,7 @@ export function useOwnershipCompanies(session?: OrderSubmissionSession) {
         throw new Error('Your company list could not be confirmed.');
       return rows;
     },
-    ...timing,
+    ...READ_TIMING,
   });
   const appointments = useOwnAppointments(owner!, guard, {
     queryKey: owner ? ownAppointmentsKey(owner) : [...OWN_APPOINTMENTS_QUERY_KEY, null],
@@ -95,7 +89,7 @@ export function useOwnershipCompanies(session?: OrderSubmissionSession) {
       if (!confirmedMemberRows(rows)) throw new Error('Your member associations could not be confirmed.');
       return rows;
     },
-    ...timing,
+    ...READ_TIMING,
   });
   const isRefreshing = companyRows.isFetching || appointments.isFetching || memberRows.isFetching;
   const hasError =
