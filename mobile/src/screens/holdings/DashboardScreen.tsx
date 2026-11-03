@@ -1,20 +1,26 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp, type RouteProp } from '@react-navigation/native';
 import { BuildingsIcon, CaretRightIcon } from 'phosphor-react-native';
 import {
+  PAGE_SIZE,
   formatDate,
   formatShareCount,
   ownershipColorIndex,
   ownershipView,
   rankOwnershipClasses,
   sharePercentage,
+  useCompanyOwnership,
+  useSubmissionOwner,
+  type ClassOwnershipHolders,
+  type OrderSubmissionOwner,
   type OwnershipClass,
+  type OwnershipCompany,
   type OwnMemberRecord,
   type useMemberRecords,
 } from '@ledova/shared';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, Actions, Fact, LinkRow, Rows, Section } from '../../components/Ledger';
+import { Action, Actions, Fact, LinkRow, LoadError, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -22,13 +28,18 @@ import type { SignedInStackParamList } from '../../navigation/SignedInNavigator'
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { AwardStatus } from './AwardStatus';
 import { CompanyPicker } from './CompanyPicker';
-import { MemberNotice, useMemberRecordsState, useMemberRefresh } from './MemberRecordsProvider';
+import { MemberNotice, memberOf, useMemberRecordsState, useMemberRefresh } from './MemberRecordsProvider';
 
 type Read = ReturnType<typeof useMemberRecords>;
 type Ownership = NonNullable<ReturnType<typeof ownershipView>>;
+type CompanyRead = ReturnType<typeof useCompanyOwnership>;
+type Place = { company: string; token: string; page: number };
+
+const LEDE = 'Explore your companies and their share ownership.';
 
 function useDashboardStyles() {
   return useThemedStyles((theme) => ({
+    cards: { gap: 20 },
     trail: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, alignItems: 'center' as const, gap: 12 },
     trailLink: {
       paddingVertical: 8,
@@ -46,6 +57,7 @@ function useDashboardStyles() {
       borderBottomColor: theme.colors.border.subtle,
     },
     metric: { width: '50%' as const, gap: 4, paddingRight: theme.spacing.sm },
+    wide: { width: '100%' as const },
     metricLabel: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
     metricValue: { fontFamily: theme.fontFamily.medium, fontSize: 24, color: theme.colors.text.primary },
     classRow: {
@@ -62,6 +74,46 @@ function useDashboardStyles() {
     small: { fontFamily: theme.fontFamily.regular, fontSize: 12, color: theme.colors.text.muted },
     figures: { alignItems: 'flex-end' as const },
     figure: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.primary },
+    holdersArea: { minHeight: 192 },
+    loading: {
+      paddingVertical: 12,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.text.muted,
+    },
+    holder: {
+      gap: theme.spacing.sm,
+      minHeight: 44,
+      paddingHorizontal: 12,
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.borderRadius.md,
+    },
+    holderName: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
+    holderFigures: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, gap: 12 },
+    holderFigure: {
+      flexShrink: 1,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.text.primary,
+    },
+    bar: { height: 12, borderRadius: theme.borderRadius.sm, overflow: 'hidden' as const },
+    fill: { height: '100%' as const },
+    pager: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      alignItems: 'center' as const,
+      justifyContent: 'space-between' as const,
+      gap: 12,
+    },
+    pages: {
+      marginLeft: 'auto' as const,
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      alignItems: 'center' as const,
+      gap: theme.spacing.sm,
+    },
     award: { gap: theme.spacing.smd, paddingVertical: theme.spacing.smd },
     awardTitle: { fontFamily: theme.fontFamily.medium, fontSize: 14, color: theme.colors.text.primary },
     toggle: { paddingVertical: 6, fontFamily: theme.fontFamily.medium, fontSize: 14, color: theme.colors.brand.light },
@@ -69,46 +121,93 @@ function useDashboardStyles() {
 }
 
 export function DashboardScreen({ route }: { route: RouteProp<SignedInStackParamList, 'Dashboard'> }) {
+  const styles = useCompanyStyles();
   const { read } = useMemberRecordsState();
-  return (
+  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
+  return owner ? (
     <Dashboard
-      key={`${read.owner?.userUuid}/${read.owner?.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}`}
+      key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}`}
+      owner={owner}
+      currentOwner={boundary.get}
       read={read}
       route={route}
     />
+  ) : (
+    <Page testID="dashboard-scroll" title="Dashboard" lede={LEDE}>
+      <MemberNotice read={read} />
+      <Text style={styles.muted}>Check your signed-in account before opening your holdings.</Text>
+    </Page>
   );
 }
 
-function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStackParamList, 'Dashboard'> }) {
+function Dashboard({
+  owner,
+  currentOwner,
+  read,
+  route,
+}: {
+  owner: OrderSubmissionOwner;
+  currentOwner: () => OrderSubmissionOwner | null;
+  read: Read;
+  route: RouteProp<SignedInStackParamList, 'Dashboard'>;
+}) {
   const styles = useCompanyStyles();
   const theme = useAppTheme();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
-  const { companies, company, selectCompany } = useMemberRecordsState();
-  const refresh = useMemberRefresh(read, 'dashboard-refresh');
-  const [chosenClass, setChosenClass] = useState<{ company: string; token: string } | null>(null);
+  const { directory, companies, company, member, selectCompany } = useMemberRecordsState();
+  const [place, setPlace] = useState<Place | null>(null);
   const opened = route.params?.record;
   const openedAward = route.params?.award;
   useEffect(() => {
     if (!opened) return;
-    const target = companies.find((row) => row.uuid === opened);
+    const target = read.records.find((row) => row.uuid === opened);
     if (!target || !selectCompany(target.company.uuid)) return;
     const token = target.awards.find((award) => award.uuid === openedAward)?.token;
     const next =
       token && ownershipView(undefined, target)?.classes.some((row) => row.uuid === token)
-        ? { company: target.company.uuid, token }
+        ? { company: target.company.uuid, token, page: 1 }
         : null;
-    setChosenClass((current) =>
-      current?.company === next?.company && current?.token === next?.token ? current : next,
-    );
+    setPlace((current) => (current?.company === next?.company && current?.token === next?.token ? current : next));
     navigation.setParams({ record: undefined, award: undefined });
-  }, [opened, openedAward, companies, selectCompany, navigation]);
-  const chosen = chosenClass && chosenClass.company === company?.company.uuid ? chosenClass.token : null;
+  }, [opened, openedAward, read.records, selectCompany, navigation]);
+  const chosen = place && place.company === company?.uuid ? place : null;
+  const current =
+    directory.owner?.userUuid === owner.userUuid &&
+    directory.owner?.ownerAccountUuid === owner.ownerAccountUuid &&
+    !directory.hasError &&
+    !directory.isLoading;
+  const guard = useMemo(
+    () => () => {
+      if (currentOwner() !== owner) throw new Error('Your signed-in account changed. Reopen your dashboard.');
+    },
+    [owner, currentOwner],
+  );
+  const ownership = useCompanyOwnership(
+    owner,
+    guard,
+    company?.uuid ?? '',
+    current && !!company?.canReadRegister,
+    {
+      token: chosen?.token ?? '',
+      page: chosen?.page ?? 1,
+      toFirstPage: () => setPlace((value) => value && { ...value, page: 1 }),
+    },
+    orderSubmissionSession,
+  );
+  const officer = !!company && (company.canReadRegister || company.memberUuids.length === 0);
+  const retry = () => Promise.all([directory.retry(), ...(company?.canReadRegister ? [ownership.recover()] : [])]);
+  const refresh = useMemberRefresh(read, 'dashboard-refresh', async () => {
+    await read.refresh();
+    if (officer) await retry();
+  });
+  const choose = (token: string | null) =>
+    setPlace(token && company ? { company: company.uuid, token, page: 1 } : null);
   return (
     <Page
       testID="dashboard-scroll"
       title="Dashboard"
       titleAction={
-        company && companies.length > 1 ? (
+        current && company && companies.length > 1 ? (
           <FilterPopover
             label="Switch company"
             closeLabel="Close the company switcher"
@@ -117,11 +216,11 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
             {(close) => (
               <CompanyPicker
                 companies={companies}
-                current={company.company.uuid}
+                current={company.uuid}
                 onChoose={(uuid) => {
-                  if (uuid !== company.company.uuid) {
+                  if (uuid !== company.uuid) {
                     if (!selectCompany(uuid)) return;
-                    setChosenClass(null);
+                    setPlace(null);
                   }
                   close();
                 }}
@@ -130,15 +229,17 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
           </FilterPopover>
         ) : undefined
       }
-      lede="Explore your companies and their share ownership."
+      lede={LEDE}
       refreshControl={refresh}
     >
       <MemberNotice read={read} />
-      {!read.owner ? (
-        <Text style={styles.muted}>Check your signed-in account before opening your holdings.</Text>
-      ) : read.loading || (!read.listReady && !read.error) || (companies.length > 0 && !company) ? (
+      {directory.hasError ? (
+        <LoadError retry={directory.retry} busy={directory.isRefreshing}>
+          Your ownership records could not be loaded.
+        </LoadError>
+      ) : !current ? (
         <Text style={styles.muted}>Loading the register…</Text>
-      ) : !company ? (
+      ) : companies.length === 0 ? (
         !read.error && (
           <Section title="Your companies">
             <Text style={styles.muted}>
@@ -150,20 +251,277 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
             </Actions>
           </Section>
         )
+      ) : !company ? (
+        <Text style={styles.muted}>Loading the register…</Text>
+      ) : officer ? (
+        <CompanyRegister
+          key={company.uuid}
+          company={company}
+          record={memberOf(company, directory.members)}
+          ownership={ownership}
+          chosen={chosen}
+          onChoose={choose}
+          onPage={(page) => setPlace((value) => value && { ...value, page })}
+          retry={retry}
+          busy={directory.isRefreshing}
+        />
+      ) : !read.owner ? (
+        <Text style={styles.muted}>Check your signed-in account before opening your holdings.</Text>
+      ) : read.loading || (!read.listReady && !read.error) ? (
+        <Text style={styles.muted}>Loading the register…</Text>
       ) : read.readFailed ? (
         <Actions>
           <Action label="Try again" disabled={read.busy} onPress={() => void read.refresh()} />
         </Actions>
+      ) : member ? (
+        <CompanyOwnership key={member.uuid} company={member} chosen={chosen?.token ?? null} onChoose={choose} />
       ) : (
-        <CompanyOwnership
-          key={company.uuid}
-          company={company}
-          chosen={chosen}
-          onChoose={(token) => setChosenClass(token ? { company: company.company.uuid, token } : null)}
-        />
+        <Text style={styles.muted}>Loading the register…</Text>
       )}
     </Page>
   );
+}
+
+function Trail({ symbol, onBack }: { symbol: string | undefined; onBack: () => void }) {
+  const look = useDashboardStyles();
+  return (
+    <View accessibilityRole="toolbar" accessibilityLabel="Ownership trail" style={look.trail}>
+      <Pressable accessibilityRole="button" onPress={onBack}>
+        <Text style={look.trailLink}>Company ownership</Text>
+      </Pressable>
+      {!!symbol && (
+        <>
+          <Text accessibilityElementsHidden importantForAccessibility="no" style={look.trailLink}>
+            /
+          </Text>
+          <Text style={look.trailHere}>{symbol}</Text>
+        </>
+      )}
+    </View>
+  );
+}
+
+function CompanyRegister({
+  company,
+  record,
+  ownership,
+  chosen,
+  onChoose,
+  onPage,
+  retry,
+  busy,
+}: {
+  company: OwnershipCompany;
+  record: OwnMemberRecord | undefined;
+  ownership: CompanyRead;
+  chosen: Place | null;
+  onChoose: (token: string | null) => void;
+  onPage: (page: number) => void;
+  retry: () => unknown;
+  busy: boolean;
+}) {
+  const styles = useCompanyStyles();
+  const look = useDashboardStyles();
+  const theme = useAppTheme();
+  const registerReady =
+    !company.canReadRegister ||
+    (ownership.classes.isSuccess &&
+      !ownership.classes.isFetching &&
+      ownership.overview.isSuccess &&
+      !ownership.overview.isFetching);
+  const summary = registerReady && company.canReadRegister ? ownership.overview.data : undefined;
+  const view = useMemo(() => ownershipView(summary, record), [summary, record]);
+  const failed =
+    company.canReadRegister && (ownership.classes.isError || ownership.overview.isError || ownership.scopeError);
+  const selected = view?.classes.find(({ uuid }) => uuid === chosen?.token);
+  const { holders } = ownership;
+  return (
+    <>
+      {chosen && <Trail symbol={selected?.symbol} onBack={() => onChoose(null)} />}
+      <View style={look.cards}>
+        {failed ? (
+          <LoadError retry={retry} busy={busy}>
+            Your ownership records could not be loaded.
+          </LoadError>
+        ) : !registerReady ? (
+          <Section title="Ownership overview">
+            <Text style={styles.muted}>Loading the register…</Text>
+          </Section>
+        ) : (
+          <>
+            {view ? (
+              <>
+                <Section title="Ownership overview">
+                  <Text style={styles.muted}>
+                    {[
+                      company.canManage ? 'Company administrator' : company.canReadRegister ? 'Company access' : null,
+                      record ? 'Member' : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                  <Metrics view={view} own={record ? ownTotal(view) : undefined} />
+                  <OwnershipClasses view={view} chosen={chosen?.token ?? null} onChoose={onChoose} />
+                </Section>
+                {chosen && (
+                  <ClassDetails view={view} record={record} chosen={selected}>
+                    {selected &&
+                      (!selected.initialized ? (
+                        <Text style={styles.muted}>
+                          Current ownership is not available for this class. Its ledger must be opened and its figures
+                          confirmed.
+                        </Text>
+                      ) : (
+                        <>
+                          <View
+                            style={look.holdersArea}
+                            accessibilityState={{ busy: holders.isPending || holders.isFetching }}
+                          >
+                            {holders.isPending || holders.isFetching ? (
+                              <Text style={look.loading}>Loading shareholders…</Text>
+                            ) : holders.isError ? (
+                              <LoadError retry={() => holders.refetch()}>
+                                The class’s shareholders could not be confirmed.
+                              </LoadError>
+                            ) : holders.data.count === 0 ? (
+                              <Text style={styles.muted}>No current shareholders yet.</Text>
+                            ) : (
+                              <OwnershipHolders
+                                holders={holders.data}
+                                name={selected.name}
+                                symbol={selected.symbol}
+                                color={theme.colors.chart[ownershipColorIndex(view.classes, selected.uuid)]}
+                              />
+                            )}
+                          </View>
+                          {holders.isSuccess && !holders.isFetching && (
+                            <Pager
+                              label="Class shareholders"
+                              page={chosen.page}
+                              count={holders.data.count}
+                              noun={['shareholder', 'shareholders']}
+                              onPage={onPage}
+                            />
+                          )}
+                        </>
+                      ))}
+                  </ClassDetails>
+                )}
+              </>
+            ) : (
+              <Section title="Ownership overview">
+                <Text accessibilityRole="alert" style={styles.muted}>
+                  The current ownership figures could not be confirmed.
+                </Text>
+              </Section>
+            )}
+            {record && <MemberAwards record={record} token={chosen?.token ?? null} />}
+          </>
+        )}
+      </View>
+    </>
+  );
+}
+
+function OwnershipHolders({
+  holders,
+  name,
+  symbol,
+  color,
+}: {
+  holders: ClassOwnershipHolders;
+  name: string;
+  symbol: string;
+  color: string;
+}) {
+  const look = useDashboardStyles();
+  const [selected, setSelected] = useState<string | null>(null);
+  return (
+    <View accessibilityLabel={`${name} shareholders`}>
+      <Rows>
+        {holders.results.map((holder) => {
+          const holderName = holder.name || 'Unnamed shareholder';
+          const shares = formatShareCount(holder.balance);
+          const percentage = sharePercentage(holder.balance, holders.issuedSupply);
+          const active = selected === holder.member;
+          const width =
+            holders.issuedSupply === '0' ? 0 : (Number(holder.balance) / Number(holders.issuedSupply)) * 100;
+          return (
+            <Pressable
+              key={holder.member}
+              accessibilityRole="button"
+              accessibilityLabel={`Highlight ${holderName}’s holding, ${shares} shares, ${percentage} of ${symbol}`}
+              accessibilityState={{ selected: active }}
+              onPress={() => setSelected(active ? null : holder.member)}
+              style={[look.holder, active && look.classSelected]}
+            >
+              <Text style={look.holderName}>{holderName}</Text>
+              <View style={look.holderFigures}>
+                <Text style={look.holderFigure}>{shares} shares</Text>
+                <Text style={look.holderFigure}>{percentage}</Text>
+              </View>
+              <View style={look.bar}>
+                <View style={[look.fill, { width: `${width}%`, backgroundColor: color, opacity: active ? 1 : 0.8 }]} />
+              </View>
+            </Pressable>
+          );
+        })}
+      </Rows>
+    </View>
+  );
+}
+
+function Pager({
+  label,
+  page,
+  count,
+  noun: [one, many],
+  onPage,
+}: {
+  label: string;
+  page: number;
+  count: number;
+  noun: readonly [string, string];
+  onPage: (page: number) => void;
+}) {
+  const look = useDashboardStyles();
+  const styles = useCompanyStyles();
+  if (count === 0) return null;
+  const pages = Math.ceil(count / PAGE_SIZE);
+  const shown = Math.min(page, pages);
+  const first = (shown - 1) * PAGE_SIZE + 1;
+  const last = Math.min(shown * PAGE_SIZE, count);
+  const total = `${formatShareCount(String(count))} ${count === 1 ? one : many}`;
+  return (
+    <View accessibilityLabel={label} style={look.pager}>
+      <Text style={styles.muted}>
+        {formatShareCount(String(first))}–{formatShareCount(String(last))} of {total}
+      </Text>
+      {pages > 1 && (
+        <View style={look.pages}>
+          <Action
+            label="Previous"
+            accessibilityLabel={`Previous (${label})`}
+            disabled={shown === 1}
+            onPress={() => onPage(shown - 1)}
+          />
+          <Text style={styles.muted}>
+            Page {formatShareCount(String(shown))} of {formatShareCount(String(pages))}
+          </Text>
+          <Action
+            label="Next"
+            accessibilityLabel={`Next (${label})`}
+            disabled={shown === pages}
+            onPress={() => onPage(shown + 1)}
+          />
+        </View>
+      )}
+    </View>
+  );
+}
+
+function ownTotal(view: Ownership) {
+  return String(view.classes.reduce((sum, row) => sum + BigInt(row.ownShares ?? '0'), 0n));
 }
 
 function CompanyOwnership({
@@ -176,34 +534,23 @@ function CompanyOwnership({
   onChoose: (token: string | null) => void;
 }) {
   const styles = useCompanyStyles();
-  const look = useDashboardStyles();
   const view = useMemo(() => ownershipView(undefined, company), [company]);
   const chosenClass = view?.classes.find((row) => row.uuid === chosen);
   return (
     <>
-      {chosen && (
-        <View accessibilityRole="toolbar" accessibilityLabel="Ownership trail" style={look.trail}>
-          <Pressable accessibilityRole="button" onPress={() => onChoose(null)}>
-            <Text style={look.trailLink}>Company ownership</Text>
-          </Pressable>
-          {chosenClass && (
-            <>
-              <Text accessibilityElementsHidden importantForAccessibility="no" style={look.trailLink}>
-                /
-              </Text>
-              <Text style={look.trailHere}>{chosenClass.symbol}</Text>
-            </>
-          )}
-        </View>
-      )}
+      {chosen && <Trail symbol={chosenClass?.symbol} onBack={() => onChoose(null)} />}
       {view ? (
         <>
           <Section title="Ownership overview">
             <Text style={styles.muted}>Member</Text>
-            <Metrics view={view} />
+            <Metrics view={view} own={ownTotal(view)} />
             <OwnershipClasses view={view} chosen={chosen} onChoose={onChoose} />
           </Section>
-          {chosen && <ClassDetails view={view} record={company} chosen={chosenClass} />}
+          {chosen && (
+            <ClassDetails view={view} record={company} chosen={chosenClass}>
+              {chosenClass && <OwnRecords record={company} chosen={chosenClass} />}
+            </ClassDetails>
+          )}
         </>
       ) : (
         <Section title="Ownership overview">
@@ -217,13 +564,12 @@ function CompanyOwnership({
   );
 }
 
-function Metrics({ view }: { view: Ownership }) {
+function Metrics({ view, own }: { view: Ownership; own: string | undefined }) {
   const look = useDashboardStyles();
   const styles = useCompanyStyles();
-  const own = String(view.classes.reduce((sum, row) => sum + BigInt(row.ownShares ?? '0'), 0n));
   const figures: [string, string][] = view.summary
     ? [
-        ['Your shares', formatShareCount(own)],
+        ...(own === undefined ? [] : [['Your shares', formatShareCount(own)] as [string, string]]),
         [
           'Issued shares',
           view.summary.issuedSupply === null ? 'Not complete' : formatShareCount(view.summary.issuedSupply),
@@ -244,8 +590,13 @@ function Metrics({ view }: { view: Ownership }) {
   const unopened = view.summary ? view.summary.classes.filter(({ initialized }) => !initialized).length : 0;
   return (
     <View accessibilityLabel="Company ownership summary" style={look.metrics}>
-      {figures.map(([label, value]) => (
-        <View key={label} accessible accessibilityLabel={`${label}: ${value}`} style={look.metric}>
+      {figures.map(([label, value], index) => (
+        <View
+          key={label}
+          accessible
+          accessibilityLabel={`${label}: ${value}`}
+          style={[look.metric, index === 0 && figures.length === 3 && look.wide]}
+        >
           <Text style={look.metricLabel}>{label}</Text>
           <Text style={look.metricValue}>{value}</Text>
         </View>
@@ -344,13 +695,14 @@ function ClassDetails({
   view,
   record,
   chosen,
+  children,
 }: {
   view: Ownership;
-  record: OwnMemberRecord;
+  record: OwnMemberRecord | undefined;
   chosen: OwnershipClass | undefined;
+  children: ReactNode;
 }) {
   const styles = useCompanyStyles();
-  const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   if (!chosen)
     return (
       <Section title="Class unavailable">
@@ -366,16 +718,29 @@ function ClassDetails({
             {chosen.issuedSupply === null ? 'Not recorded' : formatShareCount(chosen.issuedSupply)}
           </Fact>
         )}
-        <Fact label="Your shares">
-          {chosen.ownShares === null ? 'Not recorded' : formatShareCount(chosen.ownShares)}
-        </Fact>
-        {!view.personalOnly &&
+        {record && (
+          <Fact label="Your shares">
+            {chosen.ownShares === null ? 'Not recorded' : formatShareCount(chosen.ownShares)}
+          </Fact>
+        )}
+        {record &&
+          !view.personalOnly &&
           chosen.issuedSupply !== null &&
           chosen.issuedSupply !== '0' &&
           chosen.ownShares !== null && (
             <Fact label="Your share of this class">{sharePercentage(chosen.ownShares, chosen.issuedSupply)}</Fact>
           )}
       </Rows>
+      {children}
+    </Section>
+  );
+}
+
+function OwnRecords({ record, chosen }: { record: OwnMemberRecord; chosen: OwnershipClass }) {
+  const styles = useCompanyStyles();
+  const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
+  return (
+    <>
       <Text style={styles.muted}>
         Only your own holdings and awards are shown. Other shareholders’ records are private.
       </Text>
@@ -387,7 +752,7 @@ function ClassDetails({
           />
         </Rows>
       )}
-    </Section>
+    </>
   );
 }
 

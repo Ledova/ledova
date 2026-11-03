@@ -212,9 +212,10 @@ confirmed, and a confirmed one is not yet final ([chain](../engineering/chain.md
 
 ## The app at a glance
 
-The web dashboard reaches the records and workflows described here. The mobile app is for
-shareholders and holds their own records and account, with an investing account's
-Verification ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
+The web dashboard reaches the records and workflows described here. The mobile app holds a person's
+own records and account, and lists the same companies as the web: a company's administrators and
+register readers see its ownership overview and each class's shareholders there, while company tasks
+stay on the web ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
 retains its existing route checks;
 company actions follow the person's current appointments, and
 the server decides what each person may read. Every page withholds stale records and their actions

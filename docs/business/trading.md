@@ -7,8 +7,8 @@ API trades existing shares, and how both sit beside the company's register. The 
 settlement and transfer mechanisms are in
 [trading protocols](../engineering/trading-protocols.md#intent-and-settlement) and
 [wallet transfers](../engineering/wallet-protocols.md#transfer-lifecycle). Neither has a page in the
-web app ([wallets](#wallets-and-wallet-sends), [trading](#what-trading-is-today)), and the mobile app
-is for shareholders ([decision](../decisions.md#mobile-app-for-shareholders)).
+web app ([wallets](#wallets-and-wallet-sends), [trading](#what-trading-is-today)) or the mobile app
+([decision](../decisions.md#mobile-app-for-shareholders)).
 
 Contents:
 

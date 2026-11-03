@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { CheckIcon } from 'phosphor-react-native';
-import { searchRows, type OwnMemberRecord } from '@ledova/shared';
+import { searchRows, type OwnershipCompany } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 
 function usePickerStyles() {
@@ -52,19 +52,28 @@ function usePickerStyles() {
   }));
 }
 
+function detailOf(company: OwnershipCompany) {
+  return [
+    company.canManage ? 'Company administrator' : company.canReadRegister ? 'Company access' : null,
+    company.memberUuids.length ? 'Member' : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
 export function CompanyPicker({
   companies,
   current,
   onChoose,
 }: {
-  companies: OwnMemberRecord[];
+  companies: OwnershipCompany[];
   current: string;
   onChoose: (companyUuid: string) => void;
 }) {
   const theme = useAppTheme();
   const styles = usePickerStyles();
   const [query, setQuery] = useState('');
-  const found = searchRows(companies, (row) => row.company.name, query);
+  const found = searchRows(companies, (row) => `${row.name} ${detailOf(row)}`, query);
   return (
     <View>
       <TextInput
@@ -83,22 +92,23 @@ export function CompanyPicker({
           </Text>
         ) : (
           found.map((row) => {
-            const selected = row.company.uuid === current;
+            const selected = row.uuid === current;
+            const detail = detailOf(row);
             return (
               <Pressable
                 key={row.uuid}
                 accessibilityRole="button"
                 accessibilityState={{ selected }}
-                accessibilityLabel={`${row.company.name}, Member`}
-                onPress={() => onChoose(row.company.uuid)}
+                accessibilityLabel={detail ? `${row.name}, ${detail}` : row.name}
+                onPress={() => onChoose(row.uuid)}
                 style={[styles.row, selected && styles.current]}
               >
                 <View style={[styles.tick, !selected && styles.other]}>
                   <CheckIcon size={16} color={theme.colors.text.primary} />
                 </View>
                 <View style={styles.text}>
-                  <Text style={styles.name}>{row.company.name}</Text>
-                  <Text style={styles.detail}>Member</Text>
+                  <Text style={styles.name}>{row.name}</Text>
+                  {!!detail && <Text style={styles.detail}>{detail}</Text>}
                 </View>
               </Pressable>
             );

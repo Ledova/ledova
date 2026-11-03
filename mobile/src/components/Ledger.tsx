@@ -291,6 +291,31 @@ export function Actions({ children }: { children: ReactNode }) {
   return <View style={styles.actions}>{children}</View>;
 }
 
+export function LoadError({
+  retry,
+  busy = false,
+  children,
+}: {
+  retry: () => unknown;
+  busy?: boolean;
+  children: string;
+}) {
+  const styles = useThemedStyles((theme) => ({
+    block: { gap: theme.spacing.smd, paddingVertical: theme.spacing.smd },
+    sentence: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
+  }));
+  return (
+    <View style={styles.block}>
+      <Text accessibilityRole="alert" style={styles.sentence}>
+        {children}
+      </Text>
+      <Actions>
+        <Action label="Try again" disabled={busy} onPress={() => void retry()} />
+      </Actions>
+    </View>
+  );
+}
+
 export function FormActions({ children }: { children: ReactNode }) {
   const styles = useActionsStyles();
   return <View style={[styles.actions, styles.ruled]}>{children}</View>;
