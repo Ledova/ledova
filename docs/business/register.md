@@ -607,9 +607,9 @@ The Ledger view shows:
 - **Add share class** below the cards, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
-The mobile app's Ledger shows the same cards, each with **Class details**, and **Add share class**, for
-a register reader of the selected company, and lists Issue shares, Transfer shares and Corrections
-beneath it ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
+The mobile app's Ledger shows the same cards, each with **Class details**, to a register reader of the
+selected company, and **Add share class** to someone who can prepare the register. The menu lists Issue
+shares, Transfer shares and Corrections beneath it ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
 [non-paid transfers](#non-paid-transfers-between-members),
 [compensating corrections](#compensating-corrections)).
 
