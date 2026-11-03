@@ -26,7 +26,7 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { PersonSelect } from './PersonSelect';
+import { PersonSelect } from '../../components/PersonSelect';
 import { useShareholderStyles } from './useShareholderStyles';
 
 const TITLE = 'Member access';

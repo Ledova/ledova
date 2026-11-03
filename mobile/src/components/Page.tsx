@@ -4,7 +4,10 @@ import { useNavigation, type NavigationProp, type NavigationState, type ParamLis
 import { useThemedStyles } from '../contexts';
 import { InSignedInFrame, type FrameOptions } from './InSignedInFrame';
 
-type PageProps = Pick<ScrollViewProps, 'testID' | 'refreshControl' | 'showsVerticalScrollIndicator'> & {
+type PageProps = Pick<
+  ScrollViewProps,
+  'testID' | 'refreshControl' | 'showsVerticalScrollIndicator' | 'innerViewRef'
+> & {
   ref?: Ref<ScrollView>;
   title: string;
   titleAction?: ReactNode;

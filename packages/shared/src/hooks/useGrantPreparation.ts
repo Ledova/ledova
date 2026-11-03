@@ -312,6 +312,7 @@ export function useGrantPreparation({
     setTermsOn,
     approvingDirector,
     setApprovingDirector,
+    terms,
     setTerms,
     authorityReference,
     setAuthorityReference,

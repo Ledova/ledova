@@ -40,6 +40,17 @@ export function useLedgerStyles() {
       strong: { fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
       title: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
       small: { fontFamily: theme.fontFamily.regular, fontSize: 12, lineHeight: 16, color: theme.colors.text.muted },
+      hidden: { display: 'none' as const },
+      ruled,
+      form: { ...ruled, gap: theme.spacing.lg },
+      record: { gap: theme.spacing.smd, paddingVertical: theme.spacing.md },
+      heading: { fontFamily: theme.fontFamily.medium, fontSize: 16, lineHeight: 24, color: theme.colors.text.primary },
+      name: { fontFamily: theme.fontFamily.medium, fontSize: 16, lineHeight: 24, color: theme.colors.text.primary },
+      cells: { gap: theme.spacing.md },
+      pair: { flexDirection: 'row' as const, gap: theme.spacing.md },
+      cell: { flex: 1, minWidth: 0, gap: theme.spacing.xs },
+      wrap: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: theme.spacing.sm },
+      review: { gap: 20 },
     };
   });
 }

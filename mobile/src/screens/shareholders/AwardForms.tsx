@@ -17,7 +17,7 @@ import { Field, FileField } from '../../components/register/RegisterFields';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { PersonSelect } from './PersonSelect';
+import { PersonSelect } from '../../components/PersonSelect';
 import { useShareholderStyles } from './useShareholderStyles';
 
 const DATE = {
