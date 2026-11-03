@@ -26,6 +26,15 @@ export function captureMemberInvitation() {
   return pendingMemberInvitation();
 }
 
+export function rememberMemberInvitation(code: string) {
+  if (!valid(code)) return;
+  try {
+    sessionStorage.setItem(STORAGE_KEY, code);
+  } catch {
+    return;
+  }
+}
+
 export function clearMemberInvitation() {
   try {
     sessionStorage.removeItem(STORAGE_KEY);

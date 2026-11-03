@@ -13,7 +13,7 @@ import {
   useUserProfile,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { captureMemberInvitation, clearMemberInvitation } from '@utils/memberInvitation';
+import { captureMemberInvitation, clearMemberInvitation, rememberMemberInvitation } from '@utils/memberInvitation';
 
 export function useMemberInvitation(typed = '') {
   const auth = useAuth();
@@ -32,6 +32,9 @@ export function useMemberInvitation(typed = '') {
   const [link] = useState(() => ({ code: captureMemberInvitation(), id: crypto.randomUUID() }));
   const entered = useMemo(() => ({ code: isInvitationCode(typed) ? typed : '', id: crypto.randomUUID() }), [typed]);
   const { code, id } = link.code ? link : entered;
+  useEffect(() => {
+    if (entered.code) rememberMemberInvitation(entered.code);
+  }, [entered.code]);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ owner: typeof owner; message: string } | null>(null);
   const scope = useMemo(() => ({ owner, profileSource, id: crypto.randomUUID() }), [owner, profileSource]);
