@@ -1,13 +1,27 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Field, TextInput, TextArea, FileField } from '@components/Field';
-import { useTransferPreparation, type TransferFormProps } from './useTransferPreparation';
-import { FIELD_LIMITS, REGISTER_TRANSFER_COPY as COPY, type Person, formatDate, shareCount } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  REGISTER_TRANSFER_COPY as COPY,
+  type Person,
+  type TransferPreparationOptions,
+  formatDate,
+  shareCount,
+  useTransferPreparation,
+} from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { FormSteps } from '@components/FormSteps';
 import { Row, Rows, Failure } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
+import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
+
+type TransferFormProps = Omit<TransferPreparationOptions, 'onPrepared' | 'newKey' | 'session'> & {
+  classLabel: string;
+  onCancel?: () => void;
+};
 
 const LIMITS: Partial<Record<string, number>> = {
   shares: FIELD_LIMITS.REGISTER_SHARES,
@@ -51,7 +65,8 @@ export function TransferForm({
   onRefused,
   initialFrom,
   onCancel,
-}: TransferFormProps & { classLabel: string }) {
+}: TransferFormProps) {
+  const navigate = useNavigate();
   const {
     today,
     draft,
@@ -78,6 +93,11 @@ export function TransferForm({
     blocked,
     onRefused,
     initialFrom,
+    onPrepared: (uuid) => {
+      const place = registerPlace({ company, token, task: 'transfer', record: uuid, outcome: COPY.PREPARED });
+      navigate(place.to, { state: place.state });
+    },
+    newKey: () => crypto.randomUUID(),
   });
   const checks = useErrorSummary(problems);
   const [step, setStep] = useState<(typeof STEPS)[number]['id']>('people');

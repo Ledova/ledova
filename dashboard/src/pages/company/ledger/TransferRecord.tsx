@@ -11,12 +11,13 @@ import {
   formatDate,
   STAGE_TONES,
   type RegisterSteps,
+  useTransferRecordDownload,
 } from '@ledova/shared';
 import { Row, Rows, Status, ShowMore, Fact } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { useTransferRecordDownload } from './useRegisterRecordDownload';
+import { BROWSER_FILES } from '@utils/saveFile';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { TransferReview } from './TransferReview';
 
@@ -72,7 +73,7 @@ export function TransferRecord({
   onReviewChange: (uuid: string, open: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
-  const download = useTransferRecordDownload(transfer, check);
+  const download = useTransferRecordDownload(transfer, check, BROWSER_FILES);
   const context = `transfer from ${transfer.fromName} to ${transfer.name} prepared ${formatDateTime(transfer.createdAt)}`;
   const decisionSteps = { ...steps, apply: undefined };
   const family = {
