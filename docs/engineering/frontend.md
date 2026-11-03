@@ -751,9 +751,11 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   through `CompanyPicker` inside the page heading's top-right **Switch company** popover. It reuses
   `FilterPopover` with a company icon and label, and lists the companies in the panel; the shared
   presentation owns no company state. The switcher
-  hides for single-company accounts. The class details card holds its own **Filters** popover for
-  the server-searched holder list and the **Share class** choice, whose **All classes** returns to
-  the overview.
+  hides for single-company accounts. For company-authorised readers of a class with an open ledger,
+  the class details card holds its own **Filters** popover for the server-searched holder list and
+  the **Share class** choice, whose **All classes** returns to the overview. Everyone else switches
+  class through the class rows and returns through the trail's **Company ownership**. A member
+  without register access also gets a **Certificates** `LinkRow` for a class they hold.
   An unavailable explicit company address keeps its refusal and offers **Open your company** when
   only one company remains. Selection still uses `CompanyContextProvider` and its navigation guards.
   Company and class context belong in the address, so browser Back/Forward and task links retain the

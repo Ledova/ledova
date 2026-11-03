@@ -54,13 +54,16 @@ list by issued shares. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The selected company uses one
 ownership ring beside a linked class list, with full class names before their secondary codes.
 Names wrap without displacing the figures. Select a segment or class row to open an aligned class
-details card beneath the overview, with the class heading and the card's own **Filters** popover
-together. A muted trailing chevron identifies class rows that open this detail; holder rows keep their
-highlight-only interaction. Show the relevant exact totals and own position, followed by the
-ranked holder list only for company-authorised readers. The popover holds their **Search
-shareholders** field and, for everyone, a **Share class** choice: picking another class switches the
-card, and **All classes** returns to the overview, also from a class the overview no longer lists.
-For company-authorised readers, **Class details** at the end of the card opens the class's Ledger page. Each
+details card beneath the overview. A muted trailing chevron identifies class rows that open this
+detail; holder rows keep their highlight-only interaction. Show the relevant exact totals and own
+position, followed by the ranked holder list only for company-authorised readers. The trail's
+**Company ownership** returns to the overview, also from a class the overview no longer lists. For
+company-authorised readers of a class with an open ledger, the card's own **Filters** popover sits
+beside its heading with **Search shareholders** and a **Share class** choice, where **All classes**
+also returns to the overview. For company-authorised readers, **Class details** at the end of the
+card opens the class's Ledger page. A member without register access gets no popover, because the
+class rows switch classes and the trail returns to the overview; their card ends with a
+**Certificates** row for a class they hold, as on mobile (owner, 3 November 2026). Each
 compact holder row aligns the shareholder's name, a
 horizontal bar, exact shares and percentage of the class. Hover and keyboard focus emphasise the row
 with short transitions that honour reduced motion; keep all figures visible without a tooltip.
@@ -73,7 +76,7 @@ entrance animation is needed.
 Keep the ring aligned at the top beside its list, so a long list never pushes it below the overview.
 Keep class colours consistent in both views and through list search and paging. Long class lists
 use shared search and a 25-row pager; small and zero-share classes remain directly selectable.
-**All classes** returns to the overview and restores focus to the class row or class search.
+Returning to the overview, by the trail or **All classes**, restores focus to the class row or class search.
 While company ownership loads, reserve the dashboard's summary and chart space with a static,
 data-free placeholder. The same neutral ring covers the lazy chart import. Show confirmed data
 directly when ready, without artificial waiting time, placeholder figures or entrance tracking.
