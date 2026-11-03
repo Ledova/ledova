@@ -9,7 +9,10 @@ import type {
   RegisterTransferMember,
   RegisterTransferMembers,
   RegisterAwardRecipient,
+  TokenHoldersResponse,
 } from '../types';
+import { REGISTER_IMPORT_COPY } from '../constants/business/register-imports';
+import { formatShareCount } from './formatting';
 import { rowsOf } from './register-commands';
 import { isRegisterImportMemberDocuments } from './register-member-documents';
 import { isCalendarDate } from './date';
@@ -177,4 +180,18 @@ export function isPreparedRegisterImport(proposal: RegisterImport, request: Regi
     memberRows(proposal.members) === memberRows(request.members) &&
     formerRows(proposal.formerMembers) === formerRows(request.formerMembers)
   );
+}
+
+export function importFigures(total: string | null, count: number | null) {
+  if (total === null && count === null) return null;
+  if (total === null) return REGISTER_IMPORT_COPY.STATED_COUNT(count!);
+  return count === null
+    ? REGISTER_IMPORT_COPY.STATED_TOTAL(formatShareCount(total))
+    : REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(total), count);
+}
+
+export function openingRecordsLink(register: TokenHoldersResponse, imports: RegisterImport[]) {
+  if (!register.initialized && register.token.status !== 'draft') return null;
+  if (imports.some((proposal) => proposal.correctionAllowed)) return 'Correct copied opening';
+  return imports.some((proposal) => proposal.status === 'applied') ? null : REGISTER_IMPORT_COPY.PREPARE;
 }

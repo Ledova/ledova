@@ -8,6 +8,7 @@ import {
   formatDate,
   formatDateTime,
   formatShareCount,
+  importFigures,
   registerImportTotals,
   sharePercentage,
   useImportRecordDownload,
@@ -134,13 +135,7 @@ export function ImportRecord({
             {decisionTrail(proposal, COPY.TRAIL)}
           </Rows>
           {(proposal.asicIssuedTotal !== null || proposal.asicMemberCount !== null) && (
-            <Text style={look.text}>
-              {proposal.asicIssuedTotal === null
-                ? COPY.STATED_COUNT(proposal.asicMemberCount!)
-                : proposal.asicMemberCount === null
-                  ? COPY.STATED_TOTAL(formatShareCount(proposal.asicIssuedTotal))
-                  : COPY.STATED_FIGURES(formatShareCount(proposal.asicIssuedTotal), proposal.asicMemberCount)}
-            </Text>
+            <Text style={look.text}>{importFigures(proposal.asicIssuedTotal, proposal.asicMemberCount)}</Text>
           )}
           <Text style={look.text}>{COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}</Text>
           {totals.count > 0 && (

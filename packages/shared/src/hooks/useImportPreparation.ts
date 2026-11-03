@@ -1,60 +1,48 @@
-import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { generatePath, useNavigate } from 'react-router-dom';
-import {
-  DESTINATIONS,
-  REGISTER_IMPORT_COPY,
-  REGISTER_IMPORT_DECISIONS,
-  apiErrorSentence,
-  createUserFriendlyError,
-  failureStatus,
-  isPreparedRegisterImport,
-  isRegisterEvidenceReceipt,
-  prepareRegisterImport,
-  uploadRegisterEvidence,
-  useRegisterDecision,
-  type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
-  type RegisterEvidence,
-  type RegisterEvidenceFile,
-  type RegisterEvidenceKind,
-  type RegisterImport,
-  type RegisterImportPreparation,
-  type TokenHoldersResponse,
-  type RegisterTransferMember,
-  REGISTER_IMPORT_UNMET_COPY,
-  refusalSentence,
-  utcToday,
-  registerKey,
-  type RegisterSteps,
-  importsKey,
-} from '@ledova/shared';
-
-import apiClient from '@services/apiClient';
-
+import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../constants/business/register-imports';
+import { uploadRegisterEvidence } from '../services/register-commands';
+import { prepareRegisterImport } from '../services/register-imports';
+import type {
+  OwnCompanyAppointment,
+  RegisterDocumentFile,
+  RegisterEvidence,
+  RegisterEvidenceKind,
+  RegisterImport,
+  RegisterImportPreparation,
+  RegisterTransferMember,
+  TokenHoldersResponse,
+} from '../types';
+import { utcToday } from '../utils/date';
+import { apiErrorSentence, createUserFriendlyError, failureStatus, refusalSentence } from '../utils/errors';
+import { isRegisterEvidenceReceipt, type RegisterSteps } from '../utils/register-commands';
 import {
   figuresDiffer,
   formerRows,
   initialMembers,
+  memberIdentityProblems,
   memberRows,
   preparationProblems,
-  memberIdentityProblems,
   statedFigures,
   type MemberDraft,
   type PreparationDraft,
-} from './preparation';
+} from '../utils/register-import-drafts';
+import { isPreparedRegisterImport } from '../utils/register-imports';
+import { useApiClient } from './useApiClient';
+import { registerKey } from './useCompanyOwnership';
+import { REGISTER_IMPORT_DECISIONS, useRegisterDecision } from './useRegisterDecision';
+import { importsKey } from './useRegisterImports';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 const CLOSED = 'This setup is closed. Reopen it before continuing.';
 
-type Upload = { file: RegisterEvidenceFile; appointment: string; key: string; receipt: RegisterEvidence | null };
+type Upload = { file: RegisterDocumentFile; appointment: string; key: string; receipt: RegisterEvidence | null };
 
-export type ImportFormProps = {
+export type ImportPreparationOptions = {
   owner: OrderSubmissionOwner;
   guard: () => void;
   newEffectGuard?: () => void;
   company: string;
-  shareClass?: { name: string; symbol: string };
   register?: TokenHoldersResponse;
   appointment?: OwnCompanyAppointment;
   steps: RegisterSteps;
@@ -62,7 +50,6 @@ export type ImportFormProps = {
   onConflict: () => void;
   correction?: RegisterImport;
   saved?: RegisterImport;
-  classFields?: ReactNode;
   classProblems?: string[];
   resolveRegister?: () => Promise<{
     register: TokenHoldersResponse;
@@ -73,6 +60,10 @@ export type ImportFormProps = {
   emptyOpeningAllowed?: boolean;
   visible?: boolean;
   onHeldChange?: (held: boolean) => void;
+  onPrepared: (token: string, uuid: string) => void;
+  onFinished: () => void;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 };
 
 export function useImportPreparation({
@@ -93,10 +84,13 @@ export function useImportPreparation({
   emptyOpeningAllowed = false,
   visible = true,
   onHeldChange,
-}: Omit<ImportFormProps, 'shareClass' | 'classFields'>) {
+  onPrepared,
+  onFinished,
+  newKey,
+  session,
+}: ImportPreparationOptions) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
-  const navigate = useNavigate();
-  const importDescription = useId();
   const today = utcToday();
   const [resolvedMembers, setResolvedMembers] = useState<{
     source: RegisterTransferMember[];
@@ -122,9 +116,9 @@ export function useImportPreparation({
     members: register
       ? emptyOpeningAllowed && !saved && !correction
         ? []
-        : initialMembers(register, saved ?? correction)
+        : initialMembers(register, saved ?? correction, newKey)
       : [],
-    former: (saved ?? correction)?.formerMembers.map((row) => ({ ...row, id: crypto.randomUUID() })) ?? [],
+    former: (saved ?? correction)?.formerMembers.map((row) => ({ ...row, id: newKey() })) ?? [],
     statedTotal: saved?.asicIssuedTotal ?? '',
     statedCount: saved?.asicMemberCount?.toString() ?? '',
   }));
@@ -175,6 +169,10 @@ export function useImportPreparation({
     guard();
     if (!mounted.current) throw createUserFriendlyError(CLOSED);
   };
+  const config = (submissionGuard: () => void) => ({
+    ...session?.requestConfig(),
+    ledovaSubmissionGuard: submissionGuard,
+  });
   const checkNew = () => {
     check();
     const context = currentContext.current;
@@ -203,14 +201,14 @@ export function useImportPreparation({
     check();
     await client.invalidateQueries({ queryKey: registerKey(owner) });
     check();
-    navigate(COMPANY_DASHBOARD_PATH, { state: { registerCompany: company } });
+    onFinished();
   };
   const approve = useRegisterDecision(REGISTER_IMPORT_DECISIONS, proposal, {
     appointment: steps.approve?.uuid,
-    newKey: () => crypto.randomUUID(),
+    newKey,
     guard: check,
     newEffectGuard: () => checkDecision('approve'),
-    requestConfig: () => ({ ledovaSubmissionGuard: check }),
+    requestConfig: () => config(check),
     onDecided: (receipt) => {
       setProposal(receipt);
       applyOpened.current = false;
@@ -221,19 +219,19 @@ export function useImportPreparation({
   });
   const apply = useRegisterDecision(REGISTER_IMPORT_DECISIONS, proposal, {
     appointment: steps.apply?.uuid,
-    newKey: () => crypto.randomUUID(),
+    newKey,
     guard: check,
     newEffectGuard: () => checkDecision('apply'),
-    requestConfig: () => ({ ledovaSubmissionGuard: check }),
+    requestConfig: () => config(check),
     onDecided: finish,
     onRefused: onConflict,
   });
   const reject = useRegisterDecision(REGISTER_IMPORT_DECISIONS, proposal, {
     appointment: steps.reject?.uuid,
-    newKey: () => crypto.randomUUID(),
+    newKey,
     guard: check,
     newEffectGuard: () => checkDecision('reject'),
-    requestConfig: () => ({ ledovaSubmissionGuard: check }),
+    requestConfig: () => config(check),
     onDecided: async () => {
       setProposal(undefined);
       preparation.current = null;
@@ -314,19 +312,15 @@ export function useImportPreparation({
         problem.startsWith(`Shareholder ${index + 1},`) ||
         problem.startsWith('Each company'),
     );
-  const upload = async (kind: RegisterEvidenceKind, file: RegisterEvidenceFile, cacheKey = kind as string) => {
+  const upload = async (kind: RegisterEvidenceKind, file: RegisterDocumentFile, cacheKey = kind as string) => {
     const preparingAppointment = checkPreparation();
     const previous = uploads.current[cacheKey];
     const same = previous?.file === file && previous.appointment === preparingAppointment.uuid;
     if (same && previous.receipt) return previous.receipt;
-    const key = same ? previous.key : crypto.randomUUID();
+    const key = same ? previous.key : newKey();
     uploads.current[cacheKey] = { file, appointment: preparingAppointment.uuid, key, receipt: null };
     const request = { companyId: company, appointment: preparingAppointment.uuid, kind, idempotencyKey: key };
-    const { data } = await uploadRegisterEvidence(
-      apiClient,
-      { ...request, file },
-      { ledovaSubmissionGuard: checkPreparation },
-    );
+    const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, config(checkPreparation));
     checkPreparation();
     if (!isRegisterEvidenceReceipt(data, request, file.size))
       throw createUserFriendlyError(REGISTER_IMPORT_COPY.UPLOAD_RECEIPT_FAILED);
@@ -398,7 +392,7 @@ export function useImportPreparation({
         activeRegister.current = current;
         const stated = statedFigures(draft);
         preparation.current = {
-          operationId: crypto.randomUUID(),
+          operationId: newKey(),
           appointment: preparingAppointment.uuid,
           tokenId: current.token.uuid,
           registerEvidence: registerEvidence?.uuid ?? draft.registerEvidence,
@@ -415,9 +409,7 @@ export function useImportPreparation({
         };
       }
       const request = preparation.current;
-      const { data } = await prepareRegisterImport(apiClient, request, {
-        ledovaSubmissionGuard: recovering ? check : checkPreparation,
-      });
+      const { data } = await prepareRegisterImport(apiClient, request, config(recovering ? check : checkPreparation));
       check();
       if (!isPreparedRegisterImport(data, request))
         throw createUserFriendlyError(REGISTER_IMPORT_COPY.PREPARATION_RECEIPT_FAILED);
@@ -426,12 +418,7 @@ export function useImportPreparation({
       setPhase('review');
       await client.invalidateQueries({ queryKey: registerKey(owner) });
       check();
-      navigate(
-        `${generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: request.tokenId })}?record=${data.uuid}`,
-        {
-          replace: true,
-        },
-      );
+      onPrepared(request.tokenId, data.uuid);
     } catch (failure) {
       const status = failureStatus(failure);
       if (status === 400 || status === 404 || status === 409) {
@@ -492,7 +479,6 @@ export function useImportPreparation({
   const preview = apply.target?.preview ?? approve.target?.preview;
   const errors = [error, approve.error, apply.error, reject.error].filter(Boolean);
   return {
-    importDescription,
     today,
     knownMembers,
     preserveParticulars,

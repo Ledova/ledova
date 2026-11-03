@@ -71,11 +71,30 @@ export {
   type RegisterSteps,
 } from './register-commands';
 export {
+  importFigures,
   isPreparedRegisterImport,
   isRegisterImportMembers,
+  openingRecordsLink,
   registerImportMoney,
   registerImportTotals,
 } from './register-imports';
+export {
+  allotmentProblems,
+  blankAllotment,
+  blankMember,
+  canOpenEmptyRegister,
+  figuresDiffer,
+  formerRows,
+  initialMembers,
+  memberIdentityProblems,
+  memberRows,
+  preparationProblems,
+  statedFigures,
+  type AllotmentDraft,
+  type FormerDraft,
+  type MemberDraft,
+  type PreparationDraft,
+} from './register-import-drafts';
 export {
   describeEntry,
   entryDate,
@@ -122,7 +141,11 @@ export {
 } from './register-allotments';
 
 export { invitationMembers } from './invitationMembers';
-export { isRegisterMemberDocument, isRegisterMemberDocumentReceipt } from './register-member-documents';
+export {
+  isRegisterMemberDocument,
+  isRegisterMemberDocumentReceipt,
+  type DocumentDraft,
+} from './register-member-documents';
 export {
   RIGHTS_GROUPS,
   classRightsTerms,

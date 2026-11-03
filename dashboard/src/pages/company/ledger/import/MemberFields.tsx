@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Field, TextInput } from '@components/Field';
-import { FIELD_LIMITS, type RegisterTransferMember, peopleFrom } from '@ledova/shared';
+import { FIELD_LIMITS, type MemberDraft, type RegisterTransferMember, peopleFrom } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
 import { DocumentAttachments } from '@pages/company/ledger/shared/DocumentAttachments';
-import { type MemberDraft } from './preparation';
 import { AllotmentFields } from './AllotmentFields';
 
 export function MemberFields({

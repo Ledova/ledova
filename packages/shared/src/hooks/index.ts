@@ -101,7 +101,7 @@ export { useAwardRecordDownload } from './useAwardRecordDownload';
 export { useShareClass } from './useShareClass';
 export { classRightsKey, useClassRights } from './useClassRights';
 export { memberDocumentsKey, useMemberDocuments } from './useMemberDocuments';
-export type { DocumentDraft, DocumentHolding } from './useMemberDocuments';
+export type { DocumentHolding } from './useMemberDocuments';
 export { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 export { useAllotmentForm } from './useAllotmentForm';
 export type { AllotmentDocumentKind } from './useAllotmentForm';
@@ -126,3 +126,9 @@ export {
   useImportRecordDownload,
   useParticularsRecordDownload,
 } from './useRegisterRecordDownload';
+export { importRegisterKey, useImportRegister } from './useImportRegister';
+export { useStartedClasses } from './useStartedClasses';
+export { useNewShareClass } from './useNewShareClass';
+export type { NewShareClassOptions } from './useNewShareClass';
+export { useImportPreparation } from './useImportPreparation';
+export type { ImportPreparationOptions } from './useImportPreparation';

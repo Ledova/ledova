@@ -1,20 +1,24 @@
-import { useImportPreparation, type ImportFormProps } from './useImportPreparation';
 import { useRunningAction } from '@hooks/useRunningAction';
-
+import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
+import { generatePath, useNavigate } from 'react-router-dom';
 import {
+  DESTINATIONS,
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_DECISIONS,
+  REGISTER_SETUP_STEPS,
   formatDate,
   formatShareCount,
   registerImportTotals,
   refusalSentences,
+  useImportPreparation,
+  type ImportPreparationOptions,
 } from '@ledova/shared';
 import { Row, Rows, ShowMore, Section, Status, Failure } from '@components/Ledger';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { FormSteps } from '@components/FormSteps';
 import { ErrorSummary } from '@components/ErrorSummary';
-import { useRef, useState } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 
 import { BringRecords } from './BringRecords';
 import { MemberRecords } from '@pages/company/ledger/shared/MemberRecords';
@@ -22,11 +26,10 @@ import { MemberRecords } from '@pages/company/ledger/shared/MemberRecords';
 const IMPORT_NOTE =
   'Coming soon. Import will read a document into these same editable forms. Review and correct the records before saving.';
 
-const SETUP_STEPS = [
-  { id: 'details', label: 'Share details' },
-  { id: 'shareholders', label: 'Shareholders' },
-  { id: 'review', label: 'Review' },
-];
+export type ImportFormProps = Omit<ImportPreparationOptions, 'onPrepared' | 'onFinished' | 'newKey' | 'session'> & {
+  shareClass?: { name: string; symbol: string };
+  classFields?: ReactNode;
+};
 
 export function ImportForm({
   owner,
@@ -50,10 +53,11 @@ export function ImportForm({
   onHeldChange,
 }: ImportFormProps) {
   const { running, track } = useRunningAction();
+  const navigate = useNavigate();
+  const importDescription = useId();
   const [tries, setTries] = useState(0);
   const focusedTry = useRef(0);
   const {
-    importDescription,
     today,
     knownMembers,
     preserveParticulars,
@@ -108,6 +112,12 @@ export function ImportForm({
     emptyOpeningAllowed,
     visible,
     onHeldChange,
+    newKey: () => crypto.randomUUID(),
+    onPrepared: (token, record) =>
+      navigate(`${generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: token })}?record=${record}`, {
+        replace: true,
+      }),
+    onFinished: () => navigate(COMPANY_DASHBOARD_PATH, { state: { registerCompany: company } }),
   });
 
   const title =
@@ -118,7 +128,7 @@ export function ImportForm({
   return (
     <Section title={title}>
       {(!visible || proposal?.status !== 'applied') && (
-        <FormSteps label="Ledger setup steps" steps={SETUP_STEPS} current={phase} />
+        <FormSteps label="Ledger setup steps" steps={REGISTER_SETUP_STEPS} current={phase} />
       )}
       {visible && (
         <>

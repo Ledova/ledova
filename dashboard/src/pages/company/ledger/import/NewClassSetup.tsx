@@ -1,21 +1,21 @@
 import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
-import { useNewShareClass, type FreshClassProps } from './useNewShareClass';
-import { useStartedClasses } from './useStartedClasses';
 import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { generatePath, Link, useSearchParams } from 'react-router-dom';
 import {
   FIELD_LIMITS,
   DESTINATIONS,
+  REGISTER_CLASS_TYPES,
   REGISTER_IMPORT_COPY,
+  REGISTER_SETUP_CHOICES,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
   createUserFriendlyError,
   type Company,
   type OwnCompanyAppointment,
   type OrderSubmissionOwner,
-  type TokenType,
+  type RegisterTransferMember,
   type RegisterTransferMembers,
   registerClassesKey,
   useOwnAppointments,
@@ -24,6 +24,8 @@ import {
   peopleKey,
   usePeople,
   registerSteps,
+  useNewShareClass,
+  useStartedClasses,
 } from '@ledova/shared';
 
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
@@ -33,22 +35,19 @@ import { ImportForm } from './ImportForm';
 import { LoadError, Loading } from '@components/Ledger';
 
 const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };
-const COMMON_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
-  { type: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', label: 'Ordinary (ORD)' },
-  { type: 'preference', name: 'Preference shares', symbol: 'PRF', label: 'Preference (PRF)' },
-  { type: 'redeemable', name: 'Redeemable shares', symbol: 'RED', label: 'Redeemable (RED)' },
-];
 
-const NEW_CLASSES = [
-  ...COMMON_CLASSES.map((item) => [item.type, item.label] as const),
-  ['custom', 'Another class'] as const,
-];
-
-const CLASS_TYPES: readonly (readonly [TokenType, string])[] = [
-  ['ordinary', 'Ordinary'],
-  ['preference', 'Preference'],
-  ['redeemable', 'Redeemable'],
-];
+type FreshClassProps = {
+  owner: OrderSubmissionOwner;
+  guard: () => void;
+  checkCurrent: () => void;
+  company: Pick<Company, 'uuid' | 'name'>;
+  classes: { uuid: string; name: string; symbol: string; status: string }[];
+  companyMembers: RegisterTransferMember[];
+  steps: ReturnType<typeof registerSteps>;
+  ready: boolean;
+  onHeldChange: (held: boolean) => void;
+  onConflict: () => void;
+};
 export function NewClassSetup({
   owner,
   currentOwner,
@@ -187,7 +186,7 @@ function FreshClass({
   );
   const {
     choice,
-    setChoice,
+    choose,
     name,
     setName,
     symbol,
@@ -238,16 +237,10 @@ function FreshClass({
           )}
           <Choices
             legend="Share class"
-            options={NEW_CLASSES}
+            options={REGISTER_SETUP_CHOICES}
             value={choice}
             disabled={classLocked}
-            onChange={(selected) => {
-              const common = COMMON_CLASSES.find((item) => item.type === selected);
-              setChoice(selected);
-              setName(common?.name ?? '');
-              setSymbol(common?.symbol ?? '');
-              setTokenType(common?.type ?? 'ordinary');
-            }}
+            onChange={choose}
           />
           {classes.some((token) => token.status !== 'draft') && (
             <p className="text-sm text-text-muted">
@@ -282,7 +275,7 @@ function FreshClass({
               </Field>
               <Choices
                 legend="Class type"
-                options={CLASS_TYPES}
+                options={REGISTER_CLASS_TYPES}
                 value={tokenType}
                 disabled={classLocked}
                 onChange={setTokenType}
