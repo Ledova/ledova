@@ -305,6 +305,8 @@ Accept invitation action; opening the link must never accept it. The company see
 and an honest sending result, with a retry on failure; provider acceptance is not inbox delivery.
 Show an action reason only for a selected revocation. Preserve drafts, current authority,
 failed-read retries and original-action recovery; there is no routine refresh control.
+The app's Shareholders, a shareholder's page and Member access have the same cards, rows, forms and
+revocation dialog at phone width, each row's action beneath its facts at the right edge.
 
 For a substantial record review, replace the collection and its creation action with a focused review
 on the same page. Keep the class and exact decision target clear, then the issue or transfer summary, ownership
@@ -413,7 +415,7 @@ opening the people list. Documents uses the same pattern for **Certificates** (t
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
 **Team** and **Activation** where permitted, without an extra overview page; the app's menu has
-Documents' pages, Team and Activation under the same conditions. A group with only one
+Shareholders with Member access, Documents' pages, Team and Activation under the same conditions. A group with only one
 permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
 there. Profile always holds personal information. Team, Activation and
 Company details follow current company access. Personal edits never change company-recorded particulars.
@@ -563,9 +565,10 @@ rather than its identifier. It reports:
 
 Identity verification shows its result in its own dialog, and sign-in and sign-up keep their boxed
 outcomes.
-Ledger's other forms don't use `Outcome`. Mobile reports saved personal details and Documents'
-downloads with `Outcome` as the web does, and a changed password, some failures and a few warnings in
-native alerts.
+Ledger's other forms don't use `Outcome`. Mobile reports saved personal details, Documents'
+downloads, an added person and member access's recorded invitation with `Outcome` as the web does, a
+made particulars change on the shareholder's page it returns to, and a changed password, some failures
+and a few warnings in native alerts.
 
 ## Copy
 
@@ -605,7 +608,8 @@ not automatically a shareholder or a Ledova user and remains a documentary field
     transferor and recipient, and an employee award's recipient. These read one validated list of
     the class's members and award recipients (`usePeople`).
   - member invitations, which list the company's current and former holders in every class and its
-    award recipients (`invitationMembers`), without addresses.
+    award recipients (`invitationMembers`), without addresses. The app's invitation form uses the same
+    choices, matching and 50-match limit in its own searchable list.
 - **`SearchSelect`** (`dashboard/src/components/SearchSelect.tsx`) is used directly by a share
   class's **Shareholder documents**, to choose the holder a new document belongs to from the
   class's holders alone.
@@ -749,7 +753,7 @@ server:
   selected class visible in the task or class heading. Class changes close the panel and retain
   the existing editor and unfinished-work locks.
   Shareholders puts Search people inside the panel above Share class, keeping
-  its 300 ms debounce, Clear and match counts. The controls and record rows can identify the applied
+  its 300 ms debounce, Clear and match counts, in the app too. The controls and record rows can identify the applied
   scope without repeating it in a header summary or badge. Certificates keeps labelled
   draft fields and one Clear/Apply row: incidental dismissal retains drafts without changing results;
   Apply and Clear close the panel and return focus to its button. Shareholders' class filter
@@ -947,8 +951,9 @@ This section covers how a form reports a problem: when it is submitted, and when
     `useErrorSummary` (`packages/shared/src/hooks/useErrorSummary.ts`)
     reads the form's problems, keyed by field, and forms that share one summary, such as Member
     access's invitation, revocation and certificate instruction, check only the fields their action
-    needs. The app's Team, Activation, representative authority, inspection copy and company pack
-    forms use it too, showing each problem under its field without a summary.
+    needs. The app's Team, Activation, representative authority, inspection copy, company pack, Add
+    person, particulars change and member access forms use it too, showing each problem under its field
+    without a summary.
     A box that must be ticked is a `CheckboxField`,
     except sign-up pre-screening's four declarations,
     which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking

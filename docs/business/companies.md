@@ -9,7 +9,8 @@ not verify it ([self-declaration decision](../decisions.md#company-representativ
 who holds which capability is in [company capabilities](README.md#company-capabilities). All of it
 happens on the web, and the mobile app also has the web's [Team](#team-invitations-and-appointments),
 [Representative authority](#representative-authority-requests) and [Activation](#activation), and
-shows a company's administrators and register readers its ownership overview and its
+shows a company's administrators and register readers its ownership overview, its
+[Shareholders](register.md#the-register-page) with [Member access](member-records.md#member-access) and its
 [Documents](member-records.md#outputs-at-a-glance)
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)).
 

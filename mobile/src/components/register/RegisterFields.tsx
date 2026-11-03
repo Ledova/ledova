@@ -16,6 +16,7 @@ export function Field({
   clearable,
   autoCapitalize,
   autoCorrect,
+  autoFocus,
   error,
   onChange,
 }: {
@@ -31,6 +32,7 @@ export function Field({
   clearable?: boolean;
   autoCapitalize?: TextInputProps['autoCapitalize'];
   autoCorrect?: boolean;
+  autoFocus?: boolean;
   error?: string | null;
   onChange: (value: string) => void;
 }) {
@@ -56,6 +58,7 @@ export function Field({
         placeholderTextColor={theme.colors.form.placeholder}
         autoCapitalize={autoCapitalize}
         autoCorrect={autoCorrect}
+        autoFocus={autoFocus}
         accessibilityHint={error ?? undefined}
         onChangeText={onChange}
       />

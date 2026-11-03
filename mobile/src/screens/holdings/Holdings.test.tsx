@@ -34,6 +34,9 @@ import { InspectionCopiesScreen } from '../documents/InspectionCopiesScreen';
 import { AuthorityRequestScreen } from '../settings/AuthorityRequestScreen';
 import { AuthorityScreen } from '../settings/AuthorityScreen';
 import { TeamScreen } from '../settings/TeamScreen';
+import { MemberAccessScreen } from '../shareholders/MemberAccessScreen';
+import { ShareholderScreen } from '../shareholders/ShareholderScreen';
+import { ShareholdersScreen } from '../shareholders/ShareholdersScreen';
 import { DashboardScreen } from './DashboardScreen';
 import { InvitationScreen } from './InvitationScreen';
 
@@ -123,6 +126,39 @@ const HOLDERS = Array.from({ length: 26 }, (_, index) => ({
   balance: index === 0 ? '5' : '1',
   percentage: '0',
 }));
+const HOLDER_A = {
+  member: '35353535-3535-4535-8535-353535353535',
+  name: 'Synthetic Holder A',
+  balance: '5',
+  percentage: 62.5,
+  enteredOn: '2026-10-26',
+  holderType: 'member' as const,
+  identitySource: 'recorded',
+  shareClass: FOUNDERS.uuid,
+  source: 'register',
+  wallets: [],
+};
+const HOLDER_B = { ...HOLDER_A, member: '36363636-3636-4636-8636-363636363636', name: 'Synthetic Holder B' };
+const LINK = {
+  uuid: '37373737-3737-4737-8737-373737373737',
+  company: ADMINISTERED.uuid,
+  member: HOLDER_A.member,
+  acceptedEmail: 'holder-a@example.test',
+  createdAt: '2026-10-27T00:00:00Z',
+  current: true,
+  invitation: '38383838-3838-4838-8838-383838383838',
+  user: 2,
+  userAccount: '39393939-3939-4939-8939-393939393939',
+};
+const LINKS = [
+  LINK,
+  {
+    ...LINK,
+    uuid: '40404040-4040-4040-8040-404040404040',
+    member: HOLDER_B.member,
+    acceptedEmail: 'holder-b@example.test',
+  },
+];
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const ADMINISTRATION: OwnCompanyAppointment = {
   uuid: '28282828-2828-4828-8828-282828282828',
@@ -226,7 +262,7 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, lists and opens an administered company’s overview with its paged shareholders, reads its team only with current administration and revokes only the confirmed appointment, opens a representative authority request from its list and revokes only that request’s appointment after its confirmation, establishes a pending request’s appointment only once its declaration is ticked, offers and reads company documents only with register access and prepares each for only the chosen entry, class or company, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, lists and opens an administered company’s overview with its paged shareholders, reads its team only with current administration and revokes only the confirmed appointment, opens a representative authority request from its list and revokes only that request’s appointment after its confirmation, establishes a pending request’s appointment only once its declaration is ticked, offers and reads company documents, shareholders and member access only with register access, prepares each document for only the chosen entry, class or company, lists the company’s shareholders and opens one, revokes only the confirmed person’s member access, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
@@ -236,6 +272,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let administered = false;
   let appointed = false;
   let revoked = false;
+  let revokedLink = '';
   api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
@@ -245,8 +282,14 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === '/api/v1/company-authority/invitations/') return page([]);
     if (url === AUTHORITY_REQUESTS) return page([PENDING, ADMITTED]);
     if (url === URLS.REGISTER) return page([{ ...FOUNDERS, companyUuid: ADMINISTERED.uuid }]);
-    if (url === URLS.HOLDERS(FOUNDERS.uuid))
-      return { data: { ...REGISTER, token: { ...REGISTER.token, ...FOUNDERS } } };
+    if (url === URLS.HOLDERS(FOUNDERS.uuid)) {
+      const holders = [HOLDER_A, { ...HOLDER_B, balance: '3', percentage: 37.5 }];
+      return {
+        data: { ...REGISTER, token: { ...REGISTER.token, ...FOUNDERS }, issuedSupply: '8', totalHolders: 2, holders },
+      };
+    }
+    if (url === URLS.REGISTER_PEOPLE) return { data: { company: ADMINISTERED.uuid, members: [] } };
+    if (url === URLS.REGISTER_AWARDS || url === URLS.MEMBER_INVITATIONS) return page([]);
     if (url === URLS.REGISTER_ENTRIES(FOUNDERS.uuid)) return { data: { results: [CERTIFIED], next: null, count: 1 } };
     const preview = {
       token: FOUNDERS.uuid,
@@ -270,7 +313,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
       const results = HOLDERS.slice((shown - 1) * 25, shown * 25);
       return { data: { count: 26, token: FOUNDERS.uuid, sequence: 1, issuedSupply: '30', results } };
     }
-    if (url === URLS.MEMBER_ASSOCIATIONS) return page([]);
+    if (url === URLS.MEMBER_ASSOCIATIONS)
+      return page(LINKS.map((link) => ({ ...link, current: link.uuid !== revokedLink })));
     if (url === URLS.MEMBER_RECORDS) {
       if (refused) throw Object.assign(new Error('Current member access refused'), { response: { status: 404 } });
       return page(associated ? [PAST_RECORD, ownRecord] : []);
@@ -322,6 +366,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
       return { data: { ...PENDING, status: 'admitted', appointment: ADMITTED.appointment } };
     if (url === `${AUTHORITY_REQUESTS}${ADMITTED.uuid}/revoke/`)
       return { data: { ...ADMITTED, appointment: { ...ADMITTED.appointment!, ...REVOKED } } };
+    if (url === URLS.MEMBER_ASSOCIATION_REVOKE(LINK.uuid)) {
+      revokedLink = LINK.uuid;
+      return { data: { ...LINK, current: false } };
+    }
     if (url === `${APPOINTMENTS}${READER.uuid}/revoke/`) {
       revoked = true;
       const { name: _name, email: _email, ...appointment } = READER;
@@ -477,12 +525,35 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const menu = <AppMenu visible current="Documents" route="Certificates" onSelect={jest.fn()} onClose={jest.fn()} />;
   await view.rerender(menu);
   expect(await screen.findByRole('button', { name: 'Documents', selected: true })).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /Inspection copies|Company pack|Documents navigation/ })).toBeNull();
-  for (const page of [<InspectionCopiesScreen key="copies" />, <CompanyPackScreen key="pack" />]) {
+  expect(
+    screen.queryByRole('button', {
+      name: /Inspection copies|Company pack|Documents navigation|Shareholders|Member access/,
+    }),
+  ).toBeNull();
+  const shareholder = { company: ADMINISTERED.uuid, member: HOLDER_A.member };
+  for (const page of [
+    <InspectionCopiesScreen key="copies" />,
+    <CompanyPackScreen key="pack" />,
+    <ShareholdersScreen key="shareholders" />,
+    <MemberAccessScreen
+      key="access"
+      route={{
+        key: 'access',
+        name: 'MemberAccess',
+        params: { company: ADMINISTERED.uuid, inviteMember: HOLDER_A.member },
+      }}
+    />,
+    <ShareholderScreen key="shareholder" route={{ key: 'shareholder', name: 'Shareholder', params: shareholder }} />,
+  ]) {
     await view.rerender(page);
     expect(await screen.findByText('Choose company on Dashboard')).toBeTruthy();
   }
+  const peopleReads = () =>
+    api.get.mock.calls.filter(([url]) =>
+      /\/(register-people|register-awards|member-invitations|member-associations)\/$/.test(url),
+    );
   expect(registerReads()).toHaveLength(0);
+  expect(peopleReads()).toHaveLength(0);
   expect(outputPosts()).toHaveLength(0);
   administered = true;
   await act(async () => {
@@ -574,6 +645,35 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(menu);
   expect(await screen.findByRole('button', { name: 'Inspection copies' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Company pack' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Expand Shareholders navigation' })).toBeTruthy();
+  await view.rerender(<ShareholdersScreen />);
+  expect(await screen.findByText('FND 5 · 62.50%')).toBeTruthy();
+  expect(screen.getByText('1–2 of 2 people')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Synthetic Holder A' }));
+  expect(mockNavigate).toHaveBeenCalledWith('Shareholder', shareholder);
+  await view.rerender(<MemberAccessScreen route={{ key: 'access', name: 'MemberAccess', params: undefined }} />);
+  await fireEvent.press(
+    await screen.findByRole('button', { name: 'Revoke access (Synthetic Holder A, holder-a@example.test)' }),
+  );
+  await fireEvent.changeText(screen.getByLabelText('Company action reason'), 'Synthetic revocation reason');
+  await fireEvent.press(screen.getByRole('button', { name: 'Revoke access for Synthetic Holder A' }));
+  const accessPosts = () => api.post.mock.calls.filter(([url]) => /\/member-associations\/|send-email\/$/.test(url));
+  expect(screen.getByText('They lose access to their own records. Relinking needs a new invitation.')).toBeTruthy();
+  expect(accessPosts()).toHaveLength(0);
+  await fireEvent.press(screen.getByRole('button', { name: 'Revoke access' }));
+  await waitFor(() =>
+    expect(accessPosts()).toEqual([
+      [
+        URLS.MEMBER_ASSOCIATION_REVOKE(LINK.uuid),
+        expect.objectContaining({ appointment: ADMINISTRATION.uuid, reason: 'Synthetic revocation reason' }),
+        expect.anything(),
+      ],
+    ]),
+  );
+  expect(await screen.findByText('Revoked access')).toBeTruthy();
+  expect(
+    screen.getByRole('button', { name: 'Revoke access (Synthetic Holder B, holder-b@example.test)' }),
+  ).toBeTruthy();
   await view.rerender(<CertificatesScreen route={{ key: 'register', name: 'Certificates', params: undefined }} />);
   expect(await screen.findByText('Certificate: Can prepare')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Prepare certificate (entry 13)', disabled: false }));

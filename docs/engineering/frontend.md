@@ -646,7 +646,8 @@ The standalone preparations are `companyRegister*` entries in `DESTINATIONS`:
 `/company/ledger/members/:member/particulars`. Setup is the import page without a class in its
 address: it chooses or creates a share class, then prepares the mirror import. The particulars
 change is one step: it sends the name and address the page read as `expected` and, once applied,
-lands on its record under Corrections. `appointmentForParticularsEdit` chooses its appointment: one
+lands on its record under Corrections (in the app, back on the shareholder's page). Its form logic is
+the shared `useParticularsEdit`, and the page finds the member through `useParticularsMember`. `appointmentForParticularsEdit` chooses its appointment: one
 holding `admin`, or `prepare`, `approve` and `apply`. A member row whose `followsProfile` is true
 gets no form: the page shows that the member keeps their particulars in their Ledova profile.
 Non-paid and employee-award grants are prepared inline in Issue shares.
@@ -881,7 +882,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   `followsProfile` is not true, rechecks a current appointment that can change
   particulars (`appointmentForParticularsEdit`), adding documents rechecks current preparation
   authority, and attachment downloads require current register-read authority. While register work
-  is held, Shareholders' Details links are disabled.
+  is held, Shareholders' Details links are disabled. The app's Shareholders, a shareholder's page, its
+  particulars change and Member access render the same views at phone width through the shared
+  `shareholderList`, `usePersonRegistration`, `useShareholder`, `useParticularsMember`,
+  `useParticularsEdit` and `useMemberAccessForm` ([navigation](mobile.md#navigation)).
 - Register reads: the web reads the person's appointments through Team's account-bound cache and
   rereads them after a revocation on Team or Representative authority, a refused decision or
   preview and a recorded decision other than an import's (which refreshes the imports, the register
