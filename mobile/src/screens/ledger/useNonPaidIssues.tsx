@@ -261,6 +261,7 @@ export function useNonPaidIssues({
     records,
     empty: privateReady && grants.data?.length === 0,
     held,
+    formShown: shown && !!formAppointment && formVisible,
     refreshRecords: () => grants.refetch({ cancelRefetch: false, throwOnError: true }),
   };
 }

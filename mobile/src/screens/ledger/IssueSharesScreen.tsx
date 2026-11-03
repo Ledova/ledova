@@ -261,6 +261,7 @@ function ClassIssues({
     onFocusRecord,
   });
   const held = allotmentHeld || grantHeld;
+  const formShown = kind === 'investor' ? investor.formShown : kind === 'nonpaid' && nonPaid.formShown;
   const open = preparing || !!reviewing;
   useEffect(() => {
     onBusyChange(open || held);
@@ -330,7 +331,7 @@ function ClassIssues({
           />
           {investor.form}
           {nonPaid.form}
-          {!kind && (
+          {!formShown && (
             <FormActions>
               <Action label="Cancel" accessibilityLabel="Cancel (share issue)" disabled={held} onPress={close} />
             </FormActions>
