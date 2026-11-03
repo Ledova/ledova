@@ -1,5 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
-import { CheckIcon } from 'phosphor-react-native';
+import { Text, View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
@@ -14,9 +13,9 @@ import {
   type CompanyCapability,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Action, FormActions, Status } from '../../components/Ledger';
-import { Field } from '../../components/register/RegisterFields';
-import { useAppTheme, useThemedStyles } from '../../contexts';
+import { Action, FormActions, Outcome } from '../../components/Ledger';
+import { Checkbox, Field } from '../../components/register/RegisterFields';
+import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 
@@ -25,32 +24,6 @@ function useFormStyles() {
     form: { gap: theme.spacing.md },
     group: { gap: theme.spacing.sm },
     legend: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
-    choice: {
-      flexDirection: 'row' as const,
-      alignItems: 'flex-start' as const,
-      gap: theme.spacing.sm,
-      paddingVertical: theme.spacing.xs,
-    },
-    box: {
-      width: 20,
-      height: 20,
-      marginTop: 1,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.sm,
-      backgroundColor: theme.colors.surface.raised,
-    },
-    ticked: { borderColor: theme.colors.brand.default, backgroundColor: theme.colors.brand.default },
-    label: {
-      flex: 1,
-      fontFamily: theme.fontFamily.regular,
-      fontSize: 14,
-      lineHeight: 22,
-      color: theme.colors.text.primary,
-    },
-    disabled: { opacity: 0.5 },
     value: {
       padding: theme.spacing.smd,
       borderWidth: 1,
@@ -60,47 +33,6 @@ function useFormStyles() {
     },
     code: { fontFamily: theme.fontFamily.mono, fontSize: 16, lineHeight: 22, color: theme.colors.text.primary },
   }));
-}
-
-function Checkbox({
-  label,
-  checked,
-  disabled,
-  error,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  disabled: boolean;
-  error: string | null;
-  onChange: (checked: boolean) => void;
-}) {
-  const theme = useAppTheme();
-  const look = useFormStyles();
-  return (
-    <Pressable
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked, disabled }}
-      accessibilityHint={error ?? undefined}
-      disabled={disabled}
-      hitSlop={4}
-      onPress={() => onChange(!checked)}
-      style={[look.choice, disabled && look.disabled]}
-    >
-      <View style={[look.box, checked && look.ticked]}>
-        {checked && <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.utility.white} weight="bold" />}
-      </View>
-      <Text style={look.label}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function Recorded({ children }: { children: string }) {
-  return (
-    <View accessibilityLiveRegion="polite">
-      <Status tone="done">{children}</Status>
-    </View>
-  );
 }
 
 export function AcceptInvitationForm({
@@ -165,7 +97,7 @@ export function AcceptInvitationForm({
           {error}
         </Text>
       )}
-      {!!receipt && <Recorded>{receipt}</Recorded>}
+      {!!receipt && <Outcome>{receipt}</Outcome>}
       <FormActions>
         <Action label={receipt ? 'Done' : 'Cancel'} disabled={busy} onPress={onCancel} />
         <Action
@@ -232,7 +164,7 @@ export function TeamInvitationForm({
   if (recorded)
     return (
       <View style={look.form}>
-        <Recorded>Invitation recorded.</Recorded>
+        <Outcome>Invitation recorded.</Outcome>
         {recorded.code ? (
           <>
             <Text style={styles.text}>

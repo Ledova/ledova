@@ -1,4 +1,4 @@
-import { Children, Fragment, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { Children, Fragment, isValidElement, useState, type ReactElement, type ReactNode } from 'react';
 import { Pressable, Switch, Text, View } from 'react-native';
 import { CaretRightIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
@@ -115,6 +115,30 @@ export function Fact({ label, children }: { label: string; children: string | Re
   );
 }
 
+export function ShowMore({ show, hide, children }: { show: string; hide: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const styles = useThemedStyles((theme) => ({
+    toggle: { alignSelf: 'flex-start' as const },
+    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.brand.light },
+    content: { gap: theme.spacing.smd },
+    hidden: { display: 'none' as const },
+  }));
+  return (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        hitSlop={12}
+        onPress={() => setOpen((shown) => !shown)}
+        style={styles.toggle}
+      >
+        <Text style={styles.label}>{open ? hide : show}</Text>
+      </Pressable>
+      <View style={[styles.content, !open && styles.hidden]}>{children}</View>
+    </>
+  );
+}
+
 export type Tone = 'waiting' | 'moving' | 'done' | 'closed';
 
 export function Status({ tone, muted = false, children }: { tone: Tone; muted?: boolean; children: string }) {
@@ -140,6 +164,27 @@ export function Status({ tone, muted = false, children }: { tone: Tone; muted?: 
       <Text style={[styles.label, muted && styles.muted]}>{children}</Text>
     </View>
   );
+}
+
+export function Outcome({ children }: { children: string }) {
+  return (
+    <View accessibilityLiveRegion="polite">
+      <Status tone="done">{children}</Status>
+    </View>
+  );
+}
+
+export function Loading({ children }: { children: string }) {
+  const styles = useThemedStyles((theme) => ({
+    loading: {
+      paddingVertical: theme.spacing.smd,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.text.muted,
+    },
+  }));
+  return <Text style={styles.loading}>{children}</Text>;
 }
 
 export function LinkRow({

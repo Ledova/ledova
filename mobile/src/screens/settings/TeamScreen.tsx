@@ -18,14 +18,17 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Action, Actions, FormActions, LoadError, Rows, Section } from '../../components/Ledger';
+import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { useRole } from '../../hooks/useRole';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { AccountCheck } from './AccountCheck';
+import { CompanyContextNotice } from './CompanyContextNotice';
 import { AcceptInvitationForm, TeamInvitationForm } from './TeamForms';
 
 const LEDE = 'Manage company appointments and invitations.';
@@ -40,30 +43,23 @@ function useTeamStyles() {
       lines: { gap: theme.spacing.xs },
       title: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
       muted: { ...text, color: theme.colors.text.muted },
-      loading: { ...text, paddingVertical: 12, color: theme.colors.text.muted },
       toggle: {
         paddingVertical: 6,
         fontFamily: theme.fontFamily.medium,
         fontSize: 14,
         color: theme.colors.brand.light,
       },
-      link: { color: theme.colors.brand.light, textDecorationLine: 'underline' as const },
     };
   });
 }
 
 export function TeamScreen() {
-  const look = useTeamStyles();
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
   const preferences = useUserPreferences();
   if (!owner || preferences.isError)
     return (
       <Page testID="team-scroll" title="Team">
-        {preferences.isLoading || preferences.isFetching ? (
-          <Text style={look.loading}>Loading your account…</Text>
-        ) : (
-          <LoadError retry={() => preferences.refetch()}>Your account could not be loaded.</LoadError>
-        )}
+        <AccountCheck />
       </Page>
     );
   return (
@@ -87,6 +83,7 @@ function OwnTeam({
   const look = useTeamStyles();
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const { directory, companies, company: selected } = useMemberRecordsState();
+  const { isCompany } = useRole();
   const scroll = useRef<ScrollView>(null);
   const [task, setTask] = useState<'accept' | 'invite' | null>(null);
   const [draftSource, setDraftSource] = useState<OwnCompanyAppointment | null>(null);
@@ -145,7 +142,7 @@ function OwnTeam({
       Your appointments could not be loaded.
     </LoadError>
   ) : own.isPending || own.isFetching ? (
-    <Text style={look.loading}>Loading your appointments…</Text>
+    <Loading>Loading your appointments…</Loading>
   ) : null;
   return (
     <Page
@@ -190,6 +187,9 @@ function OwnTeam({
             ))}
         </Section>
         <Actions>
+          {isCompany && companies.some((row) => row.isOwner) && (
+            <Action label="Representative authority" onPress={() => navigation.navigate('Authority')} />
+          )}
           <Action
             label="Accept a company invitation"
             disabled={disabled}
@@ -204,22 +204,13 @@ function OwnTeam({
             !own.isPending &&
             !own.isFetching &&
             !own.isError &&
-            (choosing ? (
-              <Text style={look.loading}>Loading company team…</Text>
-            ) : (
-              <Text style={styles.muted}>
-                <Text accessibilityRole="link" style={look.link} onPress={() => navigation.popTo('Dashboard')}>
-                  Choose company on Dashboard
-                </Text>
-                .
-              </Text>
-            ))}
+            (choosing ? <Loading>Loading company team…</Loading> : <CompanyContextNotice />)}
           {!!company &&
             (own.isFetching ? (
-              <Text style={look.loading}>Loading company team…</Text>
+              <Loading>Loading company team…</Loading>
             ) : canAdmin ? (
               team.isPending ? (
-                <Text style={look.loading}>Loading company team…</Text>
+                <Loading>Loading company team…</Loading>
               ) : team.isError ? (
                 <LoadError retry={() => team.refetch()} busy={team.isFetching}>
                   Company team could not be loaded.
@@ -262,7 +253,7 @@ function OwnTeam({
         </Actions>
         <Section title="Invitations you issued">
           {invitations.isPending ? (
-            <Text style={look.loading}>Loading your invitations…</Text>
+            <Loading>Loading your invitations…</Loading>
           ) : invitations.isError ? (
             <LoadError retry={() => invitations.refetch()} busy={invitations.isFetching}>
               Your invitations could not be loaded.

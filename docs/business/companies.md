@@ -7,8 +7,9 @@ team invitations and appointments, company information, and activation. It is wr
 for company representatives, support staff and anyone learning how company authority is established. The representative declares their own authority and Ledova does
 not verify it ([self-declaration decision](../decisions.md#company-representative-verification));
 who holds which capability is in [company capabilities](README.md#company-capabilities). All of it
-happens on the web, and the mobile app also has the web's [Team](#team-invitations-and-appointments)
-and shows a company's administrators and register readers its ownership overview
+happens on the web, and the mobile app also has the web's [Team](#team-invitations-and-appointments),
+[Representative authority](#representative-authority-requests) and [Activation](#activation), and
+shows a company's administrators and register readers its ownership overview
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)).
 
 - [Company signup](#company-signup)
@@ -87,10 +88,11 @@ Resuming an unfinished signup:
 ## Representative authority requests
 
 An owner of a draft company can also request initial authority outside signup, from
-**Settings → Team → Representative authority** on web. The page lists your requests by company, ACN,
-submission date and status; each opens its own page with a **Request** card and, once admitted, an
-**Appointment** card with the recorded declaration behind **Show the declaration**, and the request's
-actions at the foot.
+**Settings → Team → Representative authority** on web and in the mobile app. The page lists your
+requests by company, ACN, submission date and status; each opens its own page with a **Request** card
+and, once admitted, an **Appointment** card with the recorded declaration behind **Show the
+declaration**, and the request's actions at the foot. In the app you type the expiry as `YYYY-MM-DD`,
+choose the file with the device's file picker, and **Download evidence** opens the share sheet.
 
 1. Use your verified account for the selected draft company you own.
 2. Choose your personal capabilities and, separately, the capabilities you intend to delegate.
@@ -117,9 +119,9 @@ can open it too: accepting an invitation or reading your appointments needs no c
 appointments, the selected company's team and issued invitations; **Invite a company user** and
 **Accept a company invitation** open focused inline forms. Someone with no appointments, other than
 a company's owner, lands straight on accepting an invitation. It also keeps the owner's contextual Representative authority
-task. The mobile app has the same Team, in its Settings menu where the selected company can be
-managed and from the same Account row, without Representative authority; there you type the
-invitation's dates as `YYYY-MM-DD` and copy the one-time code by selecting it.
+task. The mobile app has the same Team, with Representative authority, in its Settings menu where
+the selected company can be managed and from the same Account row; there you type the invitation's
+dates as `YYYY-MM-DD` and copy the one-time code by selecting it.
 
 1. To invite someone, choose one of your current appointments that can delegate for the selected
    company. Choose the personal capabilities and, separately, any onward delegation for the invitee. Set an
@@ -236,20 +238,21 @@ Rules:
 
 ## Activation
 
-A current personal administrator activates the company on the web. Activation records your
-declaration and, where your instance requires it, needs your verified identity; the company is not
-looked up in the ABR or any other register ([decision](../decisions.md#abr-company-check-removed)).
+A current personal administrator activates the company on the web or in the mobile app. Activation
+records your declaration and, where your instance requires it, needs your verified identity; the
+company is not looked up in the ABR or any other register
+([decision](../decisions.md#abr-company-check-removed)).
 It establishes no share issue, payment or wallet approval. Before activation, the company's
 administrators can keep its own non-tokenised register records, such as the mirrored register,
 awards, allotments, transfers and member access, but wallet nominations, chain deployments and
 issues, capital increases and company wallet instructions wait for an Active company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
-2. Open **Settings → Activation** on web, shown only to personal administrators, or use the same
+2. Open **Settings → Activation**, shown only to personal administrators, or, on web, use the same
    step in Getting started on the Dashboard. Refresh the company details and your appointment.
    A company account role or an owned draft does not substitute for an appointment; an appointed
    investor can use the same page.
-3. Choose **Review activation**, read the company and the exact declaration on the main page on web, tick **I accept this
+3. Choose **Review activation**, read the company and the exact declaration on the main page, tick **I accept this
    declaration for this company** and choose **Confirm activation** once.
 4. The company becomes Active. Ledova keeps an activation receipt recording you, your appointment,
    the declaration and your identity status at that moment.
