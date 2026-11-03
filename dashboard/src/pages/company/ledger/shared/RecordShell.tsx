@@ -1,8 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { STAGE_TONES, apiErrorSentence } from '@ledova/shared';
+import { REGISTER_COPY, STAGE_TONES, apiErrorSentence } from '@ledova/shared';
 import { Outcome, Row, Status, Failure } from '@components/Ledger';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
-import { DOWNLOAD_FAILED } from '@pages/company/shared/proposals';
 
 export function RecordShell({
   children,
@@ -41,5 +40,9 @@ export function RecordStage({ stage, children }: { stage: string; children: Reac
 }
 
 export function RecordDownloadFailure({ error, children }: { error?: unknown; children?: ReactNode }) {
-  return <Failure>{children ?? apiErrorSentence(error, DOWNLOAD_FAILED, DOWNLOAD_FAILED)}</Failure>;
+  return (
+    <Failure>
+      {children ?? apiErrorSentence(error, REGISTER_COPY.DOWNLOAD_FAILED, REGISTER_COPY.DOWNLOAD_FAILED)}
+    </Failure>
+  );
 }

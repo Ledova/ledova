@@ -18,11 +18,11 @@ import {
   grantsKey,
   useRegisterAward,
   useRegisterGrants,
+  registerSteps,
 } from '@ledova/shared';
 
 import { GrantForm } from './GrantForm';
 import { GrantRecord } from './GrantRecord';
-import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { LoadError, Loading } from '@components/Ledger';
 

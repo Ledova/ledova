@@ -10,6 +10,8 @@ import type {
 
 export type RegisterStep = 'prepare' | RegisterDecisionKind;
 
+export type RegisterSteps = Partial<Record<RegisterStep, OwnCompanyAppointment>>;
+
 const STEP_CAPABILITY: Record<RegisterStep, CompanyCapability> = {
   prepare: 'prepare',
   approve: 'approve',
@@ -49,6 +51,15 @@ export function appointmentForRegisterStep(appointments: OwnCompanyAppointment[]
         (appointment.capabilities.includes('admin') || appointment.capabilities.includes(STEP_CAPABILITY[step])),
     )
     .sort((left, right) => left.uuid.localeCompare(right.uuid))[0];
+}
+
+export function registerSteps(appointments: OwnCompanyAppointment[], company: string): RegisterSteps {
+  return {
+    prepare: appointmentForRegisterStep(appointments, company, 'prepare'),
+    approve: appointmentForRegisterStep(appointments, company, 'approve'),
+    apply: appointmentForRegisterStep(appointments, company, 'apply'),
+    reject: appointmentForRegisterStep(appointments, company, 'reject'),
+  };
 }
 
 export function appointmentForParticularsEdit(appointments: OwnCompanyAppointment[], company: string) {

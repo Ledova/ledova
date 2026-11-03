@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 
-import { allotmentsKey } from './useRegisterAllotments';
-
 import {
+  allotmentsKey,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   DESTINATIONS,
   REGISTER_AWARD_COPY as COPY,

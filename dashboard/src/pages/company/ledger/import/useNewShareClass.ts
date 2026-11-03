@@ -15,11 +15,11 @@ import {
   type TokenCreate,
   type TokenType,
   type RegisterTransferMember,
+  registerSteps,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
 
-import { registerSteps } from '@pages/company/shared/proposals';
 import { canOpenEmptyRegister } from './preparation';
 
 export type FreshClassProps = {

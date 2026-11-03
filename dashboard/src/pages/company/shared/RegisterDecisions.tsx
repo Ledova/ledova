@@ -7,10 +7,11 @@ import {
   type RegisterDecisionFamily,
   type RegisterDecisionKind,
   refusalSentences,
+  REGISTER_COPY,
+  type RegisterSteps,
 } from '@ledova/shared';
 import { Modal } from '@components/Modal';
 import { FormActions, PageAction } from '@components/Page';
-import { STEP_CHANGED, type RegisterSteps } from './proposals';
 import { Loading, Failure } from '@components/Ledger';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -243,7 +244,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
         </>
       )}
       <Failure>{decision.error}</Failure>
-      {preview && !current && !decision.recovery && <Failure>{STEP_CHANGED}</Failure>}
+      {preview && !current && !decision.recovery && <Failure>{REGISTER_COPY.STEP_CHANGED}</Failure>}
       {decision.busy && !preview && <Loading>Loading the preview…</Loading>}
       {preview && (
         <>

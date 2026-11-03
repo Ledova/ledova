@@ -11,13 +11,14 @@ import {
   formatMoney,
   formatDate,
   STAGE_TONES,
+  type RegisterSteps,
+  useAllotmentRecordDownload,
 } from '@ledova/shared';
 import { Row, Rows, Status, ShowMore } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import type { RegisterSteps } from '@pages/company/shared/proposals';
-import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
+import { BROWSER_FILES } from '@utils/saveFile';
 import { AllotmentReview } from './AllotmentReview';
 import { IssueSummary } from './IssueSummary';
 
@@ -73,7 +74,7 @@ export function AllotmentRecord({
   reviewTarget: HTMLElement | null;
   onReviewChange: (uuid: string, open: boolean) => void;
 }) {
-  const download = useAllotmentRecordDownload(allotment, guard);
+  const download = useAllotmentRecordDownload(allotment, guard, BROWSER_FILES);
   const context = `allotment for ${allotment.name} prepared ${formatDateTime(allotment.createdAt)}`;
   const documents: ('authority' | 'agreement' | 'receipt')[] = ['authority', 'agreement', 'receipt'];
   const decisionSteps = { ...steps, apply: undefined };

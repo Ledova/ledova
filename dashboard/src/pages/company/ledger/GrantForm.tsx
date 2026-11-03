@@ -1,15 +1,22 @@
 import { useId, useState } from 'react';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
-import { useGrantPreparation, type GrantFormProps, type DocumentKind } from './useGrantPreparation';
-
-import { FIELD_LIMITS, REGISTER_GRANT_COPY as COPY, shareCount } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  REGISTER_GRANT_COPY as COPY,
+  shareCount,
+  useGrantPreparation,
+  type GrantDocumentKind,
+  type GrantPreparationOptions,
+} from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
 import { MoreToggle, Failure } from '@components/Ledger';
 
-const DOCUMENTS: Record<DocumentKind, string> = {
+type GrantFormProps = Omit<GrantPreparationOptions, 'newKey' | 'session'> & { onCancel?: () => void };
+
+const DOCUMENTS: Record<GrantDocumentKind, string> = {
   authority: COPY.AUTHORITY_DOCUMENT,
   terms: COPY.TERMS_DOCUMENT,
   acceptance: COPY.ACCEPTANCE_DOCUMENT,
@@ -47,6 +54,7 @@ export function GrantForm({
     visible,
     onHeldChange,
     canPrepare,
+    newKey: () => crypto.randomUUID(),
   });
   const checks = useErrorSummary(model?.problems ?? {});
   const [awardDetails, setAwardDetails] = useState(false);
@@ -85,7 +93,7 @@ export function GrantForm({
     retainedSummary,
     submit,
   } = model;
-  const document = (kind: DocumentKind) => (
+  const document = (kind: GrantDocumentKind) => (
     <FileField
       {...checks.field(`${kind}Document`)}
       label={DOCUMENTS[kind]}

@@ -23,9 +23,10 @@ import {
   useRegisterClasses,
   peopleKey,
   usePeople,
+  registerSteps,
+  type RegisterSteps,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
-import { registerSteps, type RegisterSteps } from '@pages/company/shared/proposals';
 import { importsKey, useRegisterImports } from '@pages/company/ledger/shared/useRegisterImports';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 

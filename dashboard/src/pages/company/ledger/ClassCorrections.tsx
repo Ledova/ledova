@@ -11,13 +11,14 @@ import {
   useOwnAppointments,
   ownAppointmentsKey,
   allPeopleKey,
+  registerSteps,
 } from '@ledova/shared';
 import { LoadError, Loading } from '@components/Ledger';
 import { PageLink } from '@components/Page';
 
 import { CorrectionRecord } from './CorrectionRecord';
 import { ClassEntries } from './ClassEntries';
-import { entryLabel, registerSteps } from '@pages/company/shared/proposals';
+import { entryLabel } from '@pages/company/shared/proposals';
 import { correctionsKey, useClassCorrections } from '@pages/company/ledger/shared/useClassCorrections';
 import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';

@@ -11,11 +11,12 @@ import {
   formatDate,
   formatMoney,
   shareCount,
+  type AllotmentDocumentKind,
   type OwnCompanyAppointment,
   type Person,
+  useAllotmentForm,
 } from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
-import { useAllotmentForm, type DocumentKind } from './useAllotmentForm';
 
 const LIMITS: Partial<Record<string, number>> = {
   shares: FIELD_LIMITS.REGISTER_SHARES,
@@ -101,7 +102,7 @@ export function AllotmentForm({
       blocked,
       onRecorded,
       onHeldChange,
-      visible,
+      newKey: () => crypto.randomUUID(),
     });
   const checks = useErrorSummary(problems);
   const [step, setStep] = useState<(typeof STEPS)[number]['id']>('person');
@@ -147,7 +148,7 @@ export function AllotmentForm({
       )}
     </Field>
   );
-  const document = (kind: DocumentKind, label?: string) => (
+  const document = (kind: AllotmentDocumentKind, label?: string) => (
     <FileField
       {...checks.field(`${kind}Document`)}
       label={label ?? COPY.DOCUMENTS[kind]}
