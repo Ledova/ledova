@@ -146,7 +146,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   as "Activate your company", and a row that starts a task, such as "Prepare a non-paid
   transfer", are named for the step or the task; a record's row, such as a share class in Ledger,
   for the record; and a row that opens a section of a page, such as "Documents", for that
-  section. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
+  section. The class cards on Dashboard and Ledger end with a **Class details** row. While a held
+  Ledger action blocks leaving, `disabled` dims the row and keeps it from opening, as the sidebar
+  does. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
   or opens an external resource.
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
   on: the title row for the page (including the way back to the parent), a section for that section,
@@ -429,7 +431,7 @@ remain siblings, and every web group appears in the small-screen drawer; native 
 these links changes no underlying route, audience or permission. Representative authority remains
 a contextual task in Team.
 Page controls start or complete work for that page or record: Add person, Invite a member,
-Add share class, Class details, Edit, Save, Confirm and contextual issue or transfer
+Add share class, Edit, Save, Confirm and contextual issue or transfer
 actions remain beside their records. Keep section navigation in the sidebar rather than repeating it
 in page headers or a Company administration link card.
 

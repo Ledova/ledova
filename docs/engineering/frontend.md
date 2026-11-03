@@ -794,8 +794,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Employee share scheme, Inspection copies and Company pack views by hash.
   Legacy certificate hashes redirect to the dedicated Certificates page.
   Ledger stacks its share-class summaries as full-workspace-width `Section` cards, with the shared
-  card heading, padding and page spacing. Add share class sits in a right-aligned row below the
-  cards, including the empty collection card. The default internal quantity ceiling is omitted from
+  card heading, padding and page spacing. Each card ends with a **Class details** `LinkRow`, as on
+  Dashboard, and shows **Ledger not opened** only while that applies. Add share class sits in a
+  right-aligned row below the cards, including the empty collection card. The default internal quantity ceiling is omitted from
   these summaries; finite class limits remain visible. Task views show their selected workflow rather than the
   ownership overview or header task switches. It keeps every class's controllers for register
   decisions mounted, merely hidden, so changing view, task or class (the Share class selector)

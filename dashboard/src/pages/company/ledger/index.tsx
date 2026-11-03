@@ -13,7 +13,7 @@ import {
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LoadError, Loading, Section } from '@components/Ledger';
+import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { documentView, ledgerTask, pageTitle, type DocumentView, type LedgerTask } from '@utils/destinations';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
@@ -531,7 +531,7 @@ function OwnRegister({
             scope.registers.map((register) => (
               <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
                 <ClassRegister register={register} former={false} />
-                <PageLink
+                <LinkRow
                   to={`${generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}?company=${scope.company.uuid}`}
                   label="Class details"
                   context={register.token.name}
