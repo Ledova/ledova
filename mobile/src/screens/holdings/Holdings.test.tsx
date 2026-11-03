@@ -7,7 +7,9 @@ import {
   COMPANY_SIGNUP_DECLARATION,
   COMPANY_SIGNUP_DECLARATION_VERSION,
   COMPANY_TOKEN_ENDPOINTS as URLS,
+  REGISTER_ALLOTMENT_COPY,
   REGISTER_AWARD_COPY,
+  REGISTER_GRANT_COPY,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
   formatDate,
@@ -21,11 +23,19 @@ import {
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
   type OwnMemberRecord,
+  type RegisterAllotment,
+  type RegisterAllotmentDecideRequest,
+  type RegisterAllotmentDecisionRequest,
+  type RegisterAllotmentPreparation,
   type RegisterAward,
   type RegisterAwardPreparation,
   type RegisterAwardVesting,
   type RegisterAwardVestingPreparation,
+  type RegisterDecideRequest,
   type RegisterEntry,
+  type RegisterGrant,
+  type RegisterGrantPreparation,
+  type RegisterMemberDocumentRequest,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -37,11 +47,17 @@ import { AppMenu } from '../../navigation/AppMenu';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { REGISTER, awardFrom, vestingFrom } from '../../../../packages/shared/tests/fixtures/employee-awards';
+import {
+  allotmentDecision,
+  allotmentFrom,
+  allotmentPreview,
+} from '../../../../packages/shared/tests/fixtures/external-allotments';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
 import { destinationOf } from '../../components/notifications/NotificationsPanel';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { CompanyPackScreen } from '../documents/CompanyPackScreen';
 import { InspectionCopiesScreen } from '../documents/InspectionCopiesScreen';
+import { IssueSharesScreen } from '../ledger/IssueSharesScreen';
 import { LedgerScreen } from '../ledger/LedgerScreen';
 import { ShareClassScreen } from '../ledger/ShareClassScreen';
 import { AuthorityRequestScreen } from '../settings/AuthorityRequestScreen';
@@ -183,6 +199,13 @@ const HOLDER_A = {
   wallets: [],
 };
 const HOLDER_B = { ...HOLDER_A, member: '36363636-3636-4636-8636-363636363636', name: 'Synthetic Holder B' };
+const HOLDER_C = {
+  ...HOLDER_A,
+  member: '44444444-4444-4444-8444-444444444444',
+  name: 'Synthetic Holder C',
+  balance: '1',
+  percentage: 11.11,
+};
 const LINK = {
   uuid: '37373737-3737-4737-8737-373737373737',
   company: ADMINISTERED.uuid,
@@ -321,6 +344,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let awards: RegisterAward[] = [];
   let vestings: RegisterAwardVesting[] = [];
   let rights: ClassRightsRevision[] = [];
+  let thirdHolder = false;
+  let allotments: RegisterAllotment[] = [];
+  let grants: RegisterGrant[] = [];
   api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
@@ -342,9 +368,16 @@ it('associates a member by invitation code, switches to their company on Dashboa
       return { data: { ...REGISTER, token: { ...REGISTER.token, ...ELSEWHERE }, issuedSupply: '1', holders } };
     }
     if (url === URLS.HOLDERS(FOUNDERS.uuid)) {
-      const holders = [HOLDER_A, { ...HOLDER_B, balance: '3', percentage: 37.5 }];
+      const holders = [HOLDER_A, { ...HOLDER_B, balance: '3', percentage: 37.5 }, ...(thirdHolder ? [HOLDER_C] : [])];
+      const issuedSupply = thirdHolder ? '9' : '8';
       return {
-        data: { ...REGISTER, token: { ...REGISTER.token, ...FOUNDERS }, issuedSupply: '8', totalHolders: 2, holders },
+        data: {
+          ...REGISTER,
+          token: { ...REGISTER.token, ...FOUNDERS },
+          issuedSupply,
+          totalHolders: holders.length,
+          holders,
+        },
       };
     }
     if (url === URLS.REGISTER_PEOPLE) return { data: { company: ADMINISTERED.uuid, members: [] } };
@@ -369,7 +402,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
       return { data: awards.find((award) => url === URLS.REGISTER_AWARD(award.uuid)) };
     if (url === URLS.REGISTER_AWARD_VESTINGS) return page(vestings);
     if (url === URLS.REGISTER_AWARD_ENDS || url === URLS.REGISTER_AWARD_VESTING_REVERSALS) return page([]);
-    if (url === URLS.REGISTER_GRANTS) return page([]);
+    if (url === URLS.REGISTER_GRANTS) return page(grants);
+    if (url === URLS.REGISTER_ALLOTMENTS) return page(allotments);
     if (url === URLS.MEMBER_INVITATIONS) return page([]);
     if (url === URLS.REGISTER_ENTRIES(FOUNDERS.uuid)) return { data: { results: [CERTIFIED], next: null, count: 1 } };
     if (url === URLS.DETAIL(FOUNDERS.uuid)) {
@@ -452,7 +486,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
       const field = (name: string) => String((value as FormData).getAll(name)[0]);
       return {
         data: {
-          uuid: `evidence-${field('idempotency_key')}`,
+          uuid: field('idempotency_key').replace(/^0{8}/, 'eeeeeeee'),
           company: field('company_id'),
           appointment: field('appointment'),
           kind: field('kind'),
@@ -481,6 +515,160 @@ it('associates a member by invitation code, switches to their company on Dashboa
         unvestedRemainingShares: String(BigInt(award.shares) - BigInt(vesting.shares)),
       }));
       return { data: vesting };
+    }
+    if (url === URLS.REGISTER_ALLOTMENTS) {
+      const address = `${HOLDER_A.name} address`;
+      const prepared = allotmentFrom(value as RegisterAllotmentPreparation);
+      allotments = [{ ...prepared, company: ADMINISTERED.uuid, name: HOLDER_A.name, residentialAddress: address }];
+      return { data: allotments[0] };
+    }
+    if (allotments[0] && url === URLS.REGISTER_ALLOTMENT_PREVIEW(allotments[0].uuid)) {
+      const request = value as RegisterAllotmentDecisionRequest;
+      const currentHolders = [HOLDER_A, { ...HOLDER_B, balance: '3' }].map(({ member, name, balance }) => ({
+        member,
+        name,
+        shares: balance,
+      }));
+      return {
+        data: {
+          ...allotmentPreview(allotments[0]),
+          completeIssue: !!request.completeIssue,
+          applyAppointment: request.applyAppointment ?? null,
+          className: FOUNDERS.name,
+          classCode: FOUNDERS.symbol,
+          currentHolders,
+          currentShares: '5',
+          afterShares: '7',
+          issuedSupply: '8',
+          afterIssuedSupply: '10',
+        },
+      };
+    }
+    if (allotments[0] && url === URLS.REGISTER_ALLOTMENT_DECIDE(allotments[0].uuid)) {
+      allotments = [allotmentDecision(allotments[0], value as RegisterAllotmentDecideRequest)];
+      return { data: allotments[0] };
+    }
+    if (url === URLS.REGISTER_GRANTS) {
+      const { operationId, tokenId, ...request } = value as RegisterGrantPreparation;
+      grants = [
+        {
+          ...request,
+          uuid: operationId,
+          company: ADMINISTERED.uuid,
+          token: tokenId,
+          award: request.award ?? null,
+          name: HOLDER_B.name,
+          residentialAddress: `${HOLDER_B.name} address`,
+          acceptanceEvidence: request.acceptanceEvidence ?? null,
+          preparingAppointment: request.appointment,
+          providedBy: 'company',
+          status: 'submitted',
+          stage: 'submitted',
+          acceptanceFingerprint: '',
+          acceptanceSnapshot: {},
+          evidenceFingerprint: 'a'.repeat(64),
+          evidenceSnapshot: {},
+          termsFingerprint: 'a'.repeat(64),
+          termsSnapshot: {},
+          preparedByName: 'Synthetic Preparer',
+          submittedBy: 1,
+          registerEntry: null,
+          effectiveOn: null,
+          reviewedBy: null,
+          reviewedAt: null,
+          rejectionReason: '',
+          decisions: [],
+          createdAt: '2026-11-04T01:00:00Z',
+        },
+      ];
+      return { data: grants[0] };
+    }
+    if (grants[0] && url === URLS.REGISTER_GRANT_PREVIEW(grants[0].uuid)) {
+      const applying = (value as RegisterDecideRequest).kind === 'apply';
+      return {
+        data: {
+          ...grants[0],
+          effectiveOn: grants[0].companyEventOn,
+          previewDigest: DIGEST,
+          canDecide: true,
+          unmetRequirements: [],
+          registerSequence: 1,
+          currentShares: '3',
+          afterShares: applying ? '13' : '3',
+          issuedSupply: '8',
+          afterIssuedSupply: applying ? '18' : '8',
+          authorisedSupply: '1000',
+          awardPromisedShares: '40',
+          awardVestedShares: '10',
+          awardIssuedShares: '0',
+          awardAvailableShares: '10',
+        },
+      };
+    }
+    if (grants[0] && url === URLS.REGISTER_GRANT_DECIDE(grants[0].uuid)) {
+      const request = value as RegisterDecideRequest;
+      const decidedAt = '2026-11-04T02:00:00Z';
+      const decision = {
+        uuid: request.idempotencyKey,
+        appointment: request.appointment,
+        kind: request.kind,
+        digest: request.previewDigest,
+        idempotencyKey: request.idempotencyKey,
+        reason: request.reason ?? '',
+        decidedAt,
+        decidedBy: 1,
+        decidedByName: PROFILE.fullName,
+      };
+      const applied =
+        request.kind === 'apply'
+          ? {
+              status: 'applied' as const,
+              registerEntry: '46464646-4646-4646-8646-464646464646',
+              effectiveOn: grants[0].companyEventOn,
+              reviewedAt: decidedAt,
+              reviewedBy: 1,
+            }
+          : {};
+      grants = [
+        {
+          ...grants[0],
+          ...applied,
+          stage: request.kind === 'apply' ? 'applied' : 'approved',
+          decisions: [...grants[0].decisions, decision],
+        },
+      ];
+      if (request.kind === 'apply')
+        awards = awards.map((award) => ({
+          ...award,
+          issuedShares: '10',
+          availableShares: '0',
+          remainingUnissuedShares: '30',
+        }));
+      return { data: grants[0] };
+    }
+    if (url === URLS.REGISTER_MEMBER_DOCUMENTS) {
+      const request = value as RegisterMemberDocumentRequest;
+      const snapshot = {
+        evidence: request.evidence,
+        company: request.companyId,
+        documentType: 'supporting',
+        providedBy: 'company',
+        name: 'synthetic.pdf',
+        fileSize: 4,
+        mimeType: 'application/pdf',
+        sha256: 'a'.repeat(64),
+      };
+      const { companyId, ...document } = request;
+      return {
+        data: {
+          ...document,
+          uuid: '45454545-4545-4545-8545-454545454545',
+          company: companyId,
+          sourceImport: null,
+          snapshot,
+          createdAt: '2026-11-04T00:00:00Z',
+        },
+      };
     }
     if (url === URLS.CLASS_RIGHTS(FOUNDERS.uuid)) {
       const request = value as ClassRightsRequest;
@@ -675,7 +863,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByRole('button', { name: 'Documents', selected: true })).toBeTruthy();
   expect(
     screen.queryByRole('button', {
-      name: /Ledger|Inspection copies|Company pack|Documents navigation|Shareholders|Employee scheme|Member access/,
+      name: /Ledger|Issue shares|Inspection copies|Company pack|Documents navigation|Shareholders|Employee scheme|Member access/,
     }),
   ).toBeNull();
   const shareholder = { company: ADMINISTERED.uuid, member: HOLDER_A.member };
@@ -702,6 +890,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     />,
     <EmployeeSchemeScreen key="scheme" />,
     <LedgerScreen key="ledger" />,
+    <IssueSharesScreen key="issues" route={{ key: 'issues', name: 'IssueShares', params: undefined }} />,
     <ShareClassScreen
       key="class"
       route={{ key: 'class', name: 'ShareClass', params: { company: MEMBER_RECORD.company.uuid, token } }}
@@ -720,7 +909,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   }
   const peopleReads = () =>
     api.get.mock.calls.filter(([url]) =>
-      /\/(register-people|register-award[a-z-]*|member-invitations|member-associations)\//.test(url),
+      /\/(register-people|register-award[a-z-]*|register-allotments|register-grants|member-invitations|member-associations)\//.test(
+        url,
+      ),
     );
   await view.rerender(<CertificatesScreen route={{ key: 'member', name: 'Certificates', params: undefined }} />);
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
@@ -828,6 +1019,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
     'Employee scheme',
     'Member access',
   ]);
+  await fireEvent.press(screen.getByRole('button', { name: 'Expand Ledger navigation' }));
+  expect(screen.getByRole('button', { name: 'Issue shares' })).toBeTruthy();
   await view.rerender(<LedgerScreen />);
   expect(await screen.findByText('Founders · FND')).toBeTruthy();
   expect(screen.getByLabelText('Issued shares: 8')).toBeTruthy();
@@ -882,7 +1075,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: REGISTER_AWARD_COPY.SUBMIT }));
   const agreement = `${HOLDER_B.name} (employee award, agreement ${formatDate(utcToday())})`;
   await fireEvent.press(await screen.findByRole('button', { name: agreement }));
-  const evidence = expect.stringMatching(/^evidence-/);
+  const evidence = expect.stringMatching(/^eeeeeeee-/);
   const recorded = awards[0];
   expect(awardPosts()).toEqual([
     [
@@ -907,7 +1100,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const awardPage = <EmployeeAwardScreen route={{ key: 'awarded', name: 'EmployeeAward', params: awarded }} />;
   await view.rerender(awardPage);
   expect(await screen.findByText('40 shares promised · 0 company-recorded vested')).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Record vesting', disabled: false }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Record vesting', disabled: false }));
   await fireEvent.changeText(screen.getByLabelText('Shares in this event'), '10');
   await fireEvent.press(screen.getByRole('button', { name: 'Document. Choose file' }));
   await screen.findByRole('button', { name: 'Document, synthetic.pdf. Choose file' });
@@ -927,6 +1120,153 @@ it('associates a member by invitation code, switches to their company on Dashboa
       expect.anything(),
     ],
   ]);
+  const issuePosts = () => api.post.mock.calls.filter(([url]) => /\/register-(allotments|grants)\//.test(url));
+  const settled = () => waitFor(() => expect(client.isFetching()).toBe(0));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Issue vested shares' }));
+  const vestedIssue = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, award: recorded.uuid };
+  expect(mockNavigate).toHaveBeenLastCalledWith('IssueShares', vestedIssue);
+  await view.rerender(<IssueSharesScreen route={{ key: 'vested', name: 'IssueShares', params: vestedIssue }} />);
+  expect(await screen.findByText('10 vested shares available to issue')).toBeTruthy();
+  await settled();
+  expect(screen.getByRole('radio', { name: 'Non-paid issue', checked: true })).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_GRANT_COPY.SHARES), '10');
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_GRANT_COPY.COMPANY_EVENT_ON), utcToday());
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_GRANT_COPY.DIRECTOR), 'Synthetic Director');
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_GRANT_COPY.AUTHORITY_REFERENCE), 'Synthetic minute');
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_GRANT_COPY.REASON), 'Vested award issue');
+  await fireEvent.press(screen.getByRole('button', { name: 'Authority document. Choose file' }));
+  await screen.findByRole('button', { name: 'Authority document, synthetic.pdf. Choose file' });
+  expect(issuePosts()).toHaveLength(0);
+  await fireEvent.press(screen.getByRole('button', { name: 'Prepare vested share issue' }));
+  expect(await screen.findByLabelText('Recipient: Synthetic Holder B, Employee award')).toBeTruthy();
+  await settled();
+  expect(screen.getByLabelText('Status: Prepared, No shares issued')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^Record issue/ })).toBeNull();
+  const grant = grants[0];
+  expect(issuePosts()).toEqual([
+    [
+      URLS.REGISTER_GRANTS,
+      {
+        operationId: grant.uuid,
+        appointment: ADMINISTRATION.uuid,
+        tokenId: FOUNDERS.uuid,
+        member: HOLDER_B.member,
+        newMember: false,
+        award: recorded.uuid,
+        shares: '10',
+        companyEventOn: utcToday(),
+        termsOn: utcToday(),
+        terms: 'Synthetic award terms',
+        approvingDirector: 'Synthetic Director',
+        authorityReference: 'Synthetic minute',
+        reason: 'Vested award issue',
+        authorityEvidence: evidence,
+        termsEvidence: recorded.agreementEvidence,
+        acceptanceRequired: false,
+        acceptanceEvidence: null,
+      },
+      expect.anything(),
+    ],
+  ]);
+  await fireEvent.press(screen.getByRole('button', { name: /^Review and approve \(grant for Synthetic Holder B / }));
+  expect(await screen.findByText('Approval alone does not issue shares.')).toBeTruthy();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Approve', disabled: false }));
+  expect(await screen.findByLabelText('Status: Approved, No shares issued')).toBeTruthy();
+  await settled();
+  await fireEvent.press(screen.getByRole('button', { name: /^Record issue \(grant for Synthetic Holder B / }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Record issue', disabled: false }));
+  expect(await screen.findByLabelText('Status: Shares issued')).toBeTruthy();
+  const decision = (kind: string) => ({ appointment: ADMINISTRATION.uuid, kind, reason: '' });
+  const decided = (kind: string) => ({
+    ...decision(kind),
+    idempotencyKey: expect.stringMatching(/^00000000-0000-4000-8000-/),
+    previewDigest: DIGEST,
+    confirmation: true,
+  });
+  expect(issuePosts().slice(1)).toEqual([
+    [URLS.REGISTER_GRANT_PREVIEW(grant.uuid), decision('approve'), expect.anything()],
+    [URLS.REGISTER_GRANT_DECIDE(grant.uuid), decided('approve'), expect.anything()],
+    [URLS.REGISTER_GRANT_PREVIEW(grant.uuid), decision('apply'), expect.anything()],
+    [URLS.REGISTER_GRANT_DECIDE(grant.uuid), decided('apply'), expect.anything()],
+  ]);
+  await view.rerender(<ShareholderScreen route={{ key: 'holder-a', name: 'Shareholder', params: shareholder }} />);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Issue shares to them' }));
+  const investorIssue = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, member: HOLDER_A.member };
+  expect(mockNavigate).toHaveBeenLastCalledWith('IssueShares', investorIssue);
+  await view.rerender(<IssueSharesScreen route={{ key: 'investor', name: 'IssueShares', params: investorIssue }} />);
+  expect(await screen.findByRole('button', { name: 'Issue to: Synthetic Holder A' })).toBeTruthy();
+  await settled();
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_ALLOTMENT_COPY.SHARES), '2');
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_ALLOTMENT_COPY.CONSIDERATION), '20');
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  await fireEvent.changeText(screen.getByLabelText('Agreement reference'), 'Synthetic agreement');
+  await fireEvent.changeText(screen.getByLabelText('Agreement terms'), 'Fully paid in AUD');
+  await fireEvent.press(screen.getByRole('button', { name: 'Agreement document. Choose file' }));
+  await screen.findByRole('button', { name: 'Agreement document, synthetic.pdf. Choose file' });
+  await fireEvent.changeText(screen.getByLabelText('Amount received (AUD)'), '20');
+  await fireEvent.press(screen.getByRole('button', { name: 'Receipt document. Choose file' }));
+  await screen.findByRole('button', { name: 'Receipt document, synthetic.pdf. Choose file' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_ALLOTMENT_COPY.COMPANY_EVENT_ON), utcToday());
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_ALLOTMENT_COPY.DIRECTOR), 'Synthetic Director');
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_ALLOTMENT_COPY.AUTHORITY_REFERENCE), 'Synthetic minute');
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_ALLOTMENT_COPY.REASON), 'External capital');
+  await fireEvent.press(screen.getByRole('button', { name: 'Authority document. Choose file' }));
+  await screen.findByRole('button', { name: 'Authority document, synthetic.pdf. Choose file' });
+  await fireEvent.press(screen.getByRole('button', { name: REGISTER_ALLOTMENT_COPY.SUBMIT }));
+  expect(await screen.findByLabelText('Recipient: Synthetic Holder A, Investor issue')).toBeTruthy();
+  await settled();
+  const allotment = allotments[0];
+  expect(issuePosts().slice(5)).toEqual([
+    [
+      URLS.REGISTER_ALLOTMENTS,
+      {
+        operationId: allotment.uuid,
+        appointment: ADMINISTRATION.uuid,
+        tokenId: FOUNDERS.uuid,
+        member: HOLDER_A.member,
+        newMember: false,
+        shares: '2',
+        companyEventOn: utcToday(),
+        consideration: '20.00',
+        receivedAmount: '20.00',
+        currency: 'AUD',
+        agreementReference: 'Synthetic agreement',
+        agreementOn: utcToday(),
+        terms: 'Fully paid in AUD',
+        receivedOn: utcToday(),
+        approvingDirector: 'Synthetic Director',
+        authorityReference: 'Synthetic minute',
+        reason: 'External capital',
+        authorityEvidence: evidence,
+        agreementEvidence: evidence,
+        receiptEvidence: evidence,
+      },
+      expect.anything(),
+    ],
+  ]);
+  await fireEvent.press(
+    screen.getByRole('button', { name: /^Review and approve \(allotment for Synthetic Holder A / }),
+  );
+  expect(await screen.findByText('Ownership impact')).toBeTruthy();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Approve', disabled: false }));
+  expect(await screen.findByLabelText('Status: Approved, Shares issued')).toBeTruthy();
+  const combined = { completeIssue: true, applyAppointment: ADMINISTRATION.uuid };
+  expect(issuePosts().slice(6)).toEqual([
+    [URLS.REGISTER_ALLOTMENT_PREVIEW(allotment.uuid), { ...decision('approve'), ...combined }, expect.anything()],
+    [URLS.REGISTER_ALLOTMENT_DECIDE(allotment.uuid), { ...decided('approve'), ...combined }, expect.anything()],
+  ]);
+  await view.rerender(awardPage);
+  await fireEvent.press(
+    await screen.findByRole('button', {
+      name: /^10 shares, prepared .+ \(issue from the award for Synthetic Holder B\), Shares issued$/,
+    }),
+  );
+  expect(mockNavigate).toHaveBeenLastCalledWith('IssueShares', {
+    company: ADMINISTERED.uuid,
+    token: FOUNDERS.uuid,
+    record: grant.uuid,
+  });
   own = { ...ADMINISTRATION, capabilities: ['read_register'] };
   const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
   await act(async () => {
@@ -941,6 +1281,13 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByText(REGISTER_AWARD_COPY.READ_ONLY_NOTE)).toBeTruthy();
   expect(screen.queryByRole('button', { name: REGISTER_AWARD_COPY.PREPARE })).toBeNull();
   expect(awardPosts()).toHaveLength(2);
+  await view.rerender(<IssueSharesScreen route={{ key: 'read-only', name: 'IssueShares', params: undefined }} />);
+  expect(await screen.findByText(REGISTER_ALLOTMENT_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(screen.getByText(REGISTER_GRANT_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(screen.getByLabelText('Status: Approved, Shares issued')).toBeTruthy();
+  expect(screen.getByLabelText('Status: Shares issued')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Prepare issue|Review and approve|Record issue|Reject)/ })).toBeNull();
+  expect(issuePosts()).toHaveLength(8);
   await view.rerender(<ShareClassScreen route={{ key: 'founders', name: 'ShareClass', params: founders }} />);
   expect(await screen.findByText('No rights recorded.')).toBeTruthy();
   expect(screen.getByText('FND · Ordinary')).toBeTruthy();
@@ -974,6 +1321,31 @@ it('associates a member by invitation code, switches to their company on Dashboa
       expect.anything(),
     ],
   ]);
+  thirdHolder = true;
+  await act(async () => screen.getByTestId('share-class-scroll').props.refreshControl.props.onRefresh());
+  await fireEvent.press(await screen.findByRole('button', { name: 'Add documents', disabled: false }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Shareholder: Synthetic Holder A' }));
+  expect(screen.getByRole('radio', { name: 'Synthetic Holder C' })).toBeTruthy();
+  await fireEvent.press(screen.getByRole('radio', { name: 'Synthetic Holder B' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Add document' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'File. Choose file' }));
+  await screen.findByRole('button', { name: 'File, synthetic.pdf. Choose file' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Save documents' }));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Save documents' })).toBeNull());
+  expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS)).toEqual([
+    [
+      URLS.REGISTER_MEMBER_DOCUMENTS,
+      expect.objectContaining({
+        companyId: ADMINISTERED.uuid,
+        member: HOLDER_B.member,
+        token: FOUNDERS.uuid,
+        category: 'other',
+        appointment: ADMINISTRATION.uuid,
+      }),
+      expect.anything(),
+    ],
+  ]);
+  thirdHolder = false;
   await view.rerender(<CertificatesScreen route={{ key: 'register', name: 'Certificates', params: undefined }} />);
   expect(await screen.findByText('Certificate: Can prepare')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Prepare certificate (entry 13)', disabled: false }));

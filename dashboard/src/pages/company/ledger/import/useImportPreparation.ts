@@ -27,11 +27,11 @@ import {
   refusalSentence,
   utcToday,
   registerKey,
+  type RegisterSteps,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
 import { importsKey } from '@pages/company/ledger/shared/useRegisterImports';
-import type { RegisterSteps } from '@pages/company/shared/proposals';
 
 import {
   figuresDiffer,

@@ -224,8 +224,7 @@ agreement visible and hiding the other cards. While an action's outcome is uncer
 held work, so leaving it is blocked as on Ledger.
 The app's Employee share scheme and an award's page have the same cards, rows, forms and states at
 phone width, the forms' fields stacked; they leave out **Back to Employee share scheme**, as the app has
-no back buttons, and **Issue vested shares** and the non-paid issues' links, whose Issue shares page the
-app lacks.
+no back buttons.
 Inline vesting uses one named field group with the event quantity, date and document, short contextual
 labels and the same responsive grid. While an award editor is open, its footer owns the actions;
 hide unrelated record actions instead of leaving a disabled row above the form.
@@ -239,7 +238,9 @@ same labelled summary grid (`Fact` in `dashboard/src/components/Ledger.tsx` for 
 and value), with the investor amount where relevant. Keep the issued or not-issued fact beside the
 status and use the recipient as the record heading, without separate family headings.
 Longer state explanations, compliance responsibilities, terms, history and downloads open under
-**Show details and documents**.
+**Show details and documents**. The app's Issue shares has the same records, with the summary grid two
+facts to a row as on the web at phone width and the details' rows stacked as `Fact`s, the same forms
+with their fields stacked, and the same review in place of the records.
 Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under

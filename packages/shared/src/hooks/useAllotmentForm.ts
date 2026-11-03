@@ -1,28 +1,27 @@
+import { useEffect, useRef, useState } from 'react';
 import {
   REGISTER_ALLOTMENT_COPY as COPY,
-  allotmentAud,
-  apiErrorSentence,
-  createUserFriendlyError,
-  failureStatus,
-  getRegisterAllotment,
-  isPreparedRegisterAllotment,
-  isRegisterEvidenceReceipt,
-  prepareRegisterAllotment,
-  uploadRegisterEvidence,
-  type OwnCompanyAppointment,
-  type RegisterAllotmentPreparation,
-  type RegisterEvidence,
-  personRequest,
-  NEW_PERSON_PROBLEMS,
-  type Person,
   REGISTER_ALLOTMENT_UNMET_COPY,
-  refusalSentence,
-  utcToday,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { useEffect, useRef, useState } from 'react';
-export type DocumentKind = 'authority' | 'agreement' | 'receipt';
+} from '../constants/business/register-allotments';
+import { getRegisterAllotment, prepareRegisterAllotment } from '../services/register-allotments';
+import { uploadRegisterEvidence } from '../services/register-commands';
+import type {
+  OwnCompanyAppointment,
+  RegisterAllotmentPreparation,
+  RegisterEvidence,
+  RegisterEvidenceFile,
+} from '../types';
+import { utcToday } from '../utils/date';
+import { apiErrorSentence, createUserFriendlyError, failureStatus, refusalSentence } from '../utils/errors';
+import { NEW_PERSON_PROBLEMS, personRequest, type Person } from '../utils/people';
+import { allotmentAud, isPreparedRegisterAllotment } from '../utils/register-allotments';
+import { isRegisterEvidenceReceipt } from '../utils/register-commands';
+import { useApiClient } from './useApiClient';
+import { hasProblems, type Problems } from './useErrorSummary';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
+
+export type AllotmentDocumentKind = 'authority' | 'agreement' | 'receipt';
+
 export function useAllotmentForm({
   company,
   token,
@@ -34,6 +33,8 @@ export function useAllotmentForm({
   blocked,
   onRecorded,
   onHeldChange,
+  newKey,
+  session,
 }: {
   company: string;
   token: string;
@@ -45,10 +46,12 @@ export function useAllotmentForm({
   blocked: boolean;
   onRecorded: (uuid: string) => Promise<unknown>;
   onHeldChange: (held: boolean) => void;
-  visible?: boolean;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 }) {
+  const apiClient = useApiClient();
   const today = utcToday();
-  const [memberId] = useState(() => crypto.randomUUID());
+  const [memberId] = useState(newKey);
   const [member, setMember] = useState(() =>
     people.some((person) => person.member === initialMember && person.walletless && person.particularsRetained)
       ? initialMember!
@@ -69,15 +72,17 @@ export function useAllotmentForm({
     authorityReference: '',
     reason: '',
   });
-  const [files, setFiles] = useState<Partial<Record<DocumentKind, File>>>({});
+  const [files, setFiles] = useState<Partial<Record<AllotmentDocumentKind, RegisterEvidenceFile>>>({});
   const [busy, setBusy] = useState(false);
   const [held, setHeld] = useState(false);
   const [error, setError] = useState('');
   const live = useRef(true);
   const pending = useRef(false);
-  const uploads = useRef<Partial<Record<DocumentKind, { file: File; key: string; receipt: RegisterEvidence | null }>>>(
-    {},
-  );
+  const uploads = useRef<
+    Partial<
+      Record<AllotmentDocumentKind, { file: RegisterEvidenceFile; key: string; receipt: RegisterEvidence | null }>
+    >
+  >({});
   const operation = useRef<{ request: RegisterAllotmentPreparation; confirmed: boolean; uncertain: boolean } | null>(
     null,
   );
@@ -99,10 +104,11 @@ export function useAllotmentForm({
     check();
     newEffectGuard();
   };
+  const config = (requestGuard: () => void) => ({ ...session?.requestConfig(), ledovaSubmissionGuard: requestGuard });
   const consideration = allotmentAud(fields.consideration);
   const received = allotmentAud(fields.receivedAmount);
   const past = (date: string) => !/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today;
-  const problems: Problems<keyof typeof fields | `${DocumentKind}Document`> = {
+  const problems: Problems<keyof typeof fields | `${AllotmentDocumentKind}Document`> = {
     name: member === 'new' && !fields.name.trim() && NEW_PERSON_PROBLEMS.NAME,
     residentialAddress: member === 'new' && !fields.residentialAddress.trim() && NEW_PERSON_PROBLEMS.ADDRESS,
     shares:
@@ -125,9 +131,9 @@ export function useAllotmentForm({
     reason: !fields.reason.trim() && 'Give the reason.',
     authorityDocument: !files.authority && 'Choose the authority evidence.',
   };
-  const upload = async (kind: DocumentKind) => {
+  const upload = async (kind: AllotmentDocumentKind) => {
     const file = files[kind]!;
-    if (uploads.current[kind]?.file !== file) uploads.current[kind] = { file, key: crypto.randomUUID(), receipt: null };
+    if (uploads.current[kind]?.file !== file) uploads.current[kind] = { file, key: newKey(), receipt: null };
     const saved = uploads.current[kind]!;
     if (!saved.receipt) {
       const request = {
@@ -137,11 +143,7 @@ export function useAllotmentForm({
         idempotencyKey: saved.key,
       };
       beforeWrite();
-      const { data } = await uploadRegisterEvidence(
-        apiClient,
-        { ...request, file },
-        { ledovaSubmissionGuard: beforeWrite },
-      );
+      const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, config(beforeWrite));
       check();
       if (!isRegisterEvidenceReceipt(data, request, file.size)) {
         delete uploads.current[kind];
@@ -165,7 +167,7 @@ export function useAllotmentForm({
         const receipt = await upload('receipt');
         command = {
           request: {
-            operationId: crypto.randomUUID(),
+            operationId: newKey(),
             appointment: appointment.uuid,
             tokenId: token,
             ...personRequest(member, people, memberId, fields.name, fields.residentialAddress),
@@ -195,9 +197,7 @@ export function useAllotmentForm({
       if (command.uncertain && !command.confirmed) {
         try {
           check();
-          const { data } = await getRegisterAllotment(apiClient, command.request.operationId, {
-            ledovaSubmissionGuard: check,
-          });
+          const { data } = await getRegisterAllotment(apiClient, command.request.operationId, config(check));
           check();
           if (!isPreparedRegisterAllotment(data, command.request, company))
             throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
@@ -212,9 +212,7 @@ export function useAllotmentForm({
         const dispatchGuard = command.uncertain ? check : beforeWrite;
         try {
           dispatchGuard();
-          const { data } = await prepareRegisterAllotment(apiClient, command.request, {
-            ledovaSubmissionGuard: dispatchGuard,
-          });
+          const { data } = await prepareRegisterAllotment(apiClient, command.request, config(dispatchGuard));
           check();
           if (!isPreparedRegisterAllotment(data, command.request, company))
             throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
@@ -224,9 +222,7 @@ export function useAllotmentForm({
           if (!absent || !status || status < 400 || status >= 500) throw cause;
           check();
           try {
-            const { data } = await getRegisterAllotment(apiClient, command.request.operationId, {
-              ledovaSubmissionGuard: check,
-            });
+            const { data } = await getRegisterAllotment(apiClient, command.request.operationId, config(check));
             check();
             if (!isPreparedRegisterAllotment(data, command.request, company))
               throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);

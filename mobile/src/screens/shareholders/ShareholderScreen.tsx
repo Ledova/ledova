@@ -12,6 +12,7 @@ import {
   REGISTER_PARTICULARS_COPY,
   USER_PREFERENCES_QUERY_KEY,
   appointmentForParticularsEdit,
+  appointmentForRegisterStep,
   formatDate,
   formatDateTime,
   formatShareCount,
@@ -113,6 +114,10 @@ function OwnShareholder({
     data.registers.fetchStatus === 'idle' &&
     !!data.company;
   const access = useCompanyMemberAccess(company, randomUUID, orderSubmissionSession, sourceReady);
+  const prepare =
+    appointments.isSuccess &&
+    !appointments.isFetching &&
+    !!appointmentForRegisterStep(appointments.data, company, 'prepare');
   const edit =
     appointments.isSuccess && !appointments.isFetching && !!appointmentForParticularsEdit(appointments.data, company);
   const guardEdit = () => {
@@ -199,6 +204,9 @@ function OwnShareholder({
       : recorded?.name || former[0]?.row.name || REGISTER_PARTICULARS_COPY.UNNAMED_MEMBER;
     const current = access.access?.associations.find((row) => row.member === member && row.current);
     const invited = access.access?.invitations.find((row) => row.member === member && row.status === 'pending');
+    const issueClass = [...holdings.map(({ register }) => register), ...registers].find(
+      (register) => register.initialized && register.token.status === 'draft',
+    )?.token.uuid;
     const className = (token: string) => {
       const register = registers.find((item) => item.token.uuid === token);
       return register ? `${register.token.name} · ${register.token.symbol}` : 'Share class';
@@ -281,6 +289,12 @@ function OwnShareholder({
                 {row.correctedBy ? ' · cessation corrected' : ''}
               </Text>
             ))}
+            {prepare && issueClass && recorded?.walletless && recorded.particularsRetained && (
+              <Action
+                label="Issue shares to them"
+                onPress={() => navigation.navigate('IssueShares', { company, token: issueClass, member })}
+              />
+            )}
             {former.some(({ register }) => register.formerMembersStale) && (
               <Text style={look.muted}>The former-member history needs a refresh before relying on it.</Text>
             )}

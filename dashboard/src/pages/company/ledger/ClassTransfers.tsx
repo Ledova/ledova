@@ -12,13 +12,13 @@ import {
   useOwnAppointments,
   ownAppointmentsKey,
   allPeopleKey,
+  registerSteps,
+  entriesKey,
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
 import { PageLink } from '@components/Page';
 
 import { TransferRecord } from './TransferRecord';
-import { registerSteps } from '@pages/company/shared/proposals';
-import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { transfersKey, useRegisterTransfers } from '@pages/company/ledger/shared/useRegisterTransfers';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 

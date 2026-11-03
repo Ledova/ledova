@@ -10,12 +10,12 @@ import {
   registerHoldersKey,
   useOwnAppointments,
   ownAppointmentsKey,
+  registerSteps,
+  entriesKey,
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
 
 import { ImportRecord } from './ImportRecord';
-import { registerSteps } from '@pages/company/shared/proposals';
-import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { importsKey, useRegisterImports } from '@pages/company/ledger/shared/useRegisterImports';
 
 export function ClassImports({

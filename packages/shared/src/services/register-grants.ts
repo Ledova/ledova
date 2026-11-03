@@ -42,8 +42,31 @@ export const downloadRegisterGrantFile = (
   kind: 'authority' | 'terms' | 'acceptance',
   config: AxiosRequestConfig = {},
 ) => {
-  const fileConfig = { ...config, responseType: 'blob' as const };
-  if (kind === 'authority') return apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANT_FILE(uuid), fileConfig);
-  if (kind === 'terms') return apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANT_TERMS_FILE(uuid), fileConfig);
-  return apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANT_ACCEPTANCE_FILE(uuid), fileConfig);
+  const bytes = config.responseType === 'arraybuffer';
+  if (kind === 'authority')
+    return bytes
+      ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANT_FILE(uuid), {
+          ...config,
+          responseType: 'arraybuffer',
+        })
+      : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANT_FILE(uuid), { ...config, responseType: 'blob' });
+  if (kind === 'terms')
+    return bytes
+      ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANT_TERMS_FILE(uuid), {
+          ...config,
+          responseType: 'arraybuffer',
+        })
+      : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANT_TERMS_FILE(uuid), {
+          ...config,
+          responseType: 'blob',
+        });
+  return bytes
+    ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANT_ACCEPTANCE_FILE(uuid), {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANT_ACCEPTANCE_FILE(uuid), {
+        ...config,
+        responseType: 'blob',
+      });
 };

@@ -68,10 +68,31 @@ export const downloadRegisterAllotmentFile = (
   kind: 'authority' | 'agreement' | 'receipt',
   config: AxiosRequestConfig = {},
 ) => {
-  const fileConfig = { ...config, responseType: 'blob' as const };
+  const bytes = config.responseType === 'arraybuffer';
   if (kind === 'authority')
-    return apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_FILE(uuid), fileConfig);
+    return bytes
+      ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_FILE(uuid), {
+          ...config,
+          responseType: 'arraybuffer',
+        })
+      : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_FILE(uuid), { ...config, responseType: 'blob' });
   if (kind === 'agreement')
-    return apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_AGREEMENT_FILE(uuid), fileConfig);
-  return apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_RECEIPT_FILE(uuid), fileConfig);
+    return bytes
+      ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_AGREEMENT_FILE(uuid), {
+          ...config,
+          responseType: 'arraybuffer',
+        })
+      : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_AGREEMENT_FILE(uuid), {
+          ...config,
+          responseType: 'blob',
+        });
+  return bytes
+    ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_RECEIPT_FILE(uuid), {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENT_RECEIPT_FILE(uuid), {
+        ...config,
+        responseType: 'blob',
+      });
 };

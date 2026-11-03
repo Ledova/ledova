@@ -16,6 +16,10 @@ export function registerEntriesKey(owner: OrderSubmissionOwner) {
   return [...registerKey(owner), 'entries'];
 }
 
+export function entriesKey(owner: OrderSubmissionOwner, token: string) {
+  return [...registerEntriesKey(owner), token];
+}
+
 async function readMemberEntries(
   apiClient: AxiosInstance,
   tokens: string[],

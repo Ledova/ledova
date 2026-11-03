@@ -35,6 +35,7 @@ export type Section = 'Dashboard' | 'Ledger' | 'Shareholders' | 'Documents' | 'S
 export type MenuRoute =
   | 'Dashboard'
   | 'Ledger'
+  | 'IssueShares'
   | 'Shareholders'
   | 'EmployeeScheme'
   | 'MemberAccess'
@@ -65,7 +66,13 @@ const sections = (canReadRegister: boolean): MenuItem[] => [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
   ...(canReadRegister
     ? [
-        { name: 'Ledger' as const, label: 'Ledger', icon: BookOpenIcon, route: 'Ledger' as const },
+        {
+          name: 'Ledger' as const,
+          label: 'Ledger',
+          icon: BookOpenIcon,
+          route: 'Ledger' as const,
+          items: [{ route: 'IssueShares' as const, label: 'Issue shares' }],
+        },
         {
           name: 'Shareholders' as const,
           label: 'Shareholders',

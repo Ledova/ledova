@@ -18,12 +18,12 @@ import {
   grantsKey,
   useRegisterAward,
   useRegisterGrants,
+  registerSteps,
+  entriesKey,
 } from '@ledova/shared';
 
 import { GrantForm } from './GrantForm';
 import { GrantRecord } from './GrantRecord';
-import { registerSteps } from '@pages/company/shared/proposals';
-import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { LoadError, Loading } from '@components/Ledger';
 
 export function useNonPaidIssues({
@@ -262,6 +262,7 @@ export function useNonPaidIssues({
     records,
     empty: privateReady && grants.data?.length === 0,
     held,
+    formShown: shown && !!formAppointment && formVisible,
     refreshRecords: () => grants.refetch({ cancelRefetch: false, throwOnError: true }),
   };
 }

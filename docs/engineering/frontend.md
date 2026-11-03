@@ -671,7 +671,7 @@ neither set nor limit the current holding; new paid/unpaid blanks normalize to z
 ([form conventions](frontend-ux.md#forms)).
 
 Every decision uses the preview-first `useRegisterDecision`, in a dialog or the web's main-page
-issue and transfer reviews. It previews the exact decision, its unmet requirements in
+issue and transfer reviews; the app's Issue shares replaces its records with the same review. It previews the exact decision, its unmet requirements in
 words and its register effect, takes a rejection reason
 ([how a company decision works](../business/README.md#how-a-company-decision-works)), and confirms
 with a retry key reused only for the same preview while the step's appointment is still the one
@@ -854,7 +854,12 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   grant read (`useRegisterGrants`), the forms (`useAwardForm`, `useAwardVestingForm`,
   `useAwardAdjustmentForm`) and the document downloads (`useAwardRecordDownload`) are shared, and the
   app's Employee share scheme and award page render the same views at phone width
-  ([navigation](mobile.md#navigation)). A section whose
+  ([navigation](mobile.md#navigation)). Issue shares' allotment read (`useRegisterAllotments` with
+  `allotmentsKey`), its investor and non-paid forms (`useAllotmentForm`, `useGrantPreparation`), their
+  document downloads (`useAllotmentRecordDownload`, `useGrantRecordDownload`), `registerSteps` and the
+  class entries key (`entriesKey`) are shared too, and the app's Issue shares renders the same records,
+  forms and reviews at phone width, keeping only the selected class's issues mounted and locking Share
+  class while one is open ([navigation](mobile.md#navigation)). A section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
@@ -880,7 +885,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   rule. On Ledger, navigation state `issueMember` opens Issue shares
   with Investor issue and that person chosen, `issueAward` opens it with Non-paid issue for that
   award, and `registerRecord` focuses a listed non-paid issue. `fromMember` chooses a transfer's
-  transferor.
+  transferor. The app's Issue shares takes the same choices as route parameters (`member`, `award`,
+  `record`), honoured only for the selected company and the named class, and scrolls a focused issue
+  into view.
 
 - A shareholder's page on the web (`dashboard/src/pages/company/ledger/member`): reads, through the shared
   `useShareholder` (`packages/shared/src/hooks/useShareholder.ts`), the named

@@ -1,14 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
 import {
-  downloadRegisterAllotmentFile,
   downloadRegisterCorrectionFile,
-  downloadRegisterGrantFile,
   downloadRegisterImportFile,
   downloadRegisterParticularsChangeFile,
   downloadRegisterTransferFile,
-  type RegisterAllotment,
   type RegisterCorrection,
-  type RegisterGrant,
   type RegisterImport,
   type RegisterParticularsChange,
   type RegisterTransfer,
@@ -16,25 +12,6 @@ import {
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { saveFile } from '@utils/saveFile';
-
-export function useAllotmentRecordDownload(allotment: RegisterAllotment, guard: () => void) {
-  return useMutation({
-    mutationFn: async (kind: 'authority' | 'agreement' | 'receipt') => {
-      guard();
-      const { data } = await downloadRegisterAllotmentFile(apiClient, allotment.uuid, kind, {
-        ledovaSubmissionGuard: guard,
-      });
-      guard();
-      const snapshot =
-        kind === 'authority'
-          ? allotment.evidenceSnapshot
-          : kind === 'agreement'
-            ? allotment.agreement.evidenceSnapshot
-            : allotment.contribution.evidenceSnapshot;
-      saveFile(data, retainedName(snapshot, `${kind}-${allotment.uuid}`));
-    },
-  });
-}
 
 export function useCorrectionRecordDownload(proposal: RegisterCorrection, check: () => void) {
   return useMutation({
@@ -45,23 +22,6 @@ export function useCorrectionRecordDownload(proposal: RegisterCorrection, check:
       });
       check();
       saveFile(data, retainedName(proposal.evidenceSnapshot, `register-correction-${proposal.uuid}`));
-    },
-  });
-}
-
-export function useGrantRecordDownload(grant: RegisterGrant, guard: () => void) {
-  return useMutation({
-    mutationFn: async (kind: 'authority' | 'terms' | 'acceptance') => {
-      guard();
-      const { data } = await downloadRegisterGrantFile(apiClient, grant.uuid, kind, { ledovaSubmissionGuard: guard });
-      guard();
-      const snapshot =
-        kind === 'authority'
-          ? grant.evidenceSnapshot
-          : kind === 'terms'
-            ? grant.termsSnapshot
-            : grant.acceptanceSnapshot;
-      saveFile(data, retainedName(snapshot, `${kind}-${grant.uuid}`));
     },
   });
 }

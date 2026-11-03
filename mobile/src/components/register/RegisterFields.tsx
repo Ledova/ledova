@@ -134,12 +134,14 @@ export function Checkbox({
 
 export function FileField({
   label,
+  accessibilityLabel = label,
   hint,
   disabled,
   error,
   onFile,
 }: {
   label: string;
+  accessibilityLabel?: string;
   hint?: string;
   disabled: boolean;
   error?: string | null;
@@ -169,7 +171,9 @@ export function FileField({
       <Text style={styles.text}>{label}</Text>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={picked.file ? `${label}, ${picked.file.name}. Choose file` : `${label}. Choose file`}
+        accessibilityLabel={
+          picked.file ? `${accessibilityLabel}, ${picked.file.name}. Choose file` : `${accessibilityLabel}. Choose file`
+        }
         accessibilityState={{ disabled: unavailable }}
         accessibilityHint={problem ?? undefined}
         disabled={unavailable}
@@ -189,6 +193,78 @@ export function FileField({
           {problem}
         </Text>
       )}
+    </View>
+  );
+}
+
+export function Choices<T extends string>({
+  legend,
+  options,
+  value,
+  onChange,
+  disabled = false,
+  error,
+}: {
+  legend: string;
+  options: readonly (readonly [T, string])[];
+  value: T | '';
+  onChange: (value: T) => void;
+  disabled?: boolean;
+  error?: string | null;
+}) {
+  const styles = useCompanyStyles();
+  const look = useThemedStyles((theme) => ({
+    options: {
+      flexDirection: 'row' as const,
+      flexWrap: 'wrap' as const,
+      columnGap: 20,
+      rowGap: theme.spacing.sm,
+    },
+    choice: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+    },
+    mark: {
+      width: 18,
+      height: 18,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: 9,
+      backgroundColor: theme.colors.surface.raised,
+    },
+    marked: { borderColor: theme.colors.brand.default },
+    dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.colors.brand.default },
+    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 22, color: theme.colors.text.primary },
+    disabled: { opacity: 0.5 },
+  }));
+  return (
+    <View style={styles.group}>
+      <Text style={styles.text}>{legend}</Text>
+      <View accessibilityRole="radiogroup" accessibilityLabel={legend} style={look.options}>
+        {options.map(([option, label]) => {
+          const checked = value === option;
+          return (
+            <Pressable
+              key={option}
+              accessibilityRole="radio"
+              accessibilityState={{ checked, disabled }}
+              accessibilityHint={error ?? undefined}
+              disabled={disabled}
+              hitSlop={4}
+              onPress={() => onChange(option)}
+              style={[look.choice, disabled && look.disabled]}
+            >
+              <View style={[look.mark, checked && look.marked]}>{checked && <View style={look.dot} />}</View>
+              <Text style={look.label}>{label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {!!error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
 }

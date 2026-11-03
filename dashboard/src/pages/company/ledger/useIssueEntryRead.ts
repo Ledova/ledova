@@ -11,9 +11,9 @@ import {
   allPeopleKey,
   awardsKey,
   grantsKey,
+  allotmentsKey,
+  entriesKey,
 } from '@ledova/shared';
-import { allotmentsKey } from './useRegisterAllotments';
-import { entriesKey } from './shared/useRegisterEntries';
 
 export function useIssueEntryRead({
   owner,

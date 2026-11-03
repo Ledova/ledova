@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_AWARD_COPY as COPY,
@@ -26,6 +28,7 @@ import {
   Action,
   Fact,
   FormActions,
+  LinkRow,
   LoadError,
   Loading,
   MoreToggle,
@@ -35,6 +38,7 @@ import {
 } from '../../components/Ledger';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { AwardAdjustmentForm, AwardVestingForm } from './AwardForms';
@@ -76,6 +80,7 @@ export function AwardRecord({
   onEditingChange: (editing: boolean) => void;
 }) {
   const client = useQueryClient();
+  const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const styles = useCompanyStyles();
   const look = useShareholderStyles();
   const own = useThemedStyles((theme) => ({
@@ -171,6 +176,7 @@ export function AwardRecord({
   const changes = (ends.data?.length ?? 0) + (reversals.data?.length ?? 0);
   const recordVesting = BigInt(award.unvestedRemainingShares) > 0n;
   const endRights = BigInt(award.remainingUnissuedShares) > 0n;
+  const issueVested = !blocked && eventReady && !formHeld && BigInt(award.availableShares) > 0n;
   const formHeldChange = (held: boolean) => {
     setFormHeld(held);
     onHeldChange(held);
@@ -180,7 +186,7 @@ export function AwardRecord({
       {(visible || formOpen) && (
         <Section title="Entitlement">
           {visible && <AwardStatus award={award} />}
-          {visible && !formOpen && appointment && (recordVesting || endRights) && (
+          {visible && !formOpen && appointment && (recordVesting || endRights || issueVested) && (
             <FormActions>
               {recordVesting && (
                 <Action
@@ -204,6 +210,18 @@ export function AwardRecord({
                     }
                     setAdjusting({ appointment });
                   }}
+                />
+              )}
+              {issueVested && (
+                <Action
+                  label="Issue vested shares"
+                  onPress={() =>
+                    navigation.navigate('IssueShares', {
+                      company: award.company,
+                      token: award.token,
+                      award: award.uuid,
+                    })
+                  }
                 />
               )}
             </FormActions>
@@ -404,18 +422,26 @@ export function AwardRecord({
           {grants.length > 0 && (
             <Section title="Non-paid issues from this award">
               <Rows>
-                {grants.map((grant) => (
-                  <View key={grant.uuid} style={look.row}>
-                    <View style={look.line}>
-                      <Text style={[look.title, look.fill]}>
-                        {shareCount(grant.shares)}, prepared {formatDateTime(grant.createdAt)}
-                      </Text>
-                      <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>
-                        {grant.stage === 'applied' ? 'Shares issued' : (GRANT_COPY.STAGES[grant.stage] ?? grant.stage)}
-                      </Status>
-                    </View>
-                  </View>
-                ))}
+                {grants.map((grant) => {
+                  const label = `${shareCount(grant.shares)}, prepared ${formatDateTime(grant.createdAt)}`;
+                  const stage =
+                    grant.stage === 'applied' ? 'Shares issued' : (GRANT_COPY.STAGES[grant.stage] ?? grant.stage);
+                  return (
+                    <LinkRow
+                      key={grant.uuid}
+                      label={label}
+                      accessibilityLabel={`${label} (issue from the award for ${award.recipientName}), ${stage}`}
+                      aside={<Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>{stage}</Status>}
+                      onPress={() =>
+                        navigation.navigate('IssueShares', {
+                          company: award.company,
+                          token: award.token,
+                          record: grant.uuid,
+                        })
+                      }
+                    />
+                  );
+                })}
               </Rows>
             </Section>
           )}

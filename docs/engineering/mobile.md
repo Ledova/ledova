@@ -51,8 +51,9 @@ and forms, Activation's company read and confirmation, representative authority'
 and request form, Documents' class source, certificate records, preparations and prepared
 outputs, Shareholders' register, people and shareholder reads, list, Add person, particulars change
 and member access form, the employee scheme's award, vesting and grant reads, award, vesting and
-entitlement-change forms and award document downloads, and a share class's read, class rights and
-shareholder documents live in `packages/shared`, with native session,
+entitlement-change forms and award document downloads, a share class's read, class rights and
+shareholder documents, and Issue shares' allotment and grant reads, preparation forms, decision steps
+and document downloads live in `packages/shared`, with native session,
 result and transport policies kept in the client: the app passes its session to each shared read and
 request.
 
@@ -93,8 +94,8 @@ web's phone drawer, 208 points wide: Dashboard, Ledger and Shareholders for a re
 selected company, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
-loses focus, and it marks the section the page belongs to: Ledger for Ledger and a share class's page,
-Shareholders for Shareholders, a
+loses focus, and it marks the section the page belongs to: Ledger for Ledger, a share class's page and
+Issue shares, Shareholders for Shareholders, a
 shareholder's page, its particulars change, Employee share scheme, an award's page and Member access,
 Documents for Certificates, Inspection copies and Company pack, Settings for Profile, Account, Data and
 privacy, Team and Activation, Dashboard for Invitation. Like the web's sidebar, it marks Team on
@@ -103,7 +104,7 @@ returns to it. Ledger opens its overview, Shareholders its people list, Document
 and Settings opens Profile.
 Like the web's groups, a caret shows a group's pages beneath it, open while one of them is shown.
 Ledger and Shareholders appear, as on the web, when the selected company's `canReadRegister` allows
-it. Ledger is one link: the web's Issue shares, Transfer shares and Corrections are not in the app yet.
+it. Ledger lists Issue shares; the web's Transfer shares and Corrections are not in the app yet.
 Shareholders lists Employee scheme (read out as Employee share scheme, the web's tooltip) and Member
 access.
 Documents lists Certificates, Inspection copies and Company pack when the selected company's
@@ -201,8 +202,11 @@ states. **Change particulars** opens the web's Particulars change page (`Particu
 the shared `useParticularsMember` and `useParticularsEdit`): Current particulars and the one-step form,
 which returns to the shareholder's page saying Particulars changed., since the app has no Corrections to
 land on. Each Employee awards row opens that award's page, and **Open Employee share scheme** opens the
-scheme; until the app has their pages, a shareholder's page leaves out Documents, **Issue shares to
-them** and **Transfer shares**. Member access
+scheme. **Issue shares to them**, under Holdings for someone who can prepare the register when the
+person holds no linked wallet and their particulars are retained, opens Issue shares for an opened
+draft class they hold, or else the company's first, with them chosen in an investor issue, as on the
+web. A shareholder's page still
+leaves out Documents and **Transfer shares**. Member access
 (`MemberAccessScreen.tsx`, through the shared `useMemberAccessForm`) has the web's People and
 Invitations: each person's name, email, Linked date and access, with **Revoke access**, whose reason
 form and confirmation dialog send nothing until confirmed, and each invitation's Invited date, status
@@ -211,8 +215,8 @@ searchable list of the company's members and award recipients (`PersonSelect.tsx
 access to the company, each of these pages reads nothing and points to Dashboard. Pulling down rereads
 each of them while no form or action is open. Unlike the web, which keeps a held save on its page,
 leaving an app page drops that save's retry, so adding the person, sending the invitation, recording
-the award or its vesting or adding shareholder documents again could record it twice; an app-wide fix
-is planned.
+the award or its vesting, adding shareholder documents, or preparing or deciding a share issue again
+could record it twice; an app-wide fix is planned.
 Employee share scheme (`EmployeeSchemeScreen.tsx`) is the web's view at phone width for a register
 reader of the selected company, read through `useCompanyRegisters.ts` and the shared
 `useRegisterAwards`: one share class's card, titled with the class (oldest first by default, and **Share
@@ -234,9 +238,10 @@ the award with their stage, and the recorded line. Recording vesting, ending rig
 vesting open the web's forms in the Entitlement card (through the shared `useAwardVestingForm` and
 `useAwardAdjustmentForm`), and someone without preparation authority gets the web's read-only note
 instead of actions. Dates are typed as `YYYY-MM-DD` (UTC), and documents are picked as for
-representative authority. Until the app has Issue shares, the award's page leaves out **Issue vested
-shares**, and its non-paid issues don't open their records. Pulling down rereads either page while no
-form is open or held.
+representative authority. **Issue vested shares**, beside the Entitlement actions while vested shares
+await issue, opens Issue shares for the award's class with its non-paid issue form, and each non-paid
+issue opens Issue shares at its record, as on the web. Pulling down rereads either page while no form is
+open or held.
 Ledger (`mobile/src/screens/ledger/LedgerScreen.tsx`) is the web's Ledger overview at phone width for
 a register reader of the selected company, read through `useCompanyRegisters.ts`: one card per share
 class, titled with its name and code, with Issued shares and Current shareholders, **Ledger not
@@ -259,6 +264,26 @@ holder from a searchable list and each file's category. Without register access 
 pages read nothing and point to Dashboard, and a class of another company is not in a register you can
 read. The web's **Back to Ledger** is left out, as the app has no back buttons. Pulling down rereads
 either page while no form is open.
+Issue shares (`IssueSharesScreen.tsx`) is the web's Issue shares at phone width for a register reader
+of the selected company, read through `useCompanyRegisters.ts`, the shared `useRegisterAllotments` and
+`useRegisterGrants`, and sent through the shared `useAllotmentForm`, `useGrantPreparation` and
+`useRegisterDecision`: the selected class's name, with **Share class** in Filters when there is more
+than one, then Share issues, each investor and non-paid issue as the web's labelled summary (Recipient
+and issue type, Shares with any AUD amount, Company issue date and Status, two to a row) with **Show
+details and documents** for the stage, decision trail, particulars, terms and the documents' downloads,
+which go to the share sheet, and the record's actions: **Reject** and **Review and approve**, and
+**Record issue** for an approved non-paid issue, only for the steps the person's appointments hold.
+Reviewing replaces the records with the web's Review share issue: the preview, ownership impact, company
+records and unmet requirements, Cancel and the confirmation, where an investor's **Approve** records the
+approval and the issue together, as on the web. **Prepare issue** asks **What kind of issue?**: Investor
+issue opens the web's three steps (Person and shares, Agreement and receipt, Company authority and
+review) and Non-paid issue the web's non-paid form, with an employee award's recipient, available
+vested shares and retained agreement when it was opened from the award. Each keeps its retry of an
+uncertain preparation or decision, a read-only appointment gets the web's notes and no actions, and a
+class with an unopened register or a deployed contract says so; register setup stays on the web. Share
+class is locked while a preparation, review or held decision is open, since the app keeps only the
+selected class's issues on the screen. Pulling down rereads the classes, the person's appointments and
+the issues while none is open.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
 Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form
@@ -443,8 +468,9 @@ JavaScript. Make release builds from a fresh prebuild
 ([building from a clean checkout](mobile-releases.md#building-from-a-clean-checkout)).
 
 A representative authority request's evidence, an employee award's agreement and the evidence for its
-vesting and entitlement changes, and a share class's rights documents and shareholder documents, are
-picked with `expo-file-system`'s own picker (`File.pickFileAsync`,
+vesting and entitlement changes, a share class's rights documents and shareholder documents, and a
+share issue's authority, agreement, receipt, terms and acceptance documents, are picked with
+`expo-file-system`'s own picker (`File.pickFileAsync`,
 through `FileField`), so no picker module returns. On iOS it hands over a copy in the temporary
 folder's `-Inbox` folder, deleted when another file replaces it, the form goes (its request recorded,
 the form cancelled or the page left) or the session changes; a closed authority request form keeps it
@@ -475,8 +501,10 @@ in `mobile/src/services/documentCopies.ts`, the app's file delivery for the shar
 content type, since React Native's Android blobs carry none, and shared under the web's file name. An
 award's agreement and event evidence take the same route through the shared `useAwardRecordDownload`,
 and a share class's rights documents and shareholder documents through the shared `useClassRights`
-and `useMemberDocuments`, under their retained file names. Documents' outputs, an award's documents, a
-class's documents and the authority evidence, shared from their pages, go through `shareFile`: a
+and `useMemberDocuments`, and an issue's documents through the shared `useAllotmentRecordDownload`
+and `useGrantRecordDownload`, under their retained file names. Documents' outputs, an award's
+documents, a class's documents, an issue's documents and the authority evidence, shared from their
+pages, go through `shareFile`: a
 sheet that fails to open reports the failure, and one still open after 1.5 seconds counts as
 delivered, because iOS never settles a cancelled Save to Files. Data and privacy's export instead
 waits for its sheet to close (`Sharing.shareAsync`): the sheet is presented from the export's dialog,

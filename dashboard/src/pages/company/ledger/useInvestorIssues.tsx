@@ -15,14 +15,15 @@ import {
   ownAppointmentsKey,
   allPeopleKey,
   usePeople,
+  registerSteps,
+  allotmentsKey,
+  useRegisterAllotments,
+  entriesKey,
 } from '@ledova/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { registerSteps } from '@pages/company/shared/proposals';
-import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
 import { AllotmentForm } from './AllotmentForm';
 import { AllotmentRecord } from './AllotmentRecord';
-import { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';
 
 export function useInvestorIssues({
   owner,
@@ -278,6 +279,7 @@ export function useInvestorIssues({
     empty: privateReady && allotments.data?.length === 0,
     held,
     prepare: !!appointment && supported,
+    formShown: !!editing && open && visible && privateReady && members.isSuccess && !members.isFetching,
     refreshRecords: () => allotments.refetch({ cancelRefetch: false, throwOnError: true }),
   };
 }

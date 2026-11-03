@@ -1,12 +1,18 @@
 import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
-import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_DECISIONS, formatDateTime, formatDate } from '@ledova/shared';
+import {
+  REGISTER_CORRECTION_COPY,
+  REGISTER_CORRECTION_DECISIONS,
+  formatDateTime,
+  formatDate,
+  type RegisterSteps,
+} from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { describeEntry, entryLabel, entryName, type RegisterSteps } from '@pages/company/shared/proposals';
+import { describeEntry, entryLabel, entryName } from '@pages/company/shared/proposals';
 import type { ClassCorrection } from '@pages/company/ledger/shared/useClassCorrections';
 import { useCorrectionRecordDownload } from './useRegisterRecordDownload';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';

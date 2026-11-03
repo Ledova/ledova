@@ -106,6 +106,7 @@ export function ClassIssues({
     refreshRecords: () => Promise.allSettled([investor.refreshRecords(), nonPaid.refreshRecords()]),
   });
   const held = investor.held || nonPaid.held;
+  const formShown = kind === 'investor' ? investor.formShown : kind === 'nonpaid' && nonPaid.formShown;
   useEffect(() => {
     if (visible && !preparing && returnToAction && sourceReady && prepareAction.current) {
       prepareAction.current.focus();
@@ -167,7 +168,7 @@ export function ClassIssues({
           <Choices legend="What kind of issue?" options={KINDS} value={kind} disabled={held} onChange={setKind} />
           {investor.form}
           {nonPaid.form}
-          {!kind && (
+          {!formShown && (
             <FormActions>
               <PageAction label="Cancel" disabled={held} onClick={() => close()} />
             </FormActions>

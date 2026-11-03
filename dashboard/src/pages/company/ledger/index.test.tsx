@@ -1049,6 +1049,8 @@ it('reads every class page and groups exact holdings by member identity with sea
   const documentCompany = crypto.randomUUID();
   const documentMember = crypto.randomUUID();
   const documentToken = crypto.randomUUID();
+  const firstMember = crypto.randomUUID();
+  const lastMember = crypto.randomUUID();
   let documentAppointment: OwnCompanyAppointment = {
     ...CURRENT_APPOINTMENT,
     company: documentCompany,
@@ -1135,13 +1137,17 @@ it('reads every class page and groups exact holdings by member identity with sea
       owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
       guard={() => {}}
       company={documentCompany}
-      member={documentMember}
       sourceReady
-      holdings={[{ member: documentMember, token: documentToken, label: 'Ordinary shares · ORD' }]}
+      holdings={[
+        { member: firstMember, token: documentToken, label: 'First Holder' },
+        { member: documentMember, token: documentToken, label: 'Chosen Holder' },
+        { member: lastMember, token: documentToken, label: 'Last Holder' },
+      ]}
     />,
     'Shareholder',
   );
   fireEvent.click(await screen.findByRole('button', { name: 'Add documents' }));
+  await choose('Shareholder', 'Chosen Holder');
   fireEvent.click(screen.getByRole('button', { name: 'Add document' }));
   fireEvent.change(within(screen.getByRole('group', { name: 'Document 1' })).getByLabelText('Category'), {
     target: { value: 'subscription_agreement' },
@@ -1159,9 +1165,13 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.getByText('subscription.pdf')).toBeTruthy();
   expect(screen.getByText(/Subscription agreement/)).toBeTruthy();
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE)).toHaveLength(1);
-  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS)).toHaveLength(
-    1,
-  );
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS)).toEqual([
+    [
+      COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS,
+      expect.objectContaining({ companyId: documentCompany, member: documentMember, token: documentToken }),
+      expect.anything(),
+    ],
+  ]);
   expect(api.get).toHaveBeenCalledWith(
     COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS,
     expect.objectContaining({

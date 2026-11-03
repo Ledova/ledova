@@ -30,6 +30,8 @@ export const STAGE_TONES: Record<string, 'waiting' | 'moving' | 'done' | 'closed
 
 export const REGISTER_COPY = {
   QUANTITY_GUARD: 'Internal quantity guard',
+  STEP_CHANGED: 'Your appointment for this step changed or could not be checked. Cancel and start this decision again.',
+  DOWNLOAD_FAILED: 'The file could not be downloaded. Try again.',
   NOT_OPENED_NOTE:
     'The register for this share class has not been opened yet, so no members are listed. An applied register ' +
     'opening or register import starts it.',

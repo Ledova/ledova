@@ -4,8 +4,8 @@
 
 How a company keeps the register of members of each share class in Ledova, and what the web Ledger
 page shows; of the register administration, the mobile app has the Ledger overview, each share class's
-page, Shareholders, a shareholder's page, the Employee share scheme with each award's page, and Member
-access
+page, Issue shares, Shareholders, a shareholder's page, the Employee share scheme with each award's
+page, and Member access
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). It is for company representatives,
 product owners, support staff and engineers learning the domain. Issuing shares is in
 [share classes and issuing shares](issuing-shares.md); copies, certificates and member access are in
@@ -600,7 +600,9 @@ The Ledger view shows:
   [register setup](#bringing-in-existing-records) for the selected company.
 
 The mobile app's Ledger shows the same cards, each with **Class details**, for a register reader of the
-selected company; register setup, and so **Add share class**, and Ledger's tasks stay on the web.
+selected company, and lists Issue shares beneath it
+([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)); register setup, and so **Add
+share class**, Transfer shares and Corrections stay on the web.
 
 Ledger's three web sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the overview cards: Issue shares
@@ -689,8 +691,7 @@ Details show only while the account, the classes and the holdings read are curre
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger. The app's shareholder page shows
 the same sections and **Change particulars**, with award rows opening their pages and **Open Employee
-share scheme**; until the app has their pages it leaves out Documents, **Issue shares to them** and
-**Transfer shares**.
+share scheme**, and **Issue shares to them**; it leaves out Documents and **Transfer shares**.
 
 ### Choosing a person
 

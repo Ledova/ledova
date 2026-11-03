@@ -9,14 +9,10 @@ import {
   type OrderSubmissionOwner,
   type RegisterEntry,
   READ_TIMING,
-  registerEntriesKey,
+  entriesKey,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { guarded } from './registerReads';
-
-export function entriesKey(owner: OrderSubmissionOwner, token: string) {
-  return [...registerEntriesKey(owner), token];
-}
 
 function readEntries(token: string, page: number, guard: () => void) {
   return guarded(guard, () => getRegisterEntries(apiClient, token, { page }, { ledovaSubmissionGuard: guard }));

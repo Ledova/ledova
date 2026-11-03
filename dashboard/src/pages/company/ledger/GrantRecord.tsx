@@ -9,13 +9,14 @@ import {
   shareCount,
   formatDate,
   STAGE_TONES,
+  type RegisterSteps,
+  useGrantRecordDownload,
 } from '@ledova/shared';
 import { Row, Rows, Status, ShowMore } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import type { RegisterSteps } from '@pages/company/shared/proposals';
-import { useGrantRecordDownload } from './useRegisterRecordDownload';
+import { BROWSER_FILES } from '@utils/saveFile';
 import { IssueSummary } from './IssueSummary';
 import { GrantReview } from './GrantReview';
 
@@ -69,7 +70,7 @@ export function GrantRecord({
   reviewTarget: HTMLElement | null;
   onReviewChange: (uuid: string, open: boolean) => void;
 }) {
-  const download = useGrantRecordDownload(grant, guard);
+  const download = useGrantRecordDownload(grant, guard, BROWSER_FILES);
   const context = `grant for ${grant.name} prepared ${formatDateTime(grant.createdAt)}`;
   const documents: ('authority' | 'terms' | 'acceptance')[] = grant.acceptanceEvidence
     ? ['authority', 'terms', 'acceptance']

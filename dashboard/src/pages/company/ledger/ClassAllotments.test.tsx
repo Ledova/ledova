@@ -15,6 +15,7 @@ import {
   type OwnCompanyAppointment,
   ownAppointmentsKey,
   registerClassesKey,
+  allotmentsKey,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -25,13 +26,16 @@ import { ALLOTMENT_REQUEST, allotmentFrom, allotmentDecision, allotmentPreview }
 import CompanyRegisterPage from '.';
 import { choose, companyPreferences, renderCompanyPage } from '../../../testSupport/company';
 
-import { allotmentsKey } from './useRegisterAllotments';
 import { TransferForm } from './transfer/TransferForm';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
 const save = vi.hoisted(() => vi.fn());
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@utils/saveFile', async (original) => ({ ...(await original<object>()), saveFile: save }));
+vi.mock('@utils/saveFile', async (original) => ({
+  ...(await original<object>()),
+  saveFile: save,
+  BROWSER_FILES: { save },
+}));
 const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 let pendingFileRelease: (() => void) | undefined;
 let pendingReadRelease: (() => void) | undefined;

@@ -23,11 +23,11 @@ import {
   useRegisterClasses,
   peopleKey,
   usePeople,
+  registerSteps,
 } from '@ledova/shared';
 
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { registerSteps } from '@pages/company/shared/proposals';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { ImportForm } from './ImportForm';
 import { LoadError, Loading } from '@components/Ledger';

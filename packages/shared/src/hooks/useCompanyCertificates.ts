@@ -5,7 +5,7 @@ import { CERTIFICATE_STATUSES, type CertificateStatus } from '../utils/certifica
 import { assertNextPageAdvances, getNextPageParam } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
 import { useClassRegister } from './useClassRegister';
-import { registerKey } from './useCompanyOwnership';
+import { entriesKey } from './useShareholder';
 import { useLaterPages } from './useLaterPages';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
@@ -22,7 +22,7 @@ export function useCompanyCertificates(
   const apiClient = useApiClient();
   const source = useClassRegister(owner, currentOwner, company, requested, 'certificate', session);
   const { token, guard, register } = source;
-  const queryKey = [...registerKey(owner), 'entries', token, 'certificates', filters.search, filters.status];
+  const queryKey = [...entriesKey(owner, token), 'certificates', filters.search, filters.status];
   const history = useInfiniteQuery({
     queryKey,
     enabled: source.ready && CERTIFICATE_STATUSES.some(([value]) => value === filters.status),

@@ -66,7 +66,9 @@ export {
   hasCurrentRegisterReadAuthority,
   isRegisterDecisionReceipt,
   isRegisterEvidenceReceipt,
+  registerSteps,
   type RegisterStep,
+  type RegisterSteps,
 } from './register-commands';
 export {
   isPreparedRegisterImport,

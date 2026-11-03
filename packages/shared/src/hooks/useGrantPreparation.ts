@@ -1,41 +1,34 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  REGISTER_GRANT_COPY as COPY,
-  apiErrorSentence,
-  createUserFriendlyError,
-  failureStatus,
-  getRegisterGrants,
-  isPreparedRegisterGrant,
-  isRegisterEvidenceReceipt,
-  prepareRegisterGrant,
-  readEveryPage,
-  uploadRegisterEvidence,
-  type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
-  type RegisterEvidence,
-  type RegisterGrantPreparation,
-  type RegisterAward,
-  type RegisterTransferMember,
-  personRequest,
-  NEW_PERSON_PROBLEMS,
-  type Person,
-  REGISTER_GRANT_UNMET_COPY,
-  refusalSentence,
-  utcToday,
-  grantsKey,
-} from '@ledova/shared';
+import { REGISTER_GRANT_COPY as COPY, REGISTER_GRANT_UNMET_COPY } from '../constants/business/register-grants';
+import { uploadRegisterEvidence } from '../services/register-commands';
+import { getRegisterGrants, prepareRegisterGrant } from '../services/register-grants';
+import type {
+  OwnCompanyAppointment,
+  RegisterAward,
+  RegisterEvidence,
+  RegisterEvidenceFile,
+  RegisterGrantPreparation,
+  RegisterTransferMember,
+} from '../types';
+import { utcToday } from '../utils/date';
+import { apiErrorSentence, createUserFriendlyError, failureStatus, refusalSentence } from '../utils/errors';
+import { readEveryPage } from '../utils/pagination';
+import { NEW_PERSON_PROBLEMS, personRequest, type Person } from '../utils/people';
+import { isRegisterEvidenceReceipt } from '../utils/register-commands';
+import { isPreparedRegisterGrant } from '../utils/register-grants';
+import { useApiClient } from './useApiClient';
+import { hasProblems, type Problems } from './useErrorSummary';
+import { grantsKey } from './useRegisterGrants';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
-import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
+export type GrantDocumentKind = 'authority' | 'terms' | 'acceptance';
 
-export type DocumentKind = 'authority' | 'terms' | 'acceptance';
-
-type Uploaded = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };
+type Uploaded = { file: RegisterEvidenceFile; appointment: string; key: string; receipt: RegisterEvidence | null };
 
 const FAILED = 'The grant preparation response could not be confirmed. Retry with the same details.';
 
-export type GrantFormProps = {
+export type GrantPreparationOptions = {
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
@@ -45,12 +38,13 @@ export type GrantFormProps = {
   blocked: boolean;
   onRefused: () => void;
   onRecorded: (uuid: string) => void;
-  onCancel?: () => void;
   award?: RegisterAward;
   awardMember?: RegisterTransferMember | null;
   visible?: boolean;
   onHeldChange?: (held: boolean) => void;
   canPrepare?: boolean;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 };
 
 export function useGrantPreparation({
@@ -68,10 +62,13 @@ export function useGrantPreparation({
   visible = true,
   onHeldChange,
   canPrepare = true,
-}: GrantFormProps) {
+  newKey,
+  session,
+}: GrantPreparationOptions) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
   const today = utcToday();
-  const [newMemberId] = useState(() => crypto.randomUUID());
+  const [newMemberId] = useState(newKey);
   const [member, setMember] = useState('new');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -83,7 +80,7 @@ export function useGrantPreparation({
   const [authorityReference, setAuthorityReference] = useState('');
   const [reason, setReason] = useState('');
   const [acceptanceRequired, setAcceptanceRequired] = useState(false);
-  const [files, setFiles] = useState<Partial<Record<DocumentKind, File>>>({});
+  const [files, setFiles] = useState<Partial<Record<GrantDocumentKind, RegisterEvidenceFile>>>({});
   const [busy, setBusy] = useState(false);
   const [held, setHeld] = useState(false);
   const [error, setError] = useState('');
@@ -93,7 +90,7 @@ export function useGrantPreparation({
     unavailable.current = blocked || !visible;
   }, [blocked, visible]);
   const pending = useRef(false);
-  const uploads = useRef<Partial<Record<DocumentKind, Uploaded>>>({});
+  const uploads = useRef<Partial<Record<GrantDocumentKind, Uploaded>>>({});
   const operation = useRef<{
     request: RegisterGrantPreparation;
     agreementFingerprint?: string;
@@ -112,7 +109,8 @@ export function useGrantPreparation({
       throw createUserFriendlyError('Refresh company access and register records before continuing.');
     if (!mounted.current) throw createUserFriendlyError('This grant form is closed. Reopen it before continuing.');
   };
-  const documentKinds: DocumentKind[] = [
+  const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: check });
+  const documentKinds: GrantDocumentKind[] = [
     'authority',
     ...(!award ? ['terms' as const] : []),
     ...(acceptanceRequired ? ['acceptance' as const] : []),
@@ -135,7 +133,7 @@ export function useGrantPreparation({
     | 'director'
     | 'reference'
     | 'reason'
-    | `${DocumentKind}Document`
+    | `${GrantDocumentKind}Document`
   > = {
     name: newRecipient && !recipientName && NEW_PERSON_PROBLEMS.NAME,
     address: newRecipient && !recipientAddress && NEW_PERSON_PROBLEMS.ADDRESS,
@@ -154,12 +152,12 @@ export function useGrantPreparation({
     termsDocument: documentKinds.includes('terms') && !files.terms && 'Choose the terms document.',
     acceptanceDocument: documentKinds.includes('acceptance') && !files.acceptance && 'Choose the acceptance document.',
   };
-  const upload = async (kind: DocumentKind) => {
+  const upload = async (kind: GrantDocumentKind) => {
     const file = files[kind]!;
     const previous = uploads.current[kind];
     const same = previous?.file === file && previous.appointment === appointment.uuid;
     if (same && previous.receipt) return previous.receipt;
-    const key = same ? previous.key : crypto.randomUUID();
+    const key = same ? previous.key : newKey();
     uploads.current[kind] = { file, appointment: appointment.uuid, key, receipt: null };
     const request = {
       companyId: company,
@@ -168,11 +166,7 @@ export function useGrantPreparation({
       idempotencyKey: key,
     };
     check();
-    const { data } = await uploadRegisterEvidence(
-      apiClient,
-      { ...request, file },
-      { ledovaSubmissionGuard: check },
-    ).catch((failure) => {
+    const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, config()).catch((failure) => {
       if (failureStatus(failure) === 409) delete uploads.current[kind];
       throw failure;
     });
@@ -187,7 +181,7 @@ export function useGrantPreparation({
   const lookup = async (request: RegisterGrantPreparation, agreementFingerprint?: string) => {
     const rows = await readEveryPage(async (page) => {
       check();
-      const response = await getRegisterGrants(apiClient, { token, page }, { ledovaSubmissionGuard: check });
+      const response = await getRegisterGrants(apiClient, { token, page }, config());
       check();
       return response;
     });
@@ -222,7 +216,7 @@ export function useGrantPreparation({
         const termsEvidence = agreement ? agreement.evidence : (await upload('terms')).uuid;
         const acceptance = acceptanceRequired ? await upload('acceptance') : null;
         const request: RegisterGrantPreparation = {
-          operationId: crypto.randomUUID(),
+          operationId: newKey(),
           appointment: appointment.uuid,
           tokenId: token,
           ...(award
@@ -253,7 +247,7 @@ export function useGrantPreparation({
       if (!command.confirmed) {
         try {
           check();
-          const { data } = await prepareRegisterGrant(apiClient, command.request, { ledovaSubmissionGuard: check });
+          const { data } = await prepareRegisterGrant(apiClient, command.request, config());
           check();
           if (!isPreparedRegisterGrant(data, command.request, command.agreementFingerprint))
             throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
@@ -318,6 +312,7 @@ export function useGrantPreparation({
     setTermsOn,
     approvingDirector,
     setApprovingDirector,
+    terms,
     setTerms,
     authorityReference,
     setAuthorityReference,

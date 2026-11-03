@@ -153,8 +153,8 @@ members.
 A grant on a class with no contract is a register entry only; a chain grant mints shares, and the
 register records the issue once the mint is final.
 
-On the web, the first three paths start from Ledger's **Issue shares** task. Choose the class to
-read its issues, each with its recipient, stage, key figures and next action, and **Show details
+On the web and in the mobile app, the first three paths start from Ledger's **Issue shares** task.
+Choose the class to read its issues, each with its recipient, stage, key figures and next action, and **Show details
 and documents** for the rest. **Prepare issue**, beneath the records, asks **What kind of issue?**:
 
 - **Investor issue** opens the external allotment form.
@@ -164,6 +164,12 @@ Preparation replaces the record list with the chosen form. Switching between the
 was entered in each form until it is closed or an issue is prepared, when the records return.
 A sibling group is hidden only after a current successful read proves it empty; loading and failed
 reads remain visible. For a class that uses the chain the task says "Issues for a class that uses the chain aren’t available in the web app." Chain grants go through the API.
+
+The mobile app's Issue shares has the same records, forms, reviews and decisions at phone width, for a
+register reader of the selected company. **Share class** is in Filters and stays locked while a
+preparation or review is open, each issue's documents go to the phone's share sheet, and a chain class
+says its issues aren’t available in the app. A class whose register is not yet opened needs register
+setup on the web first.
 
 ### What each record changes
 
@@ -204,8 +210,8 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
 A non-paid grant records a company-authorised issue as an Issue entry, with no application, payment,
 wallet or chain transaction.
 
-1. On the web, in Ledger choose Issue shares and the class, then Prepare issue and Non-paid issue;
-   or choose Issue vested shares on an award in Employee share scheme.
+1. On the web or in the app, in Ledger choose Issue shares and the class, then Prepare issue and
+   Non-paid issue; or choose Issue vested shares on an award in Employee share scheme.
 2. Choose who receives the shares ([choosing a person](register.md#choosing-a-person)), or New person
    with their name and residential address; names never link an account.
 3. Give the shares, the company issue date, the separate date of the terms, the non-paid terms, the
@@ -257,9 +263,9 @@ on wide screens and stacked on smaller ones. Preparation, vesting and entitlemen
 action in the bottom-right footer. The view reads on entry and after your changes, without background
 refreshes. Failed reads retain Try again, and an interrupted submission keeps its original retry.
 The mobile app's **Shareholders → Employee scheme** has the same rows, award pages and forms at phone
-width, for a register reader of the selected company, and shares each retained document through the
-phone's share sheet. It has no **Issue vested shares** yet, so issuing stays on the web, and the
-non-paid issues on an award's page don't open their records there.
+width, for a register reader of the selected company, with **Issue vested shares** and each non-paid
+issue opening its record on Issue shares, and shares each retained document through the phone's share
+sheet.
 
 1. Choose Shareholders → Employee scheme in the sidebar, select the share class, then Record an employee award. Choose the recipient
    ([choosing a person](register.md#choosing-a-person)) and give the promised shares, the agreement date and terms, the recorded vesting
@@ -317,7 +323,8 @@ award fulfilment.
 A company records an investment it arranged outside Ledova and the fully paid allotment it approves.
 No deployment, application, payment or chain receipt is involved.
 
-1. On the web, in Ledger choose Issue shares and the class, then Prepare issue and Investor issue.
+1. On the web or in the app, in Ledger choose Issue shares and the class, then Prepare issue and
+   Investor issue.
 2. Person and shares: choose who receives the shares, or New person with their particulars
    ([choosing a person](register.md#choosing-a-person)), then give the shares
    and the full consideration in AUD.
@@ -326,8 +333,8 @@ No deployment, application, payment or chain receipt is involved.
 4. Company authority and review: check the recipient, class, quantity and AUD total, then give the
    company issue date, approving director, authority reference, reason and authority document.
    Choose Prepare allotment.
-5. On the prepared record, choose Review and approve. The web opens Review share issue in place of
-   the list. Check the recipient, class, agreed shares, AUD total and derived price per share, then
+5. On the prepared record, choose Review and approve. The web and the app open Review share issue in
+   place of the list. Check the recipient, class, agreed shares, AUD total and derived price per share, then
    each shareholder's shares and class percentage before and after the proposed issue. Agreement
    and receipt sit beside company authority, with long terms, documents and audit references on
    demand. Cancel returns to the record. The green Approve action confirms that exact preview and
@@ -337,15 +344,17 @@ No deployment, application, payment or chain receipt is involved.
    completed record shows Approved and the recorded shares. Rejection also uses a focused page
    review.
 
-The web form shows one step at a time using the same step indicator and fields as Ledger setup.
+The form shows one step at a time, on the web with the same step indicator and fields as Ledger
+setup, and in the app with the same steps.
 Back preserves entries and selected files; Continue validates that step without uploading or saving.
-Preparation saves the proposal without approving or issuing shares. The final web Approve is one
+Preparation saves the proposal without approving or issuing shares. The final Approve is one
 idempotent transaction: if any authority, evidence, identity or ownership check fails, neither a
 new approval nor an issue is recorded. Retrying the same command returns its original outcome
 without issuing twice. An earlier current approval is retained and reused; its history is not
 rewritten.
 
-On the web, this forecast comes from one current class snapshot in the decision preview.
+On the web and in the app, this forecast comes from one current class snapshot in the decision
+preview.
 The recipient is visible first, with other shareholders available on demand for a longer list.
 Price is rounded half-up to four decimal places and percentages to two; the agreed total and whole
 share quantity stay exact. Percentages count shares in this class, not voting or economic rights,
@@ -357,7 +366,7 @@ command remain available.
 The amount received must equal the consideration, because only fully paid allotments are supported.
 The receipt does not authorise issuance. The completed allotment records one Issue; the agreement,
 receipt, approval and resulting ownership stay separate retained records, shown under Details and
-documents on web. Combining the web confirmation neither collects nor settles money.
+documents on the web and in the app. Combining the confirmation neither collects nor settles money.
 Rejecting an allotment keeps its agreement and receipt and performs no refund. A receipt is shown as
 attested by the company, not verified by Ledova. The register's amount paid then includes the
 consideration ([amount paid](register.md#amount-paid-and-date-entered)).

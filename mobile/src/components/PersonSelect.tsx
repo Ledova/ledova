@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { NEW_PERSON, personChoices, type Person, type PersonChoice } from '@ledova/shared';
-import { SearchSelect } from '../../components/SearchSelect';
+import { SearchSelect } from './SearchSelect';
 
 const NEW_CHOICE: PersonChoice[] = [{ value: 'new', label: NEW_PERSON, detail: '' }];
 const PEOPLE = ['person', 'people'] as const;

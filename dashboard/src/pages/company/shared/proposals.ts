@@ -1,28 +1,4 @@
-import {
-  REGISTER_CORRECTION_COPY,
-  appointmentForRegisterStep,
-  type OwnCompanyAppointment,
-  type RegisterEntry,
-  type RegisterStep,
-  type TokenHoldersResponse,
-  formatDate,
-} from '@ledova/shared';
-
-export type RegisterSteps = Partial<Record<RegisterStep, OwnCompanyAppointment>>;
-
-export const DOWNLOAD_FAILED = 'The file could not be downloaded. Try again.';
-
-export const STEP_CHANGED =
-  'Your appointment for this step changed or could not be checked. Cancel and start this decision again.';
-
-export function registerSteps(appointments: OwnCompanyAppointment[], company: string): RegisterSteps {
-  return {
-    prepare: appointmentForRegisterStep(appointments, company, 'prepare'),
-    approve: appointmentForRegisterStep(appointments, company, 'approve'),
-    apply: appointmentForRegisterStep(appointments, company, 'apply'),
-    reject: appointmentForRegisterStep(appointments, company, 'reject'),
-  };
-}
+import { REGISTER_CORRECTION_COPY, type RegisterEntry, type TokenHoldersResponse, formatDate } from '@ledova/shared';
 
 export function registerMembers(registers: TokenHoldersResponse[]) {
   const members = new Map<string, string | null>();
