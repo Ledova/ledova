@@ -10,14 +10,9 @@ import {
 } from '@ledova/shared';
 import { LoadMore } from '@components/List';
 import { PAGE_SIZE } from '@hooks/useListParams';
-import { Rows, Row, Section, Status, type Tone, ShowMore } from '@components/Ledger';
+import { Rows, Row, Section, Status, ShowMore } from '@components/Ledger';
 import { PageLink } from '@components/Page';
 import { shareholderPath } from './shareholders';
-
-const REGISTER_INITIALIZATION_TONES = new Map<boolean, Tone>([
-  [true, 'done'],
-  [false, 'waiting'],
-]);
 
 export function ClassRegister({ register, former = true }: { register: TokenHoldersResponse; former?: boolean }) {
   return (
@@ -37,11 +32,11 @@ export function ClassRegister({ register, former = true }: { register: TokenHold
             </dd>
           </div>
         </dl>
-        <p className="mt-3 text-xs text-text-muted">
-          <Status tone={REGISTER_INITIALIZATION_TONES.get(!!register.initialized)!}>
-            {register.initialized ? 'Ledger opened' : 'Ledger not opened'}
-          </Status>
-        </p>
+        {!register.initialized && (
+          <p className="mt-3 text-xs text-text-muted">
+            <Status tone="waiting">Ledger not opened</Status>
+          </p>
+        )}
       </section>
       {register.token.totalSupply !== TECHNICAL_SHARE_LIMIT && (
         <p className="text-sm text-text-muted">

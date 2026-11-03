@@ -23,6 +23,7 @@ export function LinkRow({
   label,
   context,
   aside,
+  disabled = false,
   children,
 }: {
   to: string;
@@ -30,15 +31,25 @@ export function LinkRow({
   label: string;
   context?: string;
   aside?: ReactNode;
+  disabled?: boolean;
   children?: ReactNode;
 }) {
   return (
-    <div className="group relative flex items-center justify-between gap-4 py-3 text-sm">
+    <div
+      className={`group relative flex items-center justify-between gap-4 py-3 text-sm ${disabled ? 'opacity-50' : ''}`}
+    >
       <div className="min-w-0 flex-1">
         <Link
           to={to}
           state={state}
-          className="break-words font-medium text-text-primary after:absolute after:inset-0 group-hover:text-brand-light"
+          onClick={(event) => {
+            if (disabled) event.preventDefault();
+          }}
+          onAuxClick={(event) => {
+            if (disabled) event.preventDefault();
+          }}
+          aria-disabled={disabled || undefined}
+          className={`break-words font-medium text-text-primary after:absolute after:inset-0 ${disabled ? 'cursor-not-allowed' : 'group-hover:text-brand-light'}`}
         >
           {label}
           {context && (
@@ -51,7 +62,10 @@ export function LinkRow({
         {children}
       </div>
       {aside}
-      <CaretRightIcon aria-hidden="true" className="shrink-0 text-text-muted group-hover:text-brand-light" />
+      <CaretRightIcon
+        aria-hidden="true"
+        className={`shrink-0 text-text-muted ${disabled ? '' : 'group-hover:text-brand-light'}`}
+      />
     </div>
   );
 }
