@@ -1,10 +1,16 @@
 import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
-import { REGISTER_PARTICULARS_COPY, formatDateTime, type RegisterParticularsChange, formatDate } from '@ledova/shared';
+import {
+  REGISTER_PARTICULARS_COPY,
+  formatDateTime,
+  type RegisterParticularsChange,
+  formatDate,
+  useParticularsRecordDownload,
+} from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
-import { useParticularsRecordDownload } from './useRegisterRecordDownload';
+import { BROWSER_FILES } from '@utils/saveFile';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 
 const COPY = REGISTER_PARTICULARS_COPY;
@@ -42,7 +48,7 @@ export function ParticularsRecord({
   visible?: boolean;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
-  const download = useParticularsRecordDownload(change, check);
+  const download = useParticularsRecordDownload(change, check, BROWSER_FILES);
   const edit = !change.supportingEvidence;
   return (
     <RecordShell hidden={!visible} landed={landed}>

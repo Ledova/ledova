@@ -1,4 +1,11 @@
-import type { RegisterParticularsChange, RegisterParticularsEdit } from '../types';
+import type { RegisterParticularsChange, RegisterParticularsEdit, TokenHoldersResponse } from '../types';
+
+export function registerMembers(registers: TokenHoldersResponse[]) {
+  const members = new Map<string, string | null>();
+  for (const { member, name } of registers.flatMap((register) => register.holders))
+    if (!members.get(member)) members.set(member, name);
+  return members;
+}
 
 export function isRegisterParticularsEditReceipt(change: RegisterParticularsChange, request: RegisterParticularsEdit) {
   return (

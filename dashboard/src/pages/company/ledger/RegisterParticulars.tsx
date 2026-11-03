@@ -1,16 +1,16 @@
 import {
   REGISTER_PARTICULARS_COPY,
   hasCurrentRegisterReadAuthority,
+  registerMembers,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
   useOwnAppointments,
   usePeople,
+  useRegisterParticulars,
 } from '@ledova/shared';
 import { Section, LoadError, Loading } from '@components/Ledger';
 
 import { ParticularsRecord } from './ParticularsRecord';
-import { registerMembers } from '@pages/company/shared/proposals';
-import { useRegisterParticulars } from '@pages/company/ledger/shared/useRegisterParticulars';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 
 const COPY = REGISTER_PARTICULARS_COPY;

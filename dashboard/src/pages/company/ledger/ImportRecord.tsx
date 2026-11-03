@@ -11,13 +11,14 @@ import {
   type RegisterImport,
   type RegisterImportDecisionPreview,
   type RegisterSteps,
+  useImportRecordDownload,
 } from '@ledova/shared';
 import { Row, Rows, ShowMore } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { MemberRecords } from '@pages/company/ledger/shared/MemberRecords';
-import { useImportRecordDownload } from './useRegisterRecordDownload';
+import { BROWSER_FILES } from '@utils/saveFile';
 
 function ImportPreview({ preview }: { preview: RegisterImportDecisionPreview }) {
   return (
@@ -83,7 +84,7 @@ export function ImportRecord({
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
-  const download = useImportRecordDownload(proposal, check);
+  const download = useImportRecordDownload(proposal, check, BROWSER_FILES);
   const totals = registerImportTotals(proposal.members);
   const downloadActions = (
     <>

@@ -1,18 +1,20 @@
 import { useId, useState, type ReactNode } from 'react';
 import {
   REGISTER_CORRECTION_COPY,
+  entryDate,
+  entryLabel,
+  entryName,
   formatDate,
   hasCurrentRegisterReadAuthority,
   type OrderSubmissionOwner,
   type RegisterEntry,
   type TokenHoldersResponse,
   useOwnAppointments,
+  useRegisterEntries,
 } from '@ledova/shared';
 import { LoadError, Loading, MoreToggle, Status } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
-import { entryDate, entryLabel, entryName } from '@pages/company/shared/proposals';
-import { useRegisterEntries } from '@pages/company/ledger/shared/useRegisterEntries';
 
 const COPY = REGISTER_CORRECTION_COPY;
 

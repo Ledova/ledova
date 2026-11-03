@@ -1,22 +1,22 @@
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice, PreparationShell } from '@pages/company/ledger/shared/PreparationShell';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
-import { useCorrectionEntry } from './useCorrectionEntry';
 import { useMemo, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
 import {
   REGISTER_CORRECTION_COPY,
   appointmentForRegisterStep,
+  describeEntry,
+  entryInverse,
   type OrderSubmissionOwner,
-  type RegisterEntry,
+  useCorrectionEntry,
   useOwnAppointments,
   useRegisterClasses,
 } from '@ledova/shared';
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
-import { describeEntry } from '@pages/company/shared/proposals';
 
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { CorrectionForm } from './CorrectionForm';
@@ -26,10 +26,6 @@ const COPY = REGISTER_CORRECTION_COPY;
 const LEDE =
   "Prepare a correction that reverses one entry of a share class's register exactly. The authority document is " +
   'provided by the company.';
-
-function inverseOf(entry: RegisterEntry) {
-  return entry.changes.map((change) => ({ ...change, shares: (-BigInt(change.shares)).toString() }));
-}
 
 export default function CompanyRegisterCorrectionPage() {
   const { uuid = '', entry = '' } = useParams();
@@ -117,7 +113,7 @@ function OwnCorrection({
               <RegisterChanges changes={corrected.data.changes} />
             </Row>
             <Row label={COPY.COMPENSATING_CHANGES}>
-              <RegisterChanges changes={inverseOf(corrected.data)} />
+              <RegisterChanges changes={entryInverse(corrected.data)} />
             </Row>
           </Rows>
           <p className="text-sm text-text-muted">{COPY.COMPENSATION_NOTE}</p>

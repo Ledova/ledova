@@ -1,30 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import {
-  REGISTER_CORRECTION_COPY,
-  apiErrorSentence,
-  createUserFriendlyError,
-  failureStatus,
-  isPreparedRegisterCorrection,
-  isRegisterEvidenceReceipt,
-  prepareRegisterCorrection,
-  uploadRegisterEvidence,
-  type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
-  type RegisterCorrectionAuthority,
-  type RegisterEntry,
-  type RegisterEvidence,
-  utcToday,
-} from '@ledova/shared';
-
-import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { correctionsKey } from '@pages/company/ledger/shared/useClassCorrections';
-import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
+import { REGISTER_CORRECTION_COPY as COPY } from '../constants/business/register-corrections';
+import { uploadRegisterEvidence } from '../services/register-commands';
+import { prepareRegisterCorrection } from '../services/register-corrections';
+import type {
+  OwnCompanyAppointment,
+  RegisterCorrectionAuthority,
+  RegisterDocumentFile,
+  RegisterEntry,
+  RegisterEvidence,
+} from '../types';
+import { utcToday } from '../utils/date';
+import { apiErrorSentence, createUserFriendlyError, failureStatus } from '../utils/errors';
+import { isRegisterEvidenceReceipt } from '../utils/register-commands';
+import { isPreparedRegisterCorrection } from '../utils/register-corrections';
+import { useApiClient } from './useApiClient';
+import { correctionsKey } from './useClassCorrections';
+import { hasProblems, type Problems } from './useErrorSummary';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 type Draft = {
-  file: File | null;
+  file: RegisterDocumentFile | null;
   effectiveOn: string;
   authority: RegisterCorrectionAuthority;
   director: string;
@@ -32,9 +28,7 @@ type Draft = {
   reason: string;
 };
 
-type Upload = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };
-
-export const COPY = REGISTER_CORRECTION_COPY;
+type Upload = { file: RegisterDocumentFile; appointment: string; key: string; receipt: RegisterEvidence | null };
 
 const FAILED = 'The correction could not be prepared. Retry with the same details.';
 
@@ -60,7 +54,7 @@ function problemsOf(
   };
 }
 
-export type CorrectionFormProps = {
+export type CorrectionPreparationOptions = {
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
@@ -69,6 +63,9 @@ export type CorrectionFormProps = {
   appointment: OwnCompanyAppointment;
   blocked: boolean;
   onConflict: () => void;
+  onPrepared: (uuid: string) => void;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 };
 
 export function useCorrectionPreparation({
@@ -80,9 +77,12 @@ export function useCorrectionPreparation({
   appointment,
   blocked,
   onConflict,
-}: CorrectionFormProps) {
+  onPrepared,
+  newKey,
+  session,
+}: CorrectionPreparationOptions) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
-  const navigate = useNavigate();
   const today = utcToday();
   const [draft, setDraft] = useState<Draft>(() => ({
     file: null,
@@ -108,17 +108,18 @@ export function useCorrectionPreparation({
     guard();
     if (!mounted.current) throw createUserFriendlyError(CLOSED);
   };
+  const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: check });
   const update = (patch: Partial<Draft>) => {
     setError('');
     setDraft((current) => ({ ...current, ...patch }));
   };
   const problems = problemsOf(draft, today);
 
-  const upload = async (file: File) => {
+  const upload = async (file: RegisterDocumentFile) => {
     const previous = uploaded.current;
     const same = previous?.file === file && previous.appointment === appointment.uuid;
     if (same && previous.receipt) return previous.receipt;
-    const key = same ? previous.key : crypto.randomUUID();
+    const key = same ? previous.key : newKey();
     uploaded.current = { file, appointment: appointment.uuid, key, receipt: null };
     const request = {
       companyId: company,
@@ -128,7 +129,7 @@ export function useCorrectionPreparation({
     };
     try {
       check();
-      const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, { ledovaSubmissionGuard: check });
+      const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, config());
       check();
       if (!isRegisterEvidenceReceipt(data, request, file.size)) {
         uploaded.current = null;
@@ -161,12 +162,12 @@ export function useCorrectionPreparation({
         reason: draft.reason.trim(),
       };
       const signature = JSON.stringify(request);
-      if (operation.current?.signature !== signature) operation.current = { signature, key: crypto.randomUUID() };
+      if (operation.current?.signature !== signature) operation.current = { signature, key: newKey() };
       const preparation = { operationId: operation.current.key, ...request };
       let prepared = '';
       try {
         check();
-        const { data } = await prepareRegisterCorrection(apiClient, preparation, { ledovaSubmissionGuard: check });
+        const { data } = await prepareRegisterCorrection(apiClient, preparation, config());
         check();
         if (!isPreparedRegisterCorrection(data, preparation))
           throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
@@ -181,14 +182,7 @@ export function useCorrectionPreparation({
       check();
       await client.invalidateQueries({ queryKey: correctionsKey(owner, token) });
       check();
-      const place = registerPlace({
-        company,
-        token,
-        task: 'corrections',
-        record: prepared,
-        outcome: 'Correction prepared.',
-      });
-      navigate(place.to, { state: place.state });
+      onPrepared(prepared);
     } catch (failure) {
       try {
         check();

@@ -1,12 +1,21 @@
+import { useNavigate } from 'react-router-dom';
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { Choices } from '@components/Choices';
-import { useCorrectionPreparation, type CorrectionFormProps, COPY } from './useCorrectionPreparation';
 
-import { FIELD_LIMITS, type RegisterCorrectionAuthority } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  REGISTER_CORRECTION_COPY as COPY,
+  type CorrectionPreparationOptions,
+  type RegisterCorrectionAuthority,
+  useCorrectionPreparation,
+} from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { Failure } from '@components/Ledger';
+import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
+
+type CorrectionFormProps = Omit<CorrectionPreparationOptions, 'onPrepared' | 'newKey' | 'session'>;
 
 const AUTHORITIES = Object.entries(COPY.AUTHORITIES) as [RegisterCorrectionAuthority, string][];
 
@@ -20,6 +29,7 @@ export function CorrectionForm({
   blocked,
   onConflict,
 }: CorrectionFormProps) {
+  const navigate = useNavigate();
   const { today, draft, busy, error, update, problems, submit } = useCorrectionPreparation({
     owner,
     guard,
@@ -29,6 +39,11 @@ export function CorrectionForm({
     appointment,
     blocked,
     onConflict,
+    onPrepared: (record) => {
+      const place = registerPlace({ company, token, task: 'corrections', record, outcome: COPY.PREPARED });
+      navigate(place.to, { state: place.state });
+    },
+    newKey: () => crypto.randomUUID(),
   });
   const checks = useErrorSummary(problems);
 
