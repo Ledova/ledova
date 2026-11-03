@@ -111,6 +111,7 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
         company && companies.length > 1 ? (
           <FilterPopover
             label="Switch company"
+            closeLabel="Close the company switcher"
             icon={<BuildingsIcon size={theme.icon.sizes.md} color={theme.colors.text.primary} />}
           >
             {(close) => (
@@ -118,8 +119,10 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
                 companies={companies}
                 current={company.company.uuid}
                 onChoose={(uuid) => {
-                  if (!selectCompany(uuid)) return;
-                  setChosenClass(null);
+                  if (uuid !== company.company.uuid) {
+                    if (!selectCompany(uuid)) return;
+                    setChosenClass(null);
+                  }
                   close();
                 }}
               />

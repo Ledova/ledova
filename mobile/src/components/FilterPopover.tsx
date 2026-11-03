@@ -6,11 +6,13 @@ import { AnchoredPanel, useAnchor, type Anchor } from './AnchoredPanel';
 
 export function FilterPopover({
   label = 'Filters',
+  closeLabel = `Close ${label.toLowerCase()}`,
   icon,
   active = false,
   children,
 }: {
   label?: string;
+  closeLabel?: string;
   icon?: ReactNode;
   active?: boolean;
   children: (close: () => void) => ReactNode;
@@ -48,8 +50,12 @@ export function FilterPopover({
           />
         )}
       </Pressable>
-      <AnchoredPanel anchor={anchor} closeLabel={`Close ${label.toLowerCase()}`} onClose={close}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <AnchoredPanel anchor={anchor} closeLabel={closeLabel} onClose={close}>
+        <ScrollView
+          automaticallyAdjustKeyboardInsets
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
           {children(close)}
         </ScrollView>
       </AnchoredPanel>

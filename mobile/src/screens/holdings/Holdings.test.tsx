@@ -29,8 +29,8 @@ jest.mock('@react-navigation/native', () => ({
 }));
 jest.mock('../../components/AnchoredPanel', () => ({
   ...jest.requireActual('../../components/AnchoredPanel'),
-  useAnchor: () => (_button: unknown, open: (anchor: { top: number; right: number }) => void) =>
-    open({ top: 0, right: 0 }),
+  useAnchor: () => (button: unknown, open: (anchor: { top: number; right: number }) => void) =>
+    button && open({ top: 0, right: 0 }),
 }));
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn(async () => {}) }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
@@ -179,6 +179,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByRole('button', { name: `${PAST_RECORD.company.name}, Member` })).toBeSelected();
   await fireEvent.press(screen.getByRole('button', { name: `${MEMBER_RECORD.company.name}, Member` }));
   expect(await screen.findByLabelText('Issued shares: 40')).toBeTruthy();
+  expect(screen.queryByLabelText('Your companies')).toBeNull();
   expect(screen.getByLabelText('Your shares: 10')).toBeTruthy();
   expect(screen.getByLabelText('Current shareholders: 3')).toBeTruthy();
   expect(screen.getByText('100.00%')).toBeTruthy();

@@ -24,7 +24,6 @@ function usePickerStyles() {
       gap: theme.spacing.sm,
       paddingHorizontal: 12,
       paddingVertical: theme.spacing.sm,
-      borderRadius: 6,
     },
     current: { backgroundColor: theme.colors.surface.tertiary },
     tick: { marginTop: 2 },
