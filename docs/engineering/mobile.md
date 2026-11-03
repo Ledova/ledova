@@ -385,9 +385,10 @@ A representative authority request's evidence is picked with `expo-file-system`'
 folder's `-Inbox` folder, deleted when another file replaces it, the form goes (its request recorded
 or the page left) or the session changes; a closed form keeps it with its draft. On Android it hands
 over the chosen document itself, which the app never deletes, named from its address. As on the web,
-a file whose name's extension doesn't match its type is refused; a name with no extension at all,
-as Android's names from an address usually are, becomes `document` with its type's extension from
-the shared `UPLOAD_TYPES`.
+a file whose name ends in a PDF, PNG or JPEG extension that doesn't match its type is refused. Any
+other name, with no extension, as Android's names from an address usually are, or ending in something
+else, such as `Payslip 04.11.2026`, becomes `document` with its type's extension from the shared
+`UPLOAD_TYPES` (`uploadType` reads the extension).
 
 For one release, each app start and session change still delete the copies an earlier build's
 picker and uploads left behind (`sweepEarlierUploadCopies` in
@@ -407,7 +408,12 @@ unsigned certificate, inspection copy and company pack arrive as bytes, through 
 in `mobile/src/services/documentCopies.ts`, the app's file delivery for the shared output hooks
 ([downloads](frontend.md#client-sessions-and-caches)): checked as on the web, by the response's
 content type, since React Native's Android blobs carry none, and shared under the web's file name.
-Their form reports the download once the share sheet opens, without waiting for it to close.
+Documents' outputs and the authority evidence, shared from their pages, go through `shareFile`: a
+sheet that fails to open reports the failure, and one still open after 1.5 seconds counts as
+delivered, because iOS never settles a cancelled Save to Files. Data and privacy's export instead
+waits for its sheet to close (`Sharing.shareAsync`): the sheet is presented from the export's dialog,
+a native modal that closes once the export succeeds and would dismiss the sheet with it, so on iOS a
+cancelled Save to Files leaves that dialog busy.
 
 A view is bound to the session current when tapped: its download carries that epoch
 ([session scope](#session-scope)), and a session change before the write stops it without an alert.

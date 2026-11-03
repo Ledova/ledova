@@ -216,8 +216,9 @@ The web dashboard reaches the records and workflows described here. The mobile a
 own records and account, and lists the same companies as the web: a company's administrators and
 register readers see its ownership overview and each class's shareholders there, list its shareholders,
 open each one's page, add a person, change particulars and manage member access under Shareholders,
-and prepare its certificates, inspection copies and company pack in Documents, and the web's Team
-manages appointments and invitations, while other company tasks stay on the web
+and prepare its certificates and inspection copies in Documents, where its administrators also
+prepare the company pack; Settings holds Team, Activation and representative authority, while the
+Ledger, the employee scheme and other company tasks stay on the web
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
 retains its existing route checks;
 company actions follow the person's current appointments, and
