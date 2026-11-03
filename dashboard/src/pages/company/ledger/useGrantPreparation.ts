@@ -23,11 +23,11 @@ import {
   REGISTER_GRANT_UNMET_COPY,
   refusalSentence,
   utcToday,
+  grantsKey,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
 import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { grantsKey } from '@pages/company/ledger/shared/useRegisterGrants';
 
 export type DocumentKind = 'authority' | 'terms' | 'acceptance';
 

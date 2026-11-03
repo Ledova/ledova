@@ -2,12 +2,13 @@ import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY } from '@ledova/shared';
-import { useAwardAdjustmentForm } from './useAwardAdjustmentForm';
+import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY, useAwardAdjustmentForm } from '@ledova/shared';
 import { Failure } from '@components/Ledger';
 
-export function AwardAdjustmentForm(props: Parameters<typeof useAwardAdjustmentForm>[0] & { onCancel: () => void }) {
-  const form = useAwardAdjustmentForm(props);
+export function AwardAdjustmentForm(
+  props: Omit<Parameters<typeof useAwardAdjustmentForm>[0], 'newKey' | 'session'> & { onCancel: () => void },
+) {
+  const form = useAwardAdjustmentForm({ ...props, newKey: () => crypto.randomUUID() });
   const checks = useErrorSummary(form.problems);
   const cancel = (
     <PageAction

@@ -13,22 +13,21 @@ import {
   type RegisterGrant,
   shareCount,
   formatDate,
+  STAGE_TONES,
+  awardVestingsKey,
+  awardEndsKey,
+  awardVestingReversalsKey,
+  useAwardRecordDownload,
+  useRegisterAwardVestings,
+  useRegisterAwardEnds,
+  useRegisterAwardVestingReversals,
 } from '@ledova/shared';
 import { LinkRow, MoreToggle, Row, Rows, Section, Status, LoadError, Loading } from '@components/Ledger';
 import { FormActions, PageAction, PageLink } from '@components/Page';
 import { AwardStatus } from '@components/AwardStatus';
-import { STAGE_TONES } from '@pages/company/shared/proposals';
-import {
-  awardVestingsKey,
-  awardEndsKey,
-  awardVestingReversalsKey,
-  useRegisterAwardVestings,
-  useRegisterAwardEnds,
-  useRegisterAwardVestingReversals,
-} from '@pages/company/ledger/shared/useRegisterAwards';
 import { AwardVestingForm } from './AwardVestingForm';
 import { AwardAdjustmentForm } from './AwardAdjustmentForm';
-import { useAwardRecordDownload } from './useAwardRecordDownload';
+import { BROWSER_FILES } from '@utils/saveFile';
 
 const LATEST_VESTINGS = 3;
 
@@ -96,7 +95,17 @@ export function AwardRecord({
     )
       throw new Error('Refresh this award and its current records before continuing.');
   };
-  const download = useAwardRecordDownload(owner, award, guard, blocked, visible, events, ends, reversals);
+  const download = useAwardRecordDownload(
+    owner,
+    award,
+    guard,
+    blocked,
+    visible,
+    events,
+    ends,
+    reversals,
+    BROWSER_FILES,
+  );
   const settle = async () => {
     guard();
     await Promise.all([

@@ -16,10 +16,11 @@ import {
   registerKey,
   allPeopleKey,
   usePeople,
+  awardsKey,
+  useRegisterAwards,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
-import { awardsKey, useRegisterAwards } from '@pages/company/ledger/shared/useRegisterAwards';
 import { awardPath } from '@pages/company/ledger/shared/awards';
 import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
 

@@ -51,14 +51,27 @@ export const getRegisterAwardVesting = (apiClient: AxiosInstance, uuid: string, 
   apiClient.get<RegisterAwardVesting>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING(uuid), config);
 
 export const downloadRegisterAwardFile = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
-  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_FILE(uuid), { ...config, responseType: 'blob' });
+  config.responseType === 'arraybuffer'
+    ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_FILE(uuid), {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_FILE(uuid), { ...config, responseType: 'blob' });
 
 export const downloadRegisterAwardVestingFile = (
   apiClient: AxiosInstance,
   uuid: string,
   config: AxiosRequestConfig = {},
 ) =>
-  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_FILE(uuid), { ...config, responseType: 'blob' });
+  config.responseType === 'arraybuffer'
+    ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_FILE(uuid), {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_FILE(uuid), {
+        ...config,
+        responseType: 'blob',
+      });
 
 export const getRegisterAwardEnds = (
   apiClient: AxiosInstance,
@@ -79,8 +92,17 @@ export const recordRegisterAwardEnd = (
   config: AxiosRequestConfig = {},
 ) => apiClient.post<RegisterAwardEnd>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_ENDS, data, config);
 
-export const downloadRegisterAwardEndFile = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
-  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_END_FILE(uuid), { ...config, responseType: 'blob' });
+export const downloadRegisterAwardEndFile = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  config: AxiosRequestConfig = {},
+) =>
+  config.responseType === 'arraybuffer'
+    ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_END_FILE(uuid), {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_END_FILE(uuid), { ...config, responseType: 'blob' });
 
 export const getRegisterAwardVestingReversals = (
   apiClient: AxiosInstance,
@@ -110,7 +132,12 @@ export const downloadRegisterAwardVestingReversalFile = (
   uuid: string,
   config: AxiosRequestConfig = {},
 ) =>
-  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_REVERSAL_FILE(uuid), {
-    ...config,
-    responseType: 'blob',
-  });
+  config.responseType === 'arraybuffer'
+    ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_REVERSAL_FILE(uuid), {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_AWARD_VESTING_REVERSAL_FILE(uuid), {
+        ...config,
+        responseType: 'blob',
+      });

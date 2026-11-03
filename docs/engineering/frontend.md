@@ -169,7 +169,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   work never crosses accounts. Its query keys carry the owner and every request passes
   `ledovaSubmissionGuard`, which `apiClient` checks, so a late reply cannot reach another account
   (the owner key in `dashboard/src/pages/home/OwnershipBrowser.tsx`, the guard in
-  `dashboard/src/pages/company/ledger/shared/useRegisterGrants.ts`). Mobile adds the session epoch
+  `packages/shared/src/hooks/useRegisterGrants.ts`). Mobile adds the session epoch
   ([session scope](mobile.md#session-scope)).
 - **API client.** Shared services take the axios instance first. Shared hooks read it with
   `useApiClient()` and never take it as an argument; dashboard hooks import the `apiClient`

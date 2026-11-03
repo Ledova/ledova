@@ -20,3 +20,8 @@ export function downloadedFile(response: { data?: unknown; headers?: unknown }):
 export async function downloadedText(file: DownloadedFile) {
   return file.data instanceof Blob ? file.data.text() : new TextDecoder().decode(file.data);
 }
+
+export function retainedName(snapshot: unknown, fallback: string) {
+  const name = (snapshot as { name?: unknown } | null)?.name;
+  return typeof name === 'string' && name ? name : fallback;
+}

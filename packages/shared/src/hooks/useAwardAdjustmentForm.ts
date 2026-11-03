@@ -1,28 +1,27 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { REGISTER_AWARD_COPY as COPY, REGISTER_AWARD_UNMET_COPY } from '../constants/business/register-awards';
 import {
-  REGISTER_AWARD_COPY as COPY,
-  apiErrorSentence,
-  createUserFriendlyError,
-  failureStatus,
   getRegisterAwardEnd,
   getRegisterAwardVestingReversal,
-  isRecordedRegisterAwardEnd,
-  isRecordedRegisterAwardVestingReversal,
-  isRegisterEvidenceReceipt,
   recordRegisterAwardEnd,
   recordRegisterAwardVestingReversal,
-  uploadRegisterEvidence,
-  type OwnCompanyAppointment,
-  type RegisterAward,
-  type RegisterAwardEndPreparation,
-  type RegisterAwardVestingReversalPreparation,
-  type RegisterEvidence,
-  REGISTER_AWARD_UNMET_COPY,
-  refusalSentence,
-  utcToday,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+} from '../services/register-awards';
+import { uploadRegisterEvidence } from '../services/register-commands';
+import type {
+  OwnCompanyAppointment,
+  RegisterAward,
+  RegisterAwardEndPreparation,
+  RegisterAwardVestingReversalPreparation,
+  RegisterEvidence,
+  RegisterEvidenceFile,
+} from '../types';
+import { utcToday } from '../utils/date';
+import { apiErrorSentence, createUserFriendlyError, failureStatus, refusalSentence } from '../utils/errors';
+import { isRecordedRegisterAwardEnd, isRecordedRegisterAwardVestingReversal } from '../utils/register-awards';
+import { isRegisterEvidenceReceipt } from '../utils/register-commands';
+import { useApiClient } from './useApiClient';
+import { hasProblems, type Problems } from './useErrorSummary';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 
 type Command = (
   | { kind: 'end'; request: RegisterAwardEndPreparation }
@@ -40,6 +39,8 @@ export function useAwardAdjustmentForm({
   canPrepare,
   onRecorded,
   onHeldChange,
+  newKey,
+  session,
 }: {
   award: RegisterAward;
   appointment: OwnCompanyAppointment;
@@ -52,13 +53,16 @@ export function useAwardAdjustmentForm({
   canPrepare: boolean;
   onRecorded: () => Promise<unknown>;
   onHeldChange: (held: boolean) => void;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 }) {
+  const apiClient = useApiClient();
   const [unvestedShares, setUnvestedShares] = useState('0');
   const [vestedShares, setVestedShares] = useState('0');
   const [reversedShares, setReversedShares] = useState('');
   const [companyEventOn, setCompanyEventOn] = useState('');
   const [reason, setReason] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<RegisterEvidenceFile | null>(null);
   const [busy, setBusy] = useState(false);
   const [held, setHeld] = useState(false);
   const [error, setError] = useState('');
@@ -76,7 +80,7 @@ export function useAwardAdjustmentForm({
     };
   }, []);
   const pending = useRef(false);
-  const upload = useRef<{ file: File; key: string; receipt: RegisterEvidence | null } | null>(null);
+  const upload = useRef<{ file: RegisterEvidenceFile; key: string; receipt: RegisterEvidence | null } | null>(null);
   const operation = useRef<Command | null>(null);
   const check = () => {
     guard();
@@ -87,6 +91,7 @@ export function useAwardAdjustmentForm({
     check();
     if (!preparable.current) throw createUserFriendlyError('Current preparation authority is required.');
   };
+  const config = (current: () => void) => ({ ...session?.requestConfig(), ledovaSubmissionGuard: current });
   const today = utcToday();
   const whole = (value: string) => /^\d+$/.test(value);
   const problems: Problems<
@@ -136,7 +141,7 @@ export function useAwardAdjustmentForm({
           reason: reason.trim(),
           vesting,
         };
-        if (upload.current?.file !== file) upload.current = { file, key: crypto.randomUUID(), receipt: null };
+        if (upload.current?.file !== file) upload.current = { file, key: newKey(), receipt: null };
         const request = {
           companyId: award.company,
           appointment: appointment.uuid,
@@ -144,11 +149,7 @@ export function useAwardAdjustmentForm({
           idempotencyKey: upload.current.key,
         };
         if (!upload.current.receipt) {
-          const { data } = await uploadRegisterEvidence(
-            apiClient,
-            { ...request, file },
-            { ledovaSubmissionGuard: beforeWrite },
-          );
+          const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, config(beforeWrite));
           beforeWrite();
           if (!isRegisterEvidenceReceipt(data, request, file.size)) {
             upload.current = null;
@@ -157,7 +158,7 @@ export function useAwardAdjustmentForm({
           upload.current.receipt = data;
         }
         const common = {
-          operationId: crypto.randomUUID(),
+          operationId: newKey(),
           appointment: appointment.uuid,
           companyEventOn: captured.companyEventOn,
           reason: captured.reason,
@@ -192,18 +193,13 @@ export function useAwardAdjustmentForm({
           const valid =
             command.kind === 'end'
               ? isRecordedRegisterAwardEnd(
-                  (await getRegisterAwardEnd(apiClient, command.request.operationId, { ledovaSubmissionGuard: check }))
-                    .data,
+                  (await getRegisterAwardEnd(apiClient, command.request.operationId, config(check))).data,
                   command.request,
                   award.company,
                   command.evidenceFingerprint,
                 )
               : isRecordedRegisterAwardVestingReversal(
-                  (
-                    await getRegisterAwardVestingReversal(apiClient, command.request.operationId, {
-                      ledovaSubmissionGuard: check,
-                    })
-                  ).data,
+                  (await getRegisterAwardVestingReversal(apiClient, command.request.operationId, config(check))).data,
                   command.request,
                   award.company,
                   award.uuid,
@@ -230,18 +226,13 @@ export function useAwardAdjustmentForm({
           const valid =
             command.kind === 'end'
               ? isRecordedRegisterAwardEnd(
-                  (await recordRegisterAwardEnd(apiClient, command.request, { ledovaSubmissionGuard: writeGuard }))
-                    .data,
+                  (await recordRegisterAwardEnd(apiClient, command.request, config(writeGuard))).data,
                   command.request,
                   award.company,
                   command.evidenceFingerprint,
                 )
               : isRecordedRegisterAwardVestingReversal(
-                  (
-                    await recordRegisterAwardVestingReversal(apiClient, command.request, {
-                      ledovaSubmissionGuard: writeGuard,
-                    })
-                  ).data,
+                  (await recordRegisterAwardVestingReversal(apiClient, command.request, config(writeGuard))).data,
                   command.request,
                   award.company,
                   award.uuid,

@@ -21,6 +21,13 @@ export const REGISTER_MEMBER_DOCUMENT_CATEGORIES: Record<
 
 export const TECHNICAL_SHARE_LIMIT = (2n ** 256n - 1n).toString();
 
+export const STAGE_TONES: Record<string, 'waiting' | 'moving' | 'done' | 'closed'> = {
+  submitted: 'waiting',
+  approved: 'moving',
+  applied: 'done',
+  rejected: 'closed',
+};
+
 export const REGISTER_COPY = {
   QUANTITY_GUARD: 'Internal quantity guard',
   NOT_OPENED_NOTE:

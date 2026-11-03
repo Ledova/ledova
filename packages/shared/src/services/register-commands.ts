@@ -12,7 +12,7 @@ export const uploadRegisterEvidence = (
   form.append('appointment', data.appointment);
   form.append('kind', data.kind);
   form.append('idempotency_key', data.idempotencyKey);
-  form.append('file', data.file);
+  form.append('file', data.file as Blob);
   return apiClient.post<RegisterEvidence>(COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE, form, {
     ...config,
     headers: { ...config?.headers, 'Content-Type': 'multipart/form-data' },
