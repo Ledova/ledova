@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp, NavigatorScreenParams } from '@react-navigation/native';
@@ -59,7 +59,7 @@ function usePanelStyles() {
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.border.subtle,
       },
-      heading: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
+      heading: { ...text, flexShrink: 1, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
       markAll: { ...small, color: theme.colors.brand.light },
       busy: { opacity: 0.5 },
       list: { maxHeight: 384 },
@@ -97,8 +97,10 @@ function usePanelStyles() {
 function Failure({ retry, busy, children }: { retry: () => unknown; busy: boolean; children: string }) {
   const styles = usePanelStyles();
   return (
-    <View accessibilityRole="alert" style={styles.status}>
-      <Text style={styles.failure}>{children}</Text>
+    <View style={styles.status}>
+      <Text accessibilityRole="alert" style={styles.failure}>
+        {children}
+      </Text>
       <Actions>
         <Action label="Try again" disabled={busy} onPress={() => void retry()} />
       </Actions>
@@ -165,6 +167,7 @@ export function NotificationsPanel({ anchor, onClose }: { anchor: Anchor | null;
     isLoadingNotifications,
     notificationsFailed,
     fetchNotifications,
+    refreshUnreadCount,
     markAsRead,
     archive,
     markAllAsRead,
@@ -175,12 +178,16 @@ export function NotificationsPanel({ anchor, onClose }: { anchor: Anchor | null;
     loadMoreNotifications,
   } = useNotifications();
   const open = !!anchor;
+  const load = useCallback(() => {
+    void refreshUnreadCount();
+    return fetchNotifications();
+  }, [fetchNotifications, refreshUnreadCount]);
 
   useEffect(() => {
     if (open) {
-      fetchNotifications();
+      load();
     }
-  }, [open, fetchNotifications]);
+  }, [open, load]);
 
   const follow = (notification: Notification) => {
     const destination = destinationOf(notification.data);
@@ -214,7 +221,7 @@ export function NotificationsPanel({ anchor, onClose }: { anchor: Anchor | null;
             <Text style={styles.loading}>Loading your notifications…</Text>
           </View>
         ) : notificationsFailed && notifications.length === 0 ? (
-          <Failure retry={fetchNotifications} busy={isLoadingNotifications}>
+          <Failure retry={load} busy={isLoadingNotifications}>
             Your notifications could not be loaded.
           </Failure>
         ) : notifications.length === 0 ? (
@@ -222,7 +229,7 @@ export function NotificationsPanel({ anchor, onClose }: { anchor: Anchor | null;
         ) : (
           <>
             {notificationsFailed && (
-              <Failure retry={fetchNotifications} busy={isLoadingNotifications}>
+              <Failure retry={load} busy={isLoadingNotifications}>
                 Your notifications could not be refreshed.
               </Failure>
             )}
@@ -243,13 +250,11 @@ export function NotificationsPanel({ anchor, onClose }: { anchor: Anchor | null;
                 </Failure>
               ) : (
                 <View style={styles.more}>
-                  <Actions>
-                    <Action
-                      label={isLoadingMoreNotifications ? 'Loading notifications…' : 'Load more notifications'}
-                      disabled={isLoadingNotifications || isLoadingMoreNotifications}
-                      onPress={() => void loadMoreNotifications()}
-                    />
-                  </Actions>
+                  <Action
+                    label={isLoadingMoreNotifications ? 'Loading notifications…' : 'Load more notifications'}
+                    disabled={isLoadingNotifications || isLoadingMoreNotifications}
+                    onPress={() => void loadMoreNotifications()}
+                  />
                 </View>
               ))}
           </>

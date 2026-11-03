@@ -28,9 +28,9 @@ const Stack = createNativeStackNavigator<SignedInStackParamList>();
 
 export function SignedInNavigator() {
   const theme = useAppTheme();
-  const [notifications, setNotifications] = useState<Anchor | null>(null);
+  const [notificationsAnchor, setNotificationsAnchor] = useState<Anchor | null>(null);
   const { unreadCount } = useNotifications();
-  const closeNotifications = useCallback(() => setNotifications(null), []);
+  const closeNotifications = useCallback(() => setNotificationsAnchor(null), []);
   useFollowPush(closeNotifications);
   const topBar = (current: Section) => ({
     headerShown: true,
@@ -41,8 +41,8 @@ export function SignedInNavigator() {
         title={options.title}
         action={(options as FrameOptions).action}
         current={current}
-        onNotifications={setNotifications}
-        notificationsOpen={!!notifications}
+        onNotifications={setNotificationsAnchor}
+        notificationsOpen={!!notificationsAnchor}
         unreadCount={unreadCount}
       />
     ),
@@ -62,7 +62,7 @@ export function SignedInNavigator() {
             <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} options={topBar('Settings')} />
             <Stack.Screen name="Invitation" component={InvitationScreen} options={topBar('Dashboard')} />
           </Stack.Navigator>
-          <NotificationsPanel anchor={notifications} onClose={closeNotifications} />
+          <NotificationsPanel anchor={notificationsAnchor} onClose={closeNotifications} />
         </View>
       </InSignedInFrame.Provider>
     </MemberRecordsProvider>

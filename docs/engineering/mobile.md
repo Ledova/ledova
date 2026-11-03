@@ -69,7 +69,7 @@ action (such as Switch company or Filters) and the notifications bell. Inside th
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
 its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
 anchored panel (`AnchoredPanel`) as `FilterPopover`. It has a Notifications header with **Mark all
-as read** while any are unread, and the web's rows with an unread dot and **Dismiss**. It also has
+as read** while any are unread, and the web's rows with an unread dot and a dismiss button. It also has
 **Load more notifications** and the web's loading, failure and "No notifications yet." states
 (owner, 3 November 2026).
 The menu (`AppMenu`) slides in from the left like the

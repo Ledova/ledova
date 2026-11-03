@@ -88,7 +88,6 @@ interface CustomModalProps {
   scrollRef?: Ref<ScrollView>;
   showFooter?: boolean;
   showCancelButton?: boolean;
-  cancelLabel?: string;
   onCancel?: () => void;
   actions?: ReactNode;
   confirmLabel?: string;
@@ -109,7 +108,6 @@ export function CustomModal({
   scrollRef,
   showFooter = false,
   showCancelButton = true,
-  cancelLabel = 'Cancel',
   onCancel,
   actions,
   confirmLabel = 'Confirm',
@@ -190,7 +188,7 @@ export function CustomModal({
               {(showFooter || actions !== undefined) && (
                 <ModalActions>
                   {showCancelButton && (
-                    <Action label={cancelLabel} disabled={busy || confirmLoading} onPress={onCancel ?? close} />
+                    <Action label="Cancel" disabled={busy || confirmLoading} onPress={onCancel ?? close} />
                   )}
                   {actions}
                   {onConfirm && (
