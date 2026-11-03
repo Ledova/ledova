@@ -241,6 +241,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   window.history.replaceState({}, '', `/member-invitation#${MEMBER_CODE}`);
   const recipient = render(<MemberInvitationPage />, { wrapper });
   await screen.findByRole('link', { name: 'Continue setup' });
+  expect(sessionStorage.getItem('ledova.member-invitation')).toBe(MEMBER_CODE);
   expect(api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_INVITATION_PREVIEW)).toHaveLength(0);
   signupCompleted = true;
   await act(async () => client.refetchQueries({ queryKey: ['userProfiles'] }));

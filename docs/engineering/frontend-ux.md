@@ -294,9 +294,10 @@ remain in the audit records. Keep unavailable reads and their retries distinct
 from confirmed empty collections.
 Invite a member sits in a right-aligned row beneath the Invitations card. Invitation preparation replaces
 the collection with a focused view across the workspace, with member and email fields in the existing
-responsive grid and Cancel and Send invitation together at the bottom right. Keep invitation tokens
-out of visible fields: the email link opens one focused Member invitation page, continuing through sign-in or
-signup in the same tab. Show company, shareholder, intended email and expiry before an explicit
+responsive grid and Cancel and Send invitation together at the bottom right. Keep invitation codes
+out of query keys and logs, and drop the email link's code from the address on arrival: the link opens
+one focused Member invitation page, continuing through sign-in or signup in the same tab. Opened without the link, the page takes a pasted link or its code
+in a field (owner, 3 November 2026), kept for the session like the link's. Show company, shareholder, intended email and expiry before an explicit
 Accept invitation action; opening the link must never accept it. The company sees acceptance status
 and an honest sending result, with a retry on failure; provider acceptance is not inbox delivery.
 Show an action reason only for a selected revocation. Preserve drafts, current authority,
@@ -414,8 +415,9 @@ there. Profile always holds personal information. Team, Activation and
 Company details follow current company access. Personal edits never change company-recorded particulars.
 Account has three cards: **Security** (the identity check's status with **Review**, which the app
 leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
-switches), **Account details** (**Member since** and **Last login**) and **Company invitation** (one
-line and **Accept invitation**). Each row has its label on the left and its status, one short action
+switches), **Account details** (**Member since** and **Last login**) and **Invitations**: a
+**Shareholder invitation** row with **Accept**, and on the web a **Company officer invitation** row
+with **Accept** for anyone who can't manage the company. Each row has its label on the left and its status, one short action
 or switch on the right, vertically centred at every width, and the facts are label and value rows. Keep export and deletion on Data and privacy, in the same rows (Export data with **Export**, Delete
 account with **Delete**), with their existing confirmations. The
 theme switch sits beside Sign out in the sidebar's footer, not in Settings. Show company

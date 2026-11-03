@@ -252,8 +252,8 @@ available records and actions; choosing a company grants neither.
 
 Settings opens Profile, with **Account** and **Data and privacy** beside it for everyone. Team and
 Activation appear where company access permits. Team remains reachable for accepting
-a company invitation. Before company access is granted, **Settings → Account → Company invitation**
-provides **Accept invitation**, opening the same guarded workflow. Member access stays
+a company invitation. Before company access is granted, **Settings → Account → Invitations →
+Company officer invitation** provides **Accept**, opening the same guarded workflow. Member access stays
 under company [Shareholders](register.md#the-register-page).
 
 **Profile** combines Personal information with permitted Company details. Each editor retains its own
@@ -262,7 +262,9 @@ permissions; changing personal details does not update a company's records. **Ac
 
 **Account** has three cards: **Security** (the identity check's status with **Review**, and the
 password with **Change**), **Account details** (**Member since** and **Last login**, such as
-"2 Nov 2026, 1:38 pm") and **Company invitation** (**Accept invitation**). Existing company and
+"2 Nov 2026, 1:38 pm") and **Invitations**. Invitations has a **Shareholder invitation** row whose **Accept** opens
+Member invitation, and, for anyone who can't manage the company, a **Company officer invitation** row whose
+**Accept** opens Team (owner, 3 November 2026). Existing company and
 investor verification requirements stay unchanged. The theme is the **Dark theme** switch beside Sign
 out (remembered in this browser with Paper as the default); the web app no longer offers transaction
 alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).

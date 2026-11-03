@@ -180,10 +180,17 @@ export function AccountSettings() {
           </Rows>
         </Section>
       )}
-      <Section title="Company invitation">
+      <Section title="Invitations">
         <SettingRow
-          detail={<Text style={styles.muted}>Joining a company on Ledova?</Text>}
-          action={<Action label="Accept invitation" onPress={() => navigation.navigate('Invitation')} />}
+          label="Shareholder invitation"
+          detail={<Text style={styles.muted}>Use the link or code from your company’s email.</Text>}
+          action={
+            <Action
+              label="Accept"
+              accessibilityLabel="Accept shareholder invitation"
+              onPress={() => navigation.navigate('Invitation')}
+            />
+          }
         />
       </Section>
       <CustomModal

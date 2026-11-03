@@ -19,6 +19,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useCompanyContext } from '@hooks/useCompanyContext';
+import { MEMBER_INVITATION_PATH } from '@utils/paths';
 
 function SettingRow({ label, detail, action }: { label?: string; detail?: ReactNode; action: ReactNode }) {
   return (
@@ -153,19 +154,28 @@ export function AccountSettings() {
           </Rows>
         </Section>
       )}
-      {!context?.company?.canManage && (
-        <Section title="Company invitation">
+      <Section title="Invitations">
+        <div className="divide-y divide-border-subtle">
           <SettingRow
-            detail="Joining a company on Ledova?"
-            action={
-              <PageLink
-                to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
-                label="Accept invitation"
-              />
-            }
+            label="Shareholder invitation"
+            detail="Use the link or code from your company’s email."
+            action={<PageLink to={MEMBER_INVITATION_PATH} label="Accept" context="shareholder invitation" />}
           />
-        </Section>
-      )}
+          {!context?.company?.canManage && (
+            <SettingRow
+              label="Company officer invitation"
+              detail="Use the code the company gave you."
+              action={
+                <PageLink
+                  to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
+                  label="Accept"
+                  context="company officer invitation"
+                />
+              }
+            />
+          )}
+        </div>
+      </Section>
       {verificationOpen && profile.userProfile && (
         <IdentityVerificationModal
           isOpen={verificationOpen}

@@ -5,6 +5,7 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   acceptMemberInvitation,
   failureSentence,
+  isInvitationCode,
   previewMemberInvitation,
   useAuth,
   useSubmissionOwner,
@@ -12,9 +13,9 @@ import {
   useUserProfile,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { captureMemberInvitation, clearMemberInvitation } from '@utils/memberInvitation';
+import { captureMemberInvitation, clearMemberInvitation, rememberMemberInvitation } from '@utils/memberInvitation';
 
-export function useMemberInvitation() {
+export function useMemberInvitation(typed = '') {
   const auth = useAuth();
   const preferences = useUserPreferences();
   const profile = useUserProfile();
@@ -29,6 +30,13 @@ export function useMemberInvitation() {
   const { owner, boundary } = useSubmissionOwner();
   const client = useQueryClient();
   const [link] = useState(() => ({ code: captureMemberInvitation(), id: crypto.randomUUID() }));
+  const entered = useMemo(() => ({ code: isInvitationCode(typed) ? typed : '', id: crypto.randomUUID() }), [typed]);
+  const { code, id } = link.code ? link : entered;
+  useEffect(() => {
+    if (link.code) return;
+    if (entered.code) rememberMemberInvitation(entered.code);
+    else clearMemberInvitation();
+  }, [link.code, entered.code]);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ owner: typeof owner; message: string } | null>(null);
   const scope = useMemo(() => ({ owner, profileSource, id: crypto.randomUUID() }), [owner, profileSource]);
@@ -67,13 +75,13 @@ export function useMemberInvitation() {
       throw new Error('Your signed-in account changed. Reopen the invitation email.');
   };
   const preview = useQuery({
-    queryKey: ['member-invitation-preview', scope.id, link?.id],
-    enabled: ready && !!link?.code && accepted !== owner,
+    queryKey: ['member-invitation-preview', scope.id, id],
+    enabled: ready && !!code && accepted !== owner,
     retry: false,
     gcTime: 0,
     queryFn: async ({ signal }) => {
       guard();
-      const response = await previewMemberInvitation(apiClient, link!.code, { signal, ledovaSubmissionGuard: guard });
+      const response = await previewMemberInvitation(apiClient, code, { signal, ledovaSubmissionGuard: guard });
       guard();
       const data = response.data;
       if (
@@ -92,7 +100,7 @@ export function useMemberInvitation() {
   const shown = ready && preview.isSuccess && preview.fetchStatus === 'idle' ? preview.data : null;
   const currentFailure = ready && failure?.owner === owner ? failure.message : '';
   const accept = async () => {
-    if (submitting.current || !shown || !link?.code || shown.status !== 'pending') return;
+    if (submitting.current || !shown || !code || shown.status !== 'pending') return;
     submitting.current = true;
     setBusy(true);
     setFailure(null);
@@ -100,7 +108,7 @@ export function useMemberInvitation() {
       guard();
       const { data } = await acceptMemberInvitation(
         apiClient,
-        { code: link.code, userAccount: owner!.ownerAccountUuid, confirmation: true },
+        { code, userAccount: owner!.ownerAccountUuid, confirmation: true },
         { ledovaSubmissionGuard: guard },
       );
       guard();
@@ -124,6 +132,7 @@ export function useMemberInvitation() {
   };
   return {
     hasLink: !!link.code,
+    hasCode: !!code,
     auth,
     preferences,
     profile,
