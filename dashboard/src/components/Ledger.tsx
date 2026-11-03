@@ -34,10 +34,9 @@ export function LinkRow({
   disabled?: boolean;
   children?: ReactNode;
 }) {
-  const hover = disabled ? '' : ' group-hover:text-brand-light';
   return (
     <div
-      className={`group relative flex items-center justify-between gap-4 py-3 text-sm${disabled ? ' cursor-not-allowed opacity-50' : ''}`}
+      className={`group relative flex items-center justify-between gap-4 py-3 text-sm ${disabled ? 'opacity-50' : ''}`}
     >
       <div className="min-w-0 flex-1">
         <Link
@@ -50,7 +49,7 @@ export function LinkRow({
             if (disabled) event.preventDefault();
           }}
           aria-disabled={disabled || undefined}
-          className={`break-words font-medium text-text-primary after:absolute after:inset-0${hover}`}
+          className={`break-words font-medium text-text-primary after:absolute after:inset-0 ${disabled ? 'cursor-not-allowed' : 'group-hover:text-brand-light'}`}
         >
           {label}
           {context && (
@@ -63,7 +62,10 @@ export function LinkRow({
         {children}
       </div>
       {aside}
-      <CaretRightIcon aria-hidden="true" className={`shrink-0 text-text-muted${hover}`} />
+      <CaretRightIcon
+        aria-hidden="true"
+        className={`shrink-0 text-text-muted ${disabled ? '' : 'group-hover:text-brand-light'}`}
+      />
     </div>
   );
 }
