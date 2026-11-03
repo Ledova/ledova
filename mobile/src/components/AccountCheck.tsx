@@ -1,5 +1,5 @@
 import { useUserPreferences } from '@ledova/shared';
-import { LoadError, Loading } from '../../components/Ledger';
+import { LoadError, Loading } from './Ledger';
 
 export function AccountCheck() {
   const preferences = useUserPreferences();

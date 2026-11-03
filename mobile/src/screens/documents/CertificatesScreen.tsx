@@ -5,49 +5,71 @@ import {
   REGISTER_CORRECTION_COPY,
   formatDate,
   shareChange,
+  useSubmissionOwner,
   type OwnMemberRecord,
   type RegisterEntryKind,
   type useMemberRecords,
 } from '@ledova/shared';
 import { SelectField } from '../../components/SelectField';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, Actions, FormActions, LoadError, Rows, Section } from '../../components/Ledger';
+import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { MemberNotice, RecordGate, useMemberRefresh } from '../../components/MemberRecords';
 import { Page } from '../../components/Page';
-import { useCompanyRecord, useMemberRecordsState, useThemedStyles } from '../../contexts';
+import { useCompanyRecord, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
+import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { CompanyCertificates } from './CompanyCertificates';
+import { useDocumentStyles } from './useDocumentStyles';
 
 type Entry = ReturnType<typeof useMemberRecords>['entries'][number];
+type Route = RouteProp<SignedInStackParamList, 'Certificates'>;
 
 const companyDated = (entry: Entry) => ['issue', 'transfer'].includes(entry.kind.toLowerCase());
 
-function useCertificateStyles() {
-  return useThemedStyles((theme) => {
-    const text = { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20 };
-    return {
-      row: { gap: 12, paddingVertical: theme.spacing.md },
-      change: { gap: theme.spacing.xs },
-      line: { flexDirection: 'row' as const, gap: theme.spacing.md },
-      name: { ...text, flex: 1, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
-      shares: { ...text, flexShrink: 0, textAlign: 'right' as const, color: theme.colors.text.primary },
-      muted: { ...text, color: theme.colors.text.muted },
-    };
-  });
+export function CertificatesScreen({ route }: { route: Route }) {
+  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
+  const { directory, company } = useMemberRecordsState();
+  const [chosen, setChosen] = useState<string | null>(route.params?.token ?? null);
+  if (route.params?.record || !company?.canReadRegister || directory.hasError)
+    return <MemberCertificates route={route} chosen={chosen} onChoose={setChosen} />;
+  if (!owner)
+    return (
+      <Page testID="certificates-scroll" title="Certificates">
+        <Loading>Loading certificate records…</Loading>
+      </Page>
+    );
+  return (
+    <CompanyCertificates
+      key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company.uuid}`}
+      owner={owner}
+      currentOwner={boundary.get}
+      company={company.uuid}
+      chosen={chosen}
+      onChoose={setChosen}
+    />
+  );
 }
 
-export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackParamList, 'Certificates'> }) {
+function MemberCertificates({
+  route,
+  chosen,
+  onChoose,
+}: {
+  route: Route;
+  chosen: string | null;
+  onChoose: (token: string | null) => void;
+}) {
   const styles = useCompanyStyles();
-  const look = useCertificateStyles();
+  const look = useDocumentStyles();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   const { directory, company, member, selectCompany } = useMemberRecordsState();
   const opened = route.params?.record;
   const openedToken = route.params?.token;
-  const [chosen, setChosen] = useState<string | null>(openedToken ?? null);
   const { read, record, selected, focused } = useCompanyRecord(opened ?? member?.uuid ?? '');
   useEffect(() => {
     if (!opened || !record || !selectCompany(record.company.uuid)) return;
-    setChosen(openedToken ?? null);
+    onChoose(openedToken ?? null);
     navigation.setParams({ record: undefined, token: undefined });
   }, [opened, openedToken, record, selectCompany, navigation]);
   const refresh = useMemberRefresh(read, 'certificates-refresh');
@@ -77,7 +99,7 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
                 applied={token}
                 disabled={held}
                 onApply={(next) => {
-                  setChosen(next);
+                  onChoose(next);
                   close();
                 }}
               />
@@ -102,7 +124,7 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
         ) : (
           !read.error && (
             <Text style={styles.muted}>
-              {company ? 'Your account has no member record for this company.' : 'Choose a company on Dashboard.'}
+              {company ? 'Your account has no certificate access for this company.' : 'Choose a company on Dashboard.'}
             </Text>
           )
         )
@@ -124,7 +146,7 @@ export function CertificatesScreen({ route }: { route: RouteProp<SignedInStackPa
                     REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind.toLowerCase() as RegisterEntryKind] ??
                     'Register change';
                   return (
-                    <View key={`${token}/${entry.uuid}`} style={look.row}>
+                    <View key={`${token}/${entry.uuid}`} style={look.record}>
                       <View style={look.change}>
                         <View style={look.line}>
                           <Text style={look.name}>{selected?.name ?? 'Shareholder'}</Text>

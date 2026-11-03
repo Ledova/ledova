@@ -255,7 +255,8 @@ inspect retained supporting records and permitted downloads. The same view holds
 correction, copied-opening and particulars workflows. Certificate
 preparation belongs in Documents. Keep maintenance controllers mounted so unfinished work and original-request recovery
 survive navigation. Documents has one **Certificates** page for company and member records, plus
-**Inspection copies** and **Company pack** where company access permits them. Inspection
+**Inspection copies** and **Company pack** where company access permits them, on the web and, at
+phone width, in the app. Inspection
 copies shows one selected class, with **Share class** in the page heading's Filters popover when there is more than one.
 Certificates keeps the class visible in each record and in its filter panel. An icon button named
 **Filters**, with a tooltip, opens the popover in the page heading's top-right actions: class
@@ -411,8 +412,8 @@ opening the people list. Documents uses the same pattern for **Certificates** (t
 **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
-**Team** and **Activation** where permitted, without an extra overview page; the app's menu has Team
-and Activation under the same conditions. A group with only one
+**Team** and **Activation** where permitted, without an extra overview page; the app's menu has
+Documents' pages, Team and Activation under the same conditions. A group with only one
 permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
 there. Profile always holds personal information. Team, Activation and
 Company details follow current company access. Personal edits never change company-recorded particulars.
@@ -562,8 +563,9 @@ rather than its identifier. It reports:
 
 Identity verification shows its result in its own dialog, and sign-in and sign-up keep their boxed
 outcomes.
-Ledger's other forms don't use `Outcome`. Mobile reports saved personal details as the web does, and
-a changed password, some failures and a few warnings in native alerts.
+Ledger's other forms don't use `Outcome`. Mobile reports saved personal details and Documents'
+downloads with `Outcome` as the web does, and a changed password, some failures and a few warnings in
+native alerts.
 
 ## Copy
 
@@ -945,8 +947,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     `useErrorSummary` (`packages/shared/src/hooks/useErrorSummary.ts`)
     reads the form's problems, keyed by field, and forms that share one summary, such as Member
     access's invitation, revocation and certificate instruction, check only the fields their action
-    needs. The app's Team, Activation and representative authority forms use it too, showing each
-    problem under its field without a summary.
+    needs. The app's Team, Activation, representative authority, inspection copy and company pack
+    forms use it too, showing each problem under its field without a summary.
     A box that must be ticked is a `CheckboxField`,
     except sign-up pre-screening's four declarations,
     which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking
@@ -979,7 +981,7 @@ This section covers how a form reports a problem: when it is submitted, and when
     input and blur, and the form treats it as a problem: the team invitation's deadline and
     appointment expiry and a representative authority request's expiry. The app's Team and
     representative authority request take these dates as typed `YYYY-MM-DD` text, which the same
-    checks read as written.
+    checks read as written, as does its inspection copy's request date.
 
 - **Request errors.** A failure reads as one `role="alert"` sentence, `Failure`
   (`dashboard/src/components/Ledger.tsx`, which renders nothing without a sentence), from

@@ -31,9 +31,9 @@ A register reader is a person with a current appointment for the exact company h
 administration or any register capability (read, prepare, approve or apply). Ownership,
 shareholding, member access and staff permissions give no output authority.
 
-On web, **Documents** opens one **Certificates** page for the selected company. Register readers
-prepare the company's certificates there; a member who is not a register reader sees the entries that
-changed their own holding.
+On the web and in the app, **Documents** opens one **Certificates** page for the selected company.
+Register readers prepare the company's certificates there; a member who is not a register reader sees
+the entries that changed their own holding.
 **Inspection copies** and **Company pack** remain alongside Certificates where company access permits
 them. Certificates and Inspection copies use one selected share class. Certificates keeps the class
 visible in each record, and a register reader's rows show each certificate as **Can prepare** or
@@ -212,13 +212,13 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 
 1. Keep the company's written instruction, noting its reference, the request date and the
    recipient.
-2. On web, open **Documents** → **Inspection copies** for the selected company and choose the share
-   class. Its prepared copies come first; choose **Prepare inspection copy** below them and enter the
-   reference, recipient and request date.
+2. On the web or in the app, open **Documents** → **Inspection copies** for the selected company and
+   choose the share class. Its prepared copies come first; choose **Prepare inspection copy** below
+   them and enter the reference, recipient and request date (typed as `YYYY-MM-DD` in the app).
 3. Choose **Preview inspection copy**, check the request, then **Confirm and
    download inspection copy**.
 
-The file is `register-<symbol>-inspection-copy.csv`.
+The file is `register-<symbol>-inspection-copy.csv`; the app hands it to the phone's share sheet.
 A register with no opening, a request date after today and a blank field are refused. If the
 register or the person's appointment changes after the preview, confirmation is refused and the
 person previews again. Editing, closing, changing account or class, and refreshing the register
@@ -266,11 +266,11 @@ register, or a correction has since reversed the entry (the refusal names the co
 
 ### Preparing a certificate
 
-1. On web, open **Documents** → **Certificates**, select the share class and choose
-   **Prepare certificate** on the issue or transfer row.
+1. On the web or in the app, open **Documents** → **Certificates**, select the share class and
+   choose **Prepare certificate** on the issue or transfer row.
 2. In the focused main-page form, choose **Preview**. Check the share class, share movements, entry number,
    dates and PDF page count. Choose **Download PDF** to generate
-   the unsigned file, or **Cancel** to close the form. The download action records the requester
+   the unsigned file (the app hands it to the phone's share sheet), or **Cancel** to close the form. The download action records the requester
    and an instruction linked to the exact ledger entry automatically; no reference needs typing.
    The form keeps the privacy and signing reminder visible; the company arranges execution and
    delivery.
@@ -427,10 +427,10 @@ it, without which it cannot be checked.
 ### Producing a core pack
 
 A company administrator produces the pack in **Documents** → **Company pack**, at company scope.
-On web, the prepared packs come first; choose **Prepare company pack** below them to open the form,
-enter the company's written instruction and the recipient, then choose **Prepare and download
-company pack**. The appointment is checked again
-before the pack is recorded.
+On the web and in the app, the prepared packs come first; choose **Prepare company pack** below them
+to open the form, enter the company's written instruction and the recipient, then choose **Prepare
+and download company pack**; the app hands the ZIP to the phone's share sheet. The appointment is
+checked again before the pack is recorded.
 
 This route produces only a complete core pack: every share class is an opened imported register
 never put on chain, and the company has no chain issues, settlements, deployments, capital increases, pause changes, wallet approvals, nominations,

@@ -30,7 +30,16 @@ import { orderSubmissionSession } from '../services/orderSubmissions';
 
 export type Section = 'Dashboard' | 'Documents' | 'Settings';
 
-export type MenuRoute = 'Dashboard' | 'Certificates' | 'Settings' | 'Account' | 'DataPrivacy' | 'Team' | 'Activation';
+export type MenuRoute =
+  | 'Dashboard'
+  | 'Certificates'
+  | 'InspectionCopies'
+  | 'CompanyPack'
+  | 'Settings'
+  | 'Account'
+  | 'DataPrivacy'
+  | 'Team'
+  | 'Activation';
 
 type MenuItem = {
   name: Section;
@@ -40,11 +49,24 @@ type MenuItem = {
   items?: { route: MenuRoute; label: string }[];
 };
 
-const SECTIONS: MenuItem[] = [
-  { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
-  { name: 'Documents', label: 'Documents', icon: FilesIcon, route: 'Certificates' },
-];
 const PARENT_ROUTES: Partial<Record<string, MenuRoute>> = { Authority: 'Team', AuthorityRequest: 'Team' };
+
+const sections = (canReadRegister: boolean): MenuItem[] => [
+  { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
+  {
+    name: 'Documents',
+    label: 'Documents',
+    icon: FilesIcon,
+    route: 'Certificates',
+    items: canReadRegister
+      ? [
+          { route: 'Certificates', label: 'Certificates' },
+          { route: 'InspectionCopies', label: 'Inspection copies' },
+          { route: 'CompanyPack', label: 'Company pack' },
+        ]
+      : undefined,
+  },
+];
 
 const yours = (canManage: boolean, activation: boolean): MenuItem[] => [
   {
@@ -311,7 +333,7 @@ export function AppMenu({
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: theme.spacing.md, gap: theme.spacing.lg }}
           >
-            <View style={{ gap: 4 }}>{SECTIONS.map(item)}</View>
+            <View style={{ gap: 4 }}>{sections(!!company?.canReadRegister).map(item)}</View>
             <View style={{ gap: 4 }}>
               {yours(!!company?.canManage, route === 'Activation' || activation).map(item)}
             </View>

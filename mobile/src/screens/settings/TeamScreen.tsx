@@ -18,6 +18,8 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
+import { AccountCheck } from '../../components/AccountCheck';
+import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
@@ -27,8 +29,6 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useRole } from '../../hooks/useRole';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { AccountCheck } from './AccountCheck';
-import { CompanyContextNotice } from './CompanyContextNotice';
 import { AcceptInvitationForm, TeamInvitationForm } from './TeamForms';
 
 const LEDE = 'Manage company appointments and invitations.';

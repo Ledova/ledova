@@ -8,6 +8,8 @@ import { InSignedInFrame, type FrameOptions } from '../components/InSignedInFram
 import { NotificationsPanel, useFollowPush } from '../components/notifications';
 import { MemberRecordsProvider, useAppTheme } from '../contexts';
 import { CertificatesScreen } from '../screens/documents/CertificatesScreen';
+import { CompanyPackScreen } from '../screens/documents/CompanyPackScreen';
+import { InspectionCopiesScreen } from '../screens/documents/InspectionCopiesScreen';
 import { DashboardScreen } from '../screens/holdings/DashboardScreen';
 import { InvitationScreen } from '../screens/holdings/InvitationScreen';
 import { AccountScreen, DataPrivacyScreen, SettingsScreen } from '../screens/settings';
@@ -21,6 +23,8 @@ import { TopBar } from './headers';
 export type SignedInStackParamList = {
   Dashboard: { record?: string; award?: string } | undefined;
   Certificates: { record?: string; token?: string } | undefined;
+  InspectionCopies: undefined;
+  CompanyPack: undefined;
   Settings: undefined;
   Account: undefined;
   DataPrivacy: undefined;
@@ -64,6 +68,8 @@ export function SignedInNavigator() {
           >
             <Stack.Screen name="Dashboard" component={DashboardScreen} options={topBar('Dashboard')} />
             <Stack.Screen name="Certificates" component={CertificatesScreen} options={topBar('Documents')} />
+            <Stack.Screen name="InspectionCopies" component={InspectionCopiesScreen} options={topBar('Documents')} />
+            <Stack.Screen name="CompanyPack" component={CompanyPackScreen} options={topBar('Documents')} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={topBar('Settings')} />
             <Stack.Screen name="Account" component={AccountScreen} options={topBar('Settings')} />
             <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} options={topBar('Settings')} />

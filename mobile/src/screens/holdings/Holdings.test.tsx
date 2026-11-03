@@ -10,20 +10,27 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
   ownershipCompaniesKey,
+  sydneyToday,
   type CompanyAuthorityRequest,
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
   type OwnMemberRecord,
+  type RegisterEntry,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { AxiosInstance } from 'axios';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { MemberRecordsProvider } from '../../contexts';
+import { AppMenu } from '../../navigation/AppMenu';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
+import { REGISTER } from '../../../../packages/shared/tests/fixtures/employee-awards';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
 import { destinationOf } from '../../components/notifications/NotificationsPanel';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
+import { CompanyPackScreen } from '../documents/CompanyPackScreen';
+import { InspectionCopiesScreen } from '../documents/InspectionCopiesScreen';
 import { AuthorityRequestScreen } from '../settings/AuthorityRequestScreen';
 import { AuthorityScreen } from '../settings/AuthorityScreen';
 import { TeamScreen } from '../settings/TeamScreen';
@@ -198,6 +205,19 @@ const PENDING: CompanyAuthorityRequest = {
   verificationStatus: 'unavailable',
   appointment: null,
 };
+const CERTIFIED: RegisterEntry = {
+  uuid: '34343434-3434-4434-8434-343434343434',
+  sequence: 13,
+  kind: 'issue',
+  companyEventOn: '2026-10-26',
+  effectiveOn: '2026-10-26',
+  recordedAt: '2026-10-26T00:00:00Z',
+  corrects: null,
+  correctedBy: null,
+  correctable: true,
+  changes: [{ member: 'holder-1', name: 'Synthetic Holder 1', shares: '5' }],
+};
+const DIGEST = 'b'.repeat(64);
 const SECOND_ENTRY = {
   ...MEMBER_ENTRY,
   uuid: '19191919-1919-4919-8919-191919191919',
@@ -206,7 +226,7 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, lists and opens an administered company’s overview with its paged shareholders, reads its team only with current administration and revokes only the confirmed appointment, opens a representative authority request from its list and revokes only that request’s appointment after its confirmation, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, lists and opens an administered company’s overview with its paged shareholders, reads its team only with current administration and revokes only the confirmed appointment, opens a representative authority request from its list and revokes only that request’s appointment after its confirmation, establishes a pending request’s appointment only once its declaration is ticked, offers and reads company documents only with register access and prepares each for only the chosen entry, class or company, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
@@ -224,7 +244,21 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === `${APPOINTMENTS}team/`) return { data: [revoked ? { ...READER, ...REVOKED } : READER] };
     if (url === '/api/v1/company-authority/invitations/') return page([]);
     if (url === AUTHORITY_REQUESTS) return page([PENDING, ADMITTED]);
-    if (url === URLS.REGISTER) return page([{ uuid: FOUNDERS.uuid, companyUuid: ADMINISTERED.uuid }]);
+    if (url === URLS.REGISTER) return page([{ ...FOUNDERS, companyUuid: ADMINISTERED.uuid }]);
+    if (url === URLS.HOLDERS(FOUNDERS.uuid))
+      return { data: { ...REGISTER, token: { ...REGISTER.token, ...FOUNDERS } } };
+    if (url === URLS.REGISTER_ENTRIES(FOUNDERS.uuid)) return { data: { results: [CERTIFIED], next: null, count: 1 } };
+    const preview = {
+      token: FOUNDERS.uuid,
+      appointment: ADMINISTRATION.uuid,
+      registerSequence: 13,
+      sourceDigest: DIGEST,
+    };
+    if (url === URLS.REGISTER_CERTIFICATE(FOUNDERS.uuid))
+      return { data: { ...preview, entry: CERTIFIED.uuid, sequence: 13, pageCount: 1 } };
+    if (url === URLS.REGISTER_INSPECTION_COPY(FOUNDERS.uuid)) return { data: preview };
+    if (url === URLS.REGISTER_INSPECTION_COPIES(FOUNDERS.uuid)) return { data: { copies: [] } };
+    if (url === COMPANY_ENDPOINTS.PACKS(ADMINISTERED.uuid)) return { data: { packs: [] } };
     if (url === URLS.OWNERSHIP) {
       const founders = { ...FOUNDERS, tokenType: 'ordinary', initialized: true, recordedAt: '2026-11-01T00:00:00Z' };
       const totals = { issuedSupply: '30', totalHolders: 26 };
@@ -280,6 +314,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
         },
       };
     }
+    const file = (type: string) => ({ data: new ArrayBuffer(4), headers: { 'content-type': type } });
+    if (url === URLS.REGISTER_CERTIFICATE(FOUNDERS.uuid)) return file('application/pdf');
+    if (url === URLS.REGISTER_INSPECTION_COPY(FOUNDERS.uuid)) return file('text/csv');
+    if (url === COMPANY_ENDPOINTS.PACK(ADMINISTERED.uuid)) return file('application/zip');
+    if (url === `${AUTHORITY_REQUESTS}${PENDING.uuid}/admit/`)
+      return { data: { ...PENDING, status: 'admitted', appointment: ADMITTED.appointment } };
     if (url === `${AUTHORITY_REQUESTS}${ADMITTED.uuid}/revoke/`)
       return { data: { ...ADMITTED, appointment: { ...ADMITTED.appointment!, ...REVOKED } } };
     if (url === `${APPOINTMENTS}${READER.uuid}/revoke/`) {
@@ -303,7 +343,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>
       <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <MemberRecordsProvider>{children}</MemberRecordsProvider>
+        <SafeAreaInsetsContext.Provider value={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+          <MemberRecordsProvider>{children}</MemberRecordsProvider>
+        </SafeAreaInsetsContext.Provider>
       </ApiClientProvider>
     </QueryClientProvider>
   );
@@ -428,8 +470,20 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
   const registerReads = () =>
-    api.get.mock.calls.filter(([url]) => url === URLS.REGISTER || url === URLS.OWNERSHIP || url.endsWith('-holders/'));
+    api.get.mock.calls.filter(
+      ([url]) => url === URLS.OWNERSHIP || /\/(register|holders|packs)\/|-holders\/$/.test(url),
+    );
+  const outputPosts = () => api.post.mock.calls.filter(([url]) => /\/register\/|\/pack\/$/.test(url));
+  const menu = <AppMenu visible current="Documents" route="Certificates" onSelect={jest.fn()} onClose={jest.fn()} />;
+  await view.rerender(menu);
+  expect(await screen.findByRole('button', { name: 'Documents', selected: true })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /Inspection copies|Company pack|Documents navigation/ })).toBeNull();
+  for (const page of [<InspectionCopiesScreen key="copies" />, <CompanyPackScreen key="pack" />]) {
+    await view.rerender(page);
+    expect(await screen.findByText('Choose company on Dashboard')).toBeTruthy();
+  }
   expect(registerReads()).toHaveLength(0);
+  expect(outputPosts()).toHaveLength(0);
   administered = true;
   await act(async () => {
     await client.refetchQueries({
@@ -499,6 +553,75 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(authorityPosts()).toEqual([[`${AUTHORITY_REQUESTS}${ADMITTED.uuid}/revoke/`, {}, expect.anything()]]);
   expect(await screen.findByText('Appointment revoked')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Revoke appointment/ })).toBeNull();
+  await view.rerender(
+    <AuthorityRequestScreen route={{ key: 'pending', name: 'AuthorityRequest', params: { uuid: PENDING.uuid } }} />,
+  );
+  const establish = { name: 'Establish appointment (Synthetic Draft Company)', disabled: false };
+  await fireEvent.press(await screen.findByRole('button', establish));
+  expect(screen.getByText('Accept the authority declaration and Terms.')).toBeTruthy();
+  expect(authorityPosts()).toHaveLength(1);
+  await fireEvent.press(
+    screen.getByRole('checkbox', { name: 'Accept authority declaration and Terms for Synthetic Draft Company' }),
+  );
+  await fireEvent.press(screen.getByRole('button', establish));
+  expect(authorityPosts().slice(1)).toEqual([
+    [
+      `${AUTHORITY_REQUESTS}${PENDING.uuid}/admit/`,
+      expect.objectContaining({ acceptDeclaration: true }),
+      expect.anything(),
+    ],
+  ]);
+  await view.rerender(menu);
+  expect(await screen.findByRole('button', { name: 'Inspection copies' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Company pack' })).toBeTruthy();
+  await view.rerender(<CertificatesScreen route={{ key: 'register', name: 'Certificates', params: undefined }} />);
+  expect(await screen.findByText('Certificate: Can prepare')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Prepare certificate (entry 13)', disabled: false }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Preview (unsigned certificate for entry 13)' }));
+  const certificate = { name: 'Download PDF (unsigned certificate for entry 13)', disabled: false };
+  await fireEvent.press(await screen.findByRole('button', certificate));
+  await view.rerender(<InspectionCopiesScreen />);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Prepare inspection copy', disabled: false }));
+  await fireEvent.changeText(screen.getByLabelText('Written instruction reference'), 'Synthetic instruction');
+  await fireEvent.changeText(screen.getByLabelText('Recipient'), 'Synthetic recipient');
+  await fireEvent.press(screen.getByRole('button', { name: 'Preview inspection copy' }));
+  const copy = { name: 'Confirm and download inspection copy', disabled: false };
+  await fireEvent.press(await screen.findByRole('button', copy));
+  await view.rerender(<CompanyPackScreen />);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Prepare company pack', disabled: false }));
+  await fireEvent.changeText(screen.getByLabelText('Pack instruction reference'), 'Synthetic pack instruction');
+  await fireEvent.changeText(screen.getByLabelText('Pack recipient'), 'Synthetic pack recipient');
+  await fireEvent.press(screen.getByRole('button', { name: 'Prepare and download company pack' }));
+  const bytes = expect.objectContaining({ responseType: 'arraybuffer' });
+  await waitFor(() =>
+    expect(outputPosts()).toEqual([
+      [
+        URLS.REGISTER_CERTIFICATE(FOUNDERS.uuid),
+        { appointment: ADMINISTRATION.uuid, sequence: 13, sourceDigest: DIGEST },
+        bytes,
+      ],
+      [
+        URLS.REGISTER_INSPECTION_COPY(FOUNDERS.uuid),
+        {
+          instruction: 'Synthetic instruction',
+          recipient: 'Synthetic recipient',
+          requestedOn: sydneyToday(),
+          appointment: ADMINISTRATION.uuid,
+          sourceDigest: DIGEST,
+        },
+        bytes,
+      ],
+      [
+        COMPANY_ENDPOINTS.PACK(ADMINISTERED.uuid),
+        {
+          appointment: ADMINISTRATION.uuid,
+          instruction: 'Synthetic pack instruction',
+          recipient: 'Synthetic pack recipient',
+        },
+        bytes,
+      ],
+    ]),
+  );
   await view.rerender(certificatesPage);
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
   refused = true;

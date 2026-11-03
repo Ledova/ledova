@@ -1,15 +1,11 @@
 import { Platform } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
-import { uploadType } from '@ledova/shared';
+import * as Sharing from 'expo-sharing';
+import { UPLOAD_TYPES, type FileDelivery } from '@ledova/shared';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from './sessionScope';
 
 const PICKER_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9_-]{0,32})?$/i;
 const PICKING_CANCELLED = ['ERR_FILE_PICKING_CANCELLED', 'ERR_PICKER_CANCELLED'];
-const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
-  'application/pdf': '.pdf',
-  'image/png': '.png',
-  'image/jpeg': '.jpg',
-};
 const picked = new Set<string>();
 let viewing: number | undefined;
 
@@ -136,10 +132,27 @@ export async function pickDocument(): Promise<PickedDocument | null> {
     return null;
   }
   const type = file.type ?? '';
+  const extension = Object.keys(UPLOAD_TYPES).find((key) => UPLOAD_TYPES[key] === type) ?? '';
   return {
     uri: file.uri,
-    name: uploadType(file.name) === type ? file.name : `document${EXTENSION_BY_MIME_TYPE[type] ?? ''}`,
+    name: file.name.includes('.') ? file.name : `document${extension}`,
     type,
     size: file.size ?? 0,
   };
 }
+
+export const SHARE_SHEET_FILES: FileDelivery = {
+  responseType: 'arraybuffer',
+  save: async (data, name, type) => {
+    if (!(data instanceof ArrayBuffer)) throw new Error('The file could not be read.');
+    const sessionEpoch = getSessionEpoch();
+    if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing is not available on this device.');
+    await shareDocumentCopy(
+      sessionEpoch,
+      async () => ({ name, type, bytes: new Uint8Array(data) }),
+      async (uri, mimeType) => {
+        void Sharing.shareAsync(uri, { mimeType }).catch(() => undefined);
+      },
+    );
+  },
+};

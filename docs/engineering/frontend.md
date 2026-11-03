@@ -441,7 +441,9 @@ Browser downloads use `dashboard/src/utils/saveFile.ts`: it takes a blob, or the
 with their type, clicks one temporary link, removes that link and revokes the object URL after 60
 seconds. Each caller keeps its own filename, MIME type and authority checks. The shared output hooks
 deliver their file through a `FileDelivery` each client supplies (`downloadedFile` in
-`packages/shared/src/utils/downloads.ts` reads the response): the web's `BROWSER_FILES` saves it.
+`packages/shared/src/utils/downloads.ts` reads the response): the web's `BROWSER_FILES` saves it, and
+the app's `SHARE_SHEET_FILES` asks for the bytes and shares them
+([document view copies](mobile.md#document-view-copies)).
 
 The session itself is in [authentication](security.md#authentication-and-sessions);
 `packages/shared/src/hooks/useAuth.ts` owns the authentication query (`AUTH_QUERY_KEY`).
@@ -790,6 +792,12 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   unapplied draft. Apply writes `class`, `q` and `certificate_status` to the URL; Clear preserves the
   class and removes search and status. Company entries are filtered on the server before paging;
   own-member history is read fully. Preparation opens a focused main-page form.
+  `packages/shared/src/hooks/useCompanyCertificates.ts` reads a register reader's records for both
+  clients over `useClassRegister` beside it (the class list, the person's appointments with current
+  register-read authority, and the selected class's register), and `useClassCertificate` previews
+  and downloads one entry's certificate; the shared `isCertificateEntry`, `canPrepareCertificate` and
+  `CERTIFICATE_STATES` decide which rows are listed and preparable. The app's Certificates screen
+  renders the same records at phone width ([navigation](mobile.md#navigation)).
 - Certificates reads the member's records through an owner-bound member-records controller.
   Choosing a class on Certificates reads that class's own entries. Active web reads follow
   [automatic data freshness](#automatic-data-freshness); the web takes no member action through it.
@@ -824,7 +832,11 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Corrections shows immutable recorded entries in rows that don't expand, and retained supporting records
   as titled records with their details and permitted downloads, alongside their capability-guarded append-only maintenance workflows. Register-read
   access alone grants no mutation. Inspection copies keeps class inspection-copy preparation;
-  Company pack stays at company scope. `documentTask` isolates one focused output form in the existing
+  Company pack stays at company scope. Their forms and prepared lists use the shared
+  `useClassInspectionCopy`, `useCompanyPackAuthority`, `useCompanyPack`, `useInspectionCopies` and
+  `useCompanyPacks` (`inspectionCopiesKey`, `companyPacksKey`), as the app's Inspection copies and
+  Company pack screens do, the app reading the selected class through `useClassRegister`.
+  `documentTask` isolates one focused output form in the existing
   frame. Its keyed forms retire previews when their context or source readiness changes; draft
   retention depends on each form's lifetime. Current appointment and exact-source validation still
   apply. Supporting attachments stay with their person or class. Employee share

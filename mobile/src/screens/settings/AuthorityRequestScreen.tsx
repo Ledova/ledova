@@ -28,6 +28,7 @@ import {
   ShowMore,
   Status,
 } from '../../components/Ledger';
+import { AccountCheck } from '../../components/AccountCheck';
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
 import { Checkbox } from '../../components/register/RegisterFields';
@@ -38,7 +39,6 @@ import type { SignedInStackParamList } from '../../navigation/SignedInNavigator'
 import { shareDocumentCopy } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { AccountCheck } from './AccountCheck';
 
 const TITLE = 'Authority request';
 
