@@ -2199,6 +2199,16 @@ identity check's status to sit on its line, aligned right like the buttons ("The
 green dot I think could be on same line of the identify check but aligned to the right"); on the web
 it sits before **Review**.
 
+**Invitations, decided on 3 November 2026.** In the signed-in walkthrough, the web's Company invitation
+card took a shareholder to Team's company-officer form, while the app's opened the shareholder
+invitation. The owner chose "Two rows, like the app" ([#1464](https://github.com/Ledova/ledova/issues/1464)).
+The card is now **Invitations**, with two rows:
+- a **Shareholder invitation** row, whose page takes a pasted link or code, on both web and app;
+- on the web, a **Company officer invitation** row opening Team, for anyone who can't manage the
+  company.
+
+The app's invitation page sits in the web's **Access to your shares** card.
+
 ## The signed-in app
 
 The web layout below is superseded by the [12 October dashboard decision](#ownership-dashboard-and-compact-sidebar).

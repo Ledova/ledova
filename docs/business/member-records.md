@@ -87,15 +87,16 @@ The invitation expires at the displayed deadline, 7 days by default and never mo
 ### Accepting an invitation
 
 The email's **View invitation** link opens **Member invitation** on the web. The recipient signs in
-or creates an account, then returns to the invitation in the same tab. They review the company,
+or creates an account, then returns to the invitation in the same tab. Opened without the link, from
+**Settings** → **Account** → **Invitations** → **Shareholder invitation**, the page takes the pasted
+link or its code instead. They review the company,
 shareholder and intended email before choosing **Accept invitation**; opening a link never grants
 access. Their verified email must match, and acceptance binds one current account to one member
-in that company. On mobile, **Accept invitation** in **Settings** → **Account** (its Company
-invitation card), and **Accept invitation** on Dashboard before the first company, open the
-Invitation page. It takes the pasted **View invitation** link
-(or its code), shows the company, shareholder,
-email and deadline, and accepts with **Accept invitation**; it reports acceptance only once the
-server does.
+in that company. On mobile, **Accept** on **Settings** → **Account**'s Shareholder invitation row,
+and **Accept invitation** on Dashboard before the first company, open the same Member invitation
+page in the web's **Access to your shares** card. It takes the pasted **View invitation** link (or
+its code), shows the company, shareholder, email and deadline as the web does, and accepts with
+**Accept invitation**; it reports acceptance only once the server does.
 An expired invitation, a changed recorded identity for the member, a revoked appointment of the
 inviting administrator, another person's account or a conflicting association is refused.
 Accepting brings the company's register up to the person's Profile in the same step: their full name

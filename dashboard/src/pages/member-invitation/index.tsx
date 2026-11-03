@@ -1,6 +1,13 @@
-import { useContext } from 'react';
-import { failureSentence, formatDate } from '@ledova/shared';
+import { useContext, useState } from 'react';
+import {
+  INVITATION_CODE_PROBLEM,
+  failureSentence,
+  formatDate,
+  invitationCodeFrom,
+  isInvitationCode,
+} from '@ledova/shared';
 import { AuthHeader, AuthLayout } from '@components/auth';
+import { Field, TextInput } from '@components/Field';
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import { Loading, LoadError, Row, Rows, Section, Failure } from '@components/Ledger';
 import { FormActions, Page, PageAction, PageLink } from '@components/Page';
@@ -11,16 +18,48 @@ import { useMemberInvitation } from './useMemberInvitation';
 
 export default function MemberInvitationPage() {
   const inFrame = useContext(InSignedInFrame);
-  const { hasLink, auth, preferences, profile, setupRequired, ready, accepted, preview, shown, failure, busy, accept } =
-    useMemberInvitation();
+  const [typed, setTyped] = useState('');
+  const {
+    hasLink,
+    hasCode,
+    auth,
+    preferences,
+    profile,
+    setupRequired,
+    ready,
+    accepted,
+    preview,
+    shown,
+    failure,
+    busy,
+    accept,
+  } = useMemberInvitation(typed);
   const contents = (
     <Section title="Access to your shares">
-      {auth.isLoading ? (
+      {!hasLink && (
+        <>
+          <p className="text-sm text-text-muted">
+            Open the invitation link from your company’s email, or paste the link or its code here.
+          </p>
+          <Field
+            label="Link or code from the email"
+            error={typed && !isInvitationCode(typed) ? INVITATION_CODE_PROBLEM : null}
+          >
+            <TextInput
+              value={typed}
+              autoComplete="off"
+              disabled={busy || accepted}
+              onChange={(event) => setTyped(invitationCodeFrom(event.target.value))}
+              onPaste={(event) => {
+                event.preventDefault();
+                setTyped(invitationCodeFrom(event.clipboardData.getData('text')));
+              }}
+            />
+          </Field>
+        </>
+      )}
+      {!hasCode ? null : auth.isLoading ? (
         <Loading>Checking your invitation…</Loading>
-      ) : !hasLink ? (
-        <p role="alert" className="text-sm text-text-primary">
-          Open the invitation link from your company’s email.
-        </p>
       ) : auth.isUnavailable ? (
         <LoadError retry={() => void auth.refetch()} busy={auth.isFetching}>
           Your session could not be checked.
@@ -84,13 +123,13 @@ export default function MemberInvitationPage() {
         {!(ready && (accepted || shown?.status === 'accepted')) && (
           <PageLink to={ROOT_PATH} label="Not now" onClick={clearMemberInvitation} />
         )}
-        {hasLink && !auth.isLoading && !auth.isUnavailable && !auth.isAuthenticated && (
+        {hasCode && !auth.isLoading && !auth.isUnavailable && !auth.isAuthenticated && (
           <>
             <PageLink to={SIGNUP_PATH} label="Create account" />
             <PageLink to={SIGNIN_PATH} label="Sign in" primary />
           </>
         )}
-        {hasLink &&
+        {hasCode &&
           auth.isAuthenticated &&
           setupRequired &&
           !preferences.isLoading &&

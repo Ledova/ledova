@@ -409,7 +409,11 @@ async function openTheSidebar(page: Page, role: Role) {
   for (const name of ['Security', 'Account details'])
     await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Review (identity check)' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Accept invitation', exact: true })).toHaveCount(
+  await expect(page.getByRole('link', { name: 'Accept (shareholder invitation)', exact: true })).toHaveAttribute(
+    'href',
+    '/member-invitation',
+  );
+  await expect(page.getByRole('link', { name: 'Accept (company officer invitation)', exact: true })).toHaveCount(
     role === 'investor' ? 1 : 0,
   );
   aside = await visibleSidebar(page);

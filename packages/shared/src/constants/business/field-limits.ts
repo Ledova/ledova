@@ -39,6 +39,14 @@ export function isInvitationCode(code: string): boolean {
   return INVITATION_CODE.test(code);
 }
 
+export function invitationCodeFrom(text: string): string {
+  const value = text.trim();
+  return value
+    .slice(value.lastIndexOf('#') + 1)
+    .trim()
+    .slice(0, FIELD_LIMITS.INVITATION_CODE);
+}
+
 const UPLOAD_TYPES: Readonly<Record<string, string>> = {
   '.pdf': 'application/pdf',
   '.png': 'image/png',
