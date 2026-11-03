@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
-import { Alert, Linking, Share } from 'react-native';
+import { Alert } from 'react-native';
 import * as Sharing from 'expo-sharing';
-import * as StoreReview from 'expo-store-review';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { deleteAccount, exportAccountData, changePassword } from '@ledova/shared';
@@ -10,7 +9,6 @@ import { shareDocumentCopy } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
 import { clearTokens } from '../../services/tokenStorage';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import { APP_STORE_URL, SITE_URL } from '../../config/publicLinks';
 
 export function useSettings() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -116,26 +114,6 @@ export function useSettings() {
     return true;
   }, [navigation, queryClient]);
 
-  const rateApp = useCallback(async () => {
-    const isAvailable = await StoreReview.isAvailableAsync();
-    if (isAvailable) {
-      await StoreReview.requestReview();
-    } else if (APP_STORE_URL) {
-      await Linking.openURL(APP_STORE_URL);
-    } else {
-      Alert.alert('Unavailable', 'No app-store listing is configured for this build.');
-    }
-  }, []);
-
-  const shareApp = useCallback(async () => {
-    try {
-      await Share.share({
-        message: `Ledova, the share register for private companies: ${SITE_URL}`,
-        title: 'Share Ledova',
-      });
-    } catch {}
-  }, []);
-
   return {
     changeUserPassword,
     isChangingPassword,
@@ -145,8 +123,5 @@ export function useSettings() {
 
     deleteUserAccount,
     isDeleting,
-
-    rateApp,
-    shareApp,
   };
 }

@@ -3,13 +3,11 @@ from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils.html import format_html
 from rest_framework.exceptions import APIException
 
 from companies.models import (
     Company,
-    CompanyDocument,
-    CompanyRegistryCheck,
+    CompanyActivation,
     CompanyStatus,
 )
 from companies.services import transition_company
@@ -40,7 +38,6 @@ STATUS_COLORS = {
 TRANSITIONS = {
     "resolve-warning": dict(method="resolve_warning", done="Warning resolved for '{name}'. Company is now active."),
     "reinstate": dict(method="reinstate", done="Company '{name}' has been reinstated and is now active."),
-    "retry-registry": dict(method="retry_registry", done="Registry check recorded for '{name}'."),
     "issue-warning": dict(
         method="issue_warning",
         title="Issue Warning",
@@ -118,70 +115,6 @@ STATUS_BUTTONS = {
     CompanyStatus.DELISTED: [("Permanently Delisted", None, "#e9ecef", "#6c757d")],
 }
 
-for review_status in (
-    CompanyStatus.ACTIVE,
-    CompanyStatus.WARNING,
-    CompanyStatus.SUSPENDED,
-):
-    STATUS_BUTTONS[review_status].append(("Retry Registry Check", "retry-registry", "#007bff"))
-
-
-class CompanyRegistryCheckInline(admin.TabularInline):
-    model = CompanyRegistryCheck
-    fk_name = "company"
-    extra = 0
-    fields = (
-        "started_at",
-        "completed_at",
-        "initiated_by",
-        "purpose",
-        "requested_name",
-        "requested_acn",
-        "requested_abn",
-        "status",
-        "reason",
-        "entity_name",
-        "entity_status",
-        "registry_acn",
-        "registry_abn",
-    )
-    readonly_fields = fields
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def has_view_permission(self, request, obj=None):
-        return request.user.has_perm("companies.view_company")
-
-
-class CompanyDocumentInline(admin.TabularInline):
-    model = CompanyDocument
-    extra = 0
-    fields = ["document_type", "name", "file_link", "is_verified", "created_at"]
-    readonly_fields = fields
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def file_link(self, obj):
-        if obj.pk is not None and obj.file:
-            url = reverse("admin:companies_companydocument_file", args=[obj.uuid])
-            return format_html('<a href="{}" target="_blank">View File</a>', url)
-        elif obj.external_url:
-            return format_html('<a href="{}" target="_blank">External Link</a>', obj.external_url)
-        return "-"
-
-    file_link.short_description = "File"
-
 
 class TransitionForm(forms.Form):
     confirm = forms.BooleanField(label="Confirm this company action")
@@ -224,11 +157,6 @@ class CompanyAdmin(admin.ModelAdmin):
     search_fields = ["name", "trading_name", "acn", "abn", "owner__email"]
     readonly_fields = [
         "status",
-        "registry_status",
-        "registry_reason",
-        "registry_checked_at",
-        "registry_entity_name",
-        "registry_entity_status",
         "declarant_name",
         "board_resolution_reference",
         "officeholder_attested_by",
@@ -284,14 +212,9 @@ class CompanyAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Registry and officeholder review",
+            "Officeholder declaration",
             {
                 "fields": [
-                    "registry_status",
-                    "registry_reason",
-                    "registry_checked_at",
-                    "registry_entity_name",
-                    "registry_entity_status",
                     "declarant_name",
                     "board_resolution_reference",
                     "officeholder_attested_by",
@@ -387,8 +310,6 @@ class CompanyAdmin(admin.ModelAdmin):
             },
         ),
     ]
-
-    inlines = [CompanyDocumentInline, CompanyRegistryCheckInline]
 
     actions = []
 
@@ -497,7 +418,7 @@ class CompanyAdmin(admin.ModelAdmin):
                 "form": form,
                 "transition": spec,
                 "intro": spec["intro"].format(name=company.name, acn=company.acn),
-                "registry_checks": company.registry_checks.all(),
+                "activation": CompanyActivation.objects.filter(company=company).select_related("activated_by").first(),
             }
             return render(request, "admin/companies/company/transition_form.html", context)
         kwargs = {spec["actor"]: request.user} if "actor" in spec else {}

@@ -4,8 +4,8 @@ from django.conf import settings
 
 from blockchain.database_guards import install as install_outgoing
 from companies import (
+    activation_guards,
     authority_guards,
-    database_admission_guards,
     database_workflow_guards,
     signup_terms_guards,
 )
@@ -13,7 +13,6 @@ from companies.database_guards import install as install_companies
 from shared.db import atomic
 from shared.db.policy_sql import grant_reachable_tables
 from shared.db.policy_sql import install as install_policies
-from shareholders.database_guards import install as install_publications
 from tokens import (
     database_allotment_completion,
     database_award_agreement_guards,
@@ -25,7 +24,6 @@ from tokens import (
     database_member_documents,
     database_member_name_guards,
     database_mirror_guards,
-    database_output_guards,
     database_people,
     database_transfer_completion,
     database_transfer_guards,
@@ -47,7 +45,6 @@ UNBOUNDED_NUMERIC_COLUMNS = (
 )
 
 FAMILY_GUARDS = (
-    database_output_guards.install,
     authority_guards.install,
     signup_terms_guards.install,
     database_transfer_guards.install,
@@ -55,7 +52,6 @@ FAMILY_GUARDS = (
     database_event_date_guards.install,
     database_award_agreement_guards.install,
     database_award_entitlement_guards.install,
-    database_admission_guards.install,
     database_workflow_guards.install,
     database_member_name_guards.install,
     database_class_rights.install,
@@ -66,6 +62,7 @@ FAMILY_GUARDS = (
     database_allotment_completion.install,
     database_people.install,
     database_transfer_completion.install,
+    activation_guards.install,
 )
 
 CREATE_ROLES = """
@@ -106,27 +103,6 @@ $$;
 """
 
 
-def seed_operations_group(apps, schema_editor):
-    using = schema_editor.connection.alias
-    group, _ = apps.get_model("auth", "Group").objects.using(using).get_or_create(name="Document operations")
-    for label, model in (
-        ("documents", "document"),
-        ("documents", "documentextraction"),
-        ("users", "investorclassification"),
-    ):
-        content_type, _ = (
-            apps.get_model("contenttypes", "ContentType")
-            .objects.using(using)
-            .get_or_create(app_label=label, model=model)
-        )
-        permission, _ = (
-            apps.get_model("auth", "Permission")
-            .objects.using(using)
-            .get_or_create(content_type=content_type, codename=f"view_{model}", defaults={"name": f"Can view {model}"})
-        )
-        group.permissions.through.objects.using(using).get_or_create(group_id=group.pk, permission_id=permission.pk)
-
-
 def seed_reference_rows(apps, schema_editor):
     alias = schema_editor.connection.alias
     asset, _ = (
@@ -156,7 +132,6 @@ def seed_reference_rows(apps, schema_editor):
             "platform": "all",
         },
     )
-    seed_operations_group(apps, schema_editor)
 
 
 def install(apps, schema_editor):
@@ -179,7 +154,6 @@ def install(apps, schema_editor):
                 install_wallets,
                 install_tokens,
                 install_whitelist,
-                install_publications,
                 *FAMILY_GUARDS,
             ):
                 installer(apps, schema_editor)

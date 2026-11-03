@@ -74,8 +74,7 @@ time; leave it blank when unknown.
 **Documents** uses actual supporting files; no upload is required. The file's name identifies the
 document, with no category to choose. Each document is linked to the class and the rights
 revision that retained it, without assigning it to a shareholder. These files stay separate from
-[shareholder documents](register.md#shareholder-documents) and the company-wide
-[company documents](companies.md#company-information-and-documents).
+[shareholder documents](register.md#shareholder-documents).
 
 A current company register reader can read the latest record, earlier versions and their linked
 files. A current personal company administrator can edit; ownership or platform staff status alone
@@ -134,13 +133,12 @@ issued.
 A company appointee can pause a deployed class, which stops every movement of its shares on chain,
 or unpause it, through the API: the preparation gives the requested state with a reason, an
 authority reference and the authority document, and is then approved and applied. Pausing needs no
-eligibility decision, nomination, payment or issue, and changes neither the cap nor the issued
-shares.
+nomination, payment or issue, and changes neither the cap nor the issued shares.
 
 Approval or admitted work does not mean transfers have stopped or resumed: the API reports the
 requested state and its outcome apart from the class's current state. If the class is already in the
 requested state, the outcome is recorded as observed, with no transaction. A paused class keeps its
-members, and publications still reach them.
+members.
 
 ## Ways to issue shares
 
@@ -195,8 +193,7 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
 - The issue must fit within the authorised shares; quantities are whole, and a chain request is at
   most 2,147,483,647.
 - A payment or receipt never authorises an issue, and non-paid terms never create an amount paid.
-- Proposals, their documents and history are read only within current company register authority; a
-  publication roll already frozen keeps the recipients it recorded.
+- Proposals, their documents and history are read only within current company register authority.
 - The company remains responsible for its
   [ASIC notifications](https://www.asic.gov.au/for-business-and-companies/companies/company-share-and-shareholder-rules-and-changes/company-share-issues)
   and for executing and delivering [certificates](member-records.md#certificates).
@@ -372,8 +369,8 @@ allotments, calls, outstanding amounts, collection, payment providers and refund
 A chain grant mints outright non-paid shares on a deployed class whose register was opened from the
 chain; a class opened by an import cannot use it. It needs, separately:
 
-- the participant's own nomination of the receiving wallet, with proof that they control it;
-- a current general [eligibility decision](participants.md#what-a-decision-opens) from this company;
+- the participant's own nomination of the receiving wallet, with proof that they control it, while
+  they remain a [current participant](participants.md#account-standing);
 - a time-limited [company approval](participants.md#wallet-nominations-and-company-wallet-approvals)
   of that wallet, applied on chain;
 - a [wallet link](register.md#linking-wallets-to-members) from that wallet to the member, made
@@ -438,9 +435,7 @@ Capability map under [#1215](https://github.com/Ledova/ledova/issues/1215), refi
 The audited implementation is in [class fields](../../backend/tokens/models/share_token.py),
 [opening facts](../../backend/tokens/services/register_imports.py),
 [external allotments](../../backend/tokens/services/register_allotments.py) and
-[award records](../../backend/tokens/models/register_award.py). Retained staff-run
-[publications, ballots and dividend records](publications.md) still exist; their one-vote-per-share
-ballot and shares-times-rate distributions do not implement arbitrary class rights.
+[award records](../../backend/tokens/models/register_award.py).
 
 Ownership donuts and **% of class** mean a fraction of that class's issued share count, not voting
 power, value or payout entitlement. For a fictional company with 100 A shares carrying ten votes
@@ -482,4 +477,4 @@ represent the existing shares without a second Issue entry or more issued shares
 mapped holding against final chain evidence before claiming a mirror.
 
 Next: [register of members](register.md), [member records and register outputs](member-records.md),
-[participants and eligibility](participants.md) and [planned offerings](offerings.md).
+[investors and members](participants.md) and [planned offerings](offerings.md).

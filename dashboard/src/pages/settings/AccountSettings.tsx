@@ -1,5 +1,5 @@
 import { Field, TextInput } from '@components/Field';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   FIELD_LIMITS,
   DESTINATIONS,
@@ -20,13 +20,14 @@ import { IdentityVerificationModal } from '@components/IdentityVerificationModal
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 
-function ActionRow({ description, label, onClick }: { description: string; label: string; onClick: () => void }) {
+function SettingRow({ label, detail, action }: { label?: string; detail?: ReactNode; action: ReactNode }) {
   return (
-    <div className="grid items-center gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-      <p className="min-w-0 text-sm text-text-muted">{description}</p>
-      <div className="justify-self-end">
-        <PageAction label={label} onClick={onClick} />
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-3">
+      <div className="min-w-0 space-y-1 text-sm">
+        {label && <p className="break-words font-medium text-text-primary">{label}</p>}
+        {detail && <p className="break-words text-text-muted">{detail}</p>}
       </div>
+      {action}
     </div>
   );
 }
@@ -110,53 +111,61 @@ export function AccountSettings() {
   };
   return (
     <>
-      <Section title="Account">
+      <Section title="Security">
         <div className="divide-y divide-border-subtle">
           {profile.userProfile && (
-            <div className="grid items-center gap-3 py-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-              <p className="text-sm text-text-muted">
-                Identity check{' '}
-                <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
-              </p>
-              <div className="justify-self-end">
-                <PageAction
-                  label="Review identity check"
-                  disabled={profile.isFetching}
-                  onClick={() => setVerificationOpen(true)}
-                />
-              </div>
-            </div>
+            <SettingRow
+              label="Identity check"
+              action={
+                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-sm text-text-muted">
+                  <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
+                  <PageAction
+                    label="Review"
+                    context="identity check"
+                    disabled={profile.isFetching}
+                    onClick={() => setVerificationOpen(true)}
+                  />
+                </div>
+              }
+            />
           )}
-          <ActionRow
-            description="Choose a new password for your account."
-            label="Change password"
-            onClick={() => {
-              setPasswordChanged(false);
-              setModal('password');
-            }}
+          <SettingRow
+            label="Password"
+            action={
+              <PageAction
+                label="Change"
+                context="password"
+                onClick={() => {
+                  setPasswordChanged(false);
+                  setModal('password');
+                }}
+              />
+            }
           />
         </div>
         <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
-        {(profile.userProfile || !context?.company?.canManage) && (
-          <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
-            <h3 className="text-sm font-medium text-text-primary">Manage account</h3>
-            {profile.userProfile && (
-              <Rows>
-                <Row label="Member since">{formatDate(profile.userProfile.dateJoined, 'Not available')}</Row>
-                <Row label="Last login">{formatDateTime(profile.userProfile.lastLogin)}</Row>
-              </Rows>
-            )}
-            {!context?.company?.canManage && (
-              <div className="flex justify-end py-3">
-                <PageLink
-                  to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
-                  label="Accept a company invitation"
-                />
-              </div>
-            )}
-          </div>
-        )}
       </Section>
+      {profile.userProfile && (
+        <Section title="Account details">
+          <Rows>
+            <Row label="Member since">{formatDate(profile.userProfile.dateJoined, 'Not available')}</Row>
+            <Row label="Last login">{formatDateTime(profile.userProfile.lastLogin)}</Row>
+          </Rows>
+        </Section>
+      )}
+      {!context?.company?.canManage && (
+        <Section title="Company invitation">
+          <SettingRow
+            detail="Joining a company on Ledova?"
+            action={
+              <PageLink
+                to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
+                label="Accept invitation"
+              />
+            }
+          />
+        </Section>
+      )}
       {verificationOpen && profile.userProfile && (
         <IdentityVerificationModal
           isOpen={verificationOpen}
@@ -232,21 +241,33 @@ export function AccountData() {
     <>
       <Section title="Your data">
         <div className="divide-y divide-border-subtle">
-          <ActionRow
-            description="Download a copy of your account data."
+          <SettingRow
             label="Export data"
-            onClick={() => {
-              exportMutation.reset();
-              setModal('export');
-            }}
+            detail="Download a copy of your account data."
+            action={
+              <PageAction
+                label="Export"
+                context="account data"
+                onClick={() => {
+                  exportMutation.reset();
+                  setModal('export');
+                }}
+              />
+            }
           />
-          <ActionRow
-            description="Deactivate your account and remove personal details. Some records are retained."
+          <SettingRow
             label="Delete account"
-            onClick={() => {
-              deleteMutation.reset();
-              setModal('delete');
-            }}
+            detail="Deactivates your account and removes personal details. Some records are retained."
+            action={
+              <PageAction
+                label="Delete"
+                context="account"
+                onClick={() => {
+                  deleteMutation.reset();
+                  setModal('delete');
+                }}
+              />
+            }
           />
         </div>
       </Section>
@@ -284,7 +305,7 @@ export function AccountData() {
         <p className="text-sm text-text-muted">
           This deactivates your account and removes your name, date of birth, phone number and address from your
           profile. Your country of citizenship, financial profile, wallets, verification records and share register
-          entries are kept, and so are the eligibility requests you sent, with your name as each company received it.
+          entries are kept.
         </p>
         {deleteMutation.isError && (
           <p role="alert" className="mt-3 text-sm text-error-light">

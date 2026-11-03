@@ -7,9 +7,7 @@ export function useRole() {
 
   return {
     role,
-    isInvestor: canOpen(role, 'investing'),
     isCompany: canOpen(role, 'company'),
     isLoading: preferences.isLoading,
-    isKnown: !!account,
   };
 }

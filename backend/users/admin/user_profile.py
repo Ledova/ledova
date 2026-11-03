@@ -1,10 +1,10 @@
 from django.contrib import admin
 
 from companies.services.authority_requests import _requester_principal
+from operators.models import Operator
 from users.models import UserAccount
 from users.models.financial_profile import FinancialProfile
 from users.models.user_profile import UserProfile
-from users.services.company_eligibility import _configuration
 from whitelist.models import WhitelistInvalidationCause
 from whitelist.services.eligibility_invalidation import invalidation_writer_context
 from whitelist.services.refresh import enqueue_for_account
@@ -62,7 +62,7 @@ class UserProfileAdmin(admin.ModelAdmin):
                 and previous.is_id_verified
                 and not obj.is_id_verified
                 and account is not None
-                and _configuration().investor_kyc_required
+                and Operator.configured().investor_kyc_required
             ):
                 enqueue_for_account(
                     account.pk,

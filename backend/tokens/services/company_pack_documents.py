@@ -6,7 +6,6 @@ from botocore.exceptions import ClientError as S3ClientError
 from google.api_core.exceptions import GoogleAPIError
 from rest_framework.exceptions import ValidationError
 
-from companies.models import CompanyDocument
 from shared.uploads import UPLOAD_MIME_BY_EXTENSION
 from tokens.constants import COMPANY_PACK_MAX_STORED_BYTES
 from tokens.exceptions import RegisterIntegrityError
@@ -19,7 +18,6 @@ from tokens.models import (
 
 logger = logging.getLogger(__name__)
 
-FOLDER = "documents"
 EVIDENCE_FOLDER = "documents/evidence"
 EXTENSIONS = {mime_type: extension for extension, mime_type in UPLOAD_MIME_BY_EXTENSION.items()}
 
@@ -38,35 +36,6 @@ def evidence_path(record):
 
 def asic_evidence_path(record):
     return _path(f"{EVIDENCE_FOLDER}/{record._meta.model_name}-asic", record.pk, record.asic_snapshot.get("mime_type"))
-
-
-def held(company):
-    listed, stored = [], {}
-    for document in CompanyDocument.objects.filter(company=company).order_by("created_at", "uuid"):
-        path = _path(FOLDER, document.pk, document.mime_type) if document.file else None
-        listed.append(
-            {
-                "uuid": document.pk,
-                "type": document.document_type,
-                "name": document.name,
-                "mime_type": document.mime_type,
-                "valid_from": document.valid_from,
-                "valid_until": document.valid_until,
-                "verified": document.is_verified,
-                "verified_at": document.verified_at,
-                "uploaded_at": document.created_at,
-                "external_url": document.external_url,
-                "path": path,
-            }
-        )
-        if path is not None:
-            stored[path] = {
-                "file": document.file,
-                "size": document.file_size,
-                "recorded": None,
-                "of": f"company document {document.pk}",
-            }
-    return listed, stored
 
 
 def member_documents(company):
@@ -222,7 +191,7 @@ def carry(stored, target):
         raise _missing(stored) from None
     carried = {"size": size, "sha256": digest.hexdigest()}
     recorded = stored["recorded"]
-    if recorded is not None and {key: carried[key] for key in recorded} != recorded:
+    if {key: carried[key] for key in recorded} != recorded:
         logger.error("The stored file %s no longer matches its recorded digest", stored["file"].name)
         raise RegisterIntegrityError(
             f"The copy Ledova kept of {stored['of']} no longer matches the SHA-256 recorded when it was submitted, "

@@ -89,7 +89,6 @@ def summary(plan):
         "owners": len(plan.people) - len(investors),
         "companies": dict(companies),
         "staff": len(plan.staff),
-        "claims": sum(len(person.claims) for person in everyone),
         "wallets": len(wallets),
         "transactions": sum(len(wallet.transfers) for wallet in wallets),
         "notifications": sum(len(person.notes) for person in everyone),

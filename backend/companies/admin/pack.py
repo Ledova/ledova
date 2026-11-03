@@ -14,7 +14,7 @@ from shared.utils.admin_actions import admin_action_path
 from tokens.exceptions import RegisterIntegrityError
 from tokens.services.company_pack import produce_company_pack
 
-DOCUMENT_PERMISSION = "companies.view_companydocument"
+PACK_PERMISSION = "companies.view_companypack"
 
 
 class CompanyPackForm(forms.Form):
@@ -66,7 +66,7 @@ class CompanyPackAdmin(admin.ModelAdmin):
 
     @method_decorator(require_http_methods(["GET", "POST"]))
     def produce(self, request, company):
-        if not request.user.has_perm(DOCUMENT_PERMISSION):
+        if not request.user.has_perm(PACK_PERMISSION):
             raise PermissionDenied
         form = CompanyPackForm(request.POST if request.method == "POST" else None)
         refusal = ""

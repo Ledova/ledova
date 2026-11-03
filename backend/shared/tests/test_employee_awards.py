@@ -104,23 +104,19 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
         second = self.award_payload(member=award["member"], new_member=False, name="", residential_address="")
         response = self.client.post("/api/v1/tokens/register-awards/", second, format="json")
         self.assertEqual(response.status_code, 201, response.content)
-        supporting = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
         change = self.client.post(
             "/api/v1/tokens/register-particulars-changes/",
             {
                 "operation_id": str(uuid4()),
                 "appointment": str(self.appointment.pk),
                 "member": award["member"],
-                "supporting_evidence": str(supporting.pk),
                 **renamed,
-                "as_at": timezone.now().date().isoformat(),
                 "reason": "Correct the award recipient's particulars",
+                "expected": {"name": award["name"], "residential_address": award["residential_address"]},
             },
             format="json",
         )
         self.assertEqual(change.status_code, 201, change.content)
-        self.decision("/api/v1/tokens/register-particulars-changes/", change.json()["uuid"], "approve")
-        self.decision("/api/v1/tokens/register-particulars-changes/", change.json()["uuid"], "apply")
         for promised in (award, second):
             shown = self.client.get(f"/api/v1/tokens/register-awards/{promised['operation_id']}/").json()
             self.assertEqual(
@@ -251,6 +247,20 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
             appointment = CompanyAppointment.objects.get(company=self.company, appointee=preparer)
             uploaded = RegisterEvidence.objects.get(pk=award["agreement_evidence"])
             uploaded.file.storage.delete(uploaded.file.name)
+        unauthorised = self.client.post(
+            "/api/v1/tokens/register-particulars-changes/",
+            {
+                "operation_id": str(uuid4()),
+                "appointment": str(appointment.pk),
+                "member": award["member"],
+                "name": "Synthetic Renamed Employee",
+                "residential_address": award["residential_address"],
+                "expected": {"name": award["name"], "residential_address": award["residential_address"]},
+            },
+            format="json",
+        )
+        self.assertEqual(unauthorised.status_code, 404, unauthorised.content)
+        self.assertIn("Company appointment not found", unauthorised.content.decode())
         authority = retained_evidence(preparer, appointment, RegisterEvidenceKind.AUTHORITY)
         acceptance = retained_evidence(preparer, appointment, RegisterEvidenceKind.SUPPORTING)
         reused = self.linked_grant_payload(

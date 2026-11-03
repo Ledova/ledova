@@ -25,9 +25,6 @@ router.register(r"user-profiles", user_views.UserProfileViewSet, basename="user-
 router.register(r"user-preferences", user_views.UserPreferencesViewSet, basename="user-preferences")
 router.register(r"financial-profiles", user_views.FinancialProfileViewSet, basename="financial-profiles")
 router.register(r"user-accounts", user_views.UserAccountViewSet, basename="user-accounts")
-router.register(
-    r"investor-classifications", user_views.InvestorClassificationViewSet, basename="investor-classifications"
-)
 router.register(r"device-tokens", user_views.DeviceTokenViewSet, basename="device-tokens")
 router.register(r"notifications", user_views.NotificationViewSet, basename="notifications")
 router.register(r"transactions", wallet_views.TransactionViewSet, basename="transactions")
@@ -49,12 +46,9 @@ urlpatterns = [
     path("api/operator/", include("operators.urls", namespace="operators")),
     path("api/v1/companies/", include("companies.urls", namespace="companies")),
     path("api/v1/company-authority/", include("companies.urls_authority", namespace="company-authority")),
-    path("api/v1/company-eligibility/", include("users.urls_eligibility", namespace="company-eligibility")),
     path("api/v1/tokens/", include("tokens.urls", namespace="tokens")),
     path("api/v1/whitelist/", include("whitelist.urls", namespace="whitelist")),
     path("api/v1/trading/", include("tokens.urls_trading", namespace="trading")),
-    path("api/v1/documents/", include("documents.urls", namespace="documents")),
-    path("api/v1/publications/", include("shareholders.urls", namespace="publications")),
     path("api/", include(router.urls)),
     path("admin/", admin.site.urls),
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),

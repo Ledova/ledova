@@ -57,7 +57,7 @@ class OperatorAdmin(admin.ModelAdmin):
                 ],
             },
         ),
-        ("Eligibility", {"fields": ["investor_kyc_required", "issuer_kyc_required"]}),
+        ("Identity checks", {"fields": ["investor_kyc_required", "issuer_kyc_required"]}),
         ("Timestamps", {"fields": ["created_at", "updated_at"], "classes": ["collapse"]}),
     ]
 

@@ -52,32 +52,3 @@ class MemberAssociationRevocation(BaseModel):
         constraints = [
             models.UniqueConstraint(fields=["revoked_by", "idempotency_key"], name="member_association_revocation_key")
         ]
-
-
-class MemberCertificateRequest(BaseModel):
-    association = models.ForeignKey(MemberAssociation, on_delete=models.PROTECT, related_name="certificate_requests")
-    company = models.ForeignKey(
-        "companies.Company", on_delete=models.PROTECT, related_name="member_certificate_requests"
-    )
-    token = models.ForeignKey("tokens.ShareToken", on_delete=models.PROTECT, related_name="member_certificate_requests")
-    member = models.UUIDField()
-    entry = models.ForeignKey(
-        "tokens.RegisterEntry", on_delete=models.PROTECT, related_name="member_certificate_requests"
-    )
-    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
-
-    class Meta:
-        ordering = ["-created_at", "-uuid"]
-
-
-class MemberCertificateWithdrawal(BaseModel):
-    request = models.OneToOneField(MemberCertificateRequest, on_delete=models.PROTECT, related_name="withdrawal")
-    withdrawn_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
-    idempotency_key = models.UUIDField()
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=["withdrawn_by", "idempotency_key"], name="member_certificate_withdrawal_key"
-            )
-        ]

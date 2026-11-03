@@ -269,9 +269,7 @@ def _process(change):
                 prepared,
                 settings.BLOCKCHAIN_OPERATOR_KEY,
                 signing_context=(
-                    (lambda: signing_source(change, claim))
-                    if change.authority != WhitelistAuthority.CLASSIFICATION_REFRESH
-                    else None
+                    (lambda: signing_source(change, claim)) if change.authority != WhitelistAuthority.REFRESH else None
                 ),
             )
         except WhitelistSigningHold as error:

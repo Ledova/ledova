@@ -7,6 +7,7 @@ from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APITransactionTestCase
 
+from companies.services.administration import company_operation
 from integrations.sendgrid_email import SendGridClient
 from shared.db import atomic, use_operator
 from shared.tests.core_fixtures import (
@@ -20,13 +21,19 @@ from tokens.models import (
     MemberInvitation,
     RegisterEvidenceKind,
     RegisterMember,
+    RegisterMemberParticulars,
+    RegisterParticularsChange,
     ShareToken,
+)
+from tokens.services.company_pack_history import (
+    particulars_change_records,
+    particulars_changes,
 )
 
 
 class MemberAccessTest(CoreFixtures, APITransactionTestCase):
     @override_settings(DASHBOARD_BASE_URL="https://dashboard.example.test")
-    def test_exact_walletless_association_own_entitlement_holdings_requests_and_revocation(self):
+    def test_exact_walletless_association_own_entitlement_holdings_and_revocation(self):
         told = self.enterContext(patch("tokens.services.member_events.defer"))
         award = self.award_payload()
         response = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
@@ -157,8 +164,26 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(selections.status_code, 200, selections.content)
         self.assertEqual(selections.json()["awardRecipients"], [])
         recipient = next(row for row in selections.json()["members"] if row["member"] == award["member"])
-        self.assertEqual((recipient["name"], recipient["onRegister"]), (award["name"], False))
-        proposal = self.client.post("/api/v1/tokens/register-grants/", self.linked_grant_payload(award), format="json")
+        profile_name = self.foreign_profile.full_name
+        self.assertEqual(
+            (recipient["name"], recipient["residentialAddress"], recipient["onRegister"], recipient["followsProfile"]),
+            (profile_name, award["residential_address"], False, True),
+        )
+        particulars = "/api/v1/tokens/register-particulars-changes/"
+        company_edit = {
+            "operation_id": str(uuid4()),
+            "appointment": str(self.appointment.pk),
+            "member": award["member"],
+            "name": "Synthetic Company Rename",
+            "residential_address": award["residential_address"],
+            "expected": {"name": profile_name, "residential_address": award["residential_address"]},
+        }
+        refused = self.client.post(particulars, company_edit, format="json")
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertIn("Ledova profile", refused.content.decode())
+        proposal = self.client.post(
+            "/api/v1/tokens/register-grants/", self.linked_grant_payload(award, name=profile_name), format="json"
+        )
         self.assertEqual(proposal.status_code, 201, proposal.content)
         self.decision("/api/v1/tokens/register-grants/", proposal.json()["uuid"], "approve")
         applied, _ = self.decision("/api/v1/tokens/register-grants/", proposal.json()["uuid"], "apply")
@@ -224,26 +249,46 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
             {"type": "award", "event": "vested", "award": award["operation_id"], "record": association},
         )
         self.client.force_authenticate(self.foreign)
+        profile_endpoint = f"/api/user-profiles/{self.foreign_profile.pk}/"
+        moved = {"full_name": "Synthetic Linked Member", "residential_address": "9 Profile Street, Sydney NSW 2000"}
+        self.assertEqual(self.client.patch(profile_endpoint, moved, format="json").status_code, 200)
+        self.assertEqual(self.client.patch(profile_endpoint, moved, format="json").status_code, 200)
         own = self.client.get(record_endpoint).json()
-        self.assertEqual((own["name"], own["residentialAddress"]), (award["name"], award["residential_address"]))
-        certificate = {"operation_id": str(uuid4()), "association": association, "entry": issue_entry}
-        requested = self.client.post("/api/v1/tokens/member-certificate-requests/", certificate, format="json")
-        self.assertEqual(requested.status_code, 201, requested.content)
-        self.assertEqual(requested.json()["status"], "requested")
-        self.assertNotIn("file", requested.json())
-        certificate_id = requested.json()["uuid"]
-        withdrawal = {"idempotency_key": str(uuid4())}
-        withdrawn = self.client.post(
-            f"/api/v1/tokens/member-certificate-requests/{certificate_id}/withdraw/", withdrawal, format="json"
-        )
-        self.assertEqual(withdrawn.status_code, 200, withdrawn.content)
-        self.assertEqual(withdrawn.json()["status"], "withdrawn")
+        self.assertEqual((own["name"], own["residentialAddress"]), (moved["full_name"], moved["residential_address"]))
+        with company_operation(self.foreign, self.company.pk, "member_particulars_profile"):
+            with self.assertRaises(IntegrityError), atomic():
+                forged = RegisterParticularsChange.objects.create(
+                    company=self.company,
+                    member=self.member,
+                    member_association_id=association,
+                    name=moved["full_name"],
+                    residential_address=moved["residential_address"],
+                    as_at=timezone.now().date(),
+                    evidence_fingerprint="",
+                    evidence_snapshot={},
+                    submitted_by=self.foreign,
+                    reviewed_by=self.foreign,
+                    status="applied",
+                )
+                RegisterMemberParticulars.objects.filter(member=self.member).update(
+                    name=forged.name,
+                    residential_address=forged.residential_address,
+                    as_at=forged.as_at,
+                    source_import=None,
+                    source_change=forged,
+                )
+        self.client.force_authenticate(self.owner)
+        history = self.client.get(particulars, {"member": award["member"]}).json()["results"]
         self.assertEqual(
-            self.client.post(
-                f"/api/v1/tokens/member-certificate-requests/{certificate_id}/withdraw/", withdrawal, format="json"
-            ).status_code,
-            200,
+            [(row["providedBy"], row["preparingAppointment"], row["name"]) for row in history],
+            [("member", None, moved["full_name"]), ("member", None, profile_name)],
         )
+        self.assertEqual([row["previousParticulars"]["name"] for row in history], [profile_name, award["name"]])
+        self.assertEqual([(row["submittedBy"], row["reviewedBy"]) for row in history], [(None, None), (None, None)])
+        requests_endpoint = "/api/v1/tokens/member-certificate-requests/"
+        certificate = {"operation_id": str(uuid4()), "association": association, "entry": issue_entry}
+        self.assertEqual(self.client.get(requests_endpoint).status_code, 404)
+        self.assertEqual(self.client.post(requests_endpoint, certificate, format="json").status_code, 405)
         self.client.force_authenticate(self.owner)
         revocation = {
             "appointment": str(self.appointment.pk),
@@ -265,9 +310,18 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(self.client.get(record_endpoint).status_code, 404)
         self.assertEqual(self.client.get("/api/v1/tokens/member-records/").json()["count"], 0)
         self.assertEqual(
-            self.client.get(f"/api/v1/tokens/member-certificate-requests/{certificate_id}/").json()["status"],
-            "withdrawn",
+            self.client.patch(profile_endpoint, {"full_name": "Synthetic Unlinked"}, format="json").status_code, 200
         )
+        with use_operator():
+            packed = particulars_changes(particulars_change_records(self.company))
+        self.assertEqual([row["reviewer"] for row in packed if row["provided_by"] == "member"], [None, None])
+        self.client.force_authenticate(self.owner)
+        company_edit.update(
+            operation_id=str(uuid4()),
+            expected={"name": moved["full_name"], "residential_address": moved["residential_address"]},
+        )
+        changed = self.client.post(particulars, company_edit, format="json")
+        self.assertEqual((changed.status_code, changed.json()["providedBy"]), (201, "company"), changed.content)
         copied_user, copied_profile = person("copied-award-recipient")
         self.client.force_authenticate(self.owner)
         copied_award = self.award_payload(name="Synthetic Copied Employee")
@@ -331,7 +385,9 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         self.assertIsNone(unopened["ownShares"])
         self.client.force_authenticate(self.owner)
         copied = import_payload(self.owner, self.appointment, token, member_id=copied_award["member"])
-        copied["members"][0].update(name=copied_award["name"], residential_address=copied_award["residential_address"])
+        copied["members"][0].update(
+            name=copied_profile.full_name, residential_address=copied_award["residential_address"]
+        )
         endpoint = "/api/v1/tokens/register-imports/"
         prepared = self.client.post(endpoint, copied, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
@@ -347,7 +403,7 @@ class MemberAccessTest(CoreFixtures, APITransactionTestCase):
         )
         self.client.force_authenticate(copied_user)
         own = self.client.get(copied_endpoint).json()
-        self.assertEqual((own["member"], own["name"]), (copied_award["member"], copied_award["name"]))
+        self.assertEqual((own["member"], own["name"]), (copied_award["member"], copied_profile.full_name))
         self.assertEqual((own["classes"][0]["shares"], own["classes"][0]["enteredOn"]), ("100", "2020-01-01"))
         self.assertEqual(own["awards"][0]["issuedShares"], "0")
         entries = self.client.get(f"{copied_endpoint}entries/?token={token.pk}").json()["entries"]

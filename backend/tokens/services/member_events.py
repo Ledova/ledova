@@ -4,7 +4,7 @@ from shared.tasks.queue import defer
 from tokens.models import MemberAssociation
 
 
-def _current(**lookup):
+def current_associations(**lookup):
     return (
         MemberAssociation.objects.filter(current=True, **lookup)
         .alias(
@@ -13,7 +13,6 @@ def _current(**lookup):
             )
         )
         .filter(access_current=True)
-        .first()
     )
 
 
@@ -32,18 +31,9 @@ def _tell(association, title, body, data):
     )
 
 
-def certificate_ready(request):
-    _tell(
-        _current(pk=request.association_id),
-        "Certificate ready",
-        f"{request.company.name} · {request.token.name}",
-        {"type": "certificate", "event": "ready", "company": str(request.company_id)},
-    )
-
-
 def shares_vested(vesting):
     _tell(
-        _current(company_id=vesting.company_id, member=vesting.award.member),
+        current_associations(company_id=vesting.company_id, member=vesting.award.member).first(),
         "Shares vested",
         f"{vesting.company.name} · Employee award",
         {"type": "award", "event": "vested", "award": str(vesting.award_id)},
@@ -52,7 +42,7 @@ def shares_vested(vesting):
 
 def shares_issued(proposal):
     _tell(
-        _current(company_id=proposal.company_id, member=proposal.member),
+        current_associations(company_id=proposal.company_id, member=proposal.member).first(),
         "Shares issued",
         f"{proposal.company.name} · {proposal.token.name}",
         {"type": "holding", "event": "issued", "token": str(proposal.token_id)},

@@ -10,57 +10,64 @@ the architecture guides own the mechanisms. Sections are grouped by topic; the
 index gives each decision's date and whether it still stands. Superseded choices
 stay here as history and are marked where they appear.
 
-| Decision                                                                                                        | Date                                           | Status                                                                                                                             |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| [Company-managed registers and one product](#company-managed-registers-and-one-product)                         | 3 October 2026                                 | Current; replaces routine register work by platform staff                                                                          |
-| [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                     | 5 October 2026                                 | Current                                                                                                                            |
-| [Company representative verification](#company-representative-verification)                                     | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148                                                                                   |
-| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                 | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148                                                                 |
-| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)    | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148                                                                            |
-| [Identity verification after signup](#identity-verification-after-signup)                                       | 19 October 2026                                | Current; #1141                                                                                                                     |
-| [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)               | 19 October 2026                                | Current; #1146                                                                                                                     |
-| [ABR company lookup at activation](#abr-company-lookup-at-activation)                                           | 19 October 2026                                | Current; #1148                                                                                                                     |
-| [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                         | 14 October 2026                                | Current; setup amended by #1029                                                                                                    |
-| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)          | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                                                                                      |
-| [Eligibility and ownership records](#eligibility-and-ownership-records)                                         | September to 6 October 2026                    | Current; offering parts removed under #1421                                                                                        |
-| [The stored register](#the-stored-register)                                                                     | September 2026; staff review retired 5 October | Current                                                                                                                            |
-| [Register CSV download removed](#register-csv-download-removed)                                                 | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
-| [Company-scoped approvals](#company-scoped-approvals)                                                           | 19 September 2026                              | Current                                                                                                                            |
-| [Shareholder publications](#shareholder-publications)                                                           | 23 September 2026                              | Current; expansion not planned (#870)                                                                                              |
-| [Splits and consolidations](#splits-and-consolidations)                                                         | 23 September 2026                              | Design only; deferred                                                                                                              |
-| [The company pack](#the-company-pack)                                                                           | 23 September 2026                              | Current                                                                                                                            |
-| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)   | 9 October 2026                                 | Register priority current; workflow part superseded 11 October; web wallet and chain controls removed 31 October                   |
-| [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)               | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                                           |
-| [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                         | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md)                                       |
-| [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                           | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
-| [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital) | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
-| [Member invitations and account association](#member-invitations-and-account-association)                       | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October                                          |
-| [Member particulars requests removed](#member-particulars-requests-removed)                                     | 31 October 2026                                | Current; #1476; certificate requests and the company's own particulars change stay                                                 |
-| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                       | 11 October 2026                                | Current                                                                                                                            |
-| [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                   | 11 October 2026                                | Current                                                                                                                            |
-| [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                         | 11 October 2026                                | Current                                                                                                                            |
-| [Required CI and auto-merge on main](#required-ci-and-auto-merge-on-main)                                       | 29 October 2026                                | Current; #1409                                                                                                                     |
-| [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation)                                 | 11 October 2026                                | Current                                                                                                                            |
-| [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation)                      | 11 October 2026                                | Completed under #979; signer and funds decisions remain separate                                                                   |
-| [ledova.io rebuild of 30 October 2026](#ledovaio-rebuild-of-30-october-2026)                                    | 30 October 2026                                | Completed under #1431; no earlier records kept; old data and backups deleted                                                       |
-| [ledova.io open to the public](#ledovaio-open-to-the-public)                                                    | 30 October 2026                                | Current; #1437; `/admin/` still limited to the owner's addresses                                                                   |
-| [Backend migration baseline](#backend-migration-baseline)                                                       | 10 October 2026                                | Superseded 11 October                                                                                                              |
-| [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)        | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands                                                                     |
-| [Payments and settlement](#payments-and-settlement)                                                             | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred; offering payments removed under #1421                                                   |
-| [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                         | 26 September 2026                              | Current; web Wallets removed 31 October                                                                                            |
-| [The signed-in app](#the-signed-in-app)                                                                         | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October; mobile 26 October; web wallets removed 31 October                |
-| [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                       | 11 October 2026                                | Web layout superseded 12 October; native journey superseded 26 October                                                             |
-| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                             | 12 to 29 October 2026                          | Current; company-centred Ownership browser replaces workspace selection (#1360); links, one-line labels and Market removal (#1416) |
-| [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)        | 19 October 2026                                | Current; #1155 (web); mobile (#1157) superseded 26 October                                                                         |
-| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)              | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile superseded 26 October                                             |
-| [Paper and Dark themes](#paper-and-dark-themes)                                                                 | 14 October 2026                                | Current; #1040                                                                                                                     |
-| [Frontend UX standards](#frontend-ux-standards)                                                                 | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201)                      |
-| [Mobile app for shareholders](#mobile-app-for-shareholders)                                                     | 26 October 2026                                | Current; delivered under #1201; tabs, no drawer and the removal of investor eligibility superseded 31 October                      |
-| [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                               | 31 October 2026                                | Current; phase 1 delivered, phase 2 per company, investor eligibility brought forward (#1464)                                      |
-| [The account-data export](#the-account-data-export)                                                             | 23 September 2026                              | Current                                                                                                                            |
-| [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                            | 3 October 2026                                 | Current                                                                                                                            |
-| [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                           | Undated                                        | Current                                                                                                                            |
-| [Clients and API types](#clients-and-api-types)                                                                 | 14 September 2026                              | Current; mobile workflows superseded 26 October                                                                                    |
+| Decision                                                                                                           | Date                                           | Status                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| [Company-managed registers and one product](#company-managed-registers-and-one-product)                            | 3 October 2026                                 | Current; replaces routine register work by platform staff                                                                          |
+| [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                        | 5 October 2026                                 | Current; particulars change rule amended 1 November (#1476) and for linked members 2 November (#1492)                              |
+| [Company representative verification](#company-representative-verification)                                        | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                                       |
+| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                    | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                     |
+| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)       | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148, removed 2 November; company documents removed 2 November (#1491)          |
+| [Identity verification after signup](#identity-verification-after-signup)                                          | 19 October 2026                                | Current; #1141                                                                                                                     |
+| [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)                  | 19 October 2026                                | Current; #1146                                                                                                                     |
+| [ABR company lookup at activation](#abr-company-lookup-at-activation)                                              | 19 October 2026                                | Superseded 2 November 2026; the ABR check was removed (#1491)                                                                      |
+| [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                            | 14 October 2026                                | Current; setup amended by #1029                                                                                                    |
+| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)             | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                                                                                      |
+| [Eligibility and ownership records](#eligibility-and-ownership-records)                                            | September to 6 October 2026                    | Eligibility superseded 2 November (#1491); offering parts removed under #1421                                                      |
+| [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Current; #1491; supersedes classification, eligibility, payslips, the ABR check and company documents                              |
+| [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; supersedes the 19 October ABR lookup at activation                                                          |
+| [Company documents removed](#company-documents-removed)                                                            | 2 November 2026                                | Current; #1491 step 3; retained instructions take the company's own evidence                                                       |
+| [The stored register](#the-stored-register)                                                                        | September 2026; staff review retired 5 October | Current                                                                                                                            |
+| [Register CSV download removed](#register-csv-download-removed)                                                    | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
+| [Company-scoped approvals](#company-scoped-approvals)                                                              | 19 September 2026                              | Current                                                                                                                            |
+| [Shareholder publications](#shareholder-publications)                                                              | 23 September 2026                              | Superseded 2 November 2026; publications removed (#1489)                                                                           |
+| [Shareholder publications removed](#shareholder-publications-removed)                                              | 2 November 2026                                | Current; #1489                                                                                                                     |
+| [Splits and consolidations](#splits-and-consolidations)                                                            | 23 September 2026                              | Design only; deferred                                                                                                              |
+| [The company pack](#the-company-pack)                                                                              | 23 September 2026                              | Current                                                                                                                            |
+| [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)      | 9 October 2026                                 | Register priority current; workflow part superseded 11 October; web wallet and chain controls removed 31 October                   |
+| [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)                  | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                                           |
+| [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                            | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md); eligibility removed 2 November       |
+| [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                              | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
+| [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital)    | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
+| [Member invitations and account association](#member-invitations-and-account-association)                          | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
+| [Member particulars requests removed](#member-particulars-requests-removed)                                        | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed and linked members follow their profile (#1492)      |
+| [One-step particulars edit](#one-step-particulars-edit)                                                            | 1 November 2026                                | Current; #1476; members without a current account link since 2 November (#1492)                                                    |
+| [Member certificate requests removed](#member-certificate-requests-removed)                                        | 2 November 2026                                | Current; #1476; amounts paid and unpaid on certificates delivered 2 November                                                       |
+| [Register particulars follow the linked member's profile](#register-particulars-follow-the-linked-members-profile) | 2 November 2026                                | Current; #1492                                                                                                                     |
+| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                          | 11 October 2026                                | Current                                                                                                                            |
+| [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                      | 11 October 2026                                | Current                                                                                                                            |
+| [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                            | 11 October 2026                                | Current                                                                                                                            |
+| [Required CI and auto-merge on main](#required-ci-and-auto-merge-on-main)                                          | 29 October 2026                                | Current; #1409                                                                                                                     |
+| [Binding caps and backup authorisation](#binding-caps-and-backup-authorisation)                                    | 11 October 2026                                | Current                                                                                                                            |
+| [ledova.io rebuild and release authorisation](#ledovaio-rebuild-and-release-authorisation)                         | 11 October 2026                                | Completed under #979; signer and funds decisions remain separate                                                                   |
+| [ledova.io rebuild of 30 October 2026](#ledovaio-rebuild-of-30-october-2026)                                       | 30 October 2026                                | Completed under #1431; no earlier records kept; old data and backups deleted                                                       |
+| [ledova.io open to the public](#ledovaio-open-to-the-public)                                                       | 30 October 2026                                | Current; #1437; `/admin/` still limited to the owner's addresses                                                                   |
+| [Backend migration baseline](#backend-migration-baseline)                                                          | 10 October 2026                                | Superseded 11 October                                                                                                              |
+| [Registry priority, crypto on-ramp and AUD payments](#registry-priority-crypto-on-ramp-and-aud-payments)           | 5 October 2026                                 | Payment scope superseded 9 October; on-ramp restriction stands                                                                     |
+| [Payments and settlement](#payments-and-settlement)                                                                | 25 September to 2 October 2026                 | Current behaviour; new mechanics deferred; offering payments removed under #1421                                                   |
+| [Assets and portfolio presentation](#assets-and-portfolio-presentation)                                            | 26 September 2026                              | Current; web Wallets removed 31 October                                                                                            |
+| [The signed-in app](#the-signed-in-app)                                                                            | 26 September to 2 October 2026                 | Navigation superseded 11 October; one look superseded 14 October; mobile 26 October; web wallets removed 31 October                |
+| [Simpler signed-in journeys](#simpler-signed-in-journeys)                                                          | 11 October 2026                                | Web layout superseded 12 October; native journey superseded 26 October                                                             |
+| [Ownership dashboard and compact sidebar](#ownership-dashboard-and-compact-sidebar)                                | 12 to 29 October 2026                          | Current; company-centred Ownership browser replaces workspace selection (#1360); links, one-line labels and Market removal (#1416) |
+| [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)           | 19 October 2026                                | Current; #1155 (web); mobile (#1157) superseded 26 October                                                                         |
+| [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)                 | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile superseded 26 October                                             |
+| [Paper and Dark themes](#paper-and-dark-themes)                                                                    | 14 October 2026                                | Current; #1040                                                                                                                     |
+| [Frontend UX standards](#frontend-ux-standards)                                                                    | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201)                      |
+| [Mobile app for shareholders](#mobile-app-for-shareholders)                                                        | 26 October 2026                                | Current; delivered under #1201; tabs, no drawer and the removal of investor eligibility superseded 31 October                      |
+| [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                                  | 31 October 2026                                | Current; phase 1 delivered, phase 2 per company; eligibility brought forward (#1464), removed 2 November                           |
+| [The account-data export](#the-account-data-export)                                                                | 23 September 2026                              | Current                                                                                                                            |
+| [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                               | 3 October 2026                                 | Current                                                                                                                            |
+| [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                              | Undated                                        | Current                                                                                                                            |
+| [Clients and API types](#clients-and-api-types)                                                                    | 14 September 2026                              | Current; mobile workflows superseded 26 October                                                                                    |
 
 ## Company-managed registers and one product
 
@@ -143,6 +150,10 @@ corrections and openings recorded on #864 and #860;
   "as at" date wins, and a member's live verified identity still wins over both,
   as decided on 22 September 2026. Members editing their own particulars is
   separate work in [#866](https://github.com/Ledova/ledova/issues/866).
+  _The reason and supporting document were superseded on 1 November 2026 by the
+  [one-step particulars edit](#one-step-particulars-edit): a change needs neither. Since 2 November
+  2026 a member with a current Ledova account link provides their own particulars from their
+  profile ([decision](#register-particulars-follow-the-linked-members-profile))._
 
 ### Company representative verification
 
@@ -172,7 +183,8 @@ block #862–#873. A declaration can establish the initial representative's
 authority in the initial admission workflow. The existing representative identity
 check and ABR company lookup remain unchanged, as do tenant isolation and
 signed-transaction safeguards; the lookup later moved from admission to
-activation ([19 October](#abr-company-lookup-at-activation)). The
+activation ([19 October](#abr-company-lookup-at-activation)) and was removed on
+2 November 2026 ([ABR company check removed](#abr-company-check-removed)). The
 [authority guide](business/companies.md)
 describes the delivered admission, invitation, delegation and revocation
 workflows.
@@ -197,7 +209,8 @@ submission alone is not admission.
 The [same-day amendment below](#simple-signup-documents-and-team-after-registration)
 supersedes the file and delegation choices in the original decision that follows,
 and the [19 October decision](#abr-company-lookup-at-activation) moves its ABR
-lookup to activation.
+lookup to activation, which stopped looking companies up on
+[2 November 2026](#abr-company-check-removed).
 
 The initial personal scope is `admin`. Delegation is a separate visible choice:
 it is empty by default and includes `admin` only when explicitly selected.
@@ -232,9 +245,11 @@ Signup requires no supporting file and has no separate administrator-delegation
 checkbox. The initial personal scope remains `admin`; its recorded delegation
 includes all six capabilities for team setup afterwards. Documents and invitations
 use the existing company dashboard settings, with current company authority and the checked
-private-file flow for actual uploads. Identity, ABR, immutable declarations,
+private-file flow for actual uploads; company documents were removed on 2 November 2026
+([decision](#company-documents-removed)). Identity, ABR, immutable declarations,
 tenant isolation, revocation and action-specific approvals remain; the ABR lookup
-later moved to activation ([19 October](#abr-company-lookup-at-activation)). A missing
+later moved to activation ([19 October](#abr-company-lookup-at-activation)) and was
+removed on 2 November 2026 ([decision](#abr-company-check-removed)). A missing
 or failed required provider check cannot be treated as success. This replaces
 the mandatory signup file and optional administrator-delegation choice under
 #1020; it does not make evidence optional for later actions that require it.
@@ -291,6 +306,9 @@ saved draft company stays with the account instead of being cleared; weakening
 that safeguard was not authorised.
 
 ### ABR company lookup at activation
+
+_Superseded on 2 November 2026: activation no longer looks the company up in the ABR
+([ABR company check removed](#abr-company-check-removed)). The decision below is kept as history._
 
 Later on 19 October 2026 the owner decided
 ([#1148](https://github.com/Ledova/ledova/issues/1148)) that the ABR company
@@ -403,9 +421,14 @@ outside its scope. The issue records each delivered increment.
 
 ## Eligibility and ownership records
 
+_Its eligibility parts were superseded on 2 November 2026 by
+[verification limited to ID checks](#verification-limited-to-id-checks): classification claims,
+payslips and company eligibility decisions were removed. The amount-paid rule and the
+`issuer_kyc_required` switch below stand._
+
 Under the 3 October decision, company
-[activation](business/companies.md#activation-and-the-registry-check) and
-[company eligibility decisions](business/participants.md#company-eligibility-decisions)
+[activation](business/companies.md#activation) and
+company eligibility decisions
 replaced staff company activation and classification review on 6 October 2026
 (#863). The scope, privacy and expiry requirements below remain; a reusable
 identity fact is not approval for every company.
@@ -424,7 +447,7 @@ and did not widen the secondary market, until both were removed on 29 October
 who lacks market eligibility
 cannot see the market for shares they own. Revisit that trade-off before live
 operation with real participants.
-[Eligibility](engineering/backend.md#eligibility-decisions) owns enforcement details.
+[Current participants](engineering/backend.md#current-participants) owns today's enforcement.
 
 Anyone eligible to see an offering in the directory can open the documents
 attached to its approved offerings, whether upcoming, open or closed (owner
@@ -446,7 +469,7 @@ The register leaves amount paid blank when it cannot be established exactly;
 zero would assert an amount that is not known. Classification evidence has a
 fixed retention horizon, independent of account deletion. The legal basis and
 uncertain clock are in [legal positions](legal/positions.md#3-the-evidence-retention-period); implementation belongs to
-[the register](engineering/records.md#holdings-and-identity-resolution) and [file retention](engineering/security.md#classification-evidence-and-payslips).
+[the register](engineering/records.md#holdings-and-identity-resolution) and [file retention](engineering/security.md#retention-clocks).
 
 The owner chose on 21 September 2026 in
 [#647](https://github.com/Ledova/ledova/issues/647#issuecomment-5766230810)
@@ -457,6 +480,92 @@ checked wherever an appointment is exercised: admission, invitation acceptance,
 activation, eligibility decisions and each register command;
 [the representative identity requirement](business/companies.md#representative-identity-requirement)
 states where it applies.
+
+### Verification limited to ID checks
+
+**Owner decision, 2 November 2026**, given in the session while reviewing the investor's
+Verification page and tracked in [#1491](https://github.com/Ledova/ledova/issues/1491): "We dont
+need all these verifications, Ledova is not a regulated body to enforce companies to be who they
+are. The verification we will require is ID verification. Please meke sure remove everything that
+is not ID verification, including the documents".
+
+Personal ID verification stays: the identity check on Account, the identity requirement for company
+appointments when the operator requires it, and the PEP screening inside the identity check. Of the
+options offered, the owner chose all three steps, as recommended, each its own pull request:
+
+1. **Remove investor eligibility:** investors' classification claims (the s708(8)(c) qualified
+   accountant's certificate and s708(11) professional investor) and their evidence uploads,
+   Supporting payslips and their AI extraction, and company eligibility requests, decisions,
+   withdrawals and revocations, on the web, in the app and in the backend. The app's planned "Your
+   company eligibility" step (E3 on [#1464](https://github.com/Ledova/ledova/issues/1464)) is
+   cancelled. The API-only wallet nominations, company wallet approvals and trading drop their
+   eligibility condition; the company's own approvals and every other guard stay.
+2. **Remove the ABR company check:** activation stops looking the company up in the ABR and then
+   needs only the administrator's declaration and their ID check, when configured. The ABR
+   configuration and the staff registry controls go.
+3. **Remove company documents and staff verification:** the company's supporting documents and
+   platform staff's verification of them. For the two API-only chain flows that relied on a
+   staff-verified company document, retained issue instructions and settled-transfer instructions,
+   the owner chose "Company's own evidence": they take the company's own uploaded evidence, as
+   register commands already do.
+
+The migrations delete the removed records and their uploaded files ("including the documents").
+The local walkthrough database is migrated only on the owner's word, with a copy kept, and ledova.io
+needs the owner's direction before any live migration. Step 1 was built alongside the removal of
+shareholder publications ([#1489](https://github.com/Ledova/ledova/issues/1489)); steps 2 and 3
+follow one after the other, because both change the companies area.
+
+For classification, eligibility and payslips this supersedes the
+[eligibility and ownership records](#eligibility-and-ownership-records), the eligibility that
+[offerings deferred](#offerings-deferred-from-the-first-release) kept, the sidebar's Company
+eligibility group ([compact sidebar](#ownership-dashboard-and-compact-sidebar)) and the app's
+[eligibility brought forward](#mobile-app-like-the-web-at-phone-width). Their history stays.
+
+### ABR company check removed
+
+Step 2 of the [decision above](#verification-limited-to-id-checks)
+([#1491](https://github.com/Ledova/ledova/issues/1491)): activation no longer looks the company up in
+the Australian Business Register. A current personal administrator activates the company with the
+2026-10-04 declaration and, when the operator requires it, their verified identity; neither the
+company's identifiers nor its name are checked against any register. The ABR lookup and its
+configuration go, and so do the staff registry controls: the registry retry in Django admin and the
+fresh lookup that resolving a warning or reinstating waited for. Staff warning, suspension,
+delisting, warning resolution and reinstatement stay.
+
+The registry-check records and their lookup results are deleted. Each activation applied before the
+change keeps its receipt (the administrator, their appointment, the declaration and their identity
+status when they activated), because that is the record of the declaration activation still
+requires. A company still waiting on a lookup activates afresh. This supersedes the
+[19 October decision](#abr-company-lookup-at-activation), kept above as history, and the parts of the
+[4 October](#company-representative-verification) decision and the 14 October
+[combined signup](#combined-company-signup-and-initial-authority) and
+[simple signup](#simple-signup-documents-and-team-after-registration) decisions that kept the ABR lookup.
+
+### Company documents removed
+
+Step 3 of the [decision above](#verification-limited-to-id-checks)
+([#1491](https://github.com/Ledova/ledova/issues/1491)), delivered on 2 November 2026: the company's
+supporting documents (Company files on the web) and platform staff's verification of them are
+removed. A company no longer keeps documents on Ledova apart from its register work, and the company
+pack carries no company documents. The register's own evidence stays: each register command, grant,
+award, allotment and transfer keeps the files the company uploaded with it.
+
+The two API-only flows that relied on a staff-verified company document, retained issue instructions
+and settled-transfer instructions, take the company's own uploaded evidence instead, as the owner
+chose ("Company's own evidence"): the company owner, while a current administrator of the company
+(with a verified identity where the operator requires it), names an `authority` upload they made for
+the company, Ledova keeps its own copy with the upload's SHA-256, and platform staff still review
+each instruction before it applies. One still waiting with a company document can only be rejected; the
+company submits it again with its own evidence.
+
+The migration deletes every company document and its file. An instruction, or an earlier staff-era
+record, that relied on one keeps its own copy of the file with the snapshot and fingerprint it
+recorded, so the evidence behind an applied register effect stays. The document's own record goes
+with it, while the admin log keeps each verification's staff user and time. The staff permissions to
+view and verify company documents go too, and producing the broader company pack in admin needs
+**Can view company pack** in their place. This supersedes the company documents of the
+[simple signup](#simple-signup-documents-and-team-after-registration) decision and the Company
+documents page of the [compact sidebar](#ownership-dashboard-and-compact-sidebar).
 
 ## The stored register
 
@@ -524,7 +633,9 @@ since become company decisions under the
 [company-run rules](#company-run-register-authority-and-evidence): non-paid
 register grants and chain grants, and paid issues until offerings were removed on
 29 October 2026. The instruction route remains for
-settled transfers until [#869](https://github.com/Ledova/ledova/issues/869).
+settled transfers until [#869](https://github.com/Ledova/ledova/issues/869). Since 2 November 2026 its
+documentary authority is the company's own uploaded evidence
+([decision](#company-documents-removed)).
 [The register](engineering/records.md#register-commands) owns the mechanisms.
 
 The same day the owner chose how the register's outputs are produced:
@@ -644,6 +755,9 @@ redeploy.
 
 ## Shareholder publications
 
+_Superseded on 2 November 2026: shareholder publications were
+[removed](#shareholder-publications-removed). The rules below are kept as history._
+
 Platform staff publish, enter represented ballots and record payments on the
 company's written instruction. The proposed company-run expansion under
 [#870](https://github.com/Ledova/ledova/issues/870) was [closed as not planned](#registry-focus-and-cancelled-expansion-tickets).
@@ -707,8 +821,6 @@ proxies the issue's non-goals exclude.
   caller's rights and the member's own policy would narrow what it could read.
   The guarantee that a member casts only their own ballot stays in the database,
   and members, staff and the closing job share one write path and one lock.
-  [Shareholder publications](business/publications.md#resolutions)
-  describes the mechanism.
 
 - **Dividends round down to the cent for each holder**, and what rounding leaves
   over is recorded as undistributed rather than given to anyone, so the company
@@ -745,8 +857,36 @@ proxies the issue's non-goals exclude.
   votes and dividends are waiting on it. A person holding through two register
   members is counted as waiting while either holding is.
 
-[Shareholder publications](engineering/records.md#publications) owns the
-mechanism and [publishing to members](business/publications.md#publishing-on-the-companys-instruction) the procedure.
+Until their removal, [publication records](https://github.com/Ledova/ledova/blob/2bc869be2df7fe348a0dccf078ad40e5a366dd2d/docs/engineering/records.md#publications)
+owned the mechanism and
+[publishing to members](https://github.com/Ledova/ledova/blob/2bc869be2df7fe348a0dccf078ad40e5a366dd2d/docs/business/publications.md#publishing-on-the-companys-instruction)
+the procedure.
+
+## Shareholder publications removed
+
+**Owner decision, 2 November 2026**, given in the session and tracked in
+[#1489](https://github.com/Ledova/ledova/issues/1489). The owner reviewed members' Notices on the
+web and in the app and asked to see the page with notices. Nothing could be published to members in
+the current product:
+
+- **Publishing needed a share class on chain**, deployed or paused. Every class is register-only
+  since the [31 October decision](#wallets-removed-from-the-web-app) took wallets and the class's
+  on-chain features out of the web app, and publishing to register-only classes, part of
+  [#870](https://github.com/Ledova/ledova/issues/870), was
+  [closed as not planned](#registry-focus-and-cancelled-expansion-tickets).
+- **Publishing was a staff task** in Django admin, done on the company's written instruction, which
+  put Ledova between the company and its members, the pattern challenged in
+  [#1476](https://github.com/Ledova/ledova/issues/1476).
+
+Asked what should happen, the owner chose **"Remove Notices (Recommended)"**. The company gives
+notices to its members and pays dividends itself; Ledova keeps the register. Members' Notices on the
+web and in the app, the company's Published page, staff publishing, represented ballots and payment
+records in Django admin, the publications API, the company pack's publications folder and the
+backend behind them were removed, and the earlier
+[shareholder publications](#shareholder-publications) decision is kept above as history.
+Publication notices already in members' inboxes stay and open nothing. The removal's migration
+refuses a database that still holds a publication, so no retained publication is deleted before the
+owner decides what happens to it.
 
 ## Splits and consolidations
 
@@ -794,7 +934,9 @@ for reporting and portability, recorded in
   ([what never leaves](business/member-records.md#what-never-leaves-and-why);
   [#1139](https://github.com/Ledova/ledova/issues/1139#issuecomment-6262477255)).
 - **The company sees resolution tallies and read counts**, never how a member
-  voted or who opened what, while every vote's record still verifies.
+  voted or who opened what, while every vote's record still verifies. The pack's
+  publications, with their tallies, payment records and read counts, went when
+  publications were [removed](#shareholder-publications-removed) on 2 November 2026.
 - **The pack explains how control of the contracts would be handed over and
   does not hand it over.** The README names each contract, its current owner
   and the exact calls.
@@ -948,7 +1090,9 @@ classification keeps the accountant's certificate and professional investor cate
 kind of company decision remains. Removing the offerings app regenerated the fresh initial
 migrations, so a database migrated before this change, ledova.io included, needs a
 [fresh rebuild](engineering/backend.md#migrations) before it runs this code; that rebuild is
-the owner's call.
+the owner's call. _Investor classification and company eligibility were removed on 2 November 2026
+([verification limited to ID checks](#verification-limited-to-id-checks)); the wallet approvals
+stay without them._
 
 ### Wallets removed from the web app
 
@@ -988,7 +1132,9 @@ requests. Company review remains separate from member confirmation, and
 certificate fulfilment follows the supported #871 outputs. This selects the
 first linking flow; the implementation index records delivery separately.
 Particulars requests were removed on 31 October 2026
-([decision](#member-particulars-requests-removed)).
+([decision](#member-particulars-requests-removed)), and certificate requests
+and their fulfilment on 2 November 2026
+([decision](#member-certificate-requests-removed)).
 
 On 24 October 2026 the owner replaced web users' manual code sharing and entry with an emailed
 invitation link under [#1165](https://github.com/Ledova/ledova/issues/1165). The company sends it to
@@ -1011,15 +1157,95 @@ on the web, the app and the backend: the member's **Request update** and **Updat
 company's **Details update** requests under **Shareholders** → **Member requests** and preparing a
 particulars change from one, the notifications about decided requests, the app's draft and retry
 handling for the request, and the backend's request records and API. Members tell the company
-directly. Profile keeps a small read-only view of how the selected company's register records the
-member, their name and residential address, with a short line to contact the company, titled so it
-does not read as a second profile. Certificate requests stay. The company's own particulars change,
+directly. Profile kept a small read-only view of how the selected company's register records the
+member, their name and residential address, with a short line to contact the company, until the
+owner removed it on 2 November 2026 (#1492). Certificate requests stay; they were
+[removed](#member-certificate-requests-removed) on 2 November 2026. The company's own particulars change,
 prepared, approved and applied with a supporting document, is unchanged by this decision and is to
-be simplified separately.
+be simplified separately. It became [one step](#one-step-particulars-edit) on 1 November 2026.
 
 The legal basis: under s169 of the Corporations Act 2001, a register of members must hold each
 member's name and address. No law requires a member request workflow, a supporting document or an
 approval step for the member to tell the company about a change.
+
+_Since 2 November 2026 a member with a current Ledova account link no longer tells the company: the
+register follows their profile ([decision](#register-particulars-follow-the-linked-members-profile))._
+
+### One-step particulars edit
+
+**Owner decision, 1 November 2026**, given in the session and tracked in
+[#1476](https://github.com/Ledova/ledova/issues/1476). The company's change to a member's recorded
+name and residential address becomes one audited step, with no mandatory supporting document and no
+separate approval and application. The owner chose the recommended answer to each question:
+
+- **Who may change particulars:** "Same people as today": an administrator, or one appointment
+  holding prepare, approve and apply, which could already finish a change alone. A delegate holding
+  only prepare cannot change an existing member's particulars.
+- **Reason:** "Optional". This relaxes the
+  [5 October rule](#company-run-register-authority-and-evidence) that every change states why.
+- **Member notice:** "No notice". The member sees the current particulars on Profile.
+
+Each change is kept as one immutable record of who made it, when, and the particulars it replaced.
+Earlier changes, their supporting documents and decisions are kept; one prepared or approved but
+never applied stays as history and is no longer decided.
+
+_Since 2 November 2026 the edit is for members without a current Ledova account link; a linked
+member's particulars follow their profile
+([decision](#register-particulars-follow-the-linked-members-profile))._
+
+### Member certificate requests removed
+
+**Owner decision, 2 November 2026**, given in the session and tracked in
+[#1476](https://github.com/Ledova/ledova/issues/1476). The owner reviewed members' certificate
+requests with the same lens as [particulars requests](#member-particulars-requests-removed) and chose
+the recommended answer each time:
+
+- **"Remove them":** members' certificate requests go from the web, the app and the backend: the
+  member's **Request certificate** and **Withdraw request**, the downloads of fulfilled requests and
+  the app's **Share PDF**, the company's **Member requests** page and its fulfilment flow, and the
+  "Certificate ready" notice. Members keep their own issue and transfer history on Certificates.
+  Companies keep **Prepare certificate** for any uncorrected issue or transfer, and execute and
+  deliver their certificates themselves.
+- **"Delete, keep fingerprints":** the existing request records and the PDFs stored for fulfilled
+  requests are deleted, and each certificate's register fingerprint, its output record, is kept. This
+  restores the [October rule](#the-stored-register) that Ledova keeps a fingerprint, not the file,
+  and the company signs.
+
+The legal basis: under s1071H of the Corporations Act 2001, a company must have certificates ready
+within 2 months after an issue and 1 month after a transfer is lodged, so the issue or transfer
+triggers the duty, not a request. Under s1070D, only a replacement for a lost or destroyed
+certificate starts with the holder applying, and that is between the holder and the company.
+Nothing requires a member to request a certificate through a platform.
+
+_The owner's third answer in the same review, **"Print amount paid/unpaid"**, was delivered on
+2 November 2026: each certificate page states the amount paid and the amount unpaid on its shares
+(s1070C) where the register records them for exactly those shares, and Not recorded otherwise
+([what a certificate shows](business/member-records.md#what-a-certificate-shows)). The optional list
+of due dates for companies was not chosen._
+
+### Register particulars follow the linked member's profile
+
+**Owner decision, 2 November 2026**, given in the session and tracked in
+[#1492](https://github.com/Ledova/ledova/issues/1492). Reviewing Profile's "How {company} records
+you" card, the owner wrote: "we dont need this thing "How company records your" Company will record
+using the current profile and we should remove everything that over complicated that". Asked where
+the register should take a member's name and address from when the member has a Ledova account, the
+owner chose **"Their profile"**: "The register uses the member's current profile name and address.
+When they edit their profile, each company's register updates automatically, with a dated record in
+its history. Companies keep editing particulars only for members without an account."
+
+This changes the earlier particulars decisions for a member with a current link to a Ledova account,
+made by accepting the company's [invitation](#member-invitations-and-account-association). Their
+profile, not the company, provides their register name and residential address, and the member no
+longer tells the company directly about a change, as the [requests
+decision](#member-particulars-requests-removed) had them do. The
+[one-step particulars edit](#one-step-particulars-edit) stays for members without a current link, and
+it applies again when a link ends. A company's register import no longer changes such a member's
+name or address either, so the [5 October rule](#company-run-register-authority-and-evidence) that the
+latest "as at" date wins between imports and changes applies only to members without a current link.
+A member's change is recorded like the company's, as one immutable record of when it was made and the
+particulars it replaced, with no notice. Existing changes and their history stay as they were, and
+links that already existed were brought up to their members' profiles once, when this was installed.
 
 ## Minimum tests and fresh migrations
 
@@ -1494,9 +1720,11 @@ Later the same day the owner asked to move the company's supporting documents ou
 think this page [/company#documents] should be in documents section, not in settings". The owner
 also asked about Company-recorded details: "this page … does not seems to be offering much so I
 wonder if we can just merge into Profile". Company documents now sit under Documents at
-`/documents/company`, and the old address redirects there. Profile shows the selected company's
+`/documents/company`, and the old address redirects there (both removed on
+[2 November 2026](#company-documents-removed)). Profile shows the selected company's
 recorded details for a linked member, with its update request, and the separate Settings item is
-gone. The update request was later removed ([decision](#member-particulars-requests-removed)).
+gone. The update request was later removed ([decision](#member-particulars-requests-removed)), and
+the card itself on 2 November 2026 (#1492).
 
 On 29 October 2026 the owner settled the pages that had no in-app link or only the notification
 bell ([#1416](https://github.com/Ledova/ledova/issues/1416)): "Start #1416 with your defaults:
@@ -1517,7 +1745,11 @@ Company eligibility and asked for a view. Claude recommended keeping it under Do
 holds the company's own records and offer documents rather than eligibility decisions, and the owner
 chose: "Move Supporting under Company eligibility." Supporting is now Company eligibility's child for
 a company administrator. The group's caret leaves too little room for the full name on one line, so
-the sidebar labels it Eligibility, with Company eligibility as its title.
+the sidebar labels it Eligibility, with Company eligibility as its title. _The group went with
+company eligibility on 2 November 2026 ([verification limited to ID checks](#verification-limited-to-id-checks)):
+company administrators opened Company documents from its own top-level sidebar item, labelled Company
+files to fit on one line, until step 3 of #1491 removed it later that day
+([decision](#company-documents-removed))._
 
 ### Dashboard, Settings and Register for a new company
 
@@ -1862,14 +2094,17 @@ request takes the company from that link or from their own companies, with the p
 it. Asked how companies should know who is asking, the owner chose "Share it, with consent": the
 investor's profile name joins the summary they agree to share (summary version 2), the company's
 request list leads with it, requests already sent keep their summary, and a later name change
-leaves an accepted decision current.
+leaves an accepted decision current. _The request link, the eligibility pages and their requests
+went with investor eligibility on 2 November 2026
+([verification limited to ID checks](#verification-limited-to-id-checks))._
 
 ## Mobile app for shareholders
 
 Its three tabs and no drawer, its holdings across companies and its removal of the investor's
 eligibility pages were superseded on 31 October 2026 by the
 [web's phone frame, per-company pages and eligibility brought forward](#mobile-app-like-the-web-at-phone-width);
-the rest stands. Members do receive class totals where a company shares its ownership with members.
+the rest stands. Investor eligibility then left the web and the app on 2 November 2026
+([verification limited to ID checks](#verification-limited-to-id-checks)). Members do receive class totals where a company shares its ownership with members.
 
 On 26 October 2026 the owner made the mobile app a shareholder app: "make mobile shareholder-only.
 Company administration, registration and activation stay on the web". The owner then added: "My
@@ -1885,16 +2120,19 @@ agreed the screens through [mockups](https://claude.ai/artifact/CHeXcDVycP9csCT3
   that have ended sit under Past holdings. Percentages are not shown, because members do not
   receive class totals.
 - **Detail on demand:** a company, then one class with its history and a certificate for each
-  change, then the certificate to share or save. Each award has its own page.
+  change, then the certificate to share or save. Each award has its own page. Sharing a certificate
+  went with [members' certificate requests](#member-certificate-requests-removed) on 2 November 2026.
 - **Documents** gathers every company's certificates and notices, filtered by company. **Account**
   holds the profile, the details each company records (one change can go to every company),
-  invitations, app lock, notifications and appearance.
+  invitations, app lock, notifications and appearance. Notices went with
+  [shareholder publications](#shareholder-publications-removed) on 2 November 2026.
 - **Removed from mobile:** company administration, registration and activation, the deferred
   investing screens (wallets, buying and sending crypto, trading, activity, Directory, Applications
   and eligibility), identity verification, Help and the QR scanner, with their code. Mobile signup creates individual accounts. A company account
   that has not finished signup is told the app is for shareholders.
 - **Notifications for share events** (a certificate ready, shares vested or issued, a details
-  change decided) needed new server notifications; S7 (#1344) adds them.
+  change decided) needed new server notifications; S7 (#1344) adds them. The certificate-ready
+  notice was removed on 2 November 2026.
 
 ## Mobile app like the web at phone width
 
@@ -1919,6 +2157,7 @@ shareholder sees, on both: a selected company with the web's ownership overview,
 Profile for that company, and a company switcher. The top bar shows only the Ledova logo ("I dont
 think we need to display the name of the company … keep the logo Ledova"). The owner also put
 Notices under Documents on both, and kept details changes to one company at a time, as on the web.
+Notices were [removed](#shareholder-publications-removed) from both on 2 November 2026.
 
 **The phone top bar, also decided on 31 October 2026.** The owner then dropped the Ledova branding
 from the phone top bar on web and app ("I don't think we need to display the "Ledova" branding in the
@@ -1931,7 +2170,7 @@ page then starts with its content.
 
 **Settings pages, also decided on 31 October 2026.** Finding the single Profile page cluttered ("maybe
 we should create submenus so we have profile, account and etc"), the owner chose, from the options
-offered, to make Settings a group of three pages, the same on web and app: Profile (personal information and company-recorded details), Account
+offered, to make Settings a group of three pages, the same on web and app: Profile (personal information, and company-recorded details until #1492 removed them on 2 November 2026), Account
 (identity check, password, the app's biometric sign-in and App lock, Manage account with accepting an
 invitation, and the app's Rate the app and Share with friends) and Data and privacy (export and
 deletion). The Dark theme row goes, since the theme switch sits beside Sign out.
@@ -1940,11 +2179,25 @@ deletion). The Dark theme row goes, since the theme switch sits beside Sign out.
 mobile version show an option in the menu eligibility which it seems we dont have in the mobile
 native ?", then answered "Yes, bring it forward". So the investor's eligibility pages, Verification
 and Your company eligibility, come to the app ahead of phase 3 (#1464). The company's own
-Eligibility pages stay in phase 3.
+Eligibility pages stay in phase 3. _Superseded on 2 November 2026: investor eligibility was removed
+from the web and the app, the app's Verification went, and the planned Your company eligibility step
+(E3) is cancelled ([verification limited to ID checks](#verification-limited-to-id-checks))._
 
 This replaces the [shareholder app](#mobile-app-for-shareholders)'s three tabs and no drawer now,
 and its shareholder-only scope as the investor's eligibility pages and phases 3 to 5 arrive. The app
 still has no links or hand-offs to the web.
+
+**Account, decided on 2 November 2026.** Finding Account messy and unorganised, the owner agreed a
+layout proposed with a mockup, the same on web and app
+([#1495](https://github.com/Ledova/ledova/issues/1495)): a Security card (the identity check with
+**Review** on the web, the password with **Change**, and the app's biometric sign-in and App lock),
+an Account details card (member since and last login, in one date-time format on both) and a Company
+invitation card (one line and **Accept invitation**), each row with its label on the left and its
+status, one short action or switch on the right. The owner also asked to remove the app's Rate the app
+and Share with friends, which went with their code. Reviewing the build, the owner asked for the
+identity check's status to sit on its line, aligned right like the buttons ("The verified with the
+green dot I think could be on same line of the identify check but aligned to the right"); on the web
+it sits before **Review**.
 
 ## The signed-in app
 
@@ -2017,6 +2270,8 @@ company authority.
   selecting the owned company explicitly and showing stored documents and
   recorded tallies without member voting controls. (Owner decision, 26 September
   2026, on [#732](https://github.com/Ledova/ledova/issues/732#issuecomment-5846254159).)
+  Notices and the company's list were
+  [removed](#shareholder-publications-removed) on 2 November 2026.
 - **Mobile follows the web.** The mobile app takes paper and the new structure
   together, after the web.
 - **Applications keep their names.** Asked how an application should keep

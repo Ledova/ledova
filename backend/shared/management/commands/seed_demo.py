@@ -28,7 +28,6 @@ from shared.seeds.demo import (
     DEMO_TOKEN_SYMBOL,
 )
 from shared.seeds.synthetic.chain import layer as chain_layer
-from shared.seeds.synthetic.eligibility import seed_company_eligibility
 from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 from shared.seeds.synthetic.layer import PARTIAL, PRESENT, seed_population, summary
 from shared.seeds.synthetic.market import layer as market_layer
@@ -37,12 +36,7 @@ from shared.seeds.synthetic.story import STAFF
 from tokens.models import RegisterCorrectionStatus, ShareToken
 from tokens.models.choices import ShareTokenStatus
 from users.constants import ACCOUNT_STATUS_ACTIVE
-from users.models import (
-    InvestorCategory,
-    InvestorClassification,
-    InvestorClassificationStatus,
-    UserProfile,
-)
+from users.models import UserProfile
 from users.models.user_account import AccountRole
 from users.services.setup import ensure_defaults
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -56,12 +50,12 @@ User = get_user_model()
 class Command(BaseCommand):
     help = (
         "Seed a browser-ready local demo: the operator row, a superuser, an active company with a draft "
-        "share class and a verified issuer wallet, and an eligible investor whose wallet has a whitelist entry. "
+        "share class and a verified issuer wallet, and an investor whose wallet has a whitelist entry. "
         "The first run also adds six months of synthetic history: staff, investors, companies, wallets, "
         "notifications and compliance work. When the local chain (31337) is configured, the first run on it "
         "also deploys share classes, approves wallets, mints and allots shares, opens the registers and "
-        "seeds issuance and capital requests, then mints AUDY deposits, settles trades, leaves an order "
-        "book and publishes notices to members; without it, nothing is written to any chain."
+        "seeds issuance and capital requests, then mints AUDY deposits, settles trades and leaves an order "
+        "book; without it, nothing is written to any chain."
     )
 
     def add_arguments(self, parser):
@@ -108,8 +102,6 @@ class Command(BaseCommand):
         logging.disable(max(disabled, logging.INFO))
         try:
             outcome = seed_population(timezone.now(), options["investors"])
-            if outcome.plan is not None:
-                seed_company_eligibility()
             elapsed = time.monotonic() - started
             chain = chain_layer.seed_issuance(timezone.now()) if outcome.state == PRESENT else None
             chain_elapsed = time.monotonic() - started - elapsed
@@ -141,7 +133,6 @@ class Command(BaseCommand):
         investor = self._seed_user(DEMO_INVESTOR_EMAIL, password)
         investor_account = self._prepare_account(investor, DEMO_INVESTOR_NAME, AccountRole.INVESTOR)
         investor_wallet = self._seed_wallet(investor_account, DEMO_INVESTOR_ADDRESS)
-        self._seed_classification(investor_account)
         self._seed_whitelist_entry(investor_wallet)
         return company, token
 
@@ -233,25 +224,6 @@ class Command(BaseCommand):
         self._track(created)
         return token
 
-    def _seed_classification(self, account):
-        classification, created = InvestorClassification.objects.get_or_create(
-            user_account=account,
-            category=InvestorCategory.PROFESSIONAL_INVESTOR,
-            defaults={
-                "status": InvestorClassificationStatus.VERIFIED,
-                "declaration_accepted": True,
-                "declared_basis": "Seeded demo classification.",
-                "submitted_at": timezone.now(),
-                "reviewed_at": timezone.now(),
-            },
-        )
-        self._track(created)
-        if not created:
-            classification.status = InvestorClassificationStatus.VERIFIED
-            classification.expires_at = None
-            classification.save(update_fields=["status", "expires_at"])
-        return classification
-
     def _seed_whitelist_entry(self, wallet):
         entry, created = WhitelistEntry.objects.get_or_create(
             wallet=wallet,
@@ -286,7 +258,7 @@ class Command(BaseCommand):
             f"  companies   {sum(counts['companies'].values())} ({companies}), {counts['owners']} synthetic owners",
             f"  staff       {counts['staff']} (one deactivated); {counts['alerts']} compliance alerts ({alerts})",
             f"  activity    {counts['wallets']} wallets, {counts['transactions']} wallet transactions, "
-            f"{counts['claims']} classification claims, {counts['notifications']} notifications",
+            f"{counts['notifications']} notifications",
         ]
         self.stdout.write("\n".join(lines))
 
@@ -357,8 +329,6 @@ class Command(BaseCommand):
                 f"  held back      {owner}'s {side} of {quantity} {label} at {price}, since its match lapsed"
                 for owner, side, quantity, label, price in counts["held"]
             ),
-            f"  notices        {sum(counts['notices'].values())} ({listed(counts['notices'])}); resolutions "
-            f"{listed(counts['resolutions'])}; {counts['ballots']} ballots, {counts['payments']} dividend payments",
         ]
         self.stdout.write("\n".join(lines))
 

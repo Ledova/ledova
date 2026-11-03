@@ -15,7 +15,6 @@ from django.db import connections
 from django.db.models import (
     BigIntegerField,
     BooleanField,
-    Case,
     CharField,
     Exists,
     F,
@@ -24,7 +23,6 @@ from django.db.models import (
     OuterRef,
     Subquery,
     Value,
-    When,
 )
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -44,7 +42,6 @@ from tokens.constants import (
 from tokens.exceptions import RegisterChangeConflict, RegisterNotInitialized
 from tokens.models import (
     ImportedFormerMember,
-    MemberCertificateRequest,
     RegisterAllotment,
     RegisterEntry,
     RegisterEntryKind,
@@ -271,36 +268,14 @@ class MemberIdentity(NamedTuple):
     residential_address: str
     source: str
     stamped_at: object
-    user_id: int | None
-
-
-def _member_user(addresses, identities, holder_type, source):
-    if holder_type != HolderType.MEMBER.value or source != IDENTITY_LIVE:
-        return None
-    found = {
-        identity.user_id
-        for identity in (identities.get(address.lower(), UNIDENTIFIED) for address in addresses)
-        if identity.user_id
-    }
-    return found.pop() if len(found) == 1 else None
 
 
 def member_identities(token, member_ids) -> dict:
     particulars, wallets, identities, stamps = _identity_sources(token, member_ids)
-    resolved = {}
-    for member in member_ids:
-        holder_type, name, residential_address, source, stamped_at = _member_identity(
-            wallets[member], identities, stamps, particulars.get(member)
-        )
-        resolved[member] = MemberIdentity(
-            holder_type,
-            name,
-            residential_address,
-            source,
-            stamped_at,
-            _member_user(wallets[member], identities, holder_type, source),
-        )
-    return resolved
+    return {
+        member: MemberIdentity(*_member_identity(wallets[member], identities, stamps, particulars.get(member)))
+        for member in member_ids
+    }
 
 
 def _allotted(allotment, opened_on, ceased):
@@ -397,7 +372,7 @@ def _identity_sources(token, member_ids):
     return particulars, wallets, identities, stamps
 
 
-def _external_amounts_paid(register, imported_at, imported):
+def _fully_paid_issues(register) -> dict:
     sources = {}
     for proposal in RegisterAllotment.objects.filter(
         token_id=register.token_id, company_id=register.company_id, status="applied"
@@ -414,6 +389,11 @@ def _external_amounts_paid(register, imported_at, imported):
             and proposal.contribution.amount == proposal.consideration
         ):
             sources[entry.pk] = proposal
+    return sources
+
+
+def _external_amounts_paid(register, imported_at, imported):
+    sources = _fully_paid_issues(register)
     if not sources:
         return {}
     amounts = {
@@ -581,48 +561,14 @@ def _search_entries(entries, token, search):
     ).filter(matches_shareholder=True)
 
 
-def _certificate_entries(entries, certificate_status, association):
+def _certificate_entries(entries, certificate_status):
     entries = entries.filter(kind__in=CERTIFICATE_ENTRY_KINDS)
     if certificate_status == "all":
         return entries
-    if certificate_status == "not_applicable":
-        return entries.none()
-    latest = MemberCertificateRequest.objects.none()
-    receiving = Value(False, output_field=BooleanField())
-    if association is not None:
-        latest = MemberCertificateRequest.objects.filter(association=association, entry_id=OuterRef("pk"))
-        receiving = Func(
-            Value(association.pk), F("pk"), function="tokens_member_certificate_entry", output_field=BooleanField()
-        )
-    latest = latest.annotate(
-        filter_status=Case(
-            When(fulfilment__isnull=False, then=Value("fulfilled")),
-            When(withdrawal__isnull=False, then=Value("withdrawn")),
-            default=Value("requested"),
-            output_field=CharField(),
-        )
-    ).order_by("-created_at", "-uuid")
-    return (
-        entries.annotate(
-            latest_certificate_status=Subquery(latest.values("filter_status")[:1]),
-            own_receiving=receiving,
-        )
-        .annotate(
-            certificate_filter_status=Case(
-                When(latest_certificate_status__isnull=False, then=F("latest_certificate_status")),
-                When(corrected_by__isnull=False, then=Value("reversed")),
-                When(own_receiving=True, then=Value("not_requested")),
-                default=Value("can_prepare"),
-                output_field=CharField(),
-            )
-        )
-        .filter(certificate_filter_status=certificate_status)
-    )
+    return entries.filter(corrected_by__isnull=certificate_status == "can_prepare")
 
 
-def stored_entries(
-    token, paginate, wanted=(), member=None, *, search="", certificate_status=None, association=None
-) -> list[dict]:
+def stored_entries(token, paginate, wanted=(), member=None, *, search="", certificate_status=None) -> list[dict]:
     entries = with_company_event_dates(RegisterEntry.objects.filter(register__token=token))
     if wanted:
         entries = entries.filter(pk__in=wanted)
@@ -634,7 +580,7 @@ def stored_entries(
         )
         entries = _search_entries(entries, token, search)
         if certificate_status is not None:
-            entries = _certificate_entries(entries, certificate_status, association)
+            entries = _certificate_entries(entries, certificate_status)
         entries = paginate(entries.order_by("-sequence"))
         people = member_identities(
             token, sorted({UUID(change["member"]) for entry in entries for change in entry.changes})
@@ -781,35 +727,26 @@ def _holdings_after(entry, members) -> dict:
     return held
 
 
-def _certificate_pages(token, entry, only_member=None) -> list[dict]:
+def _certificate_amounts(entry) -> dict:
+    allotment = _fully_paid_issues(entry.register).get(entry.pk)
+    if allotment is None:
+        return {"amount_paid": None, "amount_unpaid": None}
+    return {"amount_paid": f"{allotment.consideration:.2f}", "amount_unpaid": f"{ZERO:.2f}"}
+
+
+def _certificate_pages(token, entry) -> list[dict]:
     moved = {UUID(change["member"]): int(change["shares"]) for change in entry.changes}
     held = _holdings_after(entry, moved)
     parties = [(member, shares, False) for member, shares in moved.items() if shares > 0]
     parties += [(member, held[member], True) for member, shares in moved.items() if shares < 0 and held[member]]
-    if only_member is not None:
-        parties = [
-            (member, shares, balance) for member, shares, balance in parties if member == only_member and not balance
-        ]
-        held_identity = RegisterMemberParticulars.objects.filter(
-            member_id=only_member, member__company_id=token.company_id
-        ).first()
-        if held_identity is None:
-            raise ValidationError("A member certificate needs retained company-recorded particulars.")
-    else:
-        particulars, wallets, identities, stamps = _identity_sources(token, [member for member, _, _ in parties])
+    particulars, wallets, identities, stamps = _identity_sources(token, [member for member, _, _ in parties])
+    amounts = _certificate_amounts(entry)
     pages = []
     for index, (member, shares, balance) in enumerate(parties, 1):
         number = f"{entry.sequence}-{index}"
-        if only_member is not None:
-            holder_type, name, residential_address = (
-                HolderType.MEMBER.value,
-                held_identity.name,
-                held_identity.residential_address,
-            )
-        else:
-            holder_type, name, residential_address, _, _ = _member_identity(
-                wallets[member], identities, stamps, particulars.get(member)
-            )
+        holder_type, name, residential_address, _, _ = _member_identity(
+            wallets[member], identities, stamps, particulars.get(member)
+        )
         if holder_type == HolderType.AMBIGUOUS.value:
             raise ValidationError(
                 f"Certificate {number} cannot be prepared: member {member}'s wallets resolve to different people."
@@ -827,6 +764,7 @@ def _certificate_pages(token, entry, only_member=None) -> list[dict]:
                 "shares": shares,
                 "holding": held[member],
                 "balance": balance,
+                **amounts,
             }
         )
     return pages
@@ -851,7 +789,7 @@ def _certificate_pdf(token, entry, pages) -> bytes:
         return document.tobytes(garbage=3, deflate=True, no_new_id=True)
 
 
-def _certificate_source(token, sequence, only_member=None):
+def _certificate_source(token, sequence):
     entry = RegisterEntry.objects.select_related("register").filter(register__token=token, sequence=sequence).first()
     if entry is None:
         raise ValidationError(f"This share class's register has no entry {sequence}.")
@@ -862,7 +800,7 @@ def _certificate_source(token, sequence, only_member=None):
         raise ValidationError(
             f"Entry {sequence} was reversed by correction entry {reversed_by}, so it has no certificate."
         )
-    pages = _certificate_pages(token, entry, only_member=only_member)
+    pages = _certificate_pages(token, entry)
     if not 1 <= len(pages) <= 2:
         raise ValidationError("This entry does not produce one or two supported certificate pages.")
     content = _certificate_pdf(token, entry, pages)
@@ -909,12 +847,15 @@ def _paid_or_not_recorded(amount) -> str:
     return NOT_RECORDED if amount is None else f"{amount:.2f}"
 
 
-def _period_entry_rows(entry, people) -> list[list]:
+def _period_entry_rows(entry, people, fully_paid) -> list[list]:
     corrects = "" if entry.corrects_id is None else entry.corrects.sequence
+    allotment = fully_paid.get(entry.pk)
     rows = []
     for change in entry.changes:
         member, shares = UUID(change["member"]), int(change["shares"])
-        paid = NOT_RECORDED if entry.kind == RegisterEntryKind.ISSUE else ""
+        paid = ""
+        if entry.kind == RegisterEntryKind.ISSUE:
+            paid = _paid_or_not_recorded(allotment.consideration if allotment else None)
         rows.append(
             [
                 entry.sequence,
@@ -963,6 +904,7 @@ def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> 
         }
         current = {UUID(row["member"]): row for row in register["rows"]}
         paid = [row["amount_paid"] for row in register["rows"]]
+        fully_paid = _fully_paid_issues(ShareRegister.objects.get(token=token))
         rows = [
             [NOTICE_FIGURES_HEADING],
             [SHARE_CLASS_ROW, f"{token.name} ({token.symbol})"],
@@ -973,7 +915,7 @@ def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> 
             [],
             [PERIOD_ENTRIES_HEADING],
             PERIOD_ENTRY_HEADERS,
-            *(row for entry in entries for row in _period_entry_rows(entry, people)),
+            *(row for entry in entries for row in _period_entry_rows(entry, people, fully_paid)),
             [],
             [CLASS_HEADING],
             [ISSUED_SUPPLY_ROW, register["issued_supply"]],

@@ -141,15 +141,20 @@ the AML/CTF customer-identification record requirements. Seven years is the
 conventional Australian answer and the reason 2557 days was chosen.
 
 **Implementation.** [Retention configuration](../operations/configuration.md#storage-uploads-and-retention) owns the
-independent evidence and former-member settings;
+former-member setting;
 [file lifecycles](../engineering/security.md#deletion-and-retention) owns the serving and
-purge rules.
+purge rules. The classification-evidence and payslip clocks went with investor
+eligibility on 2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)).
 
-**The position.** Seven years, from review or expiry. The basis is the
+**The position.** Seven years, from review or expiry, while Ledova kept
+classification evidence and payslips. It keeps neither now: on 2 November 2026
+the removal migrations deleted every retained evidence file and payslip, with
+their records, whatever remained of each clock
+([decision](../decisions.md#verification-limited-to-id-checks)). The basis was the
 convergence of the two obligations above rather than a considered view of which
-one governs, and that is the weakness: they are different obligations with
-different triggers, and it is possible that neither runs from the moment this
-code measures from.
+one governs, and that was the weakness: they are different obligations with
+different triggers, and it is possible that neither ran from the moment the
+code measured from.
 
 **What would show this wrong.** A period that runs from the end of the
 relationship rather than from the review. That is a larger change than the
@@ -158,7 +163,8 @@ is the answer to watch for rather than the number.
 
 **Which way to be wrong.** Keeping evidence too long is a privacy exposure;
 destroying it too early is a compliance failure that cannot be undone. Where the
-two conflict, the code keeps the evidence, which is the recoverable direction.
+two conflicted, the code kept the evidence, the recoverable direction, until the
+owner chose deletion with the removal of investor eligibility.
 
 **Status.** Reviewed 2026-09-15; unchanged. Note that in neither historical
 analysis is an identity document collected until investor onboarding is
@@ -199,8 +205,9 @@ while a "special direct link" without which the transaction would not occur
 probably is.
 
 **What the code does.** Today the register is a stored record, and
-the platform also hosts investor classification and trading enabled by default
-for synthetic/testnet use — neither of which a registry service would run.
+the platform also hosts trading enabled by default for synthetic/testnet use,
+which a registry service would not run. Investor classification was removed on
+2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)).
 Offerings, subscriptions and payment recording are
 [planned for a later release](../business/offerings.md).
 The [registry service](registry-service.md) page's feature table records what
@@ -209,9 +216,11 @@ of implemented controls. Fresh issues, grants, allotments and non-paid
 transfers are prepared, approved and applied by company appointees, retaining
 the company's authority document and named director with no staff verification
 ([implementation index](../plans/company-managed-registers/README.md)). Staff
-verification remains only in the retained instruction workflow for earlier
-direct issues and settled market transfers
-([runbook](../business/issuing-shares.md#retained-issue-instructions)).
+review remains only in the retained instruction workflow for earlier direct
+issues and settled market transfers
+([runbook](../business/issuing-shares.md#retained-issue-instructions)), which
+since 2 November 2026 also retains the company's own authority document rather
+than a staff-verified one ([decision](../decisions.md#company-documents-removed)).
 
 **The position.** A hosted register-of-members service is not a financial
 service while all of the following hold: entries are made only on written
@@ -253,19 +262,15 @@ s708 relieves the _company_ from disclosure and says nothing about a _platform_
 that arranges the issue, so the platform's question is the licence, not the
 exemption.
 
-**What the code does.** `InvestorClassification` carries two categories:
-
-| Category                 | Provision              |
-| ------------------------ | ---------------------- |
-| `accountant_certificate` | s708(8)(c)             |
-| `professional_investor`  | s708(11) / s761G(7)(d) |
-
-The large-investment (s708(8)(a)) and associated-person (s708(12)) categories are
-[planned with offerings](../business/offerings.md#investor-access-and-eligibility).
-The experienced-investor category, s708(10) / s761GA, is absent on purpose: it
+**What the code does.** Since 2 November 2026 the code records no investor
+classification: the qualified accountant's certificate (s708(8)(c)) and
+professional investor (s708(11) / s761G(7)(d)) claims went with company
+eligibility decisions ([decision](../decisions.md#verification-limited-to-id-checks)),
+and the large-investment (s708(8)(a)) and associated-person (s708(12)) categories
+are [planned with offerings](../business/offerings.md#investor-access-and-eligibility).
+The experienced-investor category, s708(10) / s761GA, was left out on purpose: it
 is the only one that turns on the operator holding an AFSL, and there is no
-evidence this deployment does. That absence is the clearest statement in the
-code of the position being described here.
+evidence this deployment does.
 
 **The position: do not reach the trigger without the permission the step needs.**
 Operating a financial services business without a licence where one is
@@ -284,12 +289,13 @@ listed, and what the software actually does is written down. A fixed-fee
 opinion on a question that precise costs a small fraction of an open engagement
 that starts with explaining the product.
 
-**Dated follow-up.** The `accountant_certificate` category depends on who counts
-as a qualified accountant, which is set by ASIC Corporations (Qualified
-Accountant) Instrument 2016/786, due to sunset on 1 October 2026 and proposed to
-be remade. [RG 154](https://www.asic.gov.au/regulatory-resources/find-a-document/regulatory-guides/rg-154-certificate-by-a-qualified-accountant/)
-is the guide. Recheck the instrument's status after that date; if the remade
-instrument changes who may certify, this category's evidence rules change with it.
+**Dated follow-up.** The `accountant_certificate` category, removed from the code
+on 2 November 2026, depended on who counts as a qualified accountant, which is set
+by ASIC Corporations (Qualified Accountant) Instrument 2016/786, due to sunset on
+1 October 2026 and proposed to be remade. [RG 154](https://www.asic.gov.au/regulatory-resources/find-a-document/regulatory-guides/rg-154-certificate-by-a-qualified-accountant/)
+is the guide. Recheck the instrument's status before an accountant's certificate
+is recorded again; if the remade instrument changes who may certify, that
+category's evidence rules change with it.
 
 **Status.** Reframed 2026-09-15, awaiting sign-off. The stance that being wrong
 is an offence is carried over; what changed is the release condition, from
@@ -393,20 +399,20 @@ instruction's reference and the recipient, marked late when prepared more than
 seven days after the request. Ledova keeps its SHA-256 and the request details,
 not the file; the company decides whether a request is proper and hands the copy
 over. See [inspection copies](../business/member-records.md#inspection-copies).
-Staff also prepare certificates, on the company's written instruction, for an
-issue or transfer entry: an unsigned PDF with a page for the member the entry
-moved shares to and a balance certificate for a transferor who still holds
-shares, which the company executes. Ledova keeps its SHA-256 and the entry's
-number, not the file. See [certificates](../business/member-records.md#certificates).
-Staff also prepare the figures for the company's notices of share issues and of
+Company register readers prepare certificates for an issue or transfer entry:
+an unsigned PDF with a page for the member the entry moved shares to and a
+balance certificate for a transferor who still holds shares, which the company
+executes. Each page states the amount paid and the amount unpaid on its shares
+(s1070C) where the register records them for exactly those shares, and Not
+recorded otherwise. Ledova keeps its SHA-256 and the entry's number, not the
+file. See [certificates](../business/member-records.md#certificates).
+Staff prepare the figures for the company's notices of share issues and of
 changes to its members and share structure, on its written instruction: the
 issues, transfers and corrections entered from a chosen day, the class at the
 register head and each changed member's holding, with amount paid only where it
 is established. Ledova keeps their SHA-256 and the period, not the file, and the
 company lodges the notices. See
 [notice figures](../business/member-records.md#notice-figures).
-[#871](https://github.com/Ledova/ledova/issues/871) moves certificates and
-notice figures to company appointments.
 A list in admin shows staff which certificates and notice figures are still due
 and when, from the register and those records; it records nothing, and does not
 know what the company lodged or delivered. See
@@ -531,7 +537,7 @@ s248 where the risks are low. These items were read from AUSTRAC's pages and
 professional summaries, not from the amended Act.
 
 **Implementation and earlier service assumption.** Investor onboarding,
-classification, payment recording and token workflows exist in the software.
+payment recording and token workflows exist in the software.
 The earlier clerk-only service proposal assumed no movement of money or tokens;
 the retired deployment mode did not enforce that whole proposal. The operator's
 `issuer_kyc_required` setting requires a company appointee to be
@@ -623,8 +629,8 @@ was found on the OAIC's pages as at 15 September 2026, and vendor claims of one
 should not be relied on.
 
 **What the code does.** The register holds members' names and residential
-addresses; exports include them; classification evidence and payslips carry
-retention settings ([position 3](#3-the-evidence-retention-period)).
+addresses; exports include them; former members' records are purged on the
+seven-year clock ([position 1](#1-section-1693-members-who-ceased-in-the-last-seven-years)).
 
 **The position.** In a company-hosted instance the Privacy Act question attaches
 to the company under its own status; in a registry service it attaches to the

@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 
 from django.conf import settings
-from django.utils import timezone
 from web3 import HTTPProvider, Web3
 
 from blockchain.models import SignedAttempt
@@ -21,14 +20,11 @@ from shared.seeds.synthetic.chain.guard import (
     chain_refusal,
 )
 from shared.seeds.synthetic.chain.settlement import AUDY, WEI
-from shared.seeds.synthetic.clock import AEST
 from shared.seeds.synthetic.market import deposits, population, register, trading
 from shared.seeds.synthetic.market.context import Market
 from shared.seeds.synthetic.market.deposits import EXECUTED
-from shared.seeds.synthetic.market.notices import CLOSED, Notices
 from shared.seeds.synthetic.market.story import build_market
 from shared.seeds.synthetic.staff import PERMISSIONS, permissions
-from shareholders.models import Publication, PublicationEvent, PublicationEventKind
 from tokens.models import (
     MintRequest,
     ShareToken,
@@ -182,16 +178,8 @@ def _apply(plan, market):
             deposits.mint(deposit, market)
     for approval in plan.approvals:
         _approve(approval, market)
-    notices = Notices(market, plan.now.astimezone(AEST).date())
-    for notice in plan.notices:
-        if notice.window == CLOSED:
-            notices.publish(notice)
     _replay(plan, market)
     _settle(market, _trade(plan, market))
-    for notice in plan.notices:
-        if notice.window != CLOSED:
-            notices.publish(notice)
-    notices.close()
     for deposit in plan.deposits:
         if deposit.state != EXECUTED and deposit.key != SEALING_DEPOSIT:
             deposits.record(deposit, market)
@@ -204,12 +192,6 @@ def _seal(plan, market):
     deposits.record(plan.deposit(SEALING_DEPOSIT), market)
 
 
-def _resolution_state(publication, closes, now):
-    if publication.pk in closes:
-        return "carried" if closes[publication.pk] else "not carried"
-    return "upcoming" if publication.opens_at > now else "open"
-
-
 def _label(token):
     return f"{token.company.name.split()[0]} {token.symbol}"
 
@@ -217,13 +199,6 @@ def _label(token):
 def summary(plan, market, signed):
     tokens = list(market.tokens.values())
     swaps = SwapOrder.objects.filter(share_token__in=tokens)
-    publications = Publication.objects.filter(token__in=tokens)
-    events = PublicationEvent.objects.filter(publication__in=publications)
-    closes = {
-        event.publication_id: event.payload["carried"] for event in events.filter(kind=PublicationEventKind.CLOSE)
-    }
-    now = timezone.now()
-    resolutions = publications.filter(kind="resolution")
     prices = market_summaries(tokens)
     minted = MintRequest.objects.filter(pk__in=[deposits.mint_id(deposit.key) for deposit in plan.deposits])
     held = TransferOrder.objects.filter(token__in=tokens, status=TransferOrderStatus.HELD).select_related(
@@ -245,10 +220,6 @@ def summary(plan, market, signed):
         ],
         "trades": {_label(token): swaps.filter(share_token=token, status="completed").count() for token in tokens},
         "prices": {_label(token): prices.get(token.pk, {}).get("last_price") for token in tokens},
-        "notices": dict(Counter(publications.values_list("kind", flat=True))),
-        "resolutions": dict(Counter(_resolution_state(item, closes, now) for item in resolutions)),
-        "ballots": events.filter(kind=PublicationEventKind.BALLOT).count(),
-        "payments": events.filter(kind=PublicationEventKind.PAYMENT).count(),
         "approvals": len(plan.approvals),
         "transactions": signed,
         "approvals_signed": SwapApprovalSubmission.objects.filter(swap__share_token__in=tokens).count(),

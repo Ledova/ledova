@@ -16,8 +16,8 @@ from companies.services.authority import (
 )
 
 VERIFICATION_UNAVAILABLE = (
-    "Request retained. Accept the company authority and Terms acknowledgement to establish initial authority after "
-    "the required identity and ABR company checks pass. This pending request grants no company authority."
+    "Request retained. Accept the company authority and Terms acknowledgement to establish initial authority once "
+    "any required identity check passes. This pending request grants no company authority."
 )
 WITHDRAWN_MESSAGE = (
     "Request withdrawn. Its evidence and original terms remain retained and accessible; "
