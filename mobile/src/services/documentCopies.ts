@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { UPLOAD_TYPES, type FileDelivery } from '@ledova/shared';
+import { UPLOAD_TYPES, uploadType, type FileDelivery } from '@ledova/shared';
 import { assertSessionEpoch, getSessionEpoch, subscribeSession } from './sessionScope';
 
 const PICKER_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9_-]{0,32})?$/i;
@@ -104,7 +104,17 @@ const SHARE_HANDOVER_MS = 1500;
 export async function shareFile(uri: string, options: Sharing.SharingOptions): Promise<void> {
   const sharing = Sharing.shareAsync(uri, options);
   sharing.catch(() => undefined);
-  await Promise.race([sharing, new Promise<void>((resolve) => setTimeout(resolve, SHARE_HANDOVER_MS))]);
+  let handover: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      sharing,
+      new Promise<void>((resolve) => {
+        handover = setTimeout(resolve, SHARE_HANDOVER_MS);
+      }),
+    ]);
+  } finally {
+    clearTimeout(handover);
+  }
 }
 
 export async function shareDocumentCopy(
@@ -143,7 +153,7 @@ export async function pickDocument(): Promise<PickedDocument | null> {
   const extension = Object.keys(UPLOAD_TYPES).find((key) => UPLOAD_TYPES[key] === type) ?? '';
   return {
     uri: file.uri,
-    name: file.name.includes('.') ? file.name : `document${extension}`,
+    name: uploadType(file.name) ? file.name : `document${extension}`,
     type,
     size: file.size ?? 0,
   };

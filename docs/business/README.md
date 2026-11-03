@@ -214,9 +214,10 @@ confirmed, and a confirmed one is not yet final ([chain](../engineering/chain.md
 
 The web dashboard reaches the records and workflows described here. The mobile app holds a person's
 own records and account, and lists the same companies as the web: a company's administrators and
-register readers see its ownership overview and each class's shareholders there, and prepare its
-certificates, inspection copies and company pack in Documents, and the web's Team manages appointments
-and invitations, while other company tasks stay on the web
+register readers see its ownership overview and each class's shareholders there and prepare its
+certificates and inspection copies in Documents, where its administrators also prepare the company
+pack, and the web's Team manages appointments and invitations, while other company tasks stay on the
+web
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
 retains its existing route checks;
 company actions follow the person's current appointments, and
