@@ -16,6 +16,7 @@ import { CorrectionPreparationScreen } from '../screens/ledger/CorrectionPrepara
 import { CorrectionsScreen } from '../screens/ledger/CorrectionsScreen';
 import { IssueSharesScreen } from '../screens/ledger/IssueSharesScreen';
 import { LedgerScreen } from '../screens/ledger/LedgerScreen';
+import { RegisterSetupScreen } from '../screens/ledger/RegisterSetupScreen';
 import { ShareClassScreen } from '../screens/ledger/ShareClassScreen';
 import { TransferPreparationScreen } from '../screens/ledger/TransferPreparationScreen';
 import { TransferSharesScreen } from '../screens/ledger/TransferSharesScreen';
@@ -42,6 +43,12 @@ export type SignedInStackParamList = {
   TransferPreparation: { company: string; token: string; fromMember?: string };
   Corrections: { company: string; token: string; record?: string; outcome?: string } | undefined;
   CorrectionPreparation: { company: string; token: string; entry: string };
+  RegisterSetup: {
+    company: string;
+    token?: string;
+    record?: string;
+    from?: 'IssueShares' | 'TransferShares' | 'Corrections';
+  };
   Shareholders: undefined;
   Shareholder: { company: string; member: string; outcome?: string };
   ShareholderParticulars: { company: string; member: string };
@@ -104,6 +111,7 @@ export function SignedInNavigator() {
               component={CorrectionPreparationScreen}
               options={topBar('Ledger')}
             />
+            <Stack.Screen name="RegisterSetup" component={RegisterSetupScreen} options={topBar('Ledger')} />
             <Stack.Screen name="Shareholders" component={ShareholdersScreen} options={topBar('Shareholders')} />
             <Stack.Screen name="Shareholder" component={ShareholderScreen} options={topBar('Shareholders')} />
             <Stack.Screen

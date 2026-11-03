@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  DESTINATIONS,
   REGISTER_ALLOTMENT_COPY as COPY,
   allPeopleKey,
   allotmentsKey,
@@ -19,7 +20,7 @@ import {
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { LoadError, Loading } from '../../components/Ledger';
+import { LinkRow, LoadError, Loading, Rows } from '../../components/Ledger';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { AllotmentRecord } from './AllotmentRecord';
 import { AllotmentForm } from './IssueForms';
@@ -39,6 +40,7 @@ export function useInvestorIssues({
   reviewing,
   onReviewChange,
   onFocusRecord,
+  onSetup,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
@@ -53,6 +55,7 @@ export function useInvestorIssues({
   reviewing: string | null;
   onReviewChange: (uuid: string, open: boolean) => void;
   onFocusRecord: (record: View) => void;
+  onSetup: () => void;
 }) {
   const look = useLedgerStyles();
   const client = useQueryClient();
@@ -168,12 +171,25 @@ export function useInvestorIssues({
       client.invalidateQueries({ queryKey: allPeopleKey(owner) }),
     ]);
   };
-  const setup = !supported && sourceReady && (
-    <Text style={look.muted}>
-      {register.token.status === 'draft'
-        ? 'Set up this share register before issuing shares.'
-        : 'Issues for a class that uses the chain aren’t available in the app.'}
-    </Text>
+  const setup = !supported && (
+    <>
+      {sourceReady && (
+        <Text style={look.muted}>
+          {register.token.status === 'draft'
+            ? 'Set up this share register before issuing shares.'
+            : 'Issues for a class that uses the chain aren’t available in the app.'}
+        </Text>
+      )}
+      {appointment && privateReady && register.token.status === 'draft' && (
+        <Rows>
+          <LinkRow
+            label={DESTINATIONS.companyRegisterImport.title}
+            accessibilityLabel={`${DESTINATIONS.companyRegisterImport.title} (${register.token.name})`}
+            onPress={onSetup}
+          />
+        </Rows>
+      )}
+    </>
   );
   const form = editing && (
     <View style={[look.fields, !open && look.hidden]}>

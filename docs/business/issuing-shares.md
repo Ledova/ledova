@@ -32,7 +32,7 @@ The class-creation API requires a current personal company administrator or prep
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
 [Register setup](register.md#bringing-in-existing-records) on the web lists companies from those
 appointments, including a preparer who is not the owner. Classes are created only through that
-setup: on the web **Ledger**, **Add share class**.
+setup: **Ledger**, **Add share class**, on the web or in the app.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.

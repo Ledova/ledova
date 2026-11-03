@@ -55,7 +55,8 @@ entitlement-change forms and award document downloads, a share class's read, cla
 shareholder documents, Issue shares' allotment and grant reads, preparation forms, decision steps
 and document downloads, Transfer shares' transfer read, preparation form and document download, and
 Corrections' entries, corrections, opening records and particulars changes reads, its correction
-form and entry read and their document downloads live in `packages/shared`, with native session,
+form and entry read and their document downloads, and register setup's preparation, new class,
+register and started-class reads and draft checks live in `packages/shared`, with native session,
 result and transport policies kept in the client: the app passes its session to each shared read and
 request.
 
@@ -97,10 +98,11 @@ selected company, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Ledger for Ledger, a share class's page,
-Issue shares, Transfer shares and Corrections with their preparations, Shareholders for Shareholders, a
-shareholder's page, its particulars change, Employee share scheme, an award's page and Member access,
-Documents for Certificates, Inspection copies and Company pack, Settings for Profile, Account, Data and
-privacy, Team and Activation, Dashboard for Invitation. Like the web's sidebar, it marks Team on
+Issue shares, Transfer shares and Corrections with their preparations, and Set up your ledger,
+Shareholders for Shareholders, a shareholder's page, its particulars change, Employee share scheme, an
+award's page and Member access, Documents for Certificates, Inspection copies and Company pack,
+Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like
+the web's sidebar, it marks Team on
 Representative authority and its requests, Employee scheme on an award's page, Transfer shares on a
 transfer's preparation and Corrections on a correction's preparation. Choosing Dashboard
 returns to it. Ledger opens its overview, Shareholders its people list, Documents opens Certificates
@@ -220,8 +222,9 @@ searchable list of the company's members and award recipients (`PersonSelect.tsx
 access to the company, each of these pages reads nothing and points to Dashboard. Pulling down rereads
 each of them while no form or action is open. Unlike the web, which keeps a held save on its page,
 leaving an app page drops that save's retry, so adding the person, sending the invitation, recording
-the award or its vesting, adding shareholder documents, or preparing or deciding a share issue,
-transfer or correction again could record it twice; an app-wide fix is planned.
+the award or its vesting, adding shareholder documents, saving a register setup, or preparing or
+deciding a share issue, transfer, correction or copied opening again could record it twice; an
+app-wide fix is planned.
 Employee share scheme (`EmployeeSchemeScreen.tsx`) is the web's view at phone width for a register
 reader of the selected company, read through `useCompanyRegisters.ts` and the shared
 `useRegisterAwards`: one share class's card, titled with the class (oldest first by default, and **Share
@@ -253,8 +256,8 @@ class, titled with its name and code, with Issued shares and Current shareholder
 opened** while that applies, the authorised shares when the class has a limit other than the internal
 quantity guard, the web's notes when completed issues or transfers wait or cannot be checked, and a
 **Class details** row that opens the class's page; a company without classes shows No share classes
-yet. The web's **Add share class**, which opens register setup, is left out until the app has register
-setup. A class's page (`ShareClassScreen.tsx`, the class's name as its title) is the web's, read
+yet. **Add share class**, below the cards for someone whose appointment allows preparation, opens Set
+up your ledger. A class's page (`ShareClassScreen.tsx`, the class's name as its title) is the web's, read
 through the shared `useShareClass`: Summary with the class's code and type, Issued shares, Current
 shareholders, **Ledger opened** or not, the authorised shares, the non-transferable note and the
 waiting notes; Class rights (`ClassRights.tsx`, through the shared `useClassRights`) with the
@@ -285,7 +288,8 @@ issue opens the web's three steps (Person and shares, Agreement and receipt, Com
 review) and Non-paid issue the web's non-paid form, with an employee award's recipient, available
 vested shares and retained agreement when it was opened from the award. Each keeps its retry of an
 uncertain preparation or decision, a read-only appointment gets the web's notes and no actions, and a
-class with an unopened register or a deployed contract says so; register setup stays on the web. Share
+class with an unopened register or a deployed contract says so, with **Set up your ledger** for an
+unopened draft class to someone who can prepare it. Share
 class is locked while a preparation, review or held decision is open, since the app keeps only the
 selected class's issues on the screen. Pulling down rereads the classes, the person's appointments and
 the issues while none is open.
@@ -296,7 +300,8 @@ reader of the selected company, read through `useCompanyRegisters.ts` and the sh
 Shares, Transfer date and Status, two to a row, **Show details and documents** with the documents'
 downloads to the share sheet, and **Reject** and **Review and approve** only for the steps the person's
 appointments hold. Review share transfer replaces the records, and **Approve** records the approval and
-the transfer together, as on the web. **Prepare a non-paid transfer**, beside the last record's actions,
+the transfer together, as on the web. An unopened draft class offers **Set up your ledger**, as on Issue
+shares. **Prepare a non-paid transfer**, beside the last record's actions,
 opens the web's three-step form on its own page (`TransferPreparationScreen.tsx`, through the shared
 `useTransferPreparation`, keeping its retry of an uncertain preparation). Preparing or Cancel returns to
 the class's transfers, with a prepared transfer in view and marked as prepared, as on the web. A
@@ -318,10 +323,14 @@ date, the entry and its compensating changes, the authority, reason, evidence an
 **Apply** for the steps the person's appointments hold. A decision replaces the records with the web's
 dialog content in place (Approve correction, Apply correction with the web's compensation note, or Reject
 correction with its reason), keeping its retry of an uncertain decision. Opening records
-(`ImportRecord.tsx`) lists the class's copied openings read-only, with their details, **Show the
-shareholders** (each shareholder's allotments and documents behind **Show allotments**) and the
-register and ASIC downloads; Bring records, Correct copied opening and the reviewing and confirming of
-copied openings stay on the web. Particulars changes (`ParticularsChanges.tsx`) follows for the whole
+(`ImportRecord.tsx`) lists the class's copied openings with their details, **Show the shareholders**
+(each shareholder's allotments and documents behind **Show allotments**), the register and ASIC
+downloads and **Reject**, **Review** and **Confirm** for the steps the person's appointments hold; a
+decision replaces the records with the web's Review, Confirm or Reject import, its preview of each
+member against the stored ledger and, when confirming opens the register, the web's note that it
+issues no shares. For someone who can prepare the register it starts with **Bring records**, or
+**Correct copied opening** once an applied opening may be corrected, which opens Set up your ledger
+for the class. Particulars changes (`ParticularsChanges.tsx`) follows for the whole
 company, each change with who made it and when, the particulars before and after, and an earlier
 change's supporting document. **Correct** opens the web's correction form on its own page
 (`CorrectionPreparationScreen.tsx`, through the shared `useCorrectionEntry` and
@@ -333,6 +342,20 @@ page that cannot show the form still offers Cancel. A read-only appointment gets
 actions. Share class is locked while a review or held decision is open, and pulling down rereads the
 classes, the person's appointments, the entries, corrections, opening records and particulars changes
 while none is.
+Set up your ledger (`RegisterSetupScreen.tsx`) is the web's register setup at phone width, through the
+shared `useImportPreparation`, `useNewShareClass`, `useImportRegister` and `useStartedClasses`
+(`ImportForm.tsx`, `ImportShareholders.tsx`). Opened from **Add share class**, it is the web's three
+steps for a new class: Share details (Ordinary, Preference, Redeemable or Another class with its name,
+code and type, any class already started as links, and the record date), Shareholders (each opening
+shareholder chosen from the company's people or New person, with their name, address, first date and
+current shares, the optional **Allocation history** and **Documents**, and **Show company source
+copies** for the register copy and ASIC extract), then Review, where **Confirm** records the review
+and the confirmation together and returns to Dashboard. The web's disabled **Import** is left out. Opened
+for a class, from **Set up your ledger** or Corrections, it brings records into its unopened register,
+or replaces the latest applied opening's shareholder rows in full with a reason, and resumes a saved
+draft for review. Dates are typed as `YYYY-MM-DD` (UTC). Each save and decision keeps the web's retry
+of an uncertain result, and **Edit records** retires a prepared draft for editing. **Cancel** returns
+to the page that opened it, and a page that cannot show the form still offers it.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
 Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form
@@ -518,13 +541,15 @@ JavaScript. Make release builds from a fresh prebuild
 
 A representative authority request's evidence, an employee award's agreement and the evidence for its
 vesting and entitlement changes, a share class's rights documents and shareholder documents, a
-share issue's authority, agreement, receipt, terms and acceptance documents, a share transfer's
+share issue's authority, agreement, receipt, terms and acceptance documents, a register setup's
+source copies and shareholder documents, a share transfer's
 instrument and authority, and a correction's authority document are picked with
 `expo-file-system`'s own picker (`File.pickFileAsync`,
 through `FileField`), so no picker module returns. On iOS it hands over a copy in the temporary
 folder's `-Inbox` folder, deleted when another file replaces it, the form goes (its request recorded,
 the form cancelled or the page left) or the session changes; a closed authority request form keeps it
-with its draft. On Android it hands
+with its draft, and register setup keeps each copy its draft still holds, including on another step, in
+a closed shareholder or during review, until the page goes. On Android it hands
 over the chosen document itself, which the app never deletes, named from its address. As on the web,
 a file whose name ends in a PDF, PNG or JPEG extension that doesn't match its type is refused. Any
 other name, with no extension, as Android's names from an address usually are, or ending in something

@@ -23,7 +23,7 @@ import {
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, Actions, LoadError, Loading, useCardStyles } from '../../components/Ledger';
+import { Action, Actions, LinkRow, LoadError, Loading, Rows, useCardStyles } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
@@ -184,6 +184,9 @@ function CompanyTransfers({
           onOpen={toTop}
           onFocusRecord={focusRecord}
           onPrepare={() => navigation.navigate('TransferPreparation', { company, token: register.token.uuid })}
+          onSetup={() =>
+            navigation.navigate('RegisterSetup', { company, token: register.token.uuid, from: 'TransferShares' })
+          }
         />
       )}
     </Page>
@@ -202,6 +205,7 @@ function ClassTransfers({
   onOpen,
   onFocusRecord,
   onPrepare,
+  onSetup,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
@@ -214,6 +218,7 @@ function ClassTransfers({
   onOpen: () => void;
   onFocusRecord: (record: View) => void;
   onPrepare: () => void;
+  onSetup: () => void;
 }) {
   const card = useCardStyles();
   const look = useLedgerStyles();
@@ -324,6 +329,15 @@ function ClassTransfers({
             ? 'Set up this share register before recording a transfer.'
             : 'Transfers for a class that uses the chain aren’t available in the app.'}
         </Text>
+      )}
+      {!supported && privateReady && steps?.prepare && register.token.status === 'draft' && (
+        <Rows>
+          <LinkRow
+            label={DESTINATIONS.companyRegisterImport.title}
+            accessibilityLabel={`${DESTINATIONS.companyRegisterImport.title} (${register.token.name})`}
+            onPress={onSetup}
+          />
+        </Rows>
       )}
       {appointments.isError && (
         <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>

@@ -6,14 +6,16 @@ import {
   DESTINATIONS,
   REGISTER_COPY,
   TECHNICAL_SHARE_LIMIT,
+  appointmentForRegisterStep,
   formatShareCount,
+  useOwnAppointments,
   useSubmissionOwner,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
-import { LinkRow, LoadError, Loading, Rows, Section, Status } from '../../components/Ledger';
+import { Action, Actions, LinkRow, LoadError, Loading, Rows, Section, Status } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
@@ -68,8 +70,14 @@ function CompanyLedger({
   const look = useLedgerStyles();
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const source = useCompanyRegisters(owner, currentOwner, company, TITLE);
+  const appointments = useOwnAppointments(owner, source.guard, { session: orderSubmissionSession });
   const [refreshing, setRefreshing] = useState(false);
   const registers = source.ownershipReady ? (source.registers ?? []) : [];
+  const canAddClass =
+    source.sourceReady &&
+    appointments.isSuccess &&
+    !appointments.isFetching &&
+    !!appointmentForRegisterStep(appointments.data, company, 'prepare');
   return (
     <Page
       testID="ledger-scroll"
@@ -83,7 +91,7 @@ function CompanyLedger({
           onRefresh={() => {
             if (refreshing) return;
             setRefreshing(true);
-            void source.retry().finally(() => setRefreshing(false));
+            void Promise.all([source.retry(), appointments.refetch()]).finally(() => setRefreshing(false));
           }}
         />
       }
@@ -115,6 +123,11 @@ function CompanyLedger({
             </Rows>
           </Section>
         ))
+      )}
+      {canAddClass && (
+        <Actions>
+          <Action primary label="Add share class" onPress={() => navigation.navigate('RegisterSetup', { company })} />
+        </Actions>
       )}
     </Page>
   );

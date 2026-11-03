@@ -200,9 +200,8 @@ together; for a class opened from the chain it adds particulars and former membe
 Ledova, and its holdings must match the stored register. An import never changes the name or
 residential address of a member linked to a Ledova account: their holding and everything else the
 import records are applied, and the register keeps the particulars from their Profile
-([particulars from Profile](member-records.md#particulars-from-profile)). Bringing records in, like
-the rest of register setup, is on the web only; the app's Corrections lists the opening records
-without it. On the web:
+([particulars from Profile](member-records.md#particulars-from-profile)). Register setup is on the
+web and, at phone width, in the app:
 
 1. On Ledger, choose **Add share class**; or choose Corrections, the class, then Bring records
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
@@ -221,7 +220,7 @@ without it. On the web:
    class's records the name, residential address, original date entered and **Current shares held**.
    **Allocation history** optionally copies available dates, quantities and paid/unpaid amounts;
    these historical quantities need not equal today's holding after transfers or cancellations.
-   New web records leave beneficial
+   New records leave beneficial
    ownership **Not recorded**, with no ownership question or reference inputs; existing answers and
    references stay with saved records and corrections. **Documents** optionally attaches one or more
    files to this shareholder and share class, each with **Category** and **File** fields
@@ -245,7 +244,7 @@ The register API also accepts an empty opening with no current or former members
 unopened draft class without chain activity. It retains the same company confirmation and separate
 approval/application, records an empty Opening state and creates no shares or shareholders. It
 cannot replace a populated or chain opening or erase records through a correction. The first
-subsequent approved issue uses the same register. Web setup checks current class and register
+subsequent approved issue uses the same register. Setup checks current class and register
 metadata before allowing the empty draft; incomplete entered rows still need correction or removal.
 
 Inviting members is optional ([member access](member-records.md#member-access)). Unsaved edits are
@@ -261,13 +260,13 @@ Changed, unavailable, conflicting or
 foreign identities block preparation, review or application; names alone never join people. A first
 copied holding records an opening balance, not an award-linked issue.
 
-Web imports are attributed to "Company-provided share records", with a snapshot naming the company,
-record date and preparer. Confirming is the company's confirmation that the records are its own, not a
-new director resolution. On the web, **Company source copies** optionally holds a register copy and ASIC
+Imports from setup are attributed to "Company-provided share records", with a snapshot naming the
+company, record date and preparer. Confirming is the company's confirmation that the records are its
+own, not a new director resolution. **Company source copies** optionally holds a register copy and ASIC
 extract, kept without being read. Fresh setup asks for neither former shareholders nor ASIC
 comparison figures. Earlier former-member records remain in saved snapshots, review and history;
 an inherited **Earlier ASIC comparison** is read-only, with **Leave out ASIC comparison** available
-when revising it. The Import button is marked Coming soon: document
+when revising it. The web's Import button is marked Coming soon, and the app leaves it out: document
 extraction will later fill these forms for review. Earlier imports keep their evidence and
 authority, and fields their snapshots lack stay unknown.
 
@@ -282,7 +281,7 @@ retention period; and while a deployment of the class is pending.
 On the web, each shareholder can have optional Share certificate, Shareholder agreement,
 Subscription agreement or Other supporting document attachments. Add them in the shareholder form
 during setup, or afterwards from the shareholder's page or the relevant class's details; in the app,
-from the class's page. Each
+in setup or from the class's page. Each
 attachment belongs to the company, person and share class; a setup attachment also keeps its source
 opening record. Recording existing holdings creates no historical share issue. Company source
 copies belong to the whole opening and remain separate.
@@ -296,13 +295,13 @@ agreement or receipt evidence.
 
 ### Correcting the copied opening
 
-On the web, in Ledger's Corrections view, under Opening records, choose Correct copied opening to
-replace the latest applied import's shareholder rows in full, in the same forms and keeping each member
-ID, with a current source and a reason. Applying keeps the earlier snapshot, decisions and opening
-entry, adds a Copied opening correction entry for the exact difference (none when only particulars
-change) and records the new particulars. It is refused once the class has later share activity, a
-deployment, or member-access or particulars activity; the company then resolves its records and uses
-the supported workflow.
+On the web or in the app, in Ledger's Corrections view, under Opening records, choose Correct copied
+opening to replace the latest applied import's shareholder rows in full, in the same forms and keeping
+each member ID, with a current source and a reason. Applying keeps the earlier snapshot, decisions and
+opening entry, adds a Copied opening correction entry for the exact difference (none when only
+particulars change) and records the new particulars. It is refused once the class has later share
+activity, a deployment, or member-access or particulars activity; the company then resolves its
+records and uses the supported workflow.
 
 ### Opening from the chain
 
@@ -608,12 +607,11 @@ The Ledger view shows:
 - **Add share class** below the cards, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
-The mobile app's Ledger shows the same cards, each with **Class details**, for a register reader of the
-selected company, and lists Issue shares, Transfer shares and Corrections beneath it
-([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
+The mobile app's Ledger shows the same cards, each with **Class details**, and **Add share class**, for
+a register reader of the selected company, and lists Issue shares, Transfer shares and Corrections
+beneath it ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
 [non-paid transfers](#non-paid-transfers-between-members),
-[compensating corrections](#compensating-corrections)); register setup, and so **Add share class**,
-stays on the web.
+[compensating corrections](#compensating-corrections)).
 
 Ledger's three web sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the overview cards: Issue shares
@@ -656,8 +654,8 @@ The mobile app's Corrections has the same Changes, corrections with their decisi
 and Particulars changes at phone width, for a register reader of the selected company. **Share class**
 is in Filters and stays locked while a review or an uncertain decision is open, Correct opens the
 preparation on its own page, a decision's review replaces the records, and documents go to the
-phone's share sheet. Opening records are read-only there: Bring records, Correct copied opening and
-the reviewing and confirming of copied openings stay on the web.
+phone's share sheet. Opening records have Bring records or Correct copied opening and the reviewing
+and confirming of copied openings, as on the web.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage

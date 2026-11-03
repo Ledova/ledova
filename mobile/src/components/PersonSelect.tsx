@@ -4,6 +4,7 @@ import { SearchSelect } from './SearchSelect';
 
 const NEW_CHOICE: PersonChoice[] = [{ value: 'new', label: NEW_PERSON, detail: '' }];
 const PEOPLE = ['person', 'people'] as const;
+const NONE: string[] = [];
 
 export function PersonSelect({
   label,
@@ -12,6 +13,7 @@ export function PersonSelect({
   onChange,
   context,
   allowNew = false,
+  disabledMembers = NONE,
   disabled = false,
   error,
 }: {
@@ -21,10 +23,16 @@ export function PersonSelect({
   onChange: (value: string) => void;
   context?: (person: Person) => string;
   allowNew?: boolean;
+  disabledMembers?: string[];
   disabled?: boolean;
   error?: string | null;
 }) {
-  const choices = useMemo(() => personChoices(people, context), [people, context]);
+  const choices = useMemo(() => {
+    const added = new Set(disabledMembers);
+    return personChoices(people, context).map((choice) =>
+      added.has(choice.value) ? { ...choice, unavailable: 'Already added' } : choice,
+    );
+  }, [people, context, disabledMembers]);
   return (
     <SearchSelect
       label={label}

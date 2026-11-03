@@ -13,6 +13,7 @@ import {
   entryLabel,
   hasCurrentRegisterReadAuthority,
   importsKey,
+  openingRecordsLink,
   ownAppointmentsKey,
   registerHoldersKey,
   registerSteps,
@@ -28,7 +29,7 @@ import {
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, LoadError, LoadMore, Loading, Section, useCardStyles } from '../../components/Ledger';
+import { Action, LinkRow, LoadError, LoadMore, Loading, Rows, useCardStyles } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
@@ -207,6 +208,9 @@ function CompanyCorrections({
           onCorrect={(entry) =>
             navigation.navigate('CorrectionPreparation', { company, token: register.token.uuid, entry })
           }
+          onSetup={() =>
+            navigation.navigate('RegisterSetup', { company, token: register.token.uuid, from: 'Corrections' })
+          }
         />
       )}
       {registers.length > 0 && (
@@ -237,6 +241,7 @@ function ClassCorrections({
   onOpen,
   onFocusRecord,
   onCorrect,
+  onSetup,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
@@ -250,6 +255,7 @@ function ClassCorrections({
   onOpen: () => void;
   onFocusRecord: (record: View) => void;
   onCorrect: (entry: string) => void;
+  onSetup: () => void;
 }) {
   const card = useCardStyles();
   const look = useLedgerStyles();
@@ -297,6 +303,10 @@ function ClassCorrections({
   const reviewChanged = useCallback((uuid: string, open: boolean) => {
     setReviewing((current) => (open ? uuid : current === uuid ? null : current));
   }, []);
+  const [openingReview, setOpeningReview] = useState<string | null>(null);
+  const openingChanged = useCallback((uuid: string, open: boolean) => {
+    setOpeningReview((current) => (open ? uuid : current === uuid ? null : current));
+  }, []);
   const [heldRecords, setHeldRecords] = useState<ReadonlySet<string>>(() => new Set());
   const recordHeld = useCallback((uuid: string, held: boolean) => {
     setHeldRecords((current) => {
@@ -308,7 +318,7 @@ function ClassCorrections({
     });
   }, []);
   const held = heldRecords.size > 0;
-  const open = !!reviewing;
+  const open = !!reviewing || !!openingReview;
   useEffect(() => {
     onBusyChange(open || held);
   }, [onBusyChange, open, held]);
@@ -337,6 +347,15 @@ function ClassCorrections({
       ),
     );
   };
+  const openingSettled = async (keys: readonly unknown[][]) => {
+    try {
+      guard();
+    } catch {
+      return;
+    }
+    await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })));
+  };
+  const openingChanges = [importsKey(owner, token), registerHoldersKey(owner), entriesKey(owner, token)];
   useLayoutEffect(() => {
     refreshRef.current = () =>
       Promise.allSettled([
@@ -347,9 +366,10 @@ function ClassCorrections({
   });
   const records = corrections.data ?? [];
   const browsing = !reviewing;
+  const link = importsReady && !held ? openingRecordsLink(register, imports.data) : null;
   return (
     <>
-      <View style={reviewing ? undefined : card.card}>
+      <View style={openingReview ? look.hidden : reviewing ? undefined : card.card}>
         {browsing && (
           <Text accessibilityRole="header" style={card.title}>
             Changes
@@ -445,30 +465,46 @@ function ClassCorrections({
         </View>
       </View>
       {readable && (
-        <View style={reviewing && look.hidden}>
-          <Section title="Opening records">
-            {readOnly && <Text style={look.muted}>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</Text>}
-            {imports.isPending ? (
-              <Loading>Loading imports…</Loading>
-            ) : imports.isError ? (
-              <LoadError retry={() => imports.refetch()} busy={imports.isFetching}>
-                Imports could not be loaded.
-              </LoadError>
-            ) : importsReady && imports.data.length === 0 ? (
-              <Text style={look.muted}>{REGISTER_IMPORT_COPY.EMPTY}</Text>
-            ) : null}
-            <View accessibilityLabel="Opening records">
-              {(imports.data ?? []).map((proposal, index) => (
-                <ImportRecord
-                  key={proposal.uuid}
-                  proposal={proposal}
-                  guard={importGuard}
-                  visible={importsReady}
-                  ruled={index > 0}
-                />
-              ))}
-            </View>
-          </Section>
+        <View style={reviewing ? look.hidden : openingReview ? undefined : card.card}>
+          {!openingReview && (
+            <>
+              <Text accessibilityRole="header" style={card.title}>
+                Opening records
+              </Text>
+              {readOnly && <Text style={look.muted}>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</Text>}
+              {!!link && !!steps?.prepare && (
+                <Rows>
+                  <LinkRow label={link} accessibilityLabel={`${link} (${register.token.name})`} onPress={onSetup} />
+                </Rows>
+              )}
+              {imports.isPending ? (
+                <Loading>Loading imports…</Loading>
+              ) : imports.isError ? (
+                <LoadError retry={() => imports.refetch()} busy={imports.isFetching}>
+                  Imports could not be loaded.
+                </LoadError>
+              ) : importsReady && imports.data.length === 0 ? (
+                <Text style={look.muted}>{REGISTER_IMPORT_COPY.EMPTY}</Text>
+              ) : null}
+            </>
+          )}
+          <View accessibilityLabel="Opening records">
+            {(imports.data ?? []).map((proposal, index) => (
+              <ImportRecord
+                key={proposal.uuid}
+                proposal={proposal}
+                steps={steps ?? {}}
+                guard={importGuard}
+                visible={importsReady}
+                ruled={index > 0}
+                reviewing={openingReview}
+                onReviewChange={openingChanged}
+                onHeldChange={recordHeld}
+                onDecided={() => openingSettled(openingChanges)}
+                onRefused={() => openingSettled([...openingChanges, ownAppointmentsKey(owner)])}
+              />
+            ))}
+          </View>
         </View>
       )}
     </>
