@@ -26,6 +26,7 @@ import {
   type RegisterAwardVesting,
   type RegisterAwardVestingPreparation,
   type RegisterEntry,
+  type RegisterMemberDocumentRequest,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -183,6 +184,13 @@ const HOLDER_A = {
   wallets: [],
 };
 const HOLDER_B = { ...HOLDER_A, member: '36363636-3636-4636-8636-363636363636', name: 'Synthetic Holder B' };
+const HOLDER_C = {
+  ...HOLDER_A,
+  member: '44444444-4444-4444-8444-444444444444',
+  name: 'Synthetic Holder C',
+  balance: '1',
+  percentage: 11.11,
+};
 const LINK = {
   uuid: '37373737-3737-4737-8737-373737373737',
   company: ADMINISTERED.uuid,
@@ -321,6 +329,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let awards: RegisterAward[] = [];
   let vestings: RegisterAwardVesting[] = [];
   let rights: ClassRightsRevision[] = [];
+  let thirdHolder = false;
   api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
@@ -342,9 +351,16 @@ it('associates a member by invitation code, switches to their company on Dashboa
       return { data: { ...REGISTER, token: { ...REGISTER.token, ...ELSEWHERE }, issuedSupply: '1', holders } };
     }
     if (url === URLS.HOLDERS(FOUNDERS.uuid)) {
-      const holders = [HOLDER_A, { ...HOLDER_B, balance: '3', percentage: 37.5 }];
+      const holders = [HOLDER_A, { ...HOLDER_B, balance: '3', percentage: 37.5 }, ...(thirdHolder ? [HOLDER_C] : [])];
+      const issuedSupply = thirdHolder ? '9' : '8';
       return {
-        data: { ...REGISTER, token: { ...REGISTER.token, ...FOUNDERS }, issuedSupply: '8', totalHolders: 2, holders },
+        data: {
+          ...REGISTER,
+          token: { ...REGISTER.token, ...FOUNDERS },
+          issuedSupply,
+          totalHolders: holders.length,
+          holders,
+        },
       };
     }
     if (url === URLS.REGISTER_PEOPLE) return { data: { company: ADMINISTERED.uuid, members: [] } };
@@ -452,7 +468,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
       const field = (name: string) => String((value as FormData).getAll(name)[0]);
       return {
         data: {
-          uuid: `evidence-${field('idempotency_key')}`,
+          uuid: field('idempotency_key').replace(/^0{8}/, 'eeeeeeee'),
           company: field('company_id'),
           appointment: field('appointment'),
           kind: field('kind'),
@@ -481,6 +497,30 @@ it('associates a member by invitation code, switches to their company on Dashboa
         unvestedRemainingShares: String(BigInt(award.shares) - BigInt(vesting.shares)),
       }));
       return { data: vesting };
+    }
+    if (url === URLS.REGISTER_MEMBER_DOCUMENTS) {
+      const request = value as RegisterMemberDocumentRequest;
+      const snapshot = {
+        evidence: request.evidence,
+        company: request.companyId,
+        documentType: 'supporting',
+        providedBy: 'company',
+        name: 'synthetic.pdf',
+        fileSize: 4,
+        mimeType: 'application/pdf',
+        sha256: 'a'.repeat(64),
+      };
+      const { companyId, ...document } = request;
+      return {
+        data: {
+          ...document,
+          uuid: '45454545-4545-4545-8545-454545454545',
+          company: companyId,
+          sourceImport: null,
+          snapshot,
+          createdAt: '2026-11-04T00:00:00Z',
+        },
+      };
     }
     if (url === URLS.CLASS_RIGHTS(FOUNDERS.uuid)) {
       const request = value as ClassRightsRequest;
@@ -882,7 +922,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: REGISTER_AWARD_COPY.SUBMIT }));
   const agreement = `${HOLDER_B.name} (employee award, agreement ${formatDate(utcToday())})`;
   await fireEvent.press(await screen.findByRole('button', { name: agreement }));
-  const evidence = expect.stringMatching(/^evidence-/);
+  const evidence = expect.stringMatching(/^eeeeeeee-/);
   const recorded = awards[0];
   expect(awardPosts()).toEqual([
     [
@@ -974,6 +1014,31 @@ it('associates a member by invitation code, switches to their company on Dashboa
       expect.anything(),
     ],
   ]);
+  thirdHolder = true;
+  await act(async () => screen.getByTestId('share-class-scroll').props.refreshControl.props.onRefresh());
+  await fireEvent.press(await screen.findByRole('button', { name: 'Add documents', disabled: false }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Shareholder: Synthetic Holder A' }));
+  expect(screen.getByRole('radio', { name: 'Synthetic Holder C' })).toBeTruthy();
+  await fireEvent.press(screen.getByRole('radio', { name: 'Synthetic Holder B' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Add document' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'File. Choose file' }));
+  await screen.findByRole('button', { name: 'File, synthetic.pdf. Choose file' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Save documents' }));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Save documents' })).toBeNull());
+  expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS)).toEqual([
+    [
+      URLS.REGISTER_MEMBER_DOCUMENTS,
+      expect.objectContaining({
+        companyId: ADMINISTERED.uuid,
+        member: HOLDER_B.member,
+        token: FOUNDERS.uuid,
+        category: 'other',
+        appointment: ADMINISTRATION.uuid,
+      }),
+      expect.anything(),
+    ],
+  ]);
+  thirdHolder = false;
   await view.rerender(<CertificatesScreen route={{ key: 'register', name: 'Certificates', params: undefined }} />);
   expect(await screen.findByText('Certificate: Can prepare')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Prepare certificate (entry 13)', disabled: false }));
