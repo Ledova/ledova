@@ -214,10 +214,11 @@ confirmed, and a confirmed one is not yet final ([chain](../engineering/chain.md
 
 The web dashboard reaches the records and workflows described here. The mobile app holds a person's
 own records and account, and lists the same companies as the web: a company's administrators and
-register readers see its ownership overview and each class's shareholders there and prepare its
-certificates and inspection copies in Documents, where its administrators also prepare the company
-pack, and the web's Team manages appointments and invitations, while other company tasks stay on the
-web
+register readers see its ownership overview and each class's shareholders there, list its shareholders,
+open each one's page, add a person, change particulars and manage member access under Shareholders,
+and prepare its certificates and inspection copies in Documents, where its administrators also
+prepare the company pack; Settings holds Team, Activation and representative authority, while the
+Ledger, the employee scheme and other company tasks stay on the web
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
 retains its existing route checks;
 company actions follow the person's current appointments, and
@@ -277,7 +278,9 @@ on mobile ([member records](member-records.md)).
 
 The mobile app has the web's phone frame: a top bar with the menu and the notifications bell, and a
 slide-out menu with the Dark theme switch. It opens on **Dashboard**, the selected company's ownership
-overview, as on the web; **Switch company** changes the company. **Documents** holds that company's
+overview, as on the web; **Switch company** changes the company. **Shareholders** opens that company's
+people list, with **Member access** beneath it, for a register reader, as on the web
+([the register page](register.md#the-register-page)). **Documents** holds that company's
 Certificates, with Inspection copies and Company pack for a register reader, as on the web, and
 **Settings** opens
 the web's Profile for that company, with Account (accepting an invitation and the app's own settings)

@@ -17,11 +17,19 @@ import { ActivationScreen } from '../screens/settings/ActivationScreen';
 import { AuthorityRequestScreen } from '../screens/settings/AuthorityRequestScreen';
 import { AuthorityScreen } from '../screens/settings/AuthorityScreen';
 import { TeamScreen } from '../screens/settings/TeamScreen';
+import { MemberAccessScreen } from '../screens/shareholders/MemberAccessScreen';
+import { ParticularsScreen } from '../screens/shareholders/ParticularsScreen';
+import { ShareholderScreen } from '../screens/shareholders/ShareholderScreen';
+import { ShareholdersScreen } from '../screens/shareholders/ShareholdersScreen';
 import type { MenuRoute, Section } from './AppMenu';
 import { TopBar } from './headers';
 
 export type SignedInStackParamList = {
   Dashboard: { record?: string; award?: string } | undefined;
+  Shareholders: undefined;
+  Shareholder: { company: string; member: string; outcome?: string };
+  ShareholderParticulars: { company: string; member: string };
+  MemberAccess: { company?: string; inviteMember?: string } | undefined;
   Certificates: { record?: string; token?: string } | undefined;
   InspectionCopies: undefined;
   CompanyPack: undefined;
@@ -67,6 +75,14 @@ export function SignedInNavigator() {
             screenOptions={{ contentStyle: { backgroundColor: theme.colors.surface.base } }}
           >
             <Stack.Screen name="Dashboard" component={DashboardScreen} options={topBar('Dashboard')} />
+            <Stack.Screen name="Shareholders" component={ShareholdersScreen} options={topBar('Shareholders')} />
+            <Stack.Screen name="Shareholder" component={ShareholderScreen} options={topBar('Shareholders')} />
+            <Stack.Screen
+              name="ShareholderParticulars"
+              component={ParticularsScreen}
+              options={topBar('Shareholders')}
+            />
+            <Stack.Screen name="MemberAccess" component={MemberAccessScreen} options={topBar('Shareholders')} />
             <Stack.Screen name="Certificates" component={CertificatesScreen} options={topBar('Documents')} />
             <Stack.Screen name="InspectionCopies" component={InspectionCopiesScreen} options={topBar('Documents')} />
             <Stack.Screen name="CompanyPack" component={CompanyPackScreen} options={topBar('Documents')} />

@@ -254,7 +254,7 @@ Settings opens Profile, with **Account** and **Data and privacy** beside it for 
 Activation appear where company access permits. Team remains reachable for accepting
 a company invitation. Before company access is granted, **Settings → Account → Invitations →
 Company officer invitation** provides **Accept**, opening the same guarded workflow. Member access stays
-under company [Shareholders](register.md#the-register-page).
+under company [Shareholders](register.md#the-register-page), on the web and in the app.
 
 **Profile** combines Personal information with permitted Company details. Each editor retains its own
 permissions; changing personal details does not update a company's records. **Activation** retains the

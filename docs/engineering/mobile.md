@@ -44,9 +44,10 @@ areas show (`AccountCheck.tsx`, `CompanyContextNotice.tsx`) in `components/`. Pr
 import no other area's internals.
 Profile, operator, member, company list, appointment and company ownership reads, Team's reads
 and forms, Activation's company read and confirmation, representative authority's reads, actions
-and request form, and Documents' class source, certificate records, preparations and prepared
-outputs live in `packages/shared`, with native session, result and transport policies kept
-in the client: the app passes its session to each shared read and request.
+and request form, Documents' class source, certificate records, preparations and prepared
+outputs, and Shareholders' register, people and shareholder reads, list, Add person, particulars change
+and member access form live in `packages/shared`, with native session, result and transport policies
+kept in the client: the app passes its session to each shared read and request.
 
 ### Shared package resolution
 
@@ -81,14 +82,19 @@ as read** while any are unread, and the web's rows with an unread dot and a dism
 **Load more notifications** and the web's loading, failure and "No notifications yet." states
 (owner, 3 November 2026).
 The menu (`AppMenu`) slides in from the left like the
-web's phone drawer, 208 points wide: Dashboard, Documents and Settings, and a footer
+web's phone drawer, 208 points wide: Dashboard, Shareholders for a register reader of the selected
+company, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
-loses focus, and it marks the section the page belongs to: Documents for Certificates, Inspection
+loses focus, and it marks the section the page belongs to: Shareholders for Shareholders, a
+shareholder's page, its particulars change and Member access, Documents for Certificates, Inspection
 copies and Company pack, Settings for Profile, Account, Data and privacy, Team and Activation,
 Dashboard for Invitation. Like the web's sidebar, it marks Team on Representative authority and its
-requests. Choosing Dashboard returns to it. Documents opens Certificates and Settings opens Profile.
+requests. Choosing Dashboard returns to it. Shareholders opens its people list, Documents opens
+Certificates and Settings opens Profile.
 Like the web's groups, a caret shows a group's pages beneath it, open while one of them is shown.
+Shareholders appears, as on the web, when the selected company's `canReadRegister` allows it, and
+lists Member access; the web's Employee scheme joins it when the app has that page.
 Documents lists Certificates, Inspection copies and Company pack when the selected company's
 `canReadRegister` allows it, as the web's sidebar does, and is otherwise one link to Certificates.
 Settings lists Profile, Account and Data and privacy, then Team when the selected company's `canManage`
@@ -162,6 +168,35 @@ limitations** and shares the ZIP; for any other register reader, the web's notic
 is required. Both pages show the web's loading, failure and empty states, and without register access
 for the selected company they read nothing and point to Dashboard. Pulling down rereads Certificates,
 Inspection copies or Company pack while no preparation is open.
+Shareholders (`mobile/src/screens/shareholders/ShareholdersScreen.tsx`) is the web's Shareholders view
+at phone width for a register reader of the selected company, read through the shared
+`useRegisterClasses` and `useRegisters` with the app's session (`useCompanyRegisters.ts`) and listed by
+the shared `shareholderList`: Current shareholders, one row per person with each class they hold, such
+as "FND 5 · 62.50%", and Identity needs review where it applies, then People without shares, with the
+web's unopened-class, identity-review, empty and no-match lines and 25 to a page under the web's pager
+(`mobile/src/components/Pager.tsx`, which Dashboard's class card also uses). Filters holds **Search
+people**, which searches 300 ms after typing stops, with **Clear** and the web's match count, above
+**Share class**, which applies at once and closes the panel; the search, class and page are kept on the
+screen. Former shareholders follows, with each class's former-member history behind its **Show**
+toggle, 25 at a time, and **Details** for a former member the register names. **Add person** opens the
+web's form beneath them, through the shared `usePersonRegistration`, with its retry of an uncertain save
+and the added person's name in its outcome line; while a save is unfinished the rows don't open. A row
+opens the shareholder's page (`ShareholderScreen.tsx`, their name as its title) through the shared
+`useShareholder`: Particulars with **Change particulars** or the profile note, Holdings with any
+former holding, History, Employee awards, and Access to their own records with **Invite to their
+records**, which opens Member access with them chosen, each with the web's loading, failure and private
+states. **Change particulars** opens the web's Particulars change page (`ParticularsScreen.tsx`, through
+the shared `useParticularsMember` and `useParticularsEdit`): Current particulars and the one-step form,
+which returns to the shareholder's page saying Particulars changed., since the app has no Corrections to
+land on. Until the app has their pages, a shareholder's page leaves out Documents, **Issue shares to
+them**, **Transfer shares**, the award rows' link and **Open Employee share scheme**. Member access
+(`MemberAccessScreen.tsx`, through the shared `useMemberAccessForm`) has the web's People and
+Invitations: each person's name, email, Linked date and access, with **Revoke access**, whose reason
+form and confirmation dialog send nothing until confirmed, and each invitation's Invited date, status
+and deadline. **Invite a member** replaces them with the web's form, choosing the recipient from a
+searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
+access to the company, each of these pages reads nothing and points to Dashboard. Pulling down rereads
+each of them while no form or action is open.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
 Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form

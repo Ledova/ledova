@@ -632,9 +632,10 @@ commands' client layer went with their pages under
   `packages/shared/src/hooks/useRegisterDecision.ts`) with the generic receipt check;
 - copy with a sentence for every requirement a decision can leave unmet.
 
-The base class read (`packages/shared/src/hooks/useRegisterClasses.ts`) and the web's holder reads in
-`dashboard/src/pages/company/shared/useCompanyRegister.ts` receive their caller's original owner
-guard. Company register controllers use `dashboard/src/pages/company/shared/ownerGuard.ts`.
+The base class read (`packages/shared/src/hooks/useRegisterClasses.ts`) and the holder reads
+(`readRegister`, `registersQuery` and `useRegisters` in `packages/shared/src/hooks/useRegisters.ts`, which
+the web's Ledger combines in `dashboard/src/pages/company/shared/useCompanyRegister.ts`) receive their
+caller's original owner guard. Company register controllers use `dashboard/src/pages/company/shared/ownerGuard.ts`.
 The reads check the guard before and after each request and pass it as `ledovaSubmissionGuard`, so
 a late reply after an account change or reauthentication is discarded. Query keys and cache timing
 stay unchanged.
@@ -645,7 +646,8 @@ The standalone preparations are `companyRegister*` entries in `DESTINATIONS`:
 `/company/ledger/members/:member/particulars`. Setup is the import page without a class in its
 address: it chooses or creates a share class, then prepares the mirror import. The particulars
 change is one step: it sends the name and address the page read as `expected` and, once applied,
-lands on its record under Corrections. `appointmentForParticularsEdit` chooses its appointment: one
+lands on its record under Corrections (in the app, back on the shareholder's page). Its form logic is
+the shared `useParticularsEdit`, and the page finds the member through `useParticularsMember`. `appointmentForParticularsEdit` chooses its appointment: one
 holding `admin`, or `prepare`, `approve` and `apply`. A member row whose `followsProfile` is true
 gets no form: the page shows that the member keeps their particulars in their Ledova profile.
 Non-paid and employee-award grants are prepared inline in Issue shares.
@@ -852,7 +854,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.
 - Choosing a person on the web: register setup, investor and non-paid issues, transfers and employee
-  awards read one people list (`dashboard/src/pages/company/ledger/shared/usePeople.ts`, the
+  awards read one people list (`packages/shared/src/hooks/usePeople.ts`, the
   `register/members/` read validated by `isRegisterImportMembers`) and render `PersonSelect` and
   `PersonFields` (`shared/PersonPicker.tsx`), the searchable list in
   [choosing a person](frontend-ux.md#choosing-a-person).
@@ -868,7 +870,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   award, and `registerRecord` focuses a listed non-paid issue. `fromMember` chooses a transfer's
   transferor.
 
-- A shareholder's page on the web (`dashboard/src/pages/company/ledger/member`): reads the named
+- A shareholder's page on the web (`dashboard/src/pages/company/ledger/member`): reads, through the shared
+  `useShareholder` (`packages/shared/src/hooks/useShareholder.ts`), the named
   company's classes and holders through the same queries as Ledger, the company's recorded
   particulars (`register/members/` of its first class), every page of the member's entries in each
   class (`register/entries/` with `member`) and their awards (`register-awards/` with `member`). It
@@ -879,7 +882,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   `followsProfile` is not true, rechecks a current appointment that can change
   particulars (`appointmentForParticularsEdit`), adding documents rechecks current preparation
   authority, and attachment downloads require current register-read authority. While register work
-  is held, Shareholders' Details links are disabled.
+  is held, Shareholders' Details links are disabled. The app's Shareholders, a shareholder's page, its
+  particulars change and Member access render the same views at phone width through the shared
+  `shareholderList`, `usePersonRegistration`, `useShareholder`, `useParticularsMember`,
+  `useParticularsEdit` and `useMemberAccessForm` ([navigation](mobile.md#navigation)).
 - Register reads: the web reads the person's appointments through Team's account-bound cache and
   rereads them after a revocation on Team or Representative authority, a refused decision or
   preview and a recorded decision other than an import's (which refreshes the imports, the register

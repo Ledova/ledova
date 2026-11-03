@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import {
   assertNextPageAdvances,
+  firstOfEach,
   getNextPageParam,
   getRegisterEntries,
   readEveryPage,
@@ -8,14 +9,10 @@ import {
   type OrderSubmissionOwner,
   type RegisterEntry,
   READ_TIMING,
-  registerKey,
+  registerEntriesKey,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { firstOfEach, guarded } from './registerReads';
-
-export function registerEntriesKey(owner: OrderSubmissionOwner) {
-  return [...registerKey(owner), 'entries'];
-}
+import { guarded } from './registerReads';
 
 export function entriesKey(owner: OrderSubmissionOwner, token: string) {
   return [...registerEntriesKey(owner), token];
@@ -33,28 +30,6 @@ export async function readNamedEntries(token: string, entry: string[], guard: ()
   if (named.some(({ uuid }) => !entry.includes(uuid)))
     throw new Error('The register answered with entries it was not asked for.');
   return new Map(named.map((row) => [row.uuid, row]));
-}
-
-export async function readMemberEntries(tokens: string[], member: string, guard: () => void) {
-  const classes = await Promise.all(
-    tokens.map(async (token) => {
-      const rows = await readEveryPage((page) =>
-        guarded(guard, () => getRegisterEntries(apiClient, token, { member, page }, { ledovaSubmissionGuard: guard })),
-      );
-      if (rows.some((row) => !row.changes.some((change) => change.member === member)))
-        throw new Error('The register answered with entries for another member.');
-      if (rows.some((row) => row.changes.some((change) => !/^-?\d+$/.test(String(change.shares)))))
-        throw new Error('The register entries did not give whole share changes.');
-      return firstOfEach(rows, ({ uuid }) => uuid).map((entry) => ({ token, entry }));
-    }),
-  );
-  return classes
-    .flat()
-    .sort(
-      (left, right) =>
-        right.entry.effectiveOn.localeCompare(left.entry.effectiveOn) ||
-        Date.parse(right.entry.recordedAt) - Date.parse(left.entry.recordedAt),
-    );
 }
 
 export function useRegisterEntries(owner: OrderSubmissionOwner, token: string, guard: () => void) {

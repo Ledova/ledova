@@ -24,3 +24,9 @@ export async function readEveryPage<T>(read: (page: number) => Promise<{ data: P
   }
   return items;
 }
+
+export function firstOfEach<Row>(rows: Row[], uuidOf: (row: Row) => string) {
+  const kept = new Map<string, Row>();
+  for (const row of rows) if (!kept.has(uuidOf(row))) kept.set(uuidOf(row), row);
+  return [...kept.values()];
+}

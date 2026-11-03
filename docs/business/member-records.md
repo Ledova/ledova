@@ -72,8 +72,8 @@ read their own records without a wallet. It gives no company appointment, holdin
 
 ### Inviting a member
 
-1. On web, a company administrator opens **Shareholders** → **Member access** in the sidebar, or chooses
-   **Invite to their records** on a shareholder's page.
+1. On the web or in the app, a company administrator opens **Shareholders** → **Member access** in the
+   sidebar or menu, or chooses **Invite to their records** on a shareholder's page.
 2. Choose **Invite a member**, select a named member or award recipient, enter the recipient's email
    and choose **Send invitation**. An award recipient can be invited before any shares are issued
    and sees their own award.
@@ -182,9 +182,9 @@ invitation, for transfers, for a change to their particulars, or for shares reco
 
 ### Revoking member access
 
-A company administrator opens **Shareholders** → **Member access** in the web sidebar and chooses
-**Revoke access** on the person's row under **People**, supplying a reason for that action;
-relinking needs a new invitation. Revocation stops the person's own-record access.
+A company administrator opens **Shareholders** → **Member access** in the web sidebar or the app's
+menu and chooses **Revoke access** on the person's row under **People**, supplying a reason for that
+action, then confirms it; relinking needs a new invitation. Revocation stops the person's own-record access.
 
 **Member access** shows **People** and **Invitations**. The rows keep names and relevant details
 together; internal references stay in the audit records. Task fields open only when needed. Web

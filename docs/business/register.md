@@ -3,8 +3,8 @@
 [Business processes](README.md) · [Documentation](../README.md)
 
 How a company keeps the register of members of each share class in Ledova, and what the web Ledger
-page shows; the mobile app has no register administration
-([decision](../decisions.md#mobile-app-for-shareholders)). It is for company representatives,
+page shows; of the register administration, the mobile app has Shareholders, a shareholder's page and
+Member access ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). It is for company representatives,
 product owners, support staff and engineers learning the domain. Issuing shares is in
 [share classes and issuing shares](issuing-shares.md); copies, certificates and member access are in
 [member records and register outputs](member-records.md).
@@ -359,7 +359,8 @@ page shows "They keep their name and address up to date in their Ledova profile.
    starts the form with them. Change the name or residential address, optionally give a reason, and
    choose **Save change**.
 3. The change applies at once, dated today (UTC), and opens on its record in **Ledger** →
-   **Corrections**, which shows the particulars before and after.
+   **Corrections**, which shows the particulars before and after. In the app it returns to the
+   shareholder's page, which says Particulars changed.
 
 **Change particulars** is offered to an administrator, or to an appointment holding prepare, approve
 and apply: whoever could already finish a change alone
@@ -640,7 +641,10 @@ classes they hold, and the row opens their page. Former shareholders follows, ho
 Former-member history 25 at a time, with Details for a former member the register names.
 Shareholders' sidebar submenus open Employee scheme for employee awards and Member access for invitations and
 access ([member records](member-records.md)). While register work is unfinished,
-Details is unavailable, so the work and its recovery stay on the page.
+Details is unavailable, so the work and its recovery stay on the page. The mobile app's Shareholders
+shows the same list, filters, pages, former shareholders and **Add person** for a register reader of
+the selected company, keeping the search, class and page on the screen; each row opens the
+shareholder's page.
 
 The Employee share scheme view, Employee scheme under Shareholders, shows one class's
 [awards](issuing-shares.md#employee-awards-and-vesting) at a time, chosen with Share class,
@@ -676,7 +680,9 @@ reached from Recipient details on their award's page. It shows:
 
 Details show only while the account, the classes and the holdings read are current; a refresh
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
-current company register appointment and settled reads, as on Ledger.
+current company register appointment and settled reads, as on Ledger. The app's shareholder page shows
+the same sections and **Change particulars**; until the app has their pages it leaves out Documents,
+**Issue shares to them**, **Transfer shares**, the award rows' link and **Open Employee share scheme**.
 
 ### Choosing a person
 

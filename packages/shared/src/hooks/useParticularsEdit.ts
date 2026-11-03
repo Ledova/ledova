@@ -1,34 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import {
-  REGISTER_PARTICULARS_COPY,
-  apiErrorSentence,
-  createUserFriendlyError,
-  editRegisterParticulars,
-  failureStatus,
-  isRegisterParticularsEditReceipt,
-  type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
-  registerKey,
-  registerHoldersKey,
-} from '@ledova/shared';
-
-import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { allPeopleKey } from '@pages/company/ledger/shared/usePeople';
-import { particularsKey } from '@pages/company/ledger/shared/useRegisterParticulars';
-import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
+import { REGISTER_PARTICULARS_COPY as COPY } from '../constants/business/register-particulars';
+import { editRegisterParticulars } from '../services/register-particulars';
+import type { OwnCompanyAppointment } from '../types';
+import { apiErrorSentence, createUserFriendlyError, failureStatus } from '../utils/errors';
+import { isRegisterParticularsEditReceipt } from '../utils/register-particulars';
+import { useApiClient } from './useApiClient';
+import { registerHoldersKey, registerKey } from './useCompanyOwnership';
+import { hasProblems, type Problems } from './useErrorSummary';
+import { allPeopleKey } from './usePeople';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 type Draft = { name: string; address: string; reason: string };
 
 type Particulars = { name: string; address: string };
 
-export const COPY = REGISTER_PARTICULARS_COPY;
-
 const FAILED = 'The change could not be saved. Retry with the same details.';
 
 const CLOSED = 'This particulars form is closed. Reopen it before continuing.';
+
+export function particularsKey(owner: OrderSubmissionOwner, company: string) {
+  return [...registerKey(owner), 'particulars', company];
+}
 
 function problemsOf(draft: Draft): Problems<'name' | 'address'> {
   return {
@@ -36,19 +29,6 @@ function problemsOf(draft: Draft): Problems<'name' | 'address'> {
     address: !draft.address.trim() && 'Give the residential address.',
   };
 }
-
-export type ParticularsFormProps = {
-  owner: OrderSubmissionOwner;
-  guard: () => void;
-  company: string;
-  member: string;
-  appointment: OwnCompanyAppointment;
-  current: Particulars;
-  recorded: Particulars;
-  blocked: boolean;
-  onConflict: () => void;
-  onMissing: () => void;
-};
 
 export function useParticularsEdit({
   owner,
@@ -61,9 +41,26 @@ export function useParticularsEdit({
   blocked,
   onConflict,
   onMissing,
-}: ParticularsFormProps) {
+  onChanged,
+  newKey,
+  session,
+}: {
+  owner: OrderSubmissionOwner;
+  guard: () => void;
+  company: string;
+  member: string;
+  appointment: OwnCompanyAppointment;
+  current: Particulars;
+  recorded: Particulars;
+  blocked: boolean;
+  onConflict: () => void;
+  onMissing: () => void;
+  onChanged: (uuid: string) => void;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
+}) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
-  const navigate = useNavigate();
   const [draft, setDraft] = useState<Draft>(() => ({ name: current.name, address: current.address, reason: '' }));
   const [baseline, setBaseline] = useState<Particulars>(() => recorded);
   const [conflict, setConflict] = useState(false);
@@ -110,12 +107,15 @@ export function useParticularsEdit({
         expected: { name: baseline.name, residentialAddress: baseline.address },
       };
       const signature = JSON.stringify(request);
-      if (operation.current?.signature !== signature) operation.current = { signature, key: crypto.randomUUID() };
+      if (operation.current?.signature !== signature) operation.current = { signature, key: newKey() };
       const edit = { operationId: operation.current.key, ...request };
       let changed = '';
       try {
         check();
-        const { data } = await editRegisterParticulars(apiClient, edit, { ledovaSubmissionGuard: check });
+        const { data } = await editRegisterParticulars(apiClient, edit, {
+          ...session?.requestConfig(),
+          ledovaSubmissionGuard: check,
+        });
         check();
         if (!isRegisterParticularsEditReceipt(data, edit)) throw createUserFriendlyError(COPY.RECEIPT_FAILED);
         changed = data.uuid;
@@ -135,13 +135,7 @@ export function useParticularsEdit({
         ].map((queryKey) => client.invalidateQueries({ queryKey })),
       );
       check();
-      const place = registerPlace({
-        company,
-        task: 'corrections',
-        record: changed,
-        outcome: 'Particulars changed.',
-      });
-      navigate(place.to, { state: place.state });
+      onChanged(changed);
     } catch (failure) {
       try {
         check();

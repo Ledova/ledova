@@ -8,12 +8,12 @@ import {
   ownAppointmentsKey,
   registerClassesKey,
   registerHoldersKey,
+  allPeopleKey,
 } from '@ledova/shared';
 import { grantsKey } from './shared/useRegisterGrants';
 import { allotmentsKey } from './useRegisterAllotments';
 import { awardsKey } from './shared/useRegisterAwards';
 import { entriesKey } from './shared/useRegisterEntries';
-import { allPeopleKey } from './shared/usePeople';
 
 export function useIssueEntryRead({
   owner,

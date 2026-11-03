@@ -3,8 +3,14 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import type { AxiosInstance } from 'axios';
 import { afterEach, expect, it, vi } from 'vitest';
-import { REGISTER_PARTICULARS_COPY, type OrderSubmissionOwner, type OwnCompanyAppointment } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  REGISTER_PARTICULARS_COPY,
+  type OrderSubmissionOwner,
+  type OwnCompanyAppointment,
+} from '@ledova/shared';
 import { ParticularsForm } from './ParticularsForm';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
@@ -38,28 +44,30 @@ it("keeps an edit's baseline after a conflict until the editor loads the current
   const onConflict = vi.fn();
   const tree = (particulars: Particulars) => (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/edit']}>
-        <Routes>
-          <Route
-            path="/edit"
-            element={
-              <ParticularsForm
-                owner={owner}
-                guard={() => {}}
-                company="company"
-                member="member"
-                appointment={appointment}
-                current={particulars}
-                recorded={particulars}
-                blocked={false}
-                onConflict={onConflict}
-                onMissing={() => {}}
-              />
-            }
-          />
-          <Route path="*" element={<Landed />} />
-        </Routes>
-      </MemoryRouter>
+      <ApiClientProvider client={api as unknown as AxiosInstance}>
+        <MemoryRouter initialEntries={['/edit']}>
+          <Routes>
+            <Route
+              path="/edit"
+              element={
+                <ParticularsForm
+                  owner={owner}
+                  guard={() => {}}
+                  company="company"
+                  member="member"
+                  appointment={appointment}
+                  current={particulars}
+                  recorded={particulars}
+                  blocked={false}
+                  onConflict={onConflict}
+                  onMissing={() => {}}
+                />
+              }
+            />
+            <Route path="*" element={<Landed />} />
+          </Routes>
+        </MemoryRouter>
+      </ApiClientProvider>
     </QueryClientProvider>
   );
   const view = render(tree(original));

@@ -14,10 +14,11 @@ import {
   READ_TIMING,
   useOwnAppointments,
   registerKey,
+  allPeopleKey,
+  usePeople,
 } from '@ledova/shared';
 import { PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
-import { allPeopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { awardsKey, useRegisterAwards } from '@pages/company/ledger/shared/useRegisterAwards';
 import { awardPath } from '@pages/company/ledger/shared/awards';
 import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';

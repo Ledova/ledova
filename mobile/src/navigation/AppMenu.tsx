@@ -11,6 +11,7 @@ import {
   MoonIcon,
   SignOutIcon,
   SunIcon,
+  UsersThreeIcon,
   XIcon,
   type IconProps,
 } from 'phosphor-react-native';
@@ -28,10 +29,12 @@ import { useSignOut } from '../hooks/useSignOut';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { orderSubmissionSession } from '../services/orderSubmissions';
 
-export type Section = 'Dashboard' | 'Documents' | 'Settings';
+export type Section = 'Dashboard' | 'Shareholders' | 'Documents' | 'Settings';
 
 export type MenuRoute =
   | 'Dashboard'
+  | 'Shareholders'
+  | 'MemberAccess'
   | 'Certificates'
   | 'InspectionCopies'
   | 'CompanyPack'
@@ -53,6 +56,17 @@ const PARENT_ROUTES: Partial<Record<string, MenuRoute>> = { Authority: 'Team', A
 
 const sections = (canReadRegister: boolean): MenuItem[] => [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
+  ...(canReadRegister
+    ? [
+        {
+          name: 'Shareholders' as const,
+          label: 'Shareholders',
+          icon: UsersThreeIcon,
+          route: 'Shareholders' as const,
+          items: [{ route: 'MemberAccess' as const, label: 'Member access' }],
+        },
+      ]
+    : []),
   {
     name: 'Documents',
     label: 'Documents',
