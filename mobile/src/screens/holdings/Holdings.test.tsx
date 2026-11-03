@@ -1100,7 +1100,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const awardPage = <EmployeeAwardScreen route={{ key: 'awarded', name: 'EmployeeAward', params: awarded }} />;
   await view.rerender(awardPage);
   expect(await screen.findByText('40 shares promised · 0 company-recorded vested')).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Record vesting', disabled: false }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Record vesting', disabled: false }));
   await fireEvent.changeText(screen.getByLabelText('Shares in this event'), '10');
   await fireEvent.press(screen.getByRole('button', { name: 'Document. Choose file' }));
   await screen.findByRole('button', { name: 'Document, synthetic.pdf. Choose file' });
