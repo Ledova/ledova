@@ -1,10 +1,9 @@
 import math
 from dataclasses import replace
-from datetime import date, timedelta
+from datetime import timedelta
 from decimal import ROUND_DOWN, Decimal
 from typing import NamedTuple
 
-from companies.models import DocumentType
 from shared.seeds.demo import (
     DEMO_ACN,
     DEMO_COMPANY_NAME,
@@ -23,15 +22,11 @@ from shared.seeds.synthetic.plan import (
     STEP_STATUS,
     WINDOW_DAYS,
     Attempt,
-    Certificate,
-    Claim,
-    CompanyDocumentPlan,
     CompanyPlan,
     Device,
     Financial,
     Kyc,
     Note,
-    Payslip,
     Person,
     Plan,
     Ref,
@@ -41,7 +36,6 @@ from shared.seeds.synthetic.plan import (
     WalletPlan,
     stream,
 )
-from users.models.investor_classification import plus_years
 from users.services.identity import REVIEW_OUTCOME_MESSAGES
 from users.services.notifications import transaction_message
 
@@ -71,11 +65,10 @@ BLOCKS = {"base": (45_120_000, 2), "ethereum": (10_640_000, 12), "bitcoin": (4_6
 
 STAFF = (
     ("compliance", "helena.marsh", "Compliance officer", 198, None),
-    ("documents", "tomas.reyes", "Document reviewer", 196, None),
     ("operations", "grace.okafor", "Operations officer", 194, None),
     ("former", "daniel.burke", "Former operations officer", 199, 76),
 )
-STAFF_NAMES = (("Helena", "Marsh"), ("Tomas", "Reyes"), ("Grace", "Okafor"), ("Daniel", "Burke"))
+STAFF_NAMES = (("Helena", "Marsh"), ("Grace", "Okafor"), ("Daniel", "Burke"))
 
 SPECIAL_COHORTS = (
     ("unverified", 2),
@@ -97,33 +90,6 @@ STALLED_STEPS = ("account-type", "user-profile", "financial-profile")
 PENDING_STATES = (("kycaid", "pending"), ("sumsub", "queued"), ("sumsub", "onHold"), ("kycaid", "pending"))
 RED_LABELS = (("DOCUMENT_EXPIRED",), ("SELFIE_MISMATCH",), ("DOCUMENT_DAMAGED", "BAD_PHOTO_QUALITY"))
 RESUBMIT_LABELS = (("UNSATISFACTORY_PHOTOS",), ("DOCUMENT_PAGE_MISSING", "INCOMPLETE_DOCUMENT"))
-COVERAGE_STORIES = (
-    "accountant",
-    "professional",
-    "awaiting",
-    "expired_renewing",
-    "rejected",
-    "revoked",
-    "withdrawn",
-    "rejected_then_verified",
-    "expired",
-    "unclassified",
-    "withdrawn_then_professional",
-)
-FILL_STORIES = {
-    "accountant": 18,
-    "professional": 7,
-    "awaiting": 2,
-    "unclassified": 4,
-    "rejected_then_verified": 1,
-}
-HISTORY_DAYS = {
-    "expired_renewing": 125,
-    "revoked": 100,
-    "rejected_then_verified": 90,
-    "expired": 150,
-    "withdrawn_then_professional": 80,
-}
 ROLE_DAYS = {
     "suspended": 60,
     "terminated": 90,
@@ -143,49 +109,17 @@ FUND_SOURCES = ("employment_income", "savings", "investment_income", "sale_of_as
 OTHER_FUND_SOURCES = ("Distribution from a family trust", "Proceeds of a business sale settled in instalments")
 INTENDED_OTHER = "Building a position in companies I know personally"
 
-INCOME_BASIS = "Gross income of at least AUD 250,000 in each of the last two financial years"
-ASSETS_BASIS = "Net assets of at least AUD 2.5 million"
-PROFESSIONAL_BASES = (
-    "Controls gross assets of at least AUD 10 million through a family investment company",
-    "Holds an Australian financial services licence",
-)
-VERIFIED_NOTES = (
-    "Certificate checked against the professional body's member register.",
-    "Certifier's practising certificate confirmed; figures consistent with the payslips provided.",
-    "Evidence reviewed; no inconsistencies found.",
-)
-REJECTION_REASONS = (
-    "The certificate is dated more than two years ago.",
-    "The certificate does not say which test the investor meets.",
-    "The certifier's membership could not be confirmed with the professional body.",
-)
-REVOCATION_REASON = "The certifying accountant has withdrawn the certificate."
-PAY_DATE_WARNING = "Pay date was not printed; used the period end date."
-
 COMPANY_STREETS = ("Gantry Way", "Foundry Lane", "Harbourview Parade", "Commerce Rise", "Innovation Walk")
 INFO_REQUESTS = {
     "coralgum": (
         "Upload a signed beneficial ownership declaration; the copy provided is unsigned.",
         "Signed declaration uploaded.",
-        "beneficial_ownership",
     ),
     "saltbush": (
         "The ASIC company extract is more than 12 months old. Upload one issued in the last three months.",
         "",
-        "asic",
     ),
 }
-HISTORICAL_DOCUMENT_TYPES = (
-    "cert_inc",
-    "asic",
-    "constitution",
-    "share_register",
-    "financials",
-    "director_id",
-    "beneficial_ownership",
-    "business_plan",
-    "risk_disclosure",
-)
 HISTORICAL_APPLICATION_NOTIFICATIONS = {
     "submit": ("Application submitted", "{name} was submitted for review."),
     "resubmit": ("Application resubmitted", "{name} was resubmitted with your response."),
@@ -196,8 +130,6 @@ HISTORICAL_APPLICATION_NOTIFICATIONS = {
     "activate": ("Company activated", "{name} is now active."),
     "withdraw": ("Application withdrawn", "{name} was withdrawn."),
 }
-REQUIRED_TYPES = HISTORICAL_DOCUMENT_TYPES
-OPTIONAL_TYPES = tuple(choice.value for choice in DocumentType if choice.value not in REQUIRED_TYPES)
 
 
 class CompanySpec(NamedTuple):
@@ -381,9 +313,6 @@ class Story:
             return start
         return (start + (end - start) * self.rng.random()).replace(microsecond=0)
 
-    def reviewer(self):
-        return "compliance" if self.rng.random() < 0.8 else "admin"
-
     def _staff(self):
         members = []
         for key, handle, title, days, left in STAFF:
@@ -456,27 +385,16 @@ class Story:
             (name, max(1, round(count * self.investor_total / DEFAULT_INVESTORS))) for name, count in SPECIAL_COHORTS
         ]
         green = self.investor_total - sum(count for _, count in specials)
-        stories = list(COVERAGE_STORIES[:green]) + self.rng.choices(
-            list(FILL_STORIES), weights=list(FILL_STORIES.values()), k=max(0, green - len(COVERAGE_STORIES))
-        )
-        roles = self._roles(stories)
+        roles = self._roles(green)
         risks = self._risks(green)
-        entries = [(name, None, None, "low") for name, count in specials for _ in range(count)]
-        entries += [("green", stories[index], roles.get(index), risks[index]) for index in range(green)]
+        entries = [(name, None, "low") for name, count in specials for _ in range(count)]
+        entries += [("green", roles.get(index), risks[index]) for index in range(green)]
         return entries
 
-    def _roles(self, stories):
-        free = list(range(len(stories)))
+    def _roles(self, green):
+        free = list(range(green))
         self.rng.shuffle(free)
-        roles = {}
-        for role in ROLE_DAYS:
-            if not free:
-                break
-            wanted = {"terminated": "unclassified", "suspended": "accountant"}.get(role)
-            index = next((index for index in free if stories[index] == wanted), free[0])
-            free.remove(index)
-            roles[index] = role
-        return roles
+        return dict(zip(free, ROLE_DAYS))
 
     def _risks(self, green):
         risks = ["low"] * green
@@ -488,17 +406,17 @@ class Story:
                     risks[slots.pop()] = name
         return risks
 
-    def _join_days(self, cohort, story, role):
+    def _join_days(self, cohort, role):
         if cohort == "green":
-            low, high = max(5, HISTORY_DAYS.get(story, 0), ROLE_DAYS.get(role, 0)), 179
+            low, high = max(5, ROLE_DAYS.get(role, 0)), 179
         else:
             low, high = JOIN_RANGES[cohort]
         return low + int((high - low) * self.rng.random() ** 1.7)
 
-    def _investor(self, index, cohort, story, role, risk):
+    def _investor(self, index, cohort, role, risk):
         key = f"investor-{index:02d}"
         full_name, email = self._identity()
-        joined = self.moment(self._join_days(cohort, story, role), 6, 22)
+        joined = self.moment(self._join_days(cohort, role), 6, 22)
         if cohort == "unverified":
             return Person(key=key, email=email, full_name=full_name, role="investor", joined_at=joined, cohort=cohort)
         step = STALLED_STEPS[index % len(STALLED_STEPS)] if cohort == "stalled" else None
@@ -533,8 +451,6 @@ class Story:
             last_login=self._last_login(completed, status_changed),
             alerts_enabled=self.rng.random() < 0.85,
             wallets=self._investor_wallets(key, cohort, role, start),
-            claims=self._claims(full_name, story, start) if cohort == "green" else (),
-            payslips=self._loose_payslips(full_name) if cohort == "green" and self.rng.random() < 0.15 else (),
         )
         if role:
             self.alerts.subject(role, person)
@@ -693,128 +609,12 @@ class Story:
         held = [symbol for symbol in symbols if balances.get(symbol, Decimal(0)) > 0]
         return self.rng.choice(held), False, None, None, None
 
-    def _certificate(self, issued_on):
-        certifier, body = self.rng.choice(identities.CERTIFIERS)
-        return Certificate(issued_on, certifier, body, f"{self.rng.randint(100000, 999999)}")
-
-    def _payslips(self, full_name, uploaded, count=2, attached=True):
-        employer = self.rng.choice(identities.EMPLOYERS)
-        employer_abn = identities.abn_for(self._new_acn())
-        annual = Decimal(self.rng.randint(262, 418)) * 1000
-        slips = []
-        for number in range(count):
-            period_end = (uploaded - timedelta(days=4 + 14 * number)).date()
-            year = period_end.year if period_end.month >= 7 else period_end.year - 1
-            fortnights = max(1, (period_end - date(year, 7, 1)).days // 14 + 1)
-            gross = (annual / 26).quantize(CENT)
-            tax = (gross * Decimal("0.37")).quantize(CENT)
-            slips.append(
-                Payslip(
-                    filename=f"payslip-{period_end:%Y-%m-%d}.pdf",
-                    uploaded_at=uploaded,
-                    employer=employer,
-                    employer_abn=employer_abn,
-                    employee=full_name,
-                    period_start=period_end - timedelta(days=13),
-                    period_end=period_end,
-                    gross=gross,
-                    tax=tax,
-                    superannuation=(gross * Decimal("0.12")).quantize(CENT),
-                    ytd_gross=gross * fortnights,
-                    ytd_tax=tax * fortnights,
-                    succeeded=attached or self.rng.random() > 0.3,
-                    confidence=round(self.rng.uniform(0.84, 0.97), 2),
-                    duration_ms=self.rng.randint(2400, 6900),
-                    warnings=(PAY_DATE_WARNING,) if self.rng.random() < 0.3 else (),
-                )
-            )
-        return tuple(slips)
-
-    def _loose_payslips(self, full_name):
-        return self._payslips(full_name, self.recently(2, 26), count=self.rng.choice((1, 2)), attached=False)
-
     def _new_acn(self):
         while True:
             candidate = identities.acn(self.rng.randint(0, 999999))
             if candidate not in self.acns:
                 self.acns.add(candidate)
                 return candidate
-
-    def _accountant(self, full_name, submitted, status="verified", issued_on=None):
-        issued_on = issued_on or (submitted - timedelta(days=self.rng.randint(20, 400))).date()
-        income = self.rng.random() < 0.5
-        reviewed = self.after(submitted, 180, 4200) if status != "submitted" else None
-        return Claim(
-            category="accountant_certificate",
-            status=status,
-            submitted_at=submitted,
-            declared_basis=INCOME_BASIS if income else ASSETS_BASIS,
-            reviewed_at=reviewed,
-            reviewer=self.reviewer() if reviewed else None,
-            expires_at=plus_years(issued_on) if status == "verified" else None,
-            review_notes=self.rng.choice(VERIFIED_NOTES) if status == "verified" else "",
-            rejection_reason=self.rng.choice(REJECTION_REASONS) if status == "rejected" else "",
-            certificate=self._certificate(issued_on),
-            payslips=self._payslips(full_name, self.before(submitted, 5, 90)) if income else (),
-        )
-
-    def _simple(self, category, submitted, status="verified", basis=""):
-        reviewed = self.after(submitted, 120, 4000) if status != "submitted" else None
-        return Claim(
-            category=category,
-            status=status,
-            submitted_at=submitted,
-            declared_basis=basis,
-            reviewed_at=reviewed,
-            reviewer=self.reviewer() if status == "verified" else None,
-            expires_at=plus_years(reviewed) if status == "verified" else None,
-            review_notes=self.rng.choice(VERIFIED_NOTES) if status == "verified" else "",
-        )
-
-    def _professional(self, submitted, status="verified"):
-        return self._simple("professional_investor", submitted, status, self.rng.choice(PROFESSIONAL_BASES))
-
-    def _claims(self, full_name, story, start):
-        first = self.after(start, 60, 8000)
-        if story == "accountant":
-            return (self._accountant(full_name, first),)
-        if story == "professional":
-            return (self._professional(first),)
-        if story == "awaiting":
-            submitted = max(first, self.recently(1, 6))
-            if self.rng.random() < 0.75:
-                return (self._accountant(full_name, submitted, status="submitted"),)
-            return (self._professional(submitted, "submitted"),)
-        if story in ("expired", "expired_renewing"):
-            expiry = self.now - timedelta(days=self.rng.uniform(15, 60))
-            expired = self._accountant(full_name, first, issued_on=(expiry - timedelta(days=730)).date())
-            if story == "expired":
-                return (expired,)
-            renewal = max(expired.reviewed_at, self.recently(1, 5))
-            return expired, self._accountant(full_name, renewal, status="submitted")
-        if story == "rejected":
-            return (self._accountant(full_name, first, status="rejected"),)
-        if story == "rejected_then_verified":
-            rejected = self._accountant(full_name, first, status="rejected")
-            return rejected, self._accountant(full_name, self.after(rejected.reviewed_at, 2880, 20000))
-        if story == "revoked":
-            verified = self._accountant(full_name, first)
-            revoked = replace(
-                verified,
-                status="revoked",
-                verified_at=verified.reviewed_at,
-                verifier=verified.reviewer,
-                reviewed_at=max(self.recently(12, 40), verified.reviewed_at),
-                reviewer="compliance",
-                rejection_reason=REVOCATION_REASON,
-            )
-            return (revoked,)
-        if story in ("withdrawn", "withdrawn_then_professional"):
-            withdrawn = self._professional(first, "withdrawn")
-            if story == "withdrawn":
-                return (withdrawn,)
-            return withdrawn, self._professional(self.after(withdrawn.reviewed_at, 1440, 30000))
-        return ()
 
     def _devices(self, key, start, notes):
         if start is None or self.rng.random() > 0.55:
@@ -875,8 +675,8 @@ class Story:
             archived = self.rng.random() < 0.12
         return Note(at=at, title=title, body=body, kind=kind, data=data, read_at=read_at, archived=archived)
 
-    def _company_steps(self, spec, documents_ready):
-        steps = [Step("submit", self.after(documents_ready, 180, 2880))]
+    def _company_steps(self, spec, ready):
+        steps = [Step("submit", self.after(ready, 180, 2880))]
         if spec.target == "submitted":
             return steps
         steps.append(Step("start_review", self.after(steps[-1].at, 1200, 3000)))
@@ -890,43 +690,6 @@ class Story:
         steps.append(Step("approve", self.after(steps[-1].at, 2880, 7200)))
         steps.append(Step("activate", self.after(steps[-1].at, 120, 1560)))
         return steps
-
-    def _company_documents(self, spec, registered, steps):
-        chosen = list(REQUIRED_TYPES)
-        if spec.target == "active":
-            chosen += OPTIONAL_TYPES
-        elif spec.target == "info_required":
-            chosen += OPTIONAL_TYPES[:2]
-        at = {step.method: step.at for step in steps}
-        reviews = [step.at for step in steps if step.method == "start_review"]
-        window_end = at.get("approve") or at.get("request_info")
-        info = INFO_REQUESTS.get(spec.key)
-        slug = identities.slug(spec.trading_name)
-        documents = []
-        for document_type in chosen:
-            uploaded = self.between(registered, steps[0].at)
-            replaced = info and info[2] == document_type
-            if replaced and "resubmit" in at:
-                uploaded = self.before(at["resubmit"], 30, 240)
-            rejected = replaced and spec.target == "info_required"
-            verified = None
-            if reviews and window_end and not rejected:
-                verified = self.between(max(reviews[-1], uploaded), window_end)
-            valid_from = None
-            if document_type == "asic":
-                valid_from = (uploaded - timedelta(days=430 if rejected else 3)).date()
-            label = DocumentType(document_type).label.lower().replace(" ", "-")
-            documents.append(
-                CompanyDocumentPlan(
-                    document_type=document_type,
-                    name=f"{slug}-{label}.pdf",
-                    uploaded_at=uploaded,
-                    valid_from=valid_from,
-                    verified_at=verified,
-                    rejection_reason=info[0] if rejected else "",
-                )
-            )
-        return tuple(sorted(documents, key=lambda document: document.uploaded_at))
 
     def _company(self, spec, owner_key, owner_name, registered, operator_wallet, acn):
         steps = self._company_steps(spec, self.after(registered, 1440, 7200))
@@ -945,7 +708,6 @@ class Story:
             industry=spec.industry,
             description=spec.description,
             founded_year=spec.founded_year,
-            incorporated_on=date(spec.founded_year, self.rng.randint(1, 12), self.rng.randint(1, 28)),
             phone=f"+61 {area} {self.rng.choice(('5550', '7010'))} {self.rng.randint(0, 9999):04d}",
             address_line_1=street,
             address_line_2="",
@@ -957,7 +719,6 @@ class Story:
             declarant_name=owner_name,
             board_resolution_reference=f"Board resolution {registered:%Y}-{self.rng.randint(2, 9):02d}",
             operator_wallet=operator_wallet,
-            documents=self._company_documents(spec, registered, steps),
             steps=tuple(steps),
             existing=spec.key == DEMO_COMPANY.key,
         )
@@ -1043,37 +804,10 @@ class Story:
             wallets[position] = replace(wallet, transfers=transfers, holdings=holdings)
         return tuple(wallets)
 
-    def _investor_tester_claims(self, decided):
-        rejected = self._accountant(DEMO_INVESTOR_NAME, self.after(decided, 600, 900), status="rejected")
-        withdrawn = self._professional(self.after(rejected.reviewed_at, 4000, 6000), "withdrawn")
-        expiry = self.now - timedelta(days=38)
-        expired = self._accountant(
-            DEMO_INVESTOR_NAME,
-            self.after(withdrawn.reviewed_at, 2000, 3000),
-            issued_on=(expiry - timedelta(days=730)).date(),
-        )
-        if not expired.payslips:
-            payslips = self._payslips(DEMO_INVESTOR_NAME, self.before(expired.submitted_at, 10, 60))
-            expired = replace(expired, declared_basis=INCOME_BASIS, payslips=payslips)
-        submitted = self.moment(46, 9, 17)
-        live = Claim(
-            category="professional_investor",
-            status="verified",
-            submitted_at=submitted,
-            declared_basis=PROFESSIONAL_BASES[0],
-            reviewed_at=self.after(submitted, 300, 1200),
-            reviewer="compliance",
-            review_notes=VERIFIED_NOTES[2],
-            existing=True,
-        )
-        return rejected, withdrawn, expired, live
-
     def _investor_tester(self):
         joined = self.moment(176, 19, 20)
         failed = self.after(joined, 25, 35)
         decided = self.after(failed, 1300, 1500)
-        loose = self._payslips(DEMO_INVESTOR_NAME, self.recently(11, 13), 2, attached=False)
-        loose += self._payslips(DEMO_INVESTOR_NAME, self.recently(2, 4), 1, attached=False)
         person = Person(
             key="tester-investor",
             email=DEMO_INVESTOR_EMAIL,
@@ -1098,8 +832,6 @@ class Story:
             account_status="active",
             last_login=self.before(self.now, 120, 150),
             wallets=self._investor_tester_wallets(decided),
-            claims=self._investor_tester_claims(decided),
-            payslips=loose,
             existing=True,
         )
         return self._finish(person)

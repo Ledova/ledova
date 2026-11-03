@@ -6,13 +6,11 @@ import {
   BookOpenIcon,
   FilesIcon,
   UsersThreeIcon,
-  ShieldCheckIcon,
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
 import { DESTINATIONS, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from './iconSizes';
-import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { Logo } from './Logo';
@@ -42,7 +40,6 @@ interface NavItem {
   destination: DestinationKey;
   icon: Icon;
   view?: string;
-  label?: string;
 }
 
 interface NavSection {
@@ -56,17 +53,6 @@ const COMPANY: NavItem[] = [
   { destination: 'companyRegister', view: 'shareholders', icon: UsersThreeIcon },
   { destination: 'certificates', icon: FilesIcon },
 ];
-
-const ELIGIBILITY = {
-  destination: 'companyEligibility',
-  icon: ShieldCheckIcon,
-  label: 'Eligibility',
-} satisfies NavItem;
-const INVESTOR_ELIGIBILITY: NavItem = {
-  destination: 'investorEligibility',
-  icon: ShieldCheckIcon,
-  label: 'Eligibility',
-};
 
 const PERSONAL: NavItem[] = [
   { destination: 'home', icon: HouseIcon },
@@ -133,12 +119,11 @@ function NavLink({ item, active, onNavigate }: { item: NavItem; active: boolean;
           if (context.openDashboard()) onNavigate?.();
         } else onNavigate?.();
       }}
-      title={item.label ? title : undefined}
       aria-current={active ? 'page' : undefined}
       className={`${ITEM_CLASS} ${active ? CURRENT_CLASS : IDLE_CLASS}`}
     >
       <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-      <span>{item.label ?? title}</span>
+      <span>{title}</span>
     </Link>
   );
 }
@@ -363,20 +348,15 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
 
 function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
   const companyContext = useCompanyContext();
-  const { isCompany } = useRole();
   const location = useLocation();
   const { state } = useLedgerNavigation();
   const path = DESTINATIONS.companyRegister.path;
   const selected =
     location.pathname === DESTINATIONS.certificates.path
       ? 'certificates'
-      : location.pathname === DESTINATIONS.companyPublications.path
-        ? 'publications'
-        : location.pathname === DESTINATIONS.publications.path
-          ? 'notices'
-          : location.pathname === path
-            ? documentView(location.hash.slice(1))
-            : undefined;
+      : location.pathname === path
+        ? documentView(location.hash.slice(1))
+        : undefined;
   const context = ledgerContext(location, state, companyContext?.companyUuid);
   const certificateTarget = certificatesLocation({ search: '', state: context });
   const certificatePath = `${certificateTarget.pathname}${certificateTarget.search}`;
@@ -390,23 +370,6 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
     current: selected === key,
     blocked: key === 'certificates' && certificatesBlocked,
   }));
-  if (companyContext?.company?.isOwner && isCompany)
-    items.splice(1, 0, {
-      key: 'publications',
-      label: 'Published',
-      title: pageTitle('companyPublications'),
-      to: DESTINATIONS.companyPublications.path,
-      current: selected === 'publications',
-      blocked: certificatesBlocked,
-    });
-  if (companyContext?.company?.memberUuids.length)
-    items.push({
-      key: 'notices',
-      label: pageTitle('publications'),
-      to: DESTINATIONS.publications.path,
-      current: selected === 'notices',
-      blocked: certificatesBlocked,
-    });
   const single = items.length === 1;
 
   return (
@@ -420,31 +383,6 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
       blocked={certificatesBlocked}
       onNavigate={onNavigate}
       items={single ? [] : items}
-    />
-  );
-}
-
-function EligibilityGroup({ active, onNavigate }: { active: boolean; onNavigate?: () => void }) {
-  const location = useLocation();
-  const supporting = location.pathname === DESTINATIONS.companyDocuments.path;
-  return (
-    <NavGroup
-      icon={ShieldCheckIcon}
-      label={ELIGIBILITY.label}
-      title={pageTitle('companyEligibility')}
-      to={DESTINATIONS.companyEligibility.path}
-      active={active}
-      current={active && !supporting}
-      onNavigate={onNavigate}
-      items={[
-        {
-          key: 'supporting',
-          label: 'Supporting',
-          title: 'Company documents',
-          to: DESTINATIONS.companyDocuments.path,
-          current: supporting,
-        },
-      ]}
     />
   );
 }
@@ -490,27 +428,19 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
   const context = useCompanyContext();
   const settings = useSettingsNavigation();
   const companyTasks = !!(context?.company?.canReadRegister || context?.company?.canManage);
-  const companyItems = [
-    ...(context?.company?.canReadRegister
-      ? COMPANY
-      : [
-          ...COMPANY.filter((item) => item.destination === 'home'),
-          ...(context?.company?.memberUuids.length ? [PERSONAL[1]!] : []),
-        ]),
-    ...(context?.company?.canReviewEligibility ? [ELIGIBILITY] : []),
-  ];
-  const role = useRole();
+  const companyItems = context?.company?.canReadRegister
+    ? COMPANY
+    : [
+        ...COMPANY.filter((item) => item.destination === 'home'),
+        ...(context?.company?.memberUuids.length ? [PERSONAL[1]!] : []),
+      ];
   const { userProfile } = useUserProfile();
   const person = userProfile?.fullName?.trim() || userProfile?.email;
-  const investorEligibility =
-    companyTasks && companyItems.includes(ELIGIBILITY)
-      ? { ...INVESTOR_ELIGIBILITY, label: 'Your eligibility' }
-      : INVESTOR_ELIGIBILITY;
 
   const groups: NavSection[] = [
     ...(companyTasks ? [{ id: 'company', items: companyItems }] : []),
     ...(!companyTasks ? [{ id: 'shares', items: PERSONAL }] : []),
-    { id: 'yours', items: role.isKnown && role.isInvestor ? [investorEligibility, ...YOURS] : YOURS },
+    { id: 'yours', items: YOURS },
   ];
   const allItems = groups.flatMap((group) => group.items);
   const activeItem = placesAt(location.pathname, location.hash)
@@ -528,14 +458,7 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
         allItems.find((item) => item.destination === place.destination && !item.view),
     )
     .find(Boolean);
-  const activePath =
-    location.pathname === DESTINATIONS.companyDocuments.path ||
-    (location.pathname === DESTINATIONS.company.path && location.hash === '#documents')
-      ? itemPath(ELIGIBILITY)
-      : location.pathname === DESTINATIONS.companyPublications.path ||
-          location.pathname === DESTINATIONS.publications.path
-        ? DESTINATIONS.certificates.path
-        : activeItem && itemPath(activeItem);
+  const activePath = activeItem && itemPath(activeItem);
 
   return (
     <aside className="flex h-full w-52 flex-col border-r border-border-subtle bg-surface-base">
@@ -559,12 +482,6 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
                   />
                 ) : item.destination === 'certificates' ? (
                   <DocumentsGroup key={itemPath(item)} active={itemPath(item) === activePath} onNavigate={onNavigate} />
-                ) : item.destination === 'companyEligibility' && context?.company?.canManage ? (
-                  <EligibilityGroup
-                    key={itemPath(item)}
-                    active={itemPath(item) === activePath}
-                    onNavigate={onNavigate}
-                  />
                 ) : item.destination === 'settings' ? (
                   <SettingsGroup
                     key={itemPath(item)}

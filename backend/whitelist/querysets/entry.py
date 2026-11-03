@@ -34,8 +34,8 @@ class WhitelistEntryQuerySet(QuerySet):
         )
 
     def needing_standing_review(self):
+        from users.constants import REFUSED_ACCOUNT_STATUSES
         from users.models import UserAccount
-        from users.services.eligibility import REFUSED_ACCOUNT_STATUSES
         from whitelist.models import WhitelistApproval, WhitelistStatus
 
         approvals = WhitelistApproval.objects.filter(entry_id=OuterRef("pk")).filter(

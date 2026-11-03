@@ -14,7 +14,7 @@ export function GettingStarted({ activated, registered }: { activated: boolean; 
           <SetupStep
             to={path(DESTINATIONS.companyListing.path)}
             label={COMPANY_ACTIVATION_COPY.STEP}
-            note={COMPANY_ACTIVATION_COPY.CHECKS}
+            note={COMPANY_ACTIVATION_COPY.NOTE}
           />
         )}
         {!registered && (

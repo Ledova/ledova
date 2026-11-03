@@ -56,11 +56,12 @@ changes have no admin page.
 
 ### Company evidence
 
-Every change rests on evidence the company provides
-([company-provided evidence](README.md#company-provided-evidence)). The authority document behind an
-opening, correction, wallet link or transfer is a director resolution naming the approving director
-or, except for a transfer, a court order with its reference. Uploads are PDF, PNG or JPEG files
-within the upload limit (10 MB by default); evidence downloads are not logged.
+Every change except a [particulars change](#changing-a-members-particulars) rests on evidence the
+company provides ([company-provided evidence](README.md#company-provided-evidence)). The authority
+document behind an opening, correction, wallet link, transfer or
+[retained instruction](#retained-director-instructions) is a director resolution naming the
+approving director or, except for a transfer or instruction, a court order with its reference. Uploads are PDF,
+PNG or JPEG files within the upload limit (10 MB by default); evidence downloads are not logged.
 
 ## What the register records
 
@@ -114,21 +115,20 @@ its wallets (differing recorded identities, like differing live ones, make it Am
 particulars of the import or particulars change with the later "as at" date (or applied later, on a
 shared date), shown as "Recorded register particulars". Particulars never replace a live identity or
 hide an ambiguous one ([decision](../decisions.md#the-stored-register)), so profile changes reach
-the register and conflicts stay visible. Older issues with no recorded identity are not filled in by
-guessing.
+the register and conflicts stay visible. A member linked to a Ledova account through an invitation
+changes their own recorded particulars from their Profile
+([particulars from Profile](member-records.md#particulars-from-profile)). Older issues with no
+recorded identity are not filled in by guessing.
 
 An email address is never used as a member's name. A wallet owner who has not given a full name in
 Profile has no live identity, so without other recorded identity the member shows as Unidentified;
 a share issue to them waits until they add their name, as it does for a missing residential
-address. A publication roll made meanwhile keeps
-them without an account, like any member the register cannot name
-([frozen roll](publications.md#the-frozen-roll)). Entries recorded earlier keep what they
-recorded.
+address. Entries recorded earlier keep what they recorded.
 
 A treasury label names an address, not a person, and gives no residential address: a member at a
 labelled treasury address stays Treasury, named by its recorded particulars or else the label. A
-treasury address beside another identity is Ambiguous. Every register output, publication roll and
-former-member record reads a member this way.
+treasury address beside another identity is Ambiguous. Every register output and former-member
+record reads a member this way.
 
 The shareholder table shows no residential address; addresses appear on a shareholder's page for
 someone with a current register appointment, in recorded outputs such as inspection copies, and in the
@@ -149,7 +149,9 @@ plus the AUD consideration of later external investor allotments (blank stays bl
 import did not carry shows the consideration alone); any other later entry for the member, such as a
 non-paid grant or transfer, blanks it. An import records amounts paid and unpaid as the company
 enters them from its records, without a currency, so the register cannot name a single currency for
-them.
+them. A certificate states the amounts paid and unpaid on the shares it certifies, not on the
+holding, and only where the register records them for exactly those shares
+([what a certificate shows](member-records.md#what-a-certificate-shows)).
 
 Date entered is when the member went from no shares to some. The earliest completed allotment to one
 of its wallets replaces it only if earlier, with the holding continuous since; otherwise a member
@@ -193,7 +195,10 @@ seven years, then purged for good ([retention](../engineering/security.md#retent
 An import mirrors the company's records for one share class. For a class with no entries and no
 contract it is the opening, creating the members, the Opening state entry and their particulars
 together; for a class opened from the chain it adds particulars and former members from before
-Ledova, and its holdings must match the stored register. On the web:
+Ledova, and its holdings must match the stored register. An import never changes the name or
+residential address of a member linked to a Ledova account: their holding and everything else the
+import records are applied, and the register keeps the particulars from their Profile
+([particulars from Profile](member-records.md#particulars-from-profile)). On the web:
 
 1. On Ledger, choose **Add share class**; or choose Corrections, the class, then Bring records
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
@@ -341,25 +346,37 @@ On a class on chain the next reconciliation reports member and supply difference
 
 ### Changing a member's particulars
 
-The company keeps members' names and residential addresses current. A member whose recorded name or
-address is wrong tells the company directly; editing their own profile does not change the register
-([member profile](participants.md#member-profile)).
+The company keeps the names and residential addresses of members without a current Ledova account
+link up to date. A linked member keeps their own up to date in their Ledova profile, and each save
+records a particulars change provided by the member
+([particulars from Profile](member-records.md#particulars-from-profile)). For them the shareholder's
+page shows "They keep their name and address up to date in their Ledova profile." instead of
+**Change particulars**, and the company's edit is refused until the link ends.
 
 1. Open the shareholder's page from **Shareholders** (Details), or an award recipient's from
-   Recipient details on their award's page, and choose Change particulars.
+   Recipient details on their award's page, and choose **Change particulars**.
 2. The page re-reads the member's current recorded name and residential address, shows them, and
-   starts the form with them. Upload one supporting document, such as a deed poll or the member's notice of a new
-   address, change the name or residential address, and give the "as at" date the company's register
-   records (today in UTC or earlier) and a reason.
-3. In **Ledger** → **Corrections**, choose **Approve**. On web, compare the current and proposed
-   particulars on the main page before confirming; **Cancel** returns to the prepared record.
-   **Apply** records the approved update separately.
+   starts the form with them. Change the name or residential address, optionally give a reason, and
+   choose **Save change**.
+3. The change applies at once, dated today (UTC), and opens on its record in **Ledger** →
+   **Corrections**, which shows the particulars before and after.
+
+**Change particulars** is offered to an administrator, or to an appointment holding prepare, approve
+and apply: whoever could already finish a change alone
+([decision](../decisions.md#one-step-particulars-edit)). There is no supporting document, approval
+or application step, and the member is not notified.
+Each change is kept with who made it and when, its reason if given, and the particulars it
+replaced. A change is refused if the recorded particulars changed after the form read them (read
+them again and retry), if it changes neither the name nor the address, while the member's account
+link is current, or for a member who has held no shares in the company for the retention period.
+Names take up to 255 characters, and addresses and reasons up to 1,000.
 
 The latest "as at" date wins between imports and changes
-([identity order](#members-holder-types-and-identity)). A change is refused if dated before the
-current particulars, or for a member who has held no shares in the company for the retention period,
-and becomes unusable if later particulars are recorded meanwhile. Names take up to 255 characters,
-and addresses and reasons up to 1,000.
+([identity order](#members-holder-types-and-identity)), so a later import replaces a change's
+particulars, except a linked member's, which only their Profile changes. Changes made
+before 1 November 2026 were prepared with a supporting document, then approved and applied. They are
+kept with their documents and decisions, and one never applied shows as Prepared, not applied or
+Approved, not applied, with no action.
 
 ### Linking wallets to members
 
@@ -468,10 +485,12 @@ decision covers: settled market transfers, and direct issues approved before iss
 company-run. Under one [owner decision](../decisions.md#the-stored-register), both keep a staff
 review, for settled transfers until [#869](https://github.com/Ledova/ledova/issues/869):
 
-1. The company owner submits an instruction listing the exact items a named director approved, with
-   the authority reference, a reason and a company document that platform staff have
-   [verified](companies.md#staff-verification-of-a-company-document), of which Ledova keeps a
-   private copy. Neither app has a form for it; it goes through Ledova's API
+1. The company owner, while a current administrator of the company (with a verified identity where
+   your instance requires it), submits an instruction listing the exact items a named director
+   approved, with the authority reference, a reason and the authority document they uploaded for the
+   company, of which Ledova keeps a private copy
+   ([decision](../decisions.md#company-documents-removed)). Neither app has a form for it; it goes
+   through Ledova's API
    ([retained instructions API](../engineering/records.md#retained-register-instructions-api)).
 2. Platform staff with permission to change register instructions open it under Register
    instructions in admin, inspect the retained document, the
@@ -481,7 +500,9 @@ review, for settled transfers until [#869](https://github.com/Ledova/ledova/issu
 Submission, review and application refuse a director who is a party to a listed transfer or the
 recipient of a listed issue, and any instruction for a class an import opened. Applying records
 whatever waited for the instruction, in chain order. Instructions are kept unchanged and cannot be
-deleted ([retention](../engineering/security.md#retention-clocks)).
+deleted ([retention](../engineering/security.md#retention-clocks)). One submitted before
+2 November 2026 with a staff-verified company document, and still waiting, can only be rejected; the
+company submits it again with its own evidence.
 
 ### Settled-transfer instructions
 
@@ -596,9 +617,13 @@ prepared in [Documents](member-records.md#preparing-a-certificate).
 The same view holds the existing append-only correction and maintenance workflows: source opening
 corrections and particulars changes. Each is a titled record showing its snapshot, documents and
 decision trail; a copied opening's shareholders sit behind **Show the shareholders**, open while it
-awaits a decision. Stages read Prepared, Approved, Applied or Rejected (for an import, Reviewed and
-Confirmed), and an import, correction or particulars change has an Evidence row reading Provided by
-the company or, before the work became company-run, "Verified by Ledova staff". A section that read
+awaits a decision, and a particulars change shows who changed the particulars and when, with the
+particulars before and after; one a linked member made reads Changed by: The member, in their Ledova
+profile. Stages read Prepared, Approved, Applied or Rejected (for an import,
+Reviewed and Confirmed; for a particulars change from before the one-step edit that was never
+applied, Prepared, not applied or Approved, not applied), and an import, a correction or such an
+earlier particulars change has an Evidence row reading Provided by the company or, before the work
+became company-run, "Verified by Ledova staff". A section that read
 successfully with nothing to show is left out. An unfinished request keeps its class and exact
 request, and while one is held the company, task and class cannot be changed; its sidebar link lets
 the person return from another view to resume the same request. A failed read withholds the class
@@ -613,8 +638,8 @@ and flagging an identity that needs review. The search, the filter and the page 
 Details opens the shareholder's page. On narrow screens each shareholder is one row listing only the
 classes they hold, and the row opens their page. Former shareholders follows, holding each class's
 Former-member history 25 at a time, with Details for a former member the register names.
-Shareholders' sidebar submenus open Employee scheme for employee awards, Member access for invitations and access, and Member requests
-for certificate requests ([member records](member-records.md)). While register work is unfinished,
+Shareholders' sidebar submenus open Employee scheme for employee awards and Member access for invitations and
+access ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page.
 
 The Employee share scheme view, Employee scheme under Shareholders, shows one class's
@@ -634,7 +659,9 @@ Each shareholder has a page, reached from Details on Shareholders, and so does e
 reached from Recipient details on their award's page. It shows:
 
 - Particulars: the name and residential address the company has recorded, with **Change
-  particulars** for someone who can prepare the register;
+  particulars** for an administrator or an appointment holding prepare, approve and apply, or, for a
+  member linked to a Ledova account, "They keep their name and address up to date in their Ledova
+  profile." instead;
 - Holdings: per class, Shares held, % of class, Date added and Holder type, then
   any former holding with the shares held when it ended, its date, and whether they returned or the
   cessation was corrected;
@@ -644,7 +671,6 @@ reached from Recipient details on their award's page. It shows:
   shares promised, vested and issued, opening the award's page, then a link to Employee share scheme;
 - Documents: the shareholder's retained supporting files, with their category and share class;
   someone who can prepare the register can add more for a recorded holding;
-- requests from them waiting for the company, with a link to Member requests;
 - for an administrator, whether they can see their own records, with **Invite to their records**
   when they cannot.
 
@@ -679,7 +705,8 @@ coincide between different people; the stored member ID distinguishes them.
 
 An award recipient without shares has a person record from their first award. Every flow uses
 their member ID and current particulars, so an issue, a transfer or another award reaches the same
-person, and the company corrects their particulars with an ordinary particulars change. On a shareholder's
+person, and the company corrects their particulars with an ordinary particulars change (a linked
+recipient corrects them in their Profile). On a shareholder's
 page, **Issue shares to them** and, on each holding, **Transfer shares** start those flows with the
 person chosen.
 

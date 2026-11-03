@@ -87,7 +87,6 @@ export function companyRecord(overrides: Partial<Company> = {}): Company {
     state: 'NSW',
     postcode: '2000',
     country: 'Australia',
-    documents: [],
     activation: null,
     operatorWallet: '',
     submittedAt: null,
@@ -160,6 +159,4 @@ export {
   OUTPUT_REGISTER,
   OUTPUT_ENTRY,
   OUTPUT_PREVIEW,
-  MEMBER_PDF,
-  FULFILLED_CERTIFICATE,
 } from '../../../packages/shared/tests/fixtures/register-outputs';

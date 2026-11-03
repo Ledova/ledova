@@ -45,7 +45,7 @@ powers to take a company down stay separate from this routine review.
 Under Investor directory on the Offerings page, someone with current company administration turns on
 Show this company to eligible investors; it is off by default, and only an active company can be
 listed. The directory shows the share classes of active companies that are switched on, so a
-compliance warning, suspension or delisting by [staff](companies.md#staff-registry-controls) hides a
+compliance warning, suspension or delisting by [staff](companies.md#staff-company-controls) hides a
 company without changing the switch, and resolving the warning or reinstating lists it again. Turning
 it off hides the company's classes but does not withdraw an offering under review.
 
@@ -87,9 +87,9 @@ while submitted or under review.
 
 ## Offer documents
 
-The company keeps its documents under **Eligibility → Supporting**
-([company information and documents](companies.md#company-information-and-documents)). The offering
-form lists only the offer types: prospectus or information memorandum, risk disclosure, business
+The company kept its documents under **Company documents** until they were
+[removed](../decisions.md#company-documents-removed) on 2 November 2026, so offerings need a home of
+their own for offer documents when they return. The offering form lists only the offer types: prospectus or information memorandum, risk disclosure, business
 plan, financial statements, auditor report, constitution and shareholder agreement. Personal records
 such as the share register or a director's identification are never one click from investors.
 
@@ -101,7 +101,7 @@ not recorded.
 
 While an offering is approved or closed, documents can be added with Add documents but never removed
 ([decision](../decisions.md#eligibility-and-ownership-records)), because investors may already have
-read them; deleting a company document that such an offering carries is refused. On a draft or
+read them; deleting a document that such an offering carries is refused. On a draft or
 rejected offering the attachments can be changed, and saving drops one no longer among the company's
 documents.
 
@@ -114,9 +114,10 @@ deleted.
 
 ## Investor access and eligibility
 
-Investors reach offerings through the directory, which a company's own
-[eligibility decision](participants.md#company-eligibility-decisions) opens, for that company only.
-In the last implementation:
+Investors reached offerings through the directory, which a company's own eligibility decision
+opened, for that company only. Company eligibility decisions and investor classification claims
+were removed on 2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)), so
+offerings that return need their own way to admit investors. In the last implementation:
 
 - an account first had to be ready to invest: an investing account with an active login, a verified
   email and [good standing](participants.md#account-standing). The Verification page showed
@@ -290,7 +291,8 @@ How the last implementation worked, for whoever restores it; the code is at the 
   sales and AUD settlement expansion is
   [not planned](../decisions.md#registry-focus-and-cancelled-expansion-tickets). Before offerings
   return, decide who reviews them, how money is collected, verified, reconciled and refunded, and
-  what the [regulatory pathway](../regulatory-pathway.md) requires.
+  what the [regulatory pathway](../regulatory-pathway.md) requires, and how investors are admitted
+  now that company eligibility decisions are gone.
 
 Next: [ways to issue shares today](issuing-shares.md#ways-to-issue-shares) and
-[participants and eligibility](participants.md).
+[investors and members](participants.md).

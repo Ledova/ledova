@@ -15,7 +15,6 @@ from companies.services.authority import (
     admit_authority_request,
 )
 from companies.services.authority_requests import submit_authority_request
-from integrations.abr.client import RegistryObservation
 from shared.db import use_migrate, use_operator
 from tokens.models import RegisterEvidenceKind, RegisterMember, ShareToken
 from tokens.services.register_evidence import retain_register_evidence
@@ -51,16 +50,6 @@ def person(label):
         profile.is_signup_completed = True
         profile.save(update_fields=["full_name", "is_id_verified", "is_signup_completed"])
     return user, profile
-
-
-def matching_observation(company):
-    return RegistryObservation(
-        acn=company.acn,
-        abn="99123456780",
-        entity_name=company.name,
-        entity_type="PRV",
-        entity_status="Active",
-    )
 
 
 def company_for(owner, name, acn):

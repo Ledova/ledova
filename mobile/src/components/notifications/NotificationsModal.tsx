@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp, NavigatorScreenParams } from '@react-navigation/native';
 import { clearLastNotificationResponse, useLastNotificationResponse } from 'expo-notifications';
 import { XIcon } from 'phosphor-react-native';
-import { formatDateTime, PUBLICATION_NOTICE, useNotifications } from '@ledova/shared';
+import { formatDateTime, useNotifications } from '@ledova/shared';
 import type { Notification } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { Action, Rows } from '../Ledger';
@@ -21,12 +21,8 @@ type Destination = NavigatorScreenParams<SignedInStackParamList>;
 
 export function destinationOf(value: unknown): Destination | undefined {
   const data = (value ?? {}) as Record<string, unknown>;
-  const { record, company, award, token } = data;
+  const { record, award, token } = data;
   switch (data.type) {
-    case PUBLICATION_NOTICE:
-      return { screen: 'Notices' };
-    case 'certificate':
-      return typeof company === 'string' ? { screen: 'Certificates', params: { company } } : undefined;
     case 'award':
       return typeof record === 'string' && typeof award === 'string'
         ? { screen: 'Dashboard', params: { record, award }, pop: true }

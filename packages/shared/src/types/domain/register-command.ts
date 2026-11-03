@@ -16,11 +16,7 @@ import type {
   RegisterTransferDecideRequest,
   RegisterTransferDecisionRequest,
 } from './register-transfer';
-import type {
-  RegisterParticularsChange,
-  RegisterParticularsChangeDecideRequest,
-  RegisterParticularsChangeDecisionRequest,
-} from './register-particulars';
+import type { RegisterParticularsChange } from './register-particulars';
 
 export type RegisterEvidence = ApiSchema<'RegisterEvidence'>;
 export type RegisterEvidenceKind = ApiSchema<'RegisterEvidenceKindEnum'>;
@@ -38,12 +34,10 @@ export type RegisterDecisionRequest =
   | RegisterImportDecisionRequest
   | RegisterGrantDecisionRequest
   | RegisterTransferDecisionRequest
-  | RegisterCorrectionDecisionRequest
-  | RegisterParticularsChangeDecisionRequest;
+  | RegisterCorrectionDecisionRequest;
 export type RegisterDecideRequest =
   | RegisterAllotmentDecideRequest
   | RegisterImportDecideRequest
   | RegisterGrantDecideRequest
   | RegisterTransferDecideRequest
-  | RegisterCorrectionDecideRequest
-  | RegisterParticularsChangeDecideRequest;
+  | RegisterCorrectionDecideRequest;

@@ -276,8 +276,8 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     const memberDocuments = screen.getByRole('link', { name: 'Documents' });
     expect(memberDocuments.getAttribute('href')).toBe('/documents/certificates?company=company-b');
     fireEvent.click(memberDocuments);
-    expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.getByRole('link', { name: 'Notices' }).getAttribute('href')).toBe('/publications?company=company-b');
+    expect(screen.getByRole('link', { name: 'Documents' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.queryByRole('button', { name: 'Expand Documents navigation' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Inspection copies' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
     await screen.findByRole('link', { name: 'Ledger' });
@@ -321,7 +321,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     const managedMemberDocuments = screen.getByRole('link', { name: 'Documents' });
     expect(managedMemberDocuments.getAttribute('href')).toBe('/documents/certificates?company=company-a');
     fireEvent.click(managedMemberDocuments);
-    expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'Documents' }).getAttribute('aria-current')).toBe('page');
     expect(screen.queryByRole('link', { name: 'Inspection copies' })).toBeNull();
     act(() => {
       client.setQueryData(companyKey, [company]);

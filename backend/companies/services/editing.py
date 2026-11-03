@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from companies.models import Company, CompanyStatus, RegistryCheckStatus
+from companies.models import Company, CompanyStatus
 from companies.services.administration import (
     company_operation,
     lock_company_actor,
@@ -110,9 +110,7 @@ def _update_company(current, changes, actor):
         fields.extend(["ownership_sharing_changed_by", "ownership_sharing_changed_at"])
     if changes.keys() & REVIEWED_FIELDS:
         current.lifecycle_revision += 1
-        current.registry_status = RegistryCheckStatus.PENDING
-        current.registry_reason = "identity_changed"
-        fields.extend(["lifecycle_revision", "registry_status", "registry_reason"])
+        fields.append("lifecycle_revision")
     if changes:
         current.save(update_fields=fields)
         if "share_ownership_with_members" in changes:

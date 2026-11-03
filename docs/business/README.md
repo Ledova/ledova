@@ -24,13 +24,12 @@ company, Ledova mirrors the ownership records the company supplies
 - Opening the mirror records shares that already exist. It is never a fresh issue, a payment or a
   chain mint, and a later tokenisation mirrors existing holdings rather than issuing them again.
 - Company details, uploaded documents, member particulars, the ASIC totals a company states and the
-  source references it gives are shown as provided by the company. Apart from the document check
-  behind retained instructions and publications
-  ([staff verification](companies.md#staff-verification-of-a-company-document)), Ledova staff
-  verify none of them.
+  source references it gives are shown as provided by the company, and Ledova staff verify none of
+  them ([decision](../decisions.md#company-documents-removed)). Staff review only the directors'
+  instructions behind settled transfers and retained issues before applying them.
 - The company is responsible for its information, its ASIC filings and its legal obligations, as
-  the Terms a representative accepts at signup say. The registry lookup checks a company's
-  identifiers and name; it does not establish a representative's mandate.
+  the Terms a representative accepts at signup say. Ledova checks neither a company's identifiers
+  and name against a business register nor a representative's mandate.
 - Ledova changes a company's administrators only through its existing administrators or at the
   direction of a court or regulator, and no staff tool appoints one. Recovering your own account is
   a separate matter.
@@ -47,7 +46,9 @@ chains are test networks
 
 Deferred under the [9 October priority](../decisions.md#essential-registry-and-development-workflow-priority):
 new integrated AUD payments and marketplace settlement (#869), advanced governance such as
-company-run publications and voting (#870), and filing preparation and lodgement (#872). Not built:
+company-run publications and voting (#870), and filing preparation and lodgement (#872). Staff
+publishing to members was [removed](../decisions.md#shareholder-publications-removed) on
+2 November 2026. Not built:
 splits and consolidations ([issuing shares](issuing-shares.md#splits-and-consolidations)). The
 [roadmap](../roadmap.md#deferred) orders the remaining work, and the
 [accepted company-managed register plan](../plans/company-managed-registers/plan.md) describes the
@@ -57,28 +58,24 @@ target state.
 
 Today the [users](../product.md#1-who-uses-ledova) act as follows.
 
-| Who                                     | What they do today                                                                                                                                                                                                                                                                                                                                       |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Company administrators and appointees   | People the company appoints, each with their own account. Within the capabilities their appointment records, they set up and activate the company, appoint the team, record share classes through the API, run the register, record awards and allotments, decide participant eligibility, invite members and prepare outputs.                           |
-| The registering account (company owner) | The account that registered the company. Ownership grants no appointment and supplies no register decision. It keeps some earlier owner-only workflows: submitting the directors' register instructions for settled market transfers and retained issues, opening Representative authority and Published to your members. It can also read the register. |
-| Members                                 | People entered on a company's register, with or without an account or a wallet. After accepting a company-issued invitation they read their own particulars, holdings, history and awards and obtain their own certificates, and tell the company of changes ([member records](member-records.md)). Being a member grants no company authority.          |
-| Investors                               | People with an investing account. They verify their identity, share evidence with a company to obtain its eligibility decision ([participants](participants.md)). One person can be an investor, a member and a company appointee at once.                                                                                                               |
-| Platform staff                          | Run hosting, security, integrations, background jobs and support, and recover technical failures. Separately authorised staff handle crypto, screening and payment operations. Staff permissions never count as a company appointment.                                                                                                                   |
-| Automation                              | Validates and applies exact company-approved instructions, signs chain transactions with the platform's operator key, reconciles records and reports failures. It records the human decision behind each effect and never supplies company authority.                                                                                                    |
+| Who                                     | What they do today                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Company administrators and appointees   | People the company appoints, each with their own account. Within the capabilities their appointment records, they set up and activate the company, appoint the team, record share classes through the API, run the register, record awards and allotments, invite members and prepare outputs.                                                                                         |
+| The registering account (company owner) | The account that registered the company. Ownership grants no appointment and supplies no register decision. It keeps some earlier owner-only workflows: submitting the directors' register instructions for settled market transfers and retained issues and opening Representative authority. It can also read the register.                                                          |
+| Members                                 | People entered on a company's register, with or without an account or a wallet. After accepting a company-issued invitation they read their own particulars, holdings, history and awards, ask the company for certificates, and keep their recorded name and address up to date from their Profile ([member records](member-records.md)). Being a member grants no company authority. |
+| Investors                               | People with an investing account. They verify their identity and, through the API, can nominate a wallet to a company ([participants](participants.md)). One person can be an investor, a member and a company appointee at once.                                                                                                                                                      |
+| Platform staff                          | Run hosting, security, integrations, background jobs and support, and recover technical failures. Separately authorised staff handle crypto, screening and payment operations. Staff permissions never count as a company appointment.                                                                                                                                                 |
+| Automation                              | Validates and applies exact company-approved instructions, signs chain transactions with the platform's operator key, reconciles records and reports failures. It records the human decision behind each effect and never supplies company authority.                                                                                                                                  |
 
 Platform staff still perform these tasks, each described where linked:
 
-- publish documents, resolutions, dividends and payment records, and enter represented ballots, on
-  the company's written instruction ([publications](publications.md));
 - work the due list, and prepare notice figures and broader restricted company packs on written
   instruction ([due list](member-records.md#the-due-list); [company pack](member-records.md#the-company-pack));
 - review the director instructions behind settled market transfers and retained issues
   ([settled transfers](register.md#settled-transfer-instructions);
   [retained issues](register.md#retained-issue-instructions));
-- verify the company documents those instructions and publications rely on
-  ([staff verification](companies.md#staff-verification-of-a-company-document));
-- issue a compliance warning, suspend, delist or reinstate a company, and retry its registry check
-  ([staff registry controls](companies.md#staff-registry-controls));
+- issue a compliance warning, suspend, delist or reinstate a company
+  ([staff company controls](companies.md#staff-company-controls));
 - review compliance alerts from identity screening and transaction monitoring
   ([participants](participants.md#transaction-monitoring)), and accounts that still hold a company
   wallet approval after losing their standing
@@ -101,14 +98,14 @@ account is active with a verified email, the company's
 met, and the appointment has neither expired nor been revoked
 ([appointments](companies.md#what-an-appointment-records)).
 
-| Capability (app label)                                   | What it permits today                                                                                                                                                                                                                                                                                              |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Manage company information and team                      | Edit company information and documents, invite, read and revoke the team, activate the company, invite members to member access and revoke it, and produce the core company pack. It also counts as each register capability below (prepare, approve, apply and read). It does not decide participant eligibility. |
-| Prepare register changes (includes reading the register) | Upload company evidence and prepare register changes, issues, wallet instructions and other company commands; read the eligibility queue and prepare an eligibility decision.                                                                                                                                      |
-| Approve register changes (includes reading the register) | Approve or reject a prepared change, acknowledge a reconciliation discrepancy, and accept, refuse or revoke a participant's eligibility.                                                                                                                                                                           |
-| Apply authorised changes (includes reading the register) | Apply an approved change so that its effect is recorded.                                                                                                                                                                                                                                                           |
-| Manage company payments                                  | Recorded and delegable. No delivered workflow requires it yet; payment recording stays with platform staff.                                                                                                                                                                                                        |
-| Read company register                                    | Read the register, its history, proposals, decisions and evidence copies, and prepare inspection copies and unsigned certificates.                                                                                                                                                                                 |
+| Capability (app label)                                   | What it permits today                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manage company information and team                      | Edit company information and documents, invite, read and revoke the team, activate the company, invite members to member access and revoke it, and produce the core company pack. It also counts as each register capability below (prepare, approve, apply and read). |
+| Prepare register changes (includes reading the register) | Upload company evidence and prepare register changes, issues, wallet instructions and other company commands.                                                                                                                                                          |
+| Approve register changes (includes reading the register) | Approve or reject a prepared change and acknowledge a reconciliation discrepancy.                                                                                                                                                                                      |
+| Apply authorised changes (includes reading the register) | Apply an approved change so that its effect is recorded.                                                                                                                                                                                                               |
+| Manage company payments                                  | Recorded and delegable. No delivered workflow requires it yet; payment recording stays with platform staff.                                                                                                                                                            |
+| Read company register                                    | Read the register, its history, proposals, decisions and evidence copies, and prepare inspection copies and unsigned certificates.                                                                                                                                     |
 
 Anyone holding prepare, approve or apply reads the full register, including residential addresses
 in inspection copies and retained evidence copies, because they work from member details; the
@@ -128,8 +125,7 @@ are enforced.
 2. Approve or reject. A person with approve (or administration) reads a preview of the exact
    change and what it still lacks, and approves it or rejects it. The preview shows the people,
    terms, documents and dates, each affected holding and the issued (for an issue, also the
-   authorised) shares before and after; a particulars change is shown beside the current
-   particulars with their date and source. A rejection needs a written reason of at most 1,000
+   authorised) shares before and after. A rejection needs a written reason of at most 1,000
    characters; an approval takes none. Approval alone changes nothing.
 3. Apply. A person with apply (or administration) applies the approved change. Only this step
    records the effect, and it records the effect, the decision and any change to holdings together.
@@ -154,12 +150,13 @@ These company actions are taken in one step rather than prepared, approved and a
 
 - recording a share class through the API, with current personal administration or prepare
   ([share classes](issuing-shares.md#share-classes));
-- eligibility decisions and revocations, by a person holding approve personally
-  ([participants](participants.md#deciding-withdrawing-and-revoking));
 - discrepancy acknowledgements, with administration or approve
   ([register](register.md#acknowledging-a-discrepancy));
 - recording employee awards and vesting events, with administration or prepare
   ([issuing shares](issuing-shares.md#employee-awards-and-vesting));
+- changing a member's recorded name and residential address, with administration or one
+  appointment holding prepare, approve and apply
+  ([register](register.md#changing-a-members-particulars));
 - member invitations and revocations of member access, with administration
   ([member records](member-records.md#member-access)).
 
@@ -216,7 +213,7 @@ confirmed, and a confirmed one is not yet final ([chain](../engineering/chain.md
 ## The app at a glance
 
 The web dashboard reaches the records and workflows described here. The mobile app is for
-shareholders and holds their own records, notices and account, with an investing account's
+shareholders and holds their own records and account, with an investing account's
 Verification ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
 retains its existing route checks;
 company actions follow the person's current appointments, and
@@ -234,15 +231,11 @@ administers a company and holds its shares sees that company once, with their ow
 the company information they may read. The sidebar keeps focused tasks for the selected company:
 
 - Ledger opens the class overview, with Issue shares, Transfer shares and Corrections beneath it.
-  Shareholders opens the people list, with Employee scheme, Member access and Member requests.
-  Documents opens one Certificates page for company and member records, with Published (what the
-  company published to its members), Inspection copies and Company pack where company access permits
-  them. Matching company and own records appear once.
-- Company eligibility follows for its administrators and the people appointed to prepare or approve.
-  Its sidebar label is Eligibility, and administrators find Supporting (the company's documents)
-  beneath it.
+  Shareholders opens the people list, with Employee scheme and Member access.
+  Documents opens one Certificates page for company and member records, with Inspection copies and
+  Company pack where company access permits them.
 - Settings comes last whatever company is selected. It keeps personal Profile, Account and Data and privacy, with company information, Team and Activation according
-  to current access. Profile also shows the details a company holds about a linked member.
+  to current access.
 
 The sidebar has no More group or Help & Support link. Investing pages without a sidebar
 item retain their access rules. The person's name and selected company sit together in the footer
@@ -256,8 +249,8 @@ Failed reads offer retry, an edited form asks before a company change discards i
 blocks context changes.
 
 The footer identifies the selected company. Until setup is complete, a personal
-administrator also sees **Getting started**: **Verify and activate your
-company** ([activation](companies.md#activation-and-the-registry-check)) and **Set up your ledger**
+administrator also sees **Getting started**: **Activate your
+company** ([activation](companies.md#activation)) and **Set up your ledger**
 ([register setup](register.md#bringing-in-existing-records)). Completed tasks disappear; once both
 are complete, the whole card disappears. Register setup completes once the register of the company
 shown is opened, not when a class is merely created, and it does not wait for activation. Someone
@@ -273,17 +266,15 @@ and charts rather than showing zero. Detailed history and every action are on th
 
 The same web Dashboard shows the person's own register records, with no wallet needed. A company can opt into sharing an aggregate ownership overview with its current
 linked members on the web: all class totals and each member's own position, without other
-shareholders' identities or private records. Mobile retains its own-records view. Certificates and certificate
-requests are in Documents → Certificates on the web and on mobile
+shareholders' identities or private records. Mobile retains its own-records view. A member's
+certificate records are in Documents → Certificates on the web and on mobile
 ([member records](member-records.md)).
 
 The mobile app has the web's phone frame: a top bar with the menu and the notifications bell, and a
 slide-out menu with the Dark theme switch. It opens on **Dashboard**, the selected company's ownership
-overview, as on the web; **Switch company** changes the company. **Documents** holds that company's Certificates and the [notices](publications.md#the-notices-page) from every company, as the web shows a member, and **Settings** opens
+overview, as on the web; **Switch company** changes the company. **Documents** holds that company's Certificates, as the web shows a member, and **Settings** opens
 the web's Profile for that company, with Account (accepting an invitation and the app's own settings)
-and Data and privacy beneath it ([Profile and Settings](participants.md#profile-and-settings)). An
-investing account's **Eligibility** opens the web's [Verification](participants.md#the-verification-page),
-without Supporting payslips yet.
+and Data and privacy beneath it ([Profile and Settings](participants.md#profile-and-settings)).
 Mobile signup creates individual accounts only ([investor signup](participants.md#investor-signup)).
 
 Each page is described in the domain document for its process below;
@@ -296,19 +287,16 @@ Follow a company and its participants through Ledova:
 
 1. [Company setup and authority](companies.md): signup, the representative's
    declaration, the team, company information and documents, and activation.
-2. [Investors, members and eligibility](participants.md): accounts and identity
-   checks, each company's eligibility decisions, the API's wallet nominations and approvals, and
-   monitoring.
+2. [Investors and members](participants.md): accounts and identity checks, the API's wallet
+   nominations and approvals, and monitoring.
 3. [Register of members](register.md): opening the mirror from company records, corrections,
    particulars, transfers and former members, with the API's openings from the chain, wallet links
    and reconciliation.
 4. [Issuing shares](issuing-shares.md): share classes, employee awards and vesting,
    grants and externally arranged allotments.
 5. [Member access and register outputs](member-records.md): member invitations,
-   own records and requests, inspection copies, certificates, notice figures and the company pack.
-6. [Shareholder publications](publications.md): documents, resolutions and
-   ballots, and distributions with their payment records.
-7. [Wallets, transfers and trading](trading.md): the API's wallet sends and experimental market,
+   own records, inspection copies, certificates, notice figures and the company pack.
+6. [Wallets, transfers and trading](trading.md): the API's wallet sends and experimental market,
    neither with a page in the web app, and how trading sits beside company decisions.
 
 Planned for a later release: [offerings and applications](offerings.md).

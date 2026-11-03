@@ -11,7 +11,7 @@ export {
 } from './date';
 export {
   formatCryptoBalance,
-  formatFileSize,
+  formatMoney,
   formatShareCount,
   shareChange,
   shareCount,
@@ -39,7 +39,6 @@ export {
   createUserFriendlyError,
   hasServiceErrorDetail,
   failureStatus,
-  retryServerFailures,
   describeFailure,
   readSignInError,
   readApiError,
@@ -49,16 +48,9 @@ export {
   refusalSentences,
 } from './errors';
 export type { SignInErrorReading, ApiErrorReading, ReadApiErrorOptions } from './errors';
-export {
-  formatMoney,
-  describeRate,
-  describePaymentRecord,
-  describePaymentStanding,
-  paymentRecordState,
-  type PaymentRecordState,
-} from './distributions';
 export { readIdentityVerification } from './identity-verification';
 export {
+  appointmentForParticularsEdit,
   appointmentForRegisterStep,
   hasCurrentRegisterReadAuthority,
   isRegisterDecisionReceipt,
@@ -76,7 +68,7 @@ export {
   isPreparedRegisterCorrection,
   isRegisterCorrectionDecisionReceipt,
 } from './register-corrections';
-export { isPreparedRegisterParticularsChange } from './register-particulars';
+export { isRegisterParticularsEditReceipt } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
 export {
   hasValidRegisterAwardTotals,
@@ -93,7 +85,6 @@ export { ownershipSummary } from './register-ownership';
 export { hasWholeShares, wholeShares } from './share-quantities';
 export { ownershipColorIndex, ownershipView, rankOwnershipClasses, type OwnershipClass } from './memberOwnership';
 export { CERTIFICATE_STATUSES, certificateStatus, type CertificateStatus } from './certificateRecords';
-export { investorClaimChecks, investorClaimState, investorClaimSubmission } from './investorClaims';
 export { parseTheme } from './theme';
 
 export {

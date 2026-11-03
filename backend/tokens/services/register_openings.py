@@ -1,4 +1,3 @@
-import hashlib
 from collections import Counter, defaultdict
 from collections.abc import Mapping
 from datetime import date
@@ -13,18 +12,8 @@ from django.utils import timezone
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from web3 import Web3
 
-from companies.models import (
-    Company,
-    CompanyAppointment,
-    CompanyCapability,
-    CompanyDocument,
-)
+from companies.models import Company, CompanyAppointment, CompanyCapability
 from companies.services.authority_requests import _requester_principal
-from companies.services.document_review import (
-    document_fingerprint,
-    private_document_bytes,
-    verified_document_snapshot,
-)
 from integrations.base_chain import get_base_chain_client
 from integrations.blockchain.receipts import normalized_hash
 from shared.constants import BLOCKCHAIN_BASE
@@ -290,24 +279,6 @@ def _existing_links(company, links):
     }
 
 
-def _retain(proposal, document_id, actor):
-    document = CompanyDocument.objects.select_for_update().filter(pk=document_id, company=proposal.company).first()
-    if document is None:
-        raise NotFound("Company authority document not found.")
-    document.company = proposal.company
-    raw = private_document_bytes(document.file)
-    proposal.source_document = document.pk
-    proposal.evidence_fingerprint = document.verified_fingerprint
-    proposal.evidence_snapshot = verified_document_snapshot(document, content=ContentFile(raw))
-    proposal.submitted_by = actor
-    proposal.file.save("authority.bin", ContentFile(raw), save=False)
-    try:
-        proposal.save(force_insert=True)
-    except IntegrityError:
-        raise RegisterChangeConflict() from None
-    return proposal
-
-
 def _replayed(model, operation_id, expected):
     existing = model.objects.filter(pk=operation_id).first()
     if existing and any(getattr(existing, key) != value for key, value in expected.items()):
@@ -327,24 +298,6 @@ def _reviewer(user, model=RegisterOpening):
     ):
         raise PermissionDenied(f"{kind} review requires an authorised staff reviewer.")
     return reviewer
-
-
-def _check_evidence(proposal, company, document):
-    kind = proposal._meta.verbose_name
-    if company.owner_id != proposal.submitted_by_id or document is None or document.company_id != company.pk:
-        raise ValidationError(f"The company or its authority document changed. Submit a fresh {kind}.")
-    document.company = company
-    if verified_document_snapshot(document) != proposal.evidence_snapshot or (
-        document_fingerprint(document) != proposal.evidence_fingerprint
-    ):
-        raise ValidationError(f"The authority evidence changed. Submit a fresh {kind}.")
-    raw = private_document_bytes(proposal.file)
-    if (
-        hashlib.sha256(raw).hexdigest() != proposal.evidence_snapshot["sha256"]
-        or len(raw) != proposal.evidence_snapshot["file_size"]
-        or document_fingerprint(document, content=ContentFile(raw)) != proposal.evidence_fingerprint
-    ):
-        raise ValidationError("The retained authority evidence no longer matches the proposal.")
 
 
 def _check_mapping_against_boundary(mapping, boundary):

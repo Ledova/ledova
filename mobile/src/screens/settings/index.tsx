@@ -1,18 +1,33 @@
+import { useState } from 'react';
+import { RefreshControl } from 'react-native';
 import { Page } from '../../components/Page';
+import { useAppTheme } from '../../contexts';
 import { useUserProfile } from '../../hooks/useUserProfile';
-import { useMemberRecordsState, useMemberRefresh } from '../holdings/MemberRecordsProvider';
 import { AccountData, AccountSettings } from './AccountSettings';
-import { CompanyRecordedDetails } from './CompanyRecordedDetails';
 import { PersonalProfile } from './PersonalProfile';
 
 export function SettingsScreen() {
+  const theme = useAppTheme();
   const profile = useUserProfile();
-  const { read } = useMemberRecordsState();
-  const refresh = useMemberRefresh(read, 'profile-refresh', () => profile.profile.refetch());
+  const [refreshing, setRefreshing] = useState(false);
   return (
-    <Page testID="profile-scroll" title="Profile" refreshControl={refresh}>
+    <Page
+      testID="profile-scroll"
+      title="Profile"
+      refreshControl={
+        <RefreshControl
+          testID="profile-refresh"
+          refreshing={refreshing}
+          tintColor={theme.colors.interactive.active}
+          onRefresh={() => {
+            if (refreshing) return;
+            setRefreshing(true);
+            void profile.profile.refetch().finally(() => setRefreshing(false));
+          }}
+        />
+      }
+    >
       <PersonalProfile profile={profile} />
-      <CompanyRecordedDetails />
     </Page>
   );
 }

@@ -27,7 +27,7 @@ export function PrivacyPolicy() {
     <>
       <PageHeader
         title="Privacy policy"
-        lead="For the ledova.io preview and the public source code · Updated 30&nbsp;October&nbsp;2026"
+        lead="For the ledova.io preview and the public source code · Updated 3&nbsp;November&nbsp;2026"
       />
       <section className="border-t border-border-subtle">
         <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
@@ -59,12 +59,7 @@ export function PrivacyPolicy() {
               <li>
                 <strong className={LABEL}>What you record:</strong> company details, share classes and holdings, wallet
                 addresses, the names, addresses and email addresses of people you add or invite, and documents you
-                upload. An investor&apos;s eligibility claim can include the name, professional body and membership
-                number of the accountant who certified it.
-              </li>
-              <li>
-                <strong className={LABEL}>What you do in a company:</strong> your votes on resolutions, and which
-                company notices you open.
+                upload.
               </li>
               <li>
                 <strong className={LABEL}>When you use the site:</strong> the server&apos;s logs record requests to the
@@ -74,8 +69,7 @@ export function PrivacyPolicy() {
               <li>
                 <strong className={LABEL}>In your browser:</strong> cookies that keep you signed in and protect forms.
                 Your browser also keeps your theme, the last company you opened, your email address while you sign up,
-                and any invitation or request link you followed. There are no analytics, advertising or tracking
-                cookies.
+                and any invitation link you followed. There are no analytics, advertising or tracking cookies.
               </li>
             </ul>
           </Section>
@@ -95,10 +89,7 @@ export function PrivacyPolicy() {
               </li>
               <li>
                 In each company, the people authorised to manage it see its records, and shareholders, employees and
-                investors see their own. Companies don&apos;t see your phone number, date of birth, financial profile or
-                the evidence behind your eligibility claims, and see only totals for votes and notices read. If you send
-                a company an eligibility request, it sees the summary you agreed to share: your name and the claim,
-                including the accountant&apos;s details.
+                investors see their own. Companies don&apos;t see your phone number, date of birth or financial profile.
               </li>
               <li>We can reach the server and its database to run and fix the preview.</li>
               <li>
@@ -106,9 +97,8 @@ export function PrivacyPolicy() {
                 registrations can&apos;t be completed yet; use a demo account instead.
               </li>
               <li>
-                Apart from email you send us, no other service receives your information. Identity checks, company
-                register lookups and payment services are switched off, push notifications aren&apos;t set up, and there
-                is no error tracking.
+                Apart from email you send us, no other service receives your information. Identity checks and payment
+                services are switched off, push notifications aren&apos;t set up, and there is no error tracking.
               </li>
             </ul>
           </Section>
@@ -121,11 +111,12 @@ export function PrivacyPolicy() {
           <Section title="Your choices">
             <p>
               In Settings you can change your name, phone number and address, export your data and delete your account.
-              Deleting your account removes your name, date of birth, phone number and address from your profile.
-              Everything else may stay until the next reset. That includes your citizenship, financial profile, wallets
-              and verification records, the records companies keep about you, your eligibility claims and requests,
-              documents you uploaded, your votes and notice reads, and invitations that hold your email address. To
-              change anything else, or to ask what we hold about you, email {CONTACT}.
+              If your account is linked to a company&apos;s register, changing your name or address in Settings also
+              updates that register, and the company sees the change and its date. Deleting your account removes your
+              name, date of birth, phone number and address from your profile. Everything else may stay until the next
+              reset. That includes your citizenship, financial profile, wallets and verification records, the records
+              companies keep about you, documents you uploaded, and invitations that hold your email address. To change
+              anything else, or to ask what we hold about you, email {CONTACT}.
             </p>
           </Section>
           <Section title="Running Ledova yourself">

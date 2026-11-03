@@ -1,10 +1,10 @@
 from django.contrib import admin
 
 from companies.services.authority_requests import _requester_principal
+from operators.models import Operator
 from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_PENDING
 from users.models import UserAccount
 from users.models.user_account import AccountRole
-from users.services.company_eligibility import _configuration
 from whitelist.services.eligibility_invalidation import invalidation_writer_context
 from whitelist.services.refresh import enqueue_for_account
 
@@ -21,7 +21,7 @@ class UserAccountAdmin(admin.ModelAdmin):
             previous = UserAccount.objects.select_for_update(no_key=True).get(pk=obj.pk) if change else None
             statuses = (
                 (ACCOUNT_STATUS_ACTIVE,)
-                if _configuration().investor_kyc_required
+                if Operator.configured().investor_kyc_required
                 else (ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_PENDING)
             )
             roles = (AccountRole.INVESTOR, AccountRole.BOTH)

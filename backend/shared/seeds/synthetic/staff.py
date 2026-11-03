@@ -1,14 +1,13 @@
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.models import Permission
 
 from shared.db import atomic
 from shared.seeds.demo import DEMO_ADMIN_EMAIL
 
 User = get_user_model()
 
-DOCUMENT_OPERATIONS = "Document operations"
 PERMISSIONS = {
     "compliance": (
         "compliance.view_compliancealert",
@@ -22,8 +21,6 @@ PERMISSIONS = {
         "compliance.view_alertprocedurestep",
         "compliance.view_alertchecklistitem",
         "compliance.change_alertchecklistitem",
-        "users.view_investorclassification",
-        "users.change_investorclassification",
         "users.view_userprofile",
         "users.view_useraccount",
         "users.change_useraccount",
@@ -34,15 +31,9 @@ PERMISSIONS = {
         "whitelist.view_whitelistentry",
         "whitelist.view_whitelistapproval",
     ),
-    "documents": (
-        "companies.view_company",
-        "companies.view_companydocument",
-        "companies.change_companydocument",
-    ),
     "operations": (
         "companies.view_company",
         "companies.change_company",
-        "companies.view_companydocument",
         "tokens.view_sharetoken",
         "tokens.change_sharetoken",
         "tokens.view_shareissuancerequest",
@@ -70,13 +61,9 @@ PERMISSIONS = {
         "tokens.view_transferorder",
         "tokens.view_swaporder",
         "tokens.view_ordersubmission",
-        "shareholders.view_publication",
-        "shareholders.change_publication",
-        "shareholders.view_publicationevent",
     ),
     "former": ("companies.view_company",),
 }
-GROUPS = {"compliance": (DOCUMENT_OPERATIONS,), "documents": (DOCUMENT_OPERATIONS,)}
 
 
 def permissions(names):
@@ -99,7 +86,6 @@ def seed_staff_member(member, seeded):
             last_login=member.last_login,
         )
         user.user_permissions.set(permissions(PERMISSIONS[member.key]))
-        user.groups.set(Group.objects.filter(name__in=GROUPS.get(member.key, ())))
     seeded.users[member.key] = user
     return user
 

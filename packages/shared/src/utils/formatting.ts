@@ -1,5 +1,10 @@
 export const formatShareCount = (shares: string) => shares.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
+export function formatMoney(amount: string, currency: string): string {
+  const [whole = '0', fraction = ''] = amount.split('.');
+  return `${currency}\u00a0${formatShareCount(whole)}.${fraction.padEnd(2, '0')}`;
+}
+
 export const shortReference = (uuid: string) => uuid.slice(0, 8);
 
 export const shareChange = (shares: string) =>
@@ -36,10 +41,4 @@ export function formatCryptoBalance(balance: string | number, symbol: string, de
   const point = digits.length - decimals;
   const places = digits.slice(point).replace(/0+$/, '');
   return `${sign}${digits.slice(0, point)}${places ? `.${places}` : ''} ${symbol}`;
-}
-
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

@@ -571,24 +571,20 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         correction.update(operation_id=str(uuid4()), correction_of=first.json()["uuid"])
         refused = self.client.post(endpoint, correction, format="json")
         self.assertEqual(refused.status_code, 400, refused.content)
-        supporting = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
         renamed = self.client.post(
             "/api/v1/tokens/register-particulars-changes/",
             {
                 "operation_id": str(uuid4()),
                 "appointment": str(self.appointment.pk),
                 "member": award["member"],
-                "supporting_evidence": str(supporting.pk),
                 "name": "Changed employee identity",
                 "residential_address": award["residential_address"],
-                "as_at": timezone.now().date().isoformat(),
                 "reason": "Correct the recipient's recorded name",
+                "expected": {"name": award["name"], "residential_address": award["residential_address"]},
             },
             format="json",
         )
         self.assertEqual(renamed.status_code, 201, renamed.content)
-        self.decision("/api/v1/tokens/register-particulars-changes/", renamed.json()["uuid"], "approve")
-        self.decision("/api/v1/tokens/register-particulars-changes/", renamed.json()["uuid"], "apply")
         changed = self.client.post(f"{endpoint}{copied_id}/decision-preview/", fields, format="json")
         self.assertFalse(changed.json()["canDecide"])
         self.assertIn("award_recipient_identity_changed", changed.json()["unmetRequirements"])

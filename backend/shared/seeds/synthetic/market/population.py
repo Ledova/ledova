@@ -8,7 +8,7 @@ from shared.seeds.synthetic.market.plan import Holder, Listing, Trader, TraderWa
 from tokens.models import ShareRegister, ShareToken, ShareTokenStatus
 from users.models import UserAccount
 from users.models.user_account import AccountRole
-from users.services.company_eligibility_consumption import company_eligibility
+from users.services.participants import participant_requirements
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Holding
 from whitelist.models import WhitelistApproval, WhitelistStatus
@@ -88,7 +88,7 @@ def traders(found):
             )
             with _requester_principal(account.user_profile.user_id):
                 secondary = frozenset(
-                    key for key, company in found.items() if company_eligibility(account, company).is_eligible
+                    key for key, company in found.items() if not participant_requirements(account, company)
                 )
         if not secondary:
             continue

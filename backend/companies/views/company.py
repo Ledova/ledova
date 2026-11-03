@@ -9,7 +9,7 @@ from companies.filters import CompanyFilter
 from companies.models import Company
 from companies.serializers import (
     CompanyActivateSerializer,
-    CompanyActivationAttemptSerializer,
+    CompanyActivationReceiptSerializer,
     CompanyDetailSerializer,
     CompanyListSerializer,
     CompanyRegistrationSerializer,
@@ -31,7 +31,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
     operator_actions = frozenset({"list", "retrieve", "activate", "pack", "packs"})
     operator_actions_because = (
         "Company metadata reads retain the exact current owner alongside current personal administration. "
-        "Private documents and contact remain separately administration-scoped. Activation requires "
+        "The contact remains separately administration-scoped. Activation requires "
         "the exact current personal administrator appointment and actor-bound service checks. Company pack "
         "download captures one supported complete archive, refuses restricted categories and rechecks the "
         "personal administrator and tenant before recording the immutable delivery audit. The list of earlier "
@@ -96,7 +96,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             fields={
                 "message": serializers.CharField(),
                 "company": CompanyDetailSerializer(),
-                "attempt": CompanyActivationAttemptSerializer(),
+                "receipt": CompanyActivationReceiptSerializer(),
             },
         ),
     )
@@ -105,16 +105,12 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         company = self.get_object()
         serializer = CompanyActivateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        company, attempt = activate_company(actor=request.user, company_id=company.pk, **serializer.validated_data)
+        company, receipt = activate_company(actor=request.user, company_id=company.pk, **serializer.validated_data)
         return Response(
             {
-                "message": (
-                    "Company activated."
-                    if attempt.applied_at
-                    else "Activation check retained. Resolve the reported result and retry with a new request key."
-                ),
+                "message": "Company activated.",
                 "company": CompanyDetailSerializer(company, context=self.get_serializer_context()).data,
-                "attempt": CompanyActivationAttemptSerializer(attempt).data,
+                "receipt": CompanyActivationReceiptSerializer(receipt).data,
             }
         )
 

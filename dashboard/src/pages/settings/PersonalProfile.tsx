@@ -177,7 +177,7 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
           </form>
         ) : (
           <FormActions>
-            <PageAction ref={editAction} label="Edit personal details" disabled={blocked} onClick={editDetails} />
+            <PageAction ref={editAction} label="Edit" disabled={blocked} onClick={editDetails} />
           </FormActions>
         )}
       </Section>

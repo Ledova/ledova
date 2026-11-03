@@ -2,8 +2,8 @@
 
 [Engineering](README.md) · [Documentation](../README.md)
 
-How the register of members, its outputs, the company pack, shareholder publications and a person's
-own data export are stored, protected and verified; who may do what, and why, is in the business
+How the register of members, its outputs, the company pack and a person's own data export are
+stored, protected and verified; who may do what, and why, is in the business
 section each part links to. Request and response fields, filters and file sub-routes are in the
 [OpenAPI schema](../../backend/schema/openapi.json), so this page keeps what the schema cannot
 express, naming request fields in the serializers' snake_case and response fields in camelCase
@@ -16,7 +16,6 @@ Contents:
 - [Reads and exports](#reads-and-exports)
 - [Output formats](#output-formats)
 - [Company pack format](#company-pack-format)
-- [Publications](#publications)
 - [Account-data export](#account-data-export)
 
 ## Register ledger
@@ -33,7 +32,7 @@ snapshot), [register_reconciliation.py](../../backend/tokens/services/register_r
 [former_holders.py](../../backend/tokens/services/former_holders.py) (the former-member fold and
 purges), [register_decisions.py](../../backend/tokens/services/register_decisions.py) (decisions
 shared by every family) and [company_pack.py](../../backend/tokens/services/company_pack.py) with
-its `company_pack_*.py` modules; publications are in `backend/shareholders/services/`.
+its `company_pack_*.py` modules.
 
 `ShareRegister` is a class's register head (`sequence`, `head_hash`, `issued_supply`),
 `RegisterEntry` the append-only log and `RegisterPosition` the holdings projection (`shares`,
@@ -58,8 +57,8 @@ PostgreSQL enforces the ledger, not Python.
 [database_guards.sql](../../backend/tokens/database_guards.sql) with the family files
 `database_award_guards.sql`, `database_allotment_guards.sql` and `database_member_guards.sql`,
 enables and forces RLS on the member-access, award and allotment tables, and revokes every privilege
-on them from the application role. Shared migrations install `database_output_guards.sql` (member
-certificate fulfilment) and `database_mirror_guards.sql` (mirror imports);
+on them from the application role. Shared migrations install `database_mirror_guards.sql` (mirror
+imports);
 [database_mirror_guards.py](../../backend/tokens/database_mirror_guards.py) re-installs the entry
 guard so it admits `mirror_correction`. Every register table's write term is `false` for the
 application role, so register commands write on the operator connection inside a bounded company
@@ -137,19 +136,10 @@ order:
 
 `tokens_register_entry_hash(entry)` computes the digest and `tokens_register_entry_preimage(entry)`
 returns the text it covers ([database_guards.sql](../../backend/tokens/database_guards.sql)).
-Publication events use the same recipe
-([shareholders/database_guards.sql](../../backend/shareholders/database_guards.sql)): `ballot` and
-`close` under `ledova-publication-event-v1` with uuid, publication, company, sequence, kind, roll
-row, choice, shares as text, actor, staff flag, authority, payload, previous hash and creation time;
-`payment` and `payment_void` under their own tag, `ledova-publication-event-v2`, so ballots already
-on a chain keep their hashes, with paid date, reference, stored evidence path, evidence digest and
-evidence media type inserted after payload. `shareholders_publication_event_hash` and
-`shareholders_publication_event_preimage` are the counterparts.
 
 Reproducing PostgreSQL's JSONB text rendering elsewhere would be its first copy anywhere, so the
-company pack carries the preimage text beside every entry and every publication event except a
-ballot, whose preimage holds the choice. The builder refuses any entry or event whose preimage does
-not digest to its stored hash, so a reader needs only a JSON parser and SHA-256.
+company pack carries the preimage text beside every entry. The builder refuses any entry whose
+preimage does not digest to its stored hash, so a reader needs only a JSON parser and SHA-256.
 
 ### Holdings and identity resolution
 
@@ -164,8 +154,7 @@ reports `initialized: false` and no rows; an opened register with no holdings, `
 (`identities_for`, company-scoped, in bounded address chunks), then the latest resolved allotment
 identity stamp among its wallets, then `RegisterMemberParticulars`; a member at a labelled treasury
 address takes its recorded particulars and stays `treasury` ([the
-rule](../business/register.md#members-holder-types-and-identity)). `member_identities` adds the
-account a member resolves to only when a live identity names one account, for the publication roll.
+rule](../business/register.md#members-holder-types-and-identity)).
 [Amount paid](../business/register.md#amount-paid-and-date-entered) comes from the applied import's
 allotments and `_external_amounts_paid` (an applied AUD allotment whose ISSUE entry and
 company-recorded receipt match its consideration); any other issue records none. Date entered comes
@@ -252,8 +241,8 @@ removal of test data still respects. The API deletes neither a company nor a sha
 class instead. Deleting a wallet cascades its whitelist entry and that entry's company approvals and
 leaves the approval on chain; durable [whitelist commands](chain.md#whitelist-changes) keep their
 own identity. Allotment identity stamps keep the identity resolved at issue, which treasury
-relabelling or a current profile guess must not replace. Company documents and registry-check
-history are application evidence, not membership rows.
+relabelling or a current profile guess must not replace. Activation receipts are application
+evidence, not membership rows.
 
 ## Register commands
 
@@ -274,8 +263,9 @@ different file conflicts. The upload is checked like every upload and kept priva
 the uploader's current preparing appointment, a PDF, PNG or JPEG, and that path. Its `kind` is
 `share_register` or `asic_extract` (an import's optional copies), `authority` (the director
 resolution or court order behind an opening, correction, wallet link, grant, transfer, allotment or
-chain family) or `supporting` (a particulars change, grant terms and acceptance, a transfer
-instrument, an award agreement, a vesting event, an allotment's agreement and receipt). The
+chain family) or `supporting` (grant terms and acceptance, a transfer instrument, an award
+agreement, a vesting event, an allotment's agreement and receipt; particulars changes made before
+the one-step edit keep theirs). The
 `class_rights` kind is a class-wide supporting file and requires a current personal administration
 appointment instead of preparing authority.
 
@@ -292,7 +282,9 @@ Each family prepares with `POST` under its `operation_id`, lists and details the
 companies whose register the caller may read, serves each retained copy as an authenticated
 attachment and takes the shared decision routes (what admin shows of them is in [who runs
 what](../business/register.md#who-runs-what)); the subject of the shared `<subject>_decided` code is
-`correction`, `opening`, `link`, `import`, `change`, `grant`, `transfer` or `allotment`. Beyond the
+`correction`, `opening`, `link`, `import`, `grant`, `transfer` or `allotment`. A particulars change
+is a one-step edit with no decision routes ([particulars changes API](#particulars-changes-api)).
+Beyond the
 shared bindings, each preview digest binds the state named below, and each family adds its own
 requirement codes:
 
@@ -318,9 +310,6 @@ requirement codes:
   import is no longer the latest applied one), and `mirror_correction_activity` and
   `mirror_correction_member_activity` (class or company activity that
   `tokens_mirror_correction_ready` refuses).
-- **Particulars change** (`register-particulars-changes/`): for application, the member's current
-  particulars, date and source. `member_left_retention` (no shares held for the retention period),
-  `newer_particulars_exist` (particulars with a later as-at date).
 - **Grant** (`register-grants/`): the register row, the class's supply and chain fields, the
   recipient's particulars and the supplied company event date; for an award, the award, its vesting events and its
   applied grants. The register-state codes are `imported_non_tokenised_register_required` (no
@@ -424,17 +413,79 @@ non-empty rows keep their complete particulars validation. The unchanged decisio
 one empty OPENING, no member or position, and zero issued supply. First grants, awards and
 allotments then use that applied import; no separate register mode or fabricated holder is added.
 
-Application creates the members, any opening entry and the particulars in one transaction. An
-opening correction keeps the previous snapshot, decisions and opening entry, adds the
-`mirror_correction` entry and records the new particulars.
+Application creates the members, any opening entry and the particulars in one transaction. It
+leaves the particulars of a member with a current association as they are, records everything else,
+and `tokens_validate_mirror_import` accepts those kept particulars in place of the import's, while
+`tokens_guard_register_member_particulars` refuses imported particulars for such a member
+([particulars from Profile](../business/member-records.md#particulars-from-profile)). An opening
+correction keeps the previous snapshot, decisions and opening entry, adds the `mirror_correction`
+entry and records the new particulars.
 
 ### Particulars changes API
 
 What a change does: [changing a member's
-particulars](../business/register.md#changing-a-members-particulars). Preparation trims the fields
-and refuses an empty name, address or reason. Application records the name, address and date as the
-member's particulars with the change as their source; the database writes particulars only while
-applying the import or change that names them.
+particulars](../business/register.md#changing-a-members-particulars). `POST
+register-particulars-changes/` is the whole change. Under its `operation_id` it names the
+`appointment`, the `member`, the new `name` and `residential_address`, an optional `reason`, and
+`expected`: the name and address the editor read, as empty strings when none are recorded. It trims
+the fields and needs the caller's current appointment holding `admin`, or `prepare`, `approve` and
+`apply` (otherwise not found). Under the company lock it answers 409 `register_change_conflict` when
+the recorded name or address no longer equals `expected`, and 400 when it changes neither, while the
+member has a current account link, or for a member past the retention period. It records one
+`applied` change dated today (UTC), with the caller as
+`submitted_by` and `reviewed_by`, and makes it the source of the member's particulars in the same
+transaction. A retry under the same `operation_id` answers 200 with the original record; the same id
+with any difference answers 409. `previous_particulars` reads the replaced name, address and as-at
+date, or null.
+
+A member with a current account link provides their own particulars instead
+([particulars from Profile](../business/member-records.md#particulars-from-profile)). A profile save
+(`PATCH /api/user-profiles/<uuid>/`) runs on the operator connection through `save_profile` in
+[profile.py](../../backend/users/services/profile.py), which marks its transaction
+([profile saves](security.md#requests-and-jobs)). When it gives `full_name` or `residential_address`,
+`follow_profile` in [register_particulars.py](../../backend/tokens/services/register_particulars.py)
+then brings every register the caller currently links up to the profile in the same transaction;
+accepting an invitation does the same for the new link through `apply_profile`. A profile save first
+locks those companies, in company order, and then the person's user row, before `narrow()` locks the
+profile row: the company, person, profile order that register commands and acceptance use, so a save
+waits for them rather than deadlocking, and one that waited behind an account deletion finds the
+person inactive and answers 404. For each link it takes the company lock, keeps any register value
+whose profile field is empty, records nothing when nothing differs, and refuses an address over
+1,000 characters with 400. Otherwise it records one `applied` change dated today (UTC) with
+`member_association` set, no `preparing_appointment`, no reason or evidence, and the member as
+`submitted_by` and `reviewed_by`, then makes it the source of the member's particulars. The change
+reads `provided_by: member`, and company readers see neither the person's account number nor their
+current profile name in it: the API returns its `submittedBy` and `reviewedBy` as null, and the
+company pack its `reviewer`. A check constraint keeps exactly one of `preparing_appointment` and
+`member_association` on every change. Acceptance runs its association's commit check
+(`SET CONSTRAINTS tokens_member_association_commit IMMEDIATE`) before the register follows the
+profile, because that check compares the invitation's snapshot with the particulars the profile then
+replaces. Nothing is sent to the member.
+
+`tokens_guard_register_particulars_change` accepts only those inserts, with no evidence, today's
+date and particulars that differ from the current ones. A company change needs the
+`register_particulars_edit` operation, the caller's current appointment holding `admin`, or
+`prepare`, `approve` and `apply`, and a member without a current association. A member's change needs the
+`member_particulars_profile` operation, no appointment or reason, recorded particulars to replace,
+and the caller's own current association for that company and member; each of its values must be
+the caller's profile value or the one it replaces. The guard fills `previous_particulars` from
+`tokens_register_particulars_snapshot` and refuses every update and delete.
+`tokens_guard_register_member_particulars` writes a change's particulars only under its own
+operation and principal while its `previous_particulars` still equals the member's current snapshot,
+so a change applies once and only over the particulars it recorded as replaced. The service's
+`expected` check under the company lock refuses an edit made over particulars the editor did not
+read, and the form keeps its draft's baseline until the editor loads the current particulars after a
+conflict. At commit, `tokens_check_register_particulars_edit` requires those particulars and the
+editor's authority, or the member's association, to be current. Changes prepared before the one-step
+edit keep their supporting copies, decisions and stages; `tokens_guard_register_particulars_decision`
+refuses every new or changed decision, so one never applied stays `submitted`.
+`tokens/0007_register_follows_profile` adds `member_association`, lets `preparing_appointment` be
+empty and adds the one-source constraint. It replays by name the five functions this changes: the
+three guards `0004` also replays, `tokens_validate_mirror_import` and `users_guard_provider_identity`.
+It then brings each existing current association's register up to the member's profile once, with
+the same rules as a profile save, except that an address longer than 1,000 characters keeps the
+register's: one member change dated that day per register that differs, under the member's own
+principal and the `member_particulars_profile` operation, and nothing where the values already match.
 
 ### Reconciliation acknowledgements API
 
@@ -625,31 +676,46 @@ The unchanged `POST member-invitations/` answers 201 with a one-time `code` (43 
 characters), and a retry 200 without it.
 Invitations and associations are listed to current personal `admin` appointees; `member-records/`
 returns only the caller's own associations, with a `ceasedOn` only within retention, and their entry
-deltas. Certificate fulfilment is under [output routes](#output-routes).
+deltas. The register's member rows carry `follows_profile`, true while the member has a current
+association, without naming the account. Accepting brings the register up to the person's profile
+([particulars changes API](#particulars-changes-api)).
 
-Fresh migrations install the association and the append-only invitation, revocation, certificate
-request and withdrawal records with RLS forced and no application-role grants. Their guards require
-current company administration and one exact recorded member and recipient for an invitation; the
-exact invited recipient, current source and an owned account for acceptance; exact current company
-revocation to end an association; and a genuine uncorrected receiving ISSUE or TRANSFER of the
-associated member for a certificate request. Constraint triggers recheck identity and authority at
-commit. `tokens/0003_remove_member_particulars_requests` drops the members' particulars requests,
-their guards and the change's `member_request` link from existing databases
-([decision](../decisions.md#member-particulars-requests-removed)).
+Fresh migrations install the association and the append-only invitation and revocation records with
+RLS forced and no application-role grants. Their guards require current company administration and
+one exact recorded member and recipient for an invitation; the exact invited recipient, current
+source and an owned account for acceptance; and exact current company revocation to end an
+association. Constraint triggers recheck identity and authority at commit.
+`tokens/0003_remove_member_particulars_requests` drops the members' particulars requests, their
+guards and the change's `member_request` link from existing databases
+([decision](../decisions.md#member-particulars-requests-removed)), and
+`tokens/0005_remove_member_certificate_requests` drops the members' certificate requests,
+withdrawals and fulfilments with their guards, deleting each fulfilment's stored PDF and keeping its
+`certificate` export record ([decision](../decisions.md#member-certificate-requests-removed)).
 
 ### Retained register instructions API
 
 The workflow is in [retained issue
 instructions](../business/register.md#retained-issue-instructions) and [settled-transfer
 instructions](../business/register.md#settled-transfer-instructions). `POST register-instructions/`
-submits the company owner's instruction; reads list those of companies whose register the caller may
-read, and `{uuid}/file/` serves the retained authority file. The schema leaves `items` free-form: an
+submits the company owner's instruction as a bounded company command on the operator connection.
+The owner must be a current administrator of the company (a current personal `admin` appointment,
+with a verified identity where the operator requires it, or the draft setup exception), as
+`require_company_administration` checks; an identical retry returns the retained instruction
+first. `authority_evidence` names an `authority` upload (`POST register-evidence/`) the owner made
+for the company, of which the instruction keeps its own copy, upload snapshot and SHA-256, as
+register commands do. Its database guard refuses any other evidence, a `source_document`, another
+submitter than the company's owner, an owner who is not a current administrator
+(`companies_locked_administration`) and an insert outside that command, and the app role writes no
+instruction. Reads list those of companies whose register the caller may read, and `{uuid}/file/`
+serves the retained authority file. The schema leaves `items` free-form: an
 `issue` item is `{"request": "<uuid>", "recipient": "0x…", "amount": "100"}` and a `transfer` item
 `{"settlement": "<uuid>", "seller": "0x…", "buyer": "0x…", "amount": "25"}`, from the waiting list
 (a waiting transfer's `source` is the settlement, its `wallets` the seller's then the buyer's, its
 `shares` the amount). Staff review in admin rechecks a reviewer-bound, expiring confirmation, the
 retained evidence and every item under the company and share-class locks, then records whatever
-waited for the instruction in one transaction. Instructions are immutable and undeletable; identical
+waited for the instruction in one transaction. An instruction still waiting with a staff-verified
+company document, from before company documents were
+[removed](../decisions.md#company-documents-removed), can only be rejected. Instructions are immutable and undeletable; identical
 submissions and decisions are idempotent, and conflicting UUID reuse is refused.
 
 ### Operator transaction boundary
@@ -711,25 +777,14 @@ locked company operation binding the exact current register-reading appointment 
 output is built; ownership and staff permission supply no output authority. The inspection source
 digest is the SHA-256 of `<class id>/<register sequence>\n` followed by the base CSV bytes; the
 certificate's, of `<class id>/<entry id>/<register sequence>\n` followed by the PDF bytes. A changed
-source refuses with a conflict.
-
-A member's certificate (`member-certificate-requests/{uuid}/fulfilment-preview/`, `fulfil/`,
-`file/`) is filtered to the requesting member before anyone else's particulars are read, uses the
-member's retained company-recorded particulars, and must be one page of at most 1 MiB. Fulfilment
-retains `MemberCertificateFulfilment`: the request, producer, appointment, instruction,
-`certificate` export record, source snapshot and digest (`tokens_member_certificate_source_digest`),
-file digest and size, and the bytes privately. Its guard requires exact current company authority,
-the member's own receiving effect, the captured source and the audited bytes, and refuses rewrites.
-The file route serves `member-certificate-<uuid>.pdf` only when the bytes match the retained size
-and digest, to a current own association or company reader. Notice figures have no API route; staff
-prepare them in admin. The pack route is in [building the pack](#building-and-recording-the-pack).
+source refuses with a conflict. Notice figures have no API route; staff prepare them in admin. The pack route is in [building the pack](#building-and-recording-the-pack).
 
 ### Export records
 
 Ledova keeps a fingerprint, not the file. Each output is recorded in `RegisterExport` once its bytes
 are built, with the requester's id, the class, the kind, the register sequence, the current- and
 former-member row counts, the time and `produced_through`: `company` for the company's pages
-(inspection copies, certificates, member certificates and core packs) or `admin` for platform admin
+(inspection copies, certificates and core packs) or `admin` for platform admin
 (notice figures and packs produced there), blank on records made before the route was stored; a
 refused or failed output records nothing. Check constraints
 require each kind's fields and refuse another kind's:
@@ -748,9 +803,10 @@ require each kind's fields and refuse another kind's:
 
 A trigger refuses every update. The table is operator-only: the app role has no grant, and every
 route that touches it runs on the operator connection. Each output, from a company route, the
-staff register outputs page or either company pack, and each member certificate fulfilment records
-its row there. The register outputs page and the company pack read the existing rows to list the
-certificates and notice figures still owed. Staff query it in admin. The class's Inspection copies
+staff register outputs page or either company pack, records its row there; the rows that members'
+certificate fulfilments recorded before they were removed stay. The register outputs page and the
+company pack read the existing rows to list the certificates and notice figures still owed. Staff
+query it in admin. The class's Inspection copies
 and the company's Company pack pages list, to current register readers and administrators, only
 the inspection copies and packs whose route is `company`
 (`backend/tokens/services/output_history.py`). Its purge is in
@@ -802,7 +858,11 @@ instruction, Recipient, Produced on, and "Produced more than 7 days after the re
 
 `prepare_certificate` reads one entry of the class's own register by its number, from one snapshot,
 and replays holdings from the entries up to and including it ([what a certificate
-shows](../business/member-records.md#what-a-certificate-shows)). PyMuPDF renders each page from
+shows](../business/member-records.md#what-a-certificate-shows)). A page's amount paid and unpaid are
+the allotment's consideration and 0.00 only when `_fully_paid_issues`, which
+`_external_amounts_paid` also reads, returns the entry: an applied AUD allotment with its exact
+Issue entry, whose company-recorded receipt equals its consideration. Every other page prints Not
+recorded for both. PyMuPDF renders each page from
 [share_certificate.html](../../backend/tokens/templates/tokens/share_certificate.html), escaping
 every value and embedding the glyphs non-Latin names need; it is imported only when a certificate is
 rendered ([legal position 12](../legal/positions.md#12-pymupdf-an-agpl-runtime-dependency)). Fonts
@@ -829,9 +889,11 @@ has four sections, each after a heading row:
 Unknown company dates read `not recorded`; their retained ledger dates remain the period selector,
 not an inferred legal-event date. The report does not reconstruct missing history.
 
-An issue's amount paid is the money backing of the issuance it recorded and a member's the
-register's own; either reads the literal `not recorded` where not established exactly ([what the
-figures contain](../business/member-records.md#what-the-figures-contain)).
+An issue row's amount paid is the consideration of the fully paid external allotment that recorded
+it, when `_fully_paid_issues` returns its entry, even after a correction reverses it; any other
+issue row reads the literal `not recorded`. A member's amount paid is the register's own and reads
+`not recorded` where not established exactly ([what the figures
+contain](../business/member-records.md#what-the-figures-contain)).
 
 ### Outputs due computation
 
@@ -869,7 +931,7 @@ One builder, `_build_company_pack` in
 and the staff row action on **Company packs**, a `Company` proxy that only creates permissions
 (`produce_company_pack`, from [companies/admin/pack.py](../../backend/companies/admin/pack.py), the
 broader retained scope, needing `companies.change_companypack` and
-`companies.view_companydocument`).
+`companies.view_companypack`).
 
 The company route must run outside an existing transaction. It binds the exact current `admin`
 appointment in one durable transaction, builds the pack, then in a second rechecks the appointment,
@@ -896,8 +958,8 @@ The pack is a zip written by Python's `zipfile`, in path order with `manifest.js
 its digests are known only once every stored file has been streamed. Each entry is deflated, dated
 1980-01-01 00:00 and mode 0644, so the same records, files, request and time give the same bytes.
 `manifest.json` names the format `ledova-company-pack` and version `1`, the company, the snapshot's
-as-at time, the instruction and recipient, each class's and publication's head, and every other
-file's path, size and SHA-256, so the recorded digest of `manifest.json` fixes every file even when
+as-at time, the instruction and recipient, each class's head, and every other file's path, size
+and SHA-256, so the recorded digest of `manifest.json` fixes every file even when
 they are zipped again. The file list is open: adding a file keeps the version, and changing what an
 existing file means changes it.
 
@@ -915,9 +977,8 @@ table column, link or tag. Values Ledova produces are left as they are, and the 
 ### Pack files
 
 - `README.md`, `manifest.json`, `company.json`, `approvals.json`, `wallet_links.json`,
-  `particulars_changes.json`, `documents.json` and `company_mandates.json` ([decision
+  `particulars_changes.json` and `company_mandates.json` ([decision
   records](#company-decision-records)).
-- `documents/<document id>.<extension>`: each company document Ledova holds a file for, as uploaded.
 - `documents/evidence/<record kind>/<record id>.<extension>`: the retained copy behind each
   authority or decision record; `documents/evidence/<record kind>-<source>/<record id>.<extension>`
   a record's second source (an import's `asic` extract, a grant's or chain grant's `terms` and
@@ -932,9 +993,6 @@ table column, link or tag. Values Ledova produces are left as they are, and the 
   `<Name>.json`, the interfaces of `ShareToken`, `WhitelistRegistry`, `ShareTokenFactory`
   and `AtomicSwap` committed under [backend/contracts/](../../backend/contracts/ShareToken.json),
   never a local `artifacts/` build from `contracts/`.
-- `publications/<publication id>/`: `publication.json`, `roll.json`, `events.json`,
-  `document.<extension>` and `payments/<record id>.<extension>` ([publications in the
-  pack](#publications-in-the-pack)).
 
 The record kind in an evidence path is the lowercase model name (`registeropening`,
 `registerimport`, `registercorrection`, `registerinstruction`, `registerwalletlink`,
@@ -959,11 +1017,13 @@ facts `awards`, `vestings`, `award_ends`, `vesting_reversals`, `agreements` and 
 `appointments` any of them used. A decision record carries its company and class, preparer and
 `prepared_at`, `status`, `approval_decision`, reviewer, `reviewed_at` and `rejection_reason`;
 `decisions` (each with kind, appointment, decider, time, digest and reason); `sources` (each with
-the upload id as `evidence`, `company_document`, fingerprint, `sha256`, name, `mime_type`, size and
-evidence `path`); `command` (authority, approving director, authority reference, reason and the
+the upload id as `evidence` or, for a record made before company documents were removed, the
+`company_document` it relied on, which Ledova no longer holds; fingerprint, `sha256`, name,
+`mime_type`, size and evidence `path`); `command` (authority, approving director, authority reference, reason and the
 family's own terms); and `result` (the register entry, request or executions it produced). Its
-`provided_by` is `company`, or `legacy_staff_workflow` when no preparing appointment exists. An
-appointment carries its appointee's name, capabilities, delegable capabilities, creation, expiry,
+`provided_by` is `company`, or `legacy_staff_workflow` when no preparing appointment exists; a
+particulars change a linked member made in their profile is not a company decision and is left out.
+An appointment carries its appointee's name, capabilities, delegable capabilities, creation, expiry,
 source (request, invitation, legacy owner, declaration version and text) and any revocation. A fact
 carries `recorded_at`, `recorded_by_name`, its preparing appointment, `sources` and `data`, with
 `provided_by: company`; an award states `is_entitlement: true`, and a contribution
@@ -989,7 +1049,10 @@ carries it: on the operator connection no policy narrows a read, so those joins 
 tenancy guard. An opening, import, correction or wallet link carries `provided_by` (`company`, or
 `staff_verified` for one made before the family was company-run). A company-run record's `evidence`
 names no company document: its copy is of the company's own upload, and its `document_type` is the
-upload's kind. `approvals.json`'s `listed` is computed at the as-at time as the registry would, so
+upload's kind. A particulars change carries `previous_particulars`, the database's snapshot of the
+member's particulars it replaced (null where none were recorded, and for a change made before the
+one-step edit, whose `evidence` names its supporting copy instead), and `provided_by` `company` or,
+for a change a linked member made in their profile, `member`. `approvals.json`'s `listed` is computed at the as-at time as the registry would, so
 an active approval past its expiry is not listed, and `contracts.json` takes its registry addresses
 from it. `retain_until` is `FORMER_MEMBER_RETENTION_MONTHS` (84) after the member ceased
 ([s169(3)](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years)).
@@ -1025,34 +1088,21 @@ README section 5 lists as unresolved a class `deploying`, its swap approval `pen
 
 ### Documents and evidence copies
 
-[company_pack_documents.py](../../backend/tokens/services/company_pack_documents.py) builds
-`documents.json` and chooses the stored files, all under `companies/<company id>/` ([private
-files](security.md#private-files)).
+[company_pack_documents.py](../../backend/tokens/services/company_pack_documents.py) chooses the
+stored files, all under `companies/<company id>/` ([private files](security.md#private-files)).
 
 - The history files' evidence copies come from the objects those files list, and `retained_sources`
   adds the decision records' copies from the same snapshot; a copy both name, such as a register
   instruction's authority copy, is one archive entry.
-- While streaming an evidence copy the builder computes its size and SHA-256 and refuses the pack,
-  naming the record, unless they are those its snapshot recorded. A publication document and
-  remittance evidence are tied the same way to the SHA-256 recorded when each was stored. A company
-  document has no recorded digest, so only the manifest fixes its bytes.
-- Before writing, the builder sums the stored files, a company document by its recorded `file_size`
-  and everything else by the size storage reports. Above `COMPANY_PACK_MAX_STORED_BYTES`, 256 MiB in
+- While streaming a stored file the builder computes its size and SHA-256 and refuses the pack,
+  naming the record, unless they are those its snapshot recorded.
+- Before writing, the builder sums the stored files, a member or class document by the size its
+  snapshot recorded and everything else by the size storage reports. Above `COMPANY_PACK_MAX_STORED_BYTES`, 256 MiB in
   [constants.py](../../backend/tokens/constants.py), it refuses, naming the total, the ceiling and
   the next step: background production, built the first time a real pack exceeds it.
 - A missing or unreadable file refuses the pack, naming the record, whether it fails when its size
   is read, when opened or part-way through reading, for local files, Google Cloud Storage and S3
   alike, so it never surfaces as a server error.
-
-### Publications in the pack
-
-[company_pack_publications.py](../../backend/tokens/services/company_pack_publications.py) builds a
-folder for each publication of the company, oldest first, reading `Publication` by the company and
-everything else through the publication. Before carrying a roll, without its account ids, the
-builder runs `verify_roll` and refuses, naming the publication and `publications verify`, if the row
-count or digest no longer match. A ballot is withheld to its sequence, kind, hashes and `withheld:
-true`; every other event is carried with its preimage. `reads` is counted in one grouped query over
-`PublicationRead`.
 
 ### Technical limits of the pack
 
@@ -1064,208 +1114,8 @@ as history.
 - A swap approval observed already in place, a legacy settlement with no transaction record and a
   legacy mint journal are not exercised; a pause observed already in place is carried with its block
   and no operation.
-- The ceiling counts a company document by its recorded size, which staff can edit; uploads are
-  bounded at 10 MiB each (`UPLOAD_MAX_BYTES` by default), so the error is bounded by the number of
-  documents.
 - Production near the ceiling has not been measured; a proxy in front of the backend could time out
   a large download.
-
-## Publications
-
-What a company publishes, who may read it and how ballots and dividends work: [shareholder
-publications](../business/publications.md); why they work this way:
-[decisions](../decisions.md#shareholder-publications). The services are
-[publications.py](../../backend/shareholders/services/publications.py),
-[roll.py](../../backend/shareholders/services/roll.py), `resolutions.py`, `distributions.py` and
-`summary.py`; the guards are in
-[shareholders/database_guards.sql](../../backend/shareholders/database_guards.sql).
-
-### Publication storage
-
-One `Publication` table holds every kind (`holding_statement`, `meeting_notice`, `resolution`,
-`distribution`). The columns every kind needs (company, class, record date, instruction, authority,
-snapshot head) sit on the row, and per-kind check constraints add the rest: the document kinds carry
-stored bytes and a digest, a resolution its question, kind, basis and window, a distribution its
-rate, currency, dates and totals. A new kind joins the same table and names itself in the
-constraints it needs. Unlike a register output, the document is stored, through the ordinary upload
-pipeline at `companies/<company>/publications/<uuid>/<uuid>.bin` with the SHA-256 and media type of
-what was stored, so it serves the same bytes after the register moves on.
-
-The insert guard `shareholders_guard_publication` requires a class on chain (deployed or paused,
-with a contract address), the class's opened register at the publication's sequence and head hash,
-an authority that is a verified document of the same company whose `verified_fingerprint` equals the
-one the publication copied, and the storage path. `publish_to_members` refuses any other class with
-that reason before storing anything. The guard refuses every update, and the application role cannot
-delete: only the retention purge does.
-
-### Frozen roll and frozen names
-
-When a publication is made, one transaction locks the class's register, replays every entry
-effective on or before the record date (`holdings_at`) and writes one `PublicationRecipient` row for
-each member holding shares then: register member, resolved account, name, holder type, identity
-source and shares, ordered by shares then member. `member_rows` and `audience_digest` are recorded
-on the publication; the digest is the SHA-256 of `json.dumps(rows, sort_keys=True, separators=(",",
-":"))`, the rows sorted by member id and each `{"member", "user", "name", "holder_type",
-"identity_source", "shares"}` with shares as a string. A row's account comes from
-`member_identities`, never from joining a wallet address ([why](security.md#policy-catalogue)); the
-policy reads the stored account column alone.
-
-The publication also stores the company name and the class's name and symbol as they were: a pause
-moves the class out of the member's read terms on companies and classes, so a serializer reaching
-the names through `select_related` would INNER JOIN the non-nullable foreign key and drop the
-publication from the listing. Storing them avoids widening a policy, and a company term reading the
-roll back would be a recursion PostgreSQL refuses. The roll guard refuses changes, a row whose
-company differs from its publication's, a row naming a nonexistent account, and an entitlement that
-is wrong or on a non-distribution row.
-
-### Publication policies and read audit
-
-Both tables are read-only to the application role. The publication's read term is the company that
-made it or a roll row naming this principal; the roll row's term is the principal it names or the
-publishing company, on the row's own copied company column, so the two policies do not read each
-other in a circle. On the event chain, a member reads their own ballots and payment records through
-the roll row each names, and the close of a resolution they are on the roll of; the company reads
-the close and its payment records on the event's copied company, and no ballot. Staff read in admin
-on the operator connection; there is no staff API route.
-
-Each delivery writes an append-only `PublicationRead` on the operator connection, naming the reader,
-publication, roll row where there is one, `event_uuid` for remittance evidence, and whether the
-reader was the member, the company or staff; it carries no name, holding or file content and has no
-admin mutation path. The stored file is opened first and the read recorded second, so a record
-always names a file that could be served: a file that cannot be opened answers 503
-`publication_unopened` and records nothing, and a read that cannot be recorded answers 503
-`publication_read_unrecorded` and serves nothing, as [document reads](security.md#read-audit) do.
-Staff open a document or remittance evidence through `admin_file_path` routes in the publication
-admin.
-
-### The publications route
-
-[`PublicationViewSet`](../../backend/shareholders/views/publication.py) at `/api/v1/publications/`
-has a list, `summary/`, `{uuid}/file/` and `{uuid}/ballot/`, and no retrieve route: the listing
-carries everything a member is shown. The list and file actions run on the operator connection:
-`for_reader` admits the company's owner or a reader a roll row names, then `seen_by` adds the
-per-caller fields, so a paused class keeps its publications readable. The summary and ballot run on
-the application role under the policies. The file route calls `read_publication`, which resolves the
-reader as member, company or staff and audits the delivery as one act; a foreign or nonexistent uuid
-answers the same 404.
-
-`kind` must be one of the four kinds, `addressed=me` keeps publications whose roll names the caller,
-and `issuer` must be a company the caller owns (`Company.objects.owned_by`); any other value is a
-400 naming the parameter, and `issuer` with `addressed=me` takes the intersection. Filters apply to
-the list action only: DRF would otherwise apply them in `get_object`, which the ballot route reaches
-after recording the ballot, so a cast with `?kind=distribution` would record an irrevocable ballot
-and answer 404.
-
-The per-caller fields are correlated subqueries naming the caller's account, so a company owner not
-on the roll gets them null rather than losing the publication, and the query count does not grow
-with the page. `ballotOutstanding` is true while any of the caller's roll rows has no ballot; one
-account can be on a roll through two register members, so clients offer a ballot on it, not on an
-empty `myBallot`. `myEntitlement` sums the caller's rows, `myRecordedEntitlement` those with a
-standing payment record (0.00 when none), and `myPaymentRecord` is the latest standing record. The
-declared total and remainder are not in the listing, and no field name says a payment was made.
-
-Both clients read it through `@ledova/shared` (`getPublications`, `openPublication`,
-`downloadPublication`, and `publicationFilename`, which names the `.bin` stored object from the type
-served). `useResolutionStatus` keeps one timer for the next opening or close, capped at the longest
-delay a timer holds and re-armed, so an open page offers or withdraws the ballot without reloading.
-The member's notices read the listing with `addressed=me`, and the company's [Published
-page](../business/publications.md#the-published-page) reads an owned company's publications with
-`issuer`.
-
-### The summary
-
-`summarise_for` answers `openResolutions`, `nextClosesAt` and `dividendsWithoutRecord` ([what
-waits](../business/publications.md#the-notices-page)) in one aggregate query over the publications
-the policies admit, counting only the caller's own roll rows by account. Under the row policies,
-those policies are a second wall under the account filter for a member; for an owner on its own roll
-they admit every row, so the filter is the only wall. The listing runs on the operator connection,
-so its per-caller fields rely on the account filter in `seen_by` alone.
-
-### Announcements
-
-When the roll commits, `tell_the_members` is deferred once. It reads the roll on the operator
-connection and defers one `general` push notification for each distinct account on it ([how members
-are told](../business/publications.md#how-members-are-told)). Its data is `type: "publication"`,
-`event: "published"`, the publication id and kind, and its title and body name the company and
-class. Both clients turn it into a jump to the publications page, where the member's read goes
-through the route above.
-
-### Event chain
-
-Ballots, the close and payment records are `PublicationEvent` rows, one chain per publication, each
-copying its publication's company. The `BEFORE INSERT` trigger
-`shareholders_guard_publication_event`:
-
-- locks the publication `FOR UPDATE`, serialising its inserts, allocates the next `sequence` and
-  takes the previous event's hash (64 zeros for the first);
-- admits `ballot` and `close` only on a resolution and `payment` and `payment_void` only on a
-  distribution, each under its own company;
-- admits a ballot only while the window is open and before any close, for a row on this roll, with
-  `shares` copied from the row whatever the caller sent and no payload; a ballot not entered by
-  staff must name as actor the account the row names, so a row with no account cannot cast one, and
-  a staff-entered ballot needs an active staff actor and a non-blank authority;
-- admits a close once, only after the window has passed, writing its `payload` from the ballots:
-  shares and members for, against and abstaining, shares and members eligible, the basis, the
-  resolution kind and `carried` (ordinary: for > against; special: votes cast > 0 and 4 × for ≥ 3 ×
-  (for + against));
-- admits a `payment` only from an active staff actor, for a row owed at least a cent whose latest
-  record is not a standing payment, with evidence stored at
-  `companies/<company>/publications/<publication>/payments/<event>/<uuid>.bin` with its SHA-256 and
-  the type the upload validator found, and a `payment_void` only for a row whose latest record is a
-  payment;
-- sets `entry_hash` with `shareholders_publication_event_hash` ([hash preimages](#hash-preimages)).
-
-The trigger refuses every update and refuses deletion by the application role. Unique indexes hold
-one event per sequence, one ballot per roll row and one close per resolution, so a second ballot is
-refused even by a writer who disabled the trigger.
-
-### Ballots and closing
-
-`cast_ballot` resolves the resolution and the caller's own roll row on the calling connection under
-the policies, so a caller with no roll row, a company owner included, gets the same 404 as a
-resolution that does not exist and nothing is written. Only the insert runs on the operator
-connection, and the trigger's actor check keeps the guarantee in the database. A resolution not open
-yet, a closed one, a second ballot and an unknown choice are 400s that say which. The route has its
-own `ballot` throttle scope, 10 a minute per user ([casting a
-ballot](../business/publications.md#casting-a-ballot)).
-
-`close_resolutions_past_their_window` ([schedule](../operations/jobs-and-storage.md#schedule))
-closes each resolution whose window has passed and has no close. Two runs at once close it once: the
-second waits on the publication lock, finds the close and returns it ([closing a
-resolution](../business/publications.md#closing-a-resolution)).
-
-### Distribution arithmetic and payment records
-
-Each roll row stores its `entitlement` and the publication its `undistributed` remainder; there is
-no entitlement table ([the
-arithmetic](../business/publications.md#entitlements-and-the-undistributed-remainder)). The roll
-guard refuses a row whose entitlement is not its shares times the rate rounded down, and any other
-kind's row that carries one. Because the publication row is inserted before its roll, the deferred
-constraint trigger `shareholders_distribution_adds_up` runs at commit and refuses a distribution
-whose declared total is not the roll's shares times the rate rounded down, or whose entitlements and
-remainder do not add up to it. A payment record is a `payment` event and its withdrawal a
-`payment_void` with a reason ([payment records](../business/publications.md#payment-records)).
-
-### Publication retention
-
-The [publication purge](security.md#retention-clocks) deletes the event chain before the roll it
-points at. Removing a publication or payment row deletes its stored bytes through the ordinary
-private-file lifecycle receiver, under the swept `companies/` prefix.
-
-### Verifying publications
-
-`verify_publication` replays a chain on the operator connection and raises
-`PublicationIntegrityError` on a sequence gap, a broken previous-hash link, a stored hash that
-differs from the one recomputed in SQL ([hash preimages](#hash-preimages)), an event under another
-company, or an event of a kind the publication does not take. For a resolution it also refuses a
-ballot whose member or shares differ from the roll, a ballot not entered by staff whose actor is not
-the row's account, two ballots for one member, an event after the close, and a close whose tally
-differs from the tally recomputed in Python. For a distribution it also refuses a payment record for
-a row it does not owe, a second standing record for one row, a withdrawal with nothing to withdraw,
-an entitlement that is not shares times rate rounded down, and a declared total or remainder that
-disagrees with the roll. The cross-checks catch a forger who rewrote a row and recomputed its hash.
-`verify_roll` checks the roll's row count and digest. The `publications verify` command runs both
-([verifying stored records](../operations/recovery.md#verifying-stored-records)).
 
 ## Account-data export
 
@@ -1285,8 +1135,7 @@ bound to the session current when the export was requested and hands it to the s
 The document is `AccountExportData` in the schema: `exportedAt`, `user`, `profile`,
 `financialProfile`, `account`, `wallets`, `transactions` (every transaction of the account's
 wallets) and `portfolios`; a section with no row is `null`, or an empty list. Not in it:
-classification claims and their evidence, uploaded documents, per-asset holdings, orders,
-notifications, the transaction-alerts switch and register particulars.
+per-asset holdings, orders, notifications, the transaction-alerts switch and register particulars.
 
 ### Transaction evidence fields
 
@@ -1330,5 +1179,5 @@ carry other people's particulars and are recorded ([export records](#export-reco
   configured now.
 
 Next: [the register of members](../business/register.md), [member
-records](../business/member-records.md), [shareholder publications](../business/publications.md) and
+records](../business/member-records.md) and
 [verifying stored records](../operations/recovery.md#verifying-stored-records).

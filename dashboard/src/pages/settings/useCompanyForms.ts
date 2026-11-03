@@ -70,7 +70,6 @@ export function useEditCompanyForm(props: FormProps) {
       guard(target.uuid);
       if (
         result.data.uuid !== target.uuid ||
-        !Array.isArray(result.data.documents) ||
         Object.entries(changes).some(([key, value]) => result.data[key as keyof typeof result.data] !== value)
       )
         throw createUserFriendlyError('The company changes could not be confirmed. Refresh before retrying.');

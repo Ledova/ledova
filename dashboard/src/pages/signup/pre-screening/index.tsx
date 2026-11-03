@@ -72,8 +72,7 @@ export default function SignupPreScreening() {
     {
       key: 'acknowledgedWholesaleOnly' as const,
       label: 'I understand share offerings here are wholesale only',
-      description:
-        'Offers are made without a disclosure document to wholesale and sophisticated investors. You will need to evidence that status before you can subscribe.',
+      description: 'Offers are made without a disclosure document to wholesale and sophisticated investors.',
       checked: acknowledgedWholesaleOnly,
       onChange: () => toggleWholesaleOnly(),
     },

@@ -8,6 +8,8 @@ from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
 from django.utils import timezone
+from eth_account import Account
+from eth_account.messages import encode_defunct
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APIClient, APITransactionTestCase
 
@@ -15,11 +17,12 @@ from companies.models import (
     Company,
     CompanyAppointment,
     CompanyCapability,
-    CompanyDocument,
     CompanySignupTermsAcceptance,
+    CompanyStatus,
 )
 from companies.services import transition_company
 from companies.services.authority import (
+    DECLARATION_TEXT,
     DECLARATION_VERSION,
     SIGNUP_DECLARATION_TEXT,
     SIGNUP_DECLARATION_VERSION,
@@ -34,11 +37,12 @@ from shared.db import atomic, use_migrate, use_operator
 from shared.tests.core_fixtures import (
     PASSWORD,
     CoreFixtures,
-    matching_observation,
     pdf_bytes,
     person,
 )
 from tokens.models import (
+    RegisterEvidence,
+    RegisterEvidenceKind,
     RegisterExport,
     RegisterGrant,
     RegisterGrantDecision,
@@ -53,7 +57,9 @@ from tokens.services.holder_identity import identity_at_allotment
 from tokens.services.register import MEMBER_AMBIGUOUS, _member_identity
 from tokens.services.register_events import record_entry
 from tokens.services.register_transfers import _apply as apply_register_transfer
-from users.models import FinancialProfile, UserAccount
+from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_SUSPENDED
+from users.models import FinancialProfile, UserAccount, UserProfile
+from users.models.user_account import AccountRole
 from users.services.setup import ensure_defaults
 from wallets.models import Wallet
 from whitelist.models import WhitelistEntry
@@ -277,11 +283,9 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         missing = self.client.get(f"/api/v1/company-authority/requests/{response.json()['uuid']}/file/")
         self.assertEqual(missing.status_code, 404, missing.content)
         declaration = {"declaration_version": SIGNUP_DECLARATION_VERSION, "accept_declaration": True}
-        with patch("companies.services.registry.lookup_company") as lookup:
-            admitted = self.client.post(
-                f"/api/v1/company-authority/requests/{response.json()['uuid']}/admit/", declaration, format="json"
-            )
-            lookup.assert_not_called()
+        admitted = self.client.post(
+            f"/api/v1/company-authority/requests/{response.json()['uuid']}/admit/", declaration, format="json"
+        )
         self.assertEqual(admitted.status_code, 200, admitted.content)
         appointment = admitted.json()["appointment"]["uuid"]
         self.assertEqual(admitted.json()["appointment"]["declarationText"], SIGNUP_DECLARATION_TEXT)
@@ -292,28 +296,32 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(accepted_terms.status_code, 200, accepted_terms.content)
         self.assertEqual(accepted_terms.json()["signupTerms"]["declarationText"], SIGNUP_DECLARATION_TEXT)
         self.assertEqual(CompanySignupTermsAcceptance.objects.count(), 0)
-        with patch("companies.services.registry.lookup_company", return_value=matching_observation(company)):
-            activated = self.client.post(
-                f"/api/v1/companies/{company.pk}/activate/",
-                {
-                    "declaration_version": DECLARATION_VERSION,
-                    "accept_declaration": True,
-                    "appointment": appointment,
-                    "idempotency_key": str(uuid4()),
-                    "lifecycle_revision": company.lifecycle_revision,
-                },
-                format="json",
-            )
+        activation = {
+            "declaration_version": DECLARATION_VERSION,
+            "accept_declaration": True,
+            "appointment": appointment,
+            "idempotency_key": str(uuid4()),
+            "lifecycle_revision": company.lifecycle_revision,
+        }
+        activated = self.client.post(f"/api/v1/companies/{company.pk}/activate/", activation, format="json")
+        retried = self.client.post(f"/api/v1/companies/{company.pk}/activate/", activation, format="json")
         self.assertEqual(activated.status_code, 200, activated.content)
+        self.assertEqual(retried.json()["receipt"], activated.json()["receipt"])
+        self.assertEqual(
+            (activated.json()["receipt"]["appointment"], activated.json()["receipt"]["declarationText"]),
+            (appointment, DECLARATION_TEXT),
+        )
         company.refresh_from_db()
         self.assertEqual(company.status, "active")
         self.assertEqual(CompanyAppointment.objects.get(pk=appointment).appointee_id, user.pk)
         with patch("shared.upload_limits.reserve_request") as reserve:
             uploaded = self.client.post(
-                f"/api/v1/companies/{company.pk}/documents/",
+                "/api/v1/tokens/register-evidence/",
                 {
-                    "document_type": "other",
-                    "name": "Company authority document",
+                    "company_id": str(company.pk),
+                    "appointment": appointment,
+                    "kind": RegisterEvidenceKind.AUTHORITY,
+                    "idempotency_key": str(uuid4()),
                     "file": SimpleUploadedFile("authority.pdf", pdf_bytes(), content_type="application/pdf"),
                 },
                 format="multipart",
@@ -321,7 +329,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             reserve.assert_called_once_with(user.pk)
         self.assertEqual(uploaded.status_code, 201, uploaded.content)
         self.scanner.assert_called_once()
-        self.assertEqual(CompanyDocument.objects.get(pk=uploaded.json()["uuid"]).company_id, company.pk)
+        self.assertEqual(RegisterEvidence.objects.get(pk=uploaded.json()["uuid"]).company_id, company.pk)
         invited = self.client.post(
             "/api/v1/company-authority/invitations/",
             {
@@ -335,7 +343,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         )
         self.assertEqual(invited.status_code, 201, invited.content)
 
-    def test_a_member_without_a_full_name_is_never_named_by_email(self):
+    def test_a_member_is_never_named_by_email_and_a_company_never_learns_why_its_nominee_lapsed(self):
         holder, profile = person("core-unnamed")
         address, named_address = "0x" + "ab" * 20, "0x" + "cd" * 20
         with use_migrate():
@@ -362,6 +370,64 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertFalse(stamped)
         self.assertNotIn(holder.email, (identity.name, stamped.name))
         self.assertEqual(shared, MEMBER_AMBIGUOUS)
+
+        nominee, nominee_profile = person("core-nominee")
+        signer = Account.create()
+        account = UserAccount.objects.filter(user_profile=nominee_profile)
+        with use_migrate():
+            Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.ACTIVE)
+            account.update(account_status=ACCOUNT_STATUS_ACTIVE)
+        self.client.force_authenticate(nominee)
+        wallet = self.client.post(
+            "/api/wallets/", {"name": "Synthetic", "address": signer.address, "chain": "base"}, format="json"
+        ).json()["uuid"]
+        challenge = self.client.post(f"/api/wallets/{wallet}/request-verification/").json()["challenge"]
+        signature = signer.sign_message(encode_defunct(text=challenge)).signature.to_0x_hex()
+        verified = self.client.post(f"/api/wallets/{wallet}/verify-signature/", {"signature": signature}, format="json")
+        self.assertEqual(verified.status_code, 200, verified.content)
+        terms = {"company": str(self.company.pk), "wallet": wallet}
+        preview = self.client.post("/api/v1/whitelist/wallet-nominations/preview/", terms, format="json")
+        nominated = self.client.post(
+            "/api/v1/whitelist/wallet-nominations/",
+            {
+                **terms,
+                "operation_id": str(uuid4()),
+                "preview_digest": preview.json()["previewDigest"],
+                "sharing_accepted": True,
+            },
+            format="json",
+        )
+        self.assertEqual(nominated.status_code, 201, nominated.content)
+
+        def readiness():
+            self.client.force_authenticate(self.owner)
+            listed = self.client.get("/api/v1/whitelist/company-wallet-nominations/", {"company": str(self.company.pk)})
+            self.client.force_authenticate(nominee)
+            own = self.client.post("/api/v1/whitelist/wallet-nominations/preview/", terms, format="json")
+            return [row["unmetRequirements"] for row in listed.json()["results"]], own.json()["unmetRequirements"]
+
+        self.assertEqual(readiness(), ([[]], []))
+        profile = UserProfile.objects.filter(pk=nominee_profile.pk)
+        for reason, rows, lapsed, restored in (
+            ("participant_identity_required", profile, {"is_id_verified": False}, {"is_id_verified": True}),
+            (
+                "participant_account_inactive",
+                account,
+                {"account_status": ACCOUNT_STATUS_SUSPENDED},
+                {"account_status": ACCOUNT_STATUS_ACTIVE},
+            ),
+            (
+                "participant_investor_account_required",
+                account,
+                {"role": AccountRole.COMPANY},
+                {"role": AccountRole.INVESTOR},
+            ),
+        ):
+            with use_migrate():
+                rows.update(**lapsed)
+            self.assertEqual(readiness(), ([["participant_not_current"]], [reason]), reason)
+            with use_migrate():
+                rows.update(**restored)
 
     def test_company_status_changes_need_the_staff_change_permission(self):
         staff, _ = person("core-staff")

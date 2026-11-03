@@ -141,7 +141,6 @@ BEGIN
             'user_id', actor.id, 'profile_uuid', representative.uuid::text,
             'email', actor.email, 'full_name', COALESCE(representative.full_name, ''))
         OR COALESCE(requires_identity, false) AND NOT representative.is_id_verified
-        OR NEW.registry_check_id IS NOT NULL
     THEN
         RAISE EXCEPTION 'Initial company authority requires the exact current declaration and requester'
             USING ERRCODE = '23514';

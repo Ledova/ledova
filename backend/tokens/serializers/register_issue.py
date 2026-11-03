@@ -64,7 +64,6 @@ class RegisterIssueWalletSnapshotSerializer(serializers.Serializer):
     chain_id = serializers.IntegerField()
     expires_at = serializers.DateTimeField()
     proof_completed_at = serializers.DateTimeField()
-    eligibility_expires_at = serializers.DateTimeField()
 
 
 class RegisterIssueRegisterSnapshotSerializer(serializers.Serializer):

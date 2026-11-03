@@ -1,35 +1,21 @@
-import { Field, TextArea, TextInput, FileField } from '@components/Field';
+import { useEffect, useRef } from 'react';
+import { Field, TextArea, TextInput } from '@components/Field';
 import { FIELD_LIMITS } from '@ledova/shared';
-import { useParticularsPreparation, type ParticularsFormProps, COPY } from './useParticularsPreparation';
+import { useParticularsEdit, type ParticularsFormProps, COPY } from './useParticularsEdit';
 
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { Failure } from '@components/Ledger';
 
-export function ParticularsForm({
-  owner,
-  guard,
-  company,
-  member,
-  appointment,
-  current,
-  blocked,
-  onConflict,
-  onMissing,
-}: ParticularsFormProps) {
-  const { today, draft, busy, error, update, problems, submit } = useParticularsPreparation({
-    owner,
-    guard,
-    company,
-    member,
-    appointment,
-    current,
-    blocked,
-    onConflict,
-    onMissing,
-  });
+export function ParticularsForm(props: ParticularsFormProps) {
+  const { draft, busy, error, conflict, update, reload, problems, submit } = useParticularsEdit(props);
   const checks = useErrorSummary(problems);
+  const reloadAction = useRef<HTMLButtonElement>(null);
+  const nameField = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (conflict) reloadAction.current?.focus();
+  }, [conflict]);
 
   return (
     <form
@@ -41,23 +27,16 @@ export function ParticularsForm({
       }}
     >
       <ErrorSummary {...checks.summary} />
-      <fieldset disabled={busy} className="grid gap-4 sm:grid-cols-2">
+      <fieldset disabled={busy} className="grid gap-4">
         <Field {...checks.field('name')} label={COPY.NAME}>
           <TextInput
+            ref={nameField}
             value={draft.name}
             maxLength={FIELD_LIMITS.NAME}
             onChange={(event) => update({ name: event.target.value })}
           />
         </Field>
-        <Field {...checks.field('asAt')} label={COPY.AS_AT} hint={COPY.AS_AT_NOTE}>
-          <TextInput
-            type="date"
-            max={today}
-            value={draft.asAt}
-            onChange={(event) => update({ asAt: event.target.value })}
-          />
-        </Field>
-        <Field {...checks.field('address')} label={COPY.RESIDENTIAL_ADDRESS} className="sm:col-span-2">
+        <Field {...checks.field('address')} label={COPY.RESIDENTIAL_ADDRESS}>
           <TextArea
             rows={3}
             value={draft.address}
@@ -65,15 +44,7 @@ export function ParticularsForm({
             onChange={(event) => update({ address: event.target.value })}
           />
         </Field>
-        <div className="sm:col-span-2">
-          <FileField
-            {...checks.field('file')}
-            label={COPY.SUPPORTING_DOCUMENT}
-            hint={COPY.SUPPORTING_DOCUMENT_NOTE}
-            onFile={(file) => update({ file })}
-          />
-        </div>
-        <Field {...checks.field('reason')} label={COPY.REASON} className="sm:col-span-2">
+        <Field label={COPY.REASON} optional hint={COPY.REASON_NOTE}>
           <TextArea
             rows={3}
             value={draft.reason}
@@ -84,13 +55,23 @@ export function ParticularsForm({
       </fieldset>
       <Failure>{error}</Failure>
       <FormActions>
+        {conflict && (
+          <PageAction
+            ref={reloadAction}
+            label={COPY.RELOAD}
+            onClick={() => {
+              reload();
+              nameField.current?.focus();
+            }}
+          />
+        )}
         <PageAction
           type="submit"
           primary
           label={COPY.SUBMIT}
           busy={busy}
-          busyLabel="Preparing change…"
-          disabled={blocked}
+          busyLabel="Saving change…"
+          disabled={props.blocked || conflict}
         />
       </FormActions>
     </form>

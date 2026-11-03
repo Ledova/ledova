@@ -27,18 +27,18 @@ modules re-exported by `settings/__init__.py`.
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `operators`      | The single `Operator` configuration row, `GET /api/operator/` (that configuration, read by signed-in clients), and the operator console: `worklist()` and `configuration_health()` rendered by `OperatorAdmin.changelist_view`                                                                              |
 | `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes                                                                                                                                                                                                                                     |
-| `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens, notifications, classification sources, and company eligibility requests and decisions                                                                                     |
-| `companies`      | `Company`, its activation, `CompanyDocument`, representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                                                      |
+| `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens and notifications                                                                                                                                                          |
+| `companies`      | `Company`, its activation receipt (`CompanyActivation`), representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                                           |
 | `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, employee award and vesting records, external capital and allotment records, member access and register outputs, and the trading models |
-| `shareholders`   | `Publication`, the `PublicationRecipient` roll frozen at a record date with each entitlement, the `PublicationRead` audit, and the `PublicationEvent` chain of a resolution's ballots and close and of a distribution's payment records                                                                     |
+| `shareholders`   | No models since shareholder publications were [removed](../decisions.md#shareholder-publications-removed); the app keeps the migrations that created and dropped them ([migrations](#migrations))                                                                                                           |
 | `whitelist`      | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands, wallet nominations and company wallet instructions, and the sync from each company's registry                                                                                                                     |
 | `wallets`        | `Wallet`, `Holding`, `Transaction`, balance sync and transfer confirmation                                                                                                                                                                                                                                  |
 | `assets`         | `Asset`, `AssetChainDeployment`, `AssetSnapshot`, `ExchangeRate`, price sync, asset identity                                                                                                                                                                                                                |
 | `portfolios`     | `Portfolio` and its owner-scoped routes                                                                                                                                                                                                                                                                     |
 | `blockchain`     | `BlockchainTransaction` and transaction monitoring; the durable outgoing-signing foundation (`SigningAccount`, `OutgoingOperation`, `SignedAttempt`) and its immutable history inventory (`OutgoingHistoryCapture`, `OutgoingHistoryEvidence`, `OutgoingCutoverHold`)                                       |
 | `compliance`     | Monitoring rules, alerts, procedure templates, risk assessments                                                                                                                                                                                                                                             |
-| `documents`      | Uploaded documents and their extraction records                                                                                                                                                                                                                                                             |
-| `integrations`   | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, ABR company registry, LLM document extraction, SendGrid, Expo push, Transak                                                                                                                                                                   |
+| `documents`      | Nothing: since investor eligibility was removed it stays installed only for its migrations ([migrations](#migrations))                                                                                                                                                                                      |
+| `integrations`   | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, SendGrid, Expo push, Transak                                                                                                                                                                                                                  |
 | `feature_flags`  | `FeatureFlag` and the trading middleware                                                                                                                                                                                                                                                                    |
 | `shared`         | Base model, country lookup, health-check middleware, PostgreSQL connection and principal helpers, the policy catalogue and database setup, private storage and upload validation, the task catalogue, seeds and the backend test suite                                                                      |
 
@@ -54,15 +54,15 @@ are partial. Add a layer only when a second caller needs the same logic.
 `users/` is the reference app. Where a rule and a file disagree, the rule wins and the file is
 the backlog. [The layer gate](gates.md#the-layer-gate) enforces the table.
 
-| Layer          | Owns                                                                                                                                                                                                                       | Never contains                                                                                        | Reference                                    |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `models/`      | Fields, `TextChoices`, constraints, `__str__`, properties over own fields, single-row transitions (guard, set fields, `save(update_fields=...)`, at most about ten lines, raising the app's `APIException` on a bad state) | Queries on other models, multi-step workflows, external I/O                                           | `users/models/investor_classification.py`    |
-| `querysets/`   | Every reusable query: product selectors, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()`                                                                  | Saves, side effects, calls into services                                                              | `users/querysets/investor_classification.py` |
-| `services/`    | Orchestration across models, external I/O (chain, KYC, email), `shared.db.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun      | HTTP objects, serializers, `Response`                                                                 | `users/services/investor_classification.py`  |
-| `serializers/` | JSON shape and input validation; writable FKs constrained in `get_fields()` by policies and product selectors                                                                                                              | Business rules, locking, queries beyond FK scoping                                                    | `users/serializers/user_profile.py`          |
-| `views/`       | Permissions, `scoped_model` plus product filtering in `narrow()`, serializer choice, one service call, `Response`                                                                                                          | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `users/views/investor_classification.py`     |
-| `tasks/`       | `@app.task` / `@app.periodic`: load the row by uuid, call one service, return a dict                                                                                                                                       | Orchestration, state machines                                                                         | `users/tasks/retention.py`                   |
-| `admin/`       | Registration, list/search/filter, operator actions that call the same model transition or service the API calls                                                                                                            | A second implementation of a workflow, HTML badge builders                                            | `users/admin/investor_classification.py`     |
+| Layer          | Owns                                                                                                                                                                                                                       | Never contains                                                                                        | Reference                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `models/`      | Fields, `TextChoices`, constraints, `__str__`, properties over own fields, single-row transitions (guard, set fields, `save(update_fields=...)`, at most about ten lines, raising the app's `APIException` on a bad state) | Queries on other models, multi-step workflows, external I/O                                           | `users/models/notification.py`      |
+| `querysets/`   | Every reusable query: product selectors, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()`                                                                  | Saves, side effects, calls into services                                                              | `users/querysets/notification.py`   |
+| `services/`    | Orchestration across models, external I/O (chain, KYC, email), `shared.db.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun      | HTTP objects, serializers, `Response`                                                                 | `users/services/preferences.py`     |
+| `serializers/` | JSON shape and input validation; writable FKs constrained in `get_fields()` by policies and product selectors                                                                                                              | Business rules, locking, queries beyond FK scoping                                                    | `users/serializers/user_profile.py` |
+| `views/`       | Permissions, `scoped_model` plus product filtering in `narrow()`, serializer choice, one service call, `Response`                                                                                                          | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `users/views/notification.py`       |
+| `tasks/`       | `@app.task` / `@app.periodic`: load the row by uuid, call one service, return a dict                                                                                                                                       | Orchestration, state machines                                                                         | `users/tasks/notifications.py`      |
+| `admin/`       | Registration, list/search/filter, operator actions that call the same model transition or service the API calls                                                                                                            | A second implementation of a workflow, HTML badge builders                                            | `users/admin/notification.py`       |
 
 One exception to plain-function services: the chain clients under `integrations/` stay classes
 because they hold a connection. A class whose methods are all `staticmethod` is a module spelled
@@ -85,10 +85,10 @@ awkwardly: do not add one.
   service modules use plain functions ([the layer gate](gates.md#the-layer-gate)).
 - Use `shared.db.atomic` and `shared.db.on_commit` with an explicitly selected connection
   ([the connection-binding gate](gates.md#the-connection-binding-gate)).
-- No Django signals except the private-file lifecycle receivers that `shared/apps.py` connects
-  from `shared/storage.py`: `post_delete` deletes a private file once its row is gone, and
-  `pre_delete` protects a conditionally retained file. A cascade delete (a company's or a user's
-  documents) never reaches a service, so an explicit call in each delete path cannot cover it.
+- No Django signals except the private-file lifecycle receiver that `shared/apps.py` connects from
+  `shared/storage.py`: `post_delete` deletes a private file once its row is gone, whichever path
+  deleted the row. A cascade delete never reaches a service, so an explicit call in each delete path
+  cannot cover it.
 - No new manager packages. `CustomUserManager` is the existing exception; querysets use
   `as_manager()`.
 - Keep raised exceptions in the app's `exceptions.py` and use DRF's standard exceptions for
@@ -128,43 +128,10 @@ helper allowance.
 
 Admin fields keep the API's edit boundaries. `CompanyAdmin` edits go through the bounded
 `update_company` service and its `EDITABLE_FIELDS`
-([company information rules](../business/companies.md#company-information-and-documents)), which
+([company information rules](../business/companies.md#company-information)), which
 stay read-only unless the staff member personally holds a current `admin` appointment for that
 company or the draft-setup exception applies (`companies/admin/company.py`). It cannot add or
 delete a company, registration uses its bounded service, and the owner is read-only.
-
-### Company document verification
-
-The procedure is in
-[staff verification of a company document](../business/companies.md#staff-verification-of-a-company-document).
-`CompanyDocumentAdmin`'s row action `<uuid>/verify/` calls
-[document_review.py](../../backend/companies/services/document_review.py) on the operator
-connection, for active staff holding `companies.change_companydocument`. The preview signs the
-document, reviewer and fingerprint; confirmation accepts that signature for
-`DOCUMENT_REVIEW_MAX_AGE` (900 seconds), runs as the `document_review` company operation, locks
-the company, reviewer, profile and appointments (`lock_company_actor`) and then the document, and
-requires the recomputed fingerprint to equal the previewed one.
-
-The fingerprint is the SHA-256 of canonical JSON over the document and company UUIDs, the
-company's name, ACN, ABN, type and owner, the document's type, name, stored path, size, MIME type,
-external URL and validity dates, and the SHA-256 of its bytes. It is refused for a document with
-no stored file, a rejection reason or non-current validity, or a file that is unreadable, empty or
-not its recorded size.
-
-Triggers in [database_guards.sql](../../backend/companies/database_guards.sql):
-`companies_document_verification` refuses an app-role (customer) write that sets or changes a
-verification and clears all four verification fields when the document's company, type, name,
-file, size, MIME type, external URL, validity dates or rejection reason change;
-`companies_identity_document_verification` clears every document of a company whose name, ACN,
-ABN, type or owner changes; and `companies_document_administration` admits a document update only
-as that clearing, inside a current administrator's company `edit`, or as a `document_review`
-recording a permitted staff reviewer and changing only the verification fields. A company edit can
-therefore revoke a verification; no customer path can grant one.
-
-Retained register instructions consume it through `verified_document_snapshot`, which recomputes
-the fingerprint from the current file: preparation locks the document and keeps a private copy,
-snapshot and fingerprint, and staff review rechecks the document and copy against them. Publishing
-to members needs a verified document of the class's company and records its fingerprint.
 
 ## External API consumers
 
@@ -182,14 +149,12 @@ These route groups have no bundled client and are kept deliberately:
 - Since [#1452](https://github.com/Ledova/ledova/issues/1452), the wallet routes (`/api/wallets/`,
   `/api/transactions/`, `/api/assets/`, the on-ramp's `/api/fiat-purchases/` and the wallet
   nominations and instructions), the share-class chain decisions with the retained issuance and
-  capital-increase reads, the register's openings, wallet links and reconciliations with their
-  acknowledgements, and the publication summary. The
+  capital-increase reads, and the register's openings, wallet links and reconciliations with their
+  acknowledgements. The
   [31 October decision](../decisions.md#wallets-removed-from-the-web-app) keeps them, with their
   records, so the features can return.
 
-`GET /api/operator/` is not one of them: signed-in clients read it, and its
-`payment_instructions` are null except for platform staff and holders of a current
-secondary-market decision from at least one company (`secondary_company_ids`).
+`GET /api/operator/` is not one of them: signed-in clients read the operator configuration from it.
 
 ## Migrations
 
@@ -199,8 +164,73 @@ secondary-market decision from at least one company (`secondary_company_ids`).
 - A schema change that changes the live RLS catalogue needs its policy-install migration too
   ([policy catalogue](security.md#policy-catalogue)).
 - A change to the guard SQL needs a forward migration that replaces each changed function from the
-  current source and drops removed triggers and functions, so an existing database ends as a fresh
-  one does; `tokens/0003_remove_member_particulars_requests` is the example.
+  current source, substituting the role placeholders as the installer does, and drops removed
+  triggers and functions, so an existing database ends as a fresh one does;
+  `tokens/0004_one_step_particulars_edit` is the example. A function an earlier migration replays
+  from current source keeps its name and must still work against that migration's schema:
+  `tokens/0007_register_follows_profile` changes three guards `0004` replays, and their new bodies
+  still install on `0004`'s schema because they read the added column only when they run.
+- A data step in a migration that also changes a guarded table settles its deferred checks
+  (`SET CONSTRAINTS ALL IMMEDIATE`) before Django runs the migration's deferred index and foreign-key
+  SQL, which PostgreSQL refuses while trigger events are pending; `tokens/0007` does this after its
+  backfill.
+- A migration that removes a model with stored files deletes them through the storage API once its
+  transaction commits, as `tokens/0005_remove_member_certificate_requests` does. A callable an
+  applied migration imports stays importable after its model goes, such as the path function in
+  `tokens/models/member_certificate.py` that `tokens/0001_initial` names.
+- A migration that removes retained records the owner has not decided about refuses while any exist,
+  and changes nothing: `shareholders/0002_remove_publications` stops with a message naming the
+  publications, roll rows, events and read records it found, and otherwise drops their tables,
+  guard triggers, functions and policies. It counts with `row_security` off, so a migrating role
+  the policies would still filter stops with PostgreSQL's row-level security error instead of
+  counting no rows. No model references a publication's stored files any more, so the
+  [orphan sweep](../operations/jobs-and-storage.md#previewing-the-upload-sweep) never deletes files
+  under `companies/<uuid>/publications/`, and a database the migration refused keeps them while
+  later code runs. `shareholders/0003_remove_publication_jobs` then deletes the queued jobs that
+  have not started for the removed tasks (the publications purge, the resolution close and the
+  member notification), so the new worker never picks up a job it cannot run.
+- An app whose models are gone stays installed while an applied migration depends on it:
+  `shared/0002_database_guards` depends on `shareholders/0001_initial`, so `shareholders` keeps its
+  migrations and the two path functions that migration names, in `shareholders/models/event.py`
+  and `shareholders/models/publication.py`.
+- Removing investor eligibility ([#1491](https://github.com/Ledova/ledova/issues/1491)) kept the
+  minimal source the applied migrations still import. The `documents` app stays installed with only
+  its migrations, because `shared/0002_database_guards` depends on `documents/0001_initial`, and
+  `documents/0002_remove_documents` deletes its tables and files. `documents/models/document.py`
+  keeps only `document_upload_path`, which `documents/0001_initial` names, and
+  `users/models/investor_classification.py` keeps only `investor_evidence_path`, which
+  `users/0001_initial` names. `users/database_shared_name_guards.py` keeps an `install` that does
+  nothing, because `users/0002_eligibility_participant_name` runs it and the functions it replayed
+  are gone. The same migrations delete the queued jobs that have not started for the removed tasks
+  (`extract_document` and the two evidence purges) and for whitelist refreshes that name an
+  eligibility decision, and drop the empty `decision_id` argument from the other queued refreshes,
+  so a worker never picks up a job it cannot run. `documents/0002_remove_documents`,
+  `tokens/0006_remove_trading_eligibility` and `whitelist/0002_remove_wallet_eligibility` depend on
+  `shareholders/0002_remove_publications`, so a database whose publications removal refuses stops
+  before any eligibility record or file is deleted.
+- Removing the ABR company check ([#1491](https://github.com/Ledova/ledova/issues/1491)) kept no
+  source for old migrations: none imports the registry-check model, its services or the ABR client.
+  `companies/0003_remove_registry_checks` copies each applied activation into the new
+  `CompanyActivation` table before it drops the registry-check table with its records, triggers and
+  functions and the company and appointment registry columns, then replays the changed company
+  guards from current source. The lookup ran inside the request, so there were no queued jobs to
+  delete. `companies/activation_guards.py` installs the receipt guards: `shared/0002_database_guards`
+  runs it too but skips it while the table does not exist yet, so on a fresh database, as on an
+  existing one, `companies/0003` installs them.
+- Removing company documents ([#1491](https://github.com/Ledova/ledova/issues/1491)) kept the
+  minimal source the applied migrations still import: `companies/models/document.py` keeps only
+  `company_document_path`, which `companies/0001_initial` names.
+  `companies/0004_remove_company_documents` deletes each document's file through the storage API
+  once its transaction commits, then the documents with their table, triggers, functions, content
+  type and permissions; admin log entries keep their staff user, time and object id, with the content
+  type cleared. It reads them with `row_security` off, so a migrating role the policies
+  would still filter stops with PostgreSQL's row-level security error instead of leaving files
+  behind. It replays `tokens_guard_register_instruction` and `tokens_guard_company_issue` from
+  current source, because retained register instructions now take the company's own evidence, and
+  reinstalls the policy catalogue, whose register instructions are no longer written by the app
+  role. No task served company documents, so it deletes no queued job. It depends on
+  `shareholders/0002_remove_publications`, so a database whose publications removal refuses stops
+  before any document or file is deleted.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.
@@ -245,13 +275,12 @@ recording and decision timestamps. Retained unknown dates are not backfilled; th
 [register mechanism](records.md#company-event-dates) owns the exact chronology, digest, projection
 and output rules.
 
-Register decisions, share-class chain decisions, company wallet instructions and company
-eligibility decisions follow four steps; who may take each is in
+Register decisions, share-class chain decisions and company wallet instructions follow four
+steps; who may take each is in
 [how a company decision works](../business/README.md#how-a-company-decision-works). Employee
 awards, vesting events and member-access commands prepare under a retry key and take no decision;
 activation, authority requests and team commands take a retry key and, where needed, an exact
-declaration; company detail edits and document uploads act on the caller's current
-administration.
+declaration; company detail edits act on the caller's current administration.
 
 1. Prepare. The caller supplies a caller-scoped retry key (`idempotency_key`, or `operation_id`
    for register proposals) and, where company authority is needed, their exact appointment. The
@@ -282,15 +311,14 @@ never infers success from a lost response.
 | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Authority requests                  | `/api/v1/company-authority/requests/`                                                                                                                                                                                  | [Authority](../business/companies.md)                                                                                                                                                                                                                                               |
 | Team invitations and appointments   | `/api/v1/company-authority/invitations/`, `/appointments/`                                                                                                                                                             | [Team](../business/companies.md#team-invitations-and-appointments)                                                                                                                                                                                                                  |
-| Company details and documents       | `/api/v1/companies/`, `/api/v1/companies/{uuid}/documents/`                                                                                                                                                            | [Company information](../business/companies.md#company-information-and-documents)                                                                                                                                                                                                   |
-| Activation                          | `/api/v1/companies/{uuid}/activate/`                                                                                                                                                                                   | [Activation](../business/companies.md#activation-and-the-registry-check)                                                                                                                                                                                                            |
-| Eligibility                         | `/api/v1/company-eligibility/requests/`, `/api/v1/companies/{uuid}/eligibility-requests/`                                                                                                                              | [Eligibility](../business/participants.md#company-eligibility-decisions)                                                                                                                                                                                                            |
+| Company details                     | `/api/v1/companies/`                                                                                                                                                                                                   | [Company information](../business/companies.md#company-information)                                                                                                                                                                                                                 |
+| Activation                          | `/api/v1/companies/{uuid}/activate/`                                                                                                                                                                                   | [Activation](../business/companies.md#activation)                                                                                                                                                                                                                                   |
 | Wallet nominations and instructions | `/api/v1/whitelist/wallet-nominations/`, `company-wallet-nominations/`, `company-wallet-instructions/`, `company-wallet-targets/`                                                                                      | [Wallet approvals](../business/participants.md#wallet-nominations-and-company-wallet-approvals)                                                                                                                                                                                     |
 | Register evidence and setup         | `/api/v1/tokens/register-evidence/`, `register-member-documents/`, `register-openings/`, `register-links/`, `register-imports/`, `register-corrections/`, `register-particulars-changes/`, `register-reconciliations/` | [Register](../business/register.md)                                                                                                                                                                                                                                                 |
 | Grants, awards and allotments       | `/api/v1/tokens/register-grants/`, `register-awards/`, `register-award-vestings/`, `register-allotments/`                                                                                                              | [Grants](../business/issuing-shares.md#grants-to-walletless-members), [awards](../business/issuing-shares.md#employee-awards-and-vesting), [allotments](../business/issuing-shares.md#external-investor-allotments)                                                                 |
 | Transfers and retained instructions | `/api/v1/tokens/register-transfers/`, `register-instructions/`                                                                                                                                                         | [Transfers](../business/register.md#non-paid-transfers-between-members)                                                                                                                                                                                                             |
 | Share-class chain decisions         | `/api/v1/tokens/register-deployments/`, `register-issues/`, `register-capital-increases/`, `register-pause-changes/`                                                                                                   | [Deployments](../business/issuing-shares.md#deploying-an-empty-class), [issues](../business/issuing-shares.md#non-paid-chain-grants), [capital](../business/issuing-shares.md#raising-the-authorised-shares), [pauses](../business/issuing-shares.md#pausing-and-unpausing-a-class) |
-| Member access                       | `/api/v1/tokens/member-invitations/`, `member-associations/`, `member-records/`, `member-certificate-requests/`                                                                                                        | [Member access](../business/member-records.md#member-access)                                                                                                                                                                                                                        |
+| Member access                       | `/api/v1/tokens/member-invitations/`, `member-associations/`, `member-records/`                                                                                                                                        | [Member access](../business/member-records.md#member-access)                                                                                                                                                                                                                        |
 | Register outputs                    | `/api/v1/tokens/{uuid}/register/` (`certificate/`, `inspection-copy/`), `/api/v1/companies/{uuid}/pack/`                                                                                                               | [Outputs](../business/member-records.md#outputs-at-a-glance)                                                                                                                                                                                                                        |
 
 Owning apps are in [backend apps](#backend-apps). Register routes and family requirement codes
@@ -343,30 +371,33 @@ Each family adds its own effect requirements.
 
 ### Activation
 
-`companies/services/activation.py:activate_company` records a distinct attempt and calls
-`companies/services/registry.py:perform_registry_check`, which uses
-`integrations/abr/client.py:lookup_company`. `CompanyDetail.activation` is null except for a
-current personal administrator, who receives the appointment, company revision, exact declaration
-and their own latest attempt for that appointment, never private identity snapshots or another
-representative's attempts. With `issuer_kyc_required` on, an administrator who is not
-identity-verified gets 400 `issuer_identity_verification_required` before any attempt or provider
-request, and readiness is redacted.
+`companies/services/activation.py:activate_company` locks the company, actor, profile, settings and
+appointments, rechecks the caller's current personal `admin` appointment and, with
+`issuer_kyc_required` on, refuses an administrator who is not identity-verified with 400
+`issuer_identity_verification_required` before recording anything. In the same transaction it
+records the immutable `CompanyActivation` receipt (actor, appointment, retry key, company revision,
+declaration version and text, the operator's identity requirement and a snapshot of the actor's
+identity status) and moves the company to `ACTIVE` with the receipt's `activated_at`, taken from the
+database clock. No business register is consulted
+([decision](../decisions.md#abr-company-check-removed)). `CompanyDetail.activation` is null except
+for a current personal administrator, who receives the appointment, company revision and exact
+declaration, never private identity snapshots.
 
-`POST .../activate/` binds the exact `lifecycle_revision` and declaration version `2026-10-04`. A
-pending or failed attempt answers 200 with the retained attempt. Stale or changed requests answer
-409 `company_activation_conflict`; the same key with the exact request returns the attempt without
-another provider call. A passed but unapplied attempt can resume its final effect after a transient
-commit failure, subject to every current check.
+`POST .../activate/` binds the exact `lifecycle_revision` and declaration version `2026-10-04` and
+answers 200 with the company and the receipt. The same key with the exact request returns the
+retained receipt. A declaration version other than `2026-10-04` answers 400 first. Reusing the key
+with any other change, or a new key for a stale revision or a company that is no longer awaiting
+activation, answers 409 `company_activation_conflict`.
 
-The service locks the company, actor, profile and settings, validates the appointment and records
-the attempt before releasing the transaction; ABR runs outside SQL locks and transactions. The
-final transaction locks and rechecks those inputs and the attempt, and commits the `ACTIVE`
-transition with the immutable `applied_at` receipt. Database guards refuse forged provider
-decisions, raw application-role effects and orphan applied receipts; the receipt identity must
-match the exact company snapshot, and receipt and projection times come from the database clock.
-Staff warning recovery and reinstatement stay in `companies/services/company.py:_registry_transition`
-([rule](../business/companies.md#staff-registry-controls)). Lookup limits are in
-[company registry lookup](../operations/configuration.md#company-registry-lookup).
+The guards in [activation_guards.sql](../../backend/companies/activation_guards.sql) refuse a
+receipt that is not inserted by its own administrator's `activation` command on the operator
+connection, for a company still awaiting activation at its current revision, through a current
+appointment with the exact declaration and identity snapshot, and refuse every later change or
+deletion; a deferred trigger refuses a receipt whose company did not become active with it. The
+company guard admits the `activation` transition only with that company's receipt. The app role has
+no grants on the receipts. Staff warning recovery and reinstatement stay in
+`companies/services/company.py:transition_company`
+([rule](../business/companies.md#staff-company-controls)).
 
 ### Authority requests and team
 
@@ -381,10 +412,8 @@ MIME type and terms with the retained digest and current identities without resc
 validates any file and rechecks draft ownership.
 
 `admit/` reruns the [admission checks](../business/companies.md#company-signup) on the live
-requester and draft without an ABR lookup, which a new company first meets at activation, and
-creates one immutable initial appointment per company; a refused check creates none, and a
-repeated admission returns the retained outcome. A new initial appointment records no registry
-check; earlier appointments keep the authority-purpose check they were admitted with.
+requester and draft and creates one immutable initial appointment per company; a refused check
+creates none, and a repeated admission returns the retained outcome.
 Admission and `withdraw/` share the request lock, so whichever commits first excludes the other; a
 repeated `revoke/` returns its original outcome.
 
@@ -402,20 +431,22 @@ Legacy-owner appointments return null declaration fields. Capabilities are six i
 `admin`, `prepare`, `approve`, `apply`, `finance` and `read_register`
 ([company capabilities](../business/README.md#company-capabilities)).
 
-### Eligibility decisions
+### Current participants
 
-The eligibility routes reject unrecognised input fields; creation answers 201 and an exact replay 200.
-`users/services/company_eligibility.py` records requests and decisions, and
-`users/services/company_eligibility_consumption.py` consumes them: `company_eligibility(account,
-company)` evaluates the current decision, standing and evidence at the time of the action. Orders,
-order changes and swap signatures retain the decision they used and recheck evidence, standing and
-expiry after lock waits.
+Wallet nominations, company wallet instructions, non-paid chain grants, orders, order changes and
+swap signatures check the participant at the time of each action, in the service and again in the
+database guards after lock waits: an active login with a verified email, an investor or both
+account, standing Active (or Pending Verification while the operator does not require the investor
+identity check), a verified identity when it does, and an active company
+([rules](../business/participants.md#account-standing)). Since
+[#1491](https://github.com/Ledova/ledova/issues/1491) no classification source, document or company
+eligibility decision is involved, and orders, submissions and swaps no longer record one. A company
+reading a nomination, a wallet instruction or an issue to a nominated wallet sees any participant
+lapse as `participant_not_current`; only the participant's own nomination preview names the reason.
 
-`secondary_company_ids(user)` in [the eligibility service](../../backend/users/services/eligibility.py)
-bounds the market to the companies whose decisions are current. Inaccessible list and detail
-querysets give empty lists or 404, never a 403 that confirms a hidden row
-([rules](../business/participants.md#company-eligibility-decisions);
-[evidence purges](security.md#retention-clocks)).
+The market list and the trading events stream are bounded to the companies where one of the
+caller's current investing accounts has a wallet with a live company wallet approval. Inaccessible
+list and detail querysets give empty lists or 404, never a 403 that confirms a hidden row.
 
 ## Company identifiers
 
@@ -427,7 +458,7 @@ ORM write skips field validators, but the `companies_administration` trigger
 changing the ACN or ABN, whose check digits fail or whose non-empty ABN is not the ACN with two
 check digits in front; only the migration role bypasses it. `Company.clean()` applies the one rule
 needing both fields, `abn_carries_acn`
-([rules](../business/companies.md#company-information-and-documents)). The ABN check is a modulus of
+([rules](../business/companies.md#company-information)). The ABN check is a modulus of
 89 and catches every single-digit error; the ACN check is a weighted modulus of 10 and does not.
 
 ## Identity providers
@@ -586,20 +617,22 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 | Kind (`data.type`) | Sent by                                                                                            | The bell opens |
 | ------------------ | -------------------------------------------------------------------------------------------------- | -------------- |
 | `company`          | Retained history only: the sender is retired, and no activation or company status change sends one | Activation     |
-| `publication`      | `shareholders/services/publications.py`, when a publication is announced to its roll               | Notices        |
+| `publication`      | Retained history only: the sender went with shareholder publications                               | Nothing        |
 | `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails           | Nothing        |
 | `identity`         | `users/services/identity.py`, when the identity check's result changes                             | Profile        |
-| `certificate`      | `tokens/services/member_events.py`, when a member's certificate request is fulfilled               | Nothing        |
+| `certificate`      | Retained history only: the sender went with members' certificate requests                          | Nothing        |
 | `award`            | `tokens/services/member_events.py`, when shares vest under a member's award                        | Nothing        |
 | `holding`          | `tokens/services/member_events.py`, when a grant or allotment issues shares to a member            | Nothing        |
 
-A notice of any other kind, including identity notices sent before they carried a type and
-`particulars` notices sent before members' particulars requests were removed, stays where it is.
-The three member kinds go only to the member's current association and name the company, with the
-class for certificate and holding notices, but no quantities. Each carries `record` (the
-association), with `company` for a certificate, `award` for a vesting and `token` for an issue. The
-mobile app opens publication notices and these three kinds, from its inbox or a tapped push
-([mobile](mobile.md)). Push registration and its settings
+A notice of any other kind, including identity notices sent before they carried a type,
+`particulars` notices sent before members' particulars requests were removed and eligibility
+notices sent before investor eligibility was removed, stays in the inbox and opens nothing.
+The two member kinds go only to the member's current association and name the company, with the
+class for holding notices, but no quantities. Each carries `record` (the association), with `award`
+for a vesting and `token` for an issue. The mobile app opens these two kinds, from its inbox or a
+tapped push ([mobile](mobile.md)). A `certificate` notice sent before members' certificate requests
+were removed, and a `publication` notice sent before shareholder publications were removed, stays in
+the inbox and opens nothing, on the web and in the app. Push registration and its settings
 are in [configuration](../operations/configuration.md#push-notifications).
 
 Next: [security model](security.md), [records engine](records.md), [testing](testing.md) and

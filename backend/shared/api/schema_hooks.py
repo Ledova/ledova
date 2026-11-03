@@ -8,8 +8,8 @@ STREAM_DESCRIPTION = (
     'carrying `{"status": "ok"}`, then emits one named event per trading change with an empty data '
     "object: the event name is the whole signal, and the client refetches on it. A comment line "
     "`: heartbeat` is sent every 30 seconds so an idle connection is not closed by an intermediary. "
-    "A current company-general secondary eligibility decision for this share class's issuer is required. "
-    "An ineligible caller and a phantom token are the same 404. Access is checked again before the "
+    "A live wallet approval from this share class's issuer for one of the caller's current investing accounts "
+    "is required. A caller without one and a phantom token are the same 404. Access is checked again before the "
     "connection event, each matching trading event and every heartbeat; losing access closes the stream."
 )
 
