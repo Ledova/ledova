@@ -82,7 +82,14 @@ export function useNonPaidIssues({
     },
     [client, owner, company, guard],
   );
-  const grants = useRegisterGrants(owner, company, token, check, readable && sourceReady, orderSubmissionSession);
+  const grants = useRegisterGrants(
+    owner,
+    company,
+    token,
+    check,
+    readable && !appointments.isFetching && sourceReady,
+    orderSubmissionSession,
+  );
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : {};
   const privateReady = sourceReady && readable && grants.isSuccess && !grants.isFetching && !appointments.isFetching;
   const privateGuard = () => {

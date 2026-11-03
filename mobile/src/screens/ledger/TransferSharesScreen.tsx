@@ -239,7 +239,14 @@ function ClassTransfers({
     },
     [client, owner, company, guard],
   );
-  const transfers = useRegisterTransfers(owner, company, token, check, readable && sourceReady, orderSubmissionSession);
+  const transfers = useRegisterTransfers(
+    owner,
+    company,
+    token,
+    check,
+    readable && !appointments.isFetching && sourceReady,
+    orderSubmissionSession,
+  );
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
   const privateReady =
     sourceReady &&
