@@ -1,38 +1,24 @@
 import { useRef, useState } from 'react';
-import {
-  createCompanyToken,
-  createUserFriendlyError,
-  failureStatus,
-  getRegisterClasses,
-  getCompanyToken,
-  readEveryPage,
-  readPeople,
-  readRegister,
-  TECHNICAL_SHARE_LIMIT,
-  type CompanyShareToken,
-  type Company,
-  type OrderSubmissionOwner,
-  type TokenCreate,
-  type TokenType,
-  type RegisterTransferMember,
-  registerSteps,
-} from '@ledova/shared';
+import { TECHNICAL_SHARE_LIMIT } from '../constants/business/register';
+import { REGISTER_SETUP_CLASSES } from '../constants/business/register-imports';
+import { createCompanyToken, getCompanyToken, getRegisterClasses } from '../services/company-tokens';
+import type { Company, CompanyShareToken, TokenCreate, TokenType } from '../types';
+import { createUserFriendlyError, failureStatus } from '../utils/errors';
+import { readEveryPage } from '../utils/pagination';
+import { canOpenEmptyRegister } from '../utils/register-import-drafts';
+import { useApiClient } from './useApiClient';
+import { readPeople } from './usePeople';
+import { readRegister } from './useRegisters';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 
-import apiClient from '@services/apiClient';
-
-import { canOpenEmptyRegister } from './preparation';
-
-export type FreshClassProps = {
-  owner: OrderSubmissionOwner;
+export type NewShareClassOptions = {
   guard: () => void;
   checkCurrent: () => void;
   company: Pick<Company, 'uuid' | 'name'>;
   classes: { uuid: string; name: string; symbol: string; status: string }[];
-  companyMembers: RegisterTransferMember[];
-  steps: ReturnType<typeof registerSteps>;
+  started: readonly { uuid: string }[];
   ready: boolean;
-  onHeldChange: (held: boolean) => void;
-  onConflict: () => void;
+  session?: OrderSubmissionSession;
 };
 
 export function useNewShareClass({
@@ -42,9 +28,9 @@ export function useNewShareClass({
   classes,
   started,
   ready,
-}: Pick<FreshClassProps, 'guard' | 'checkCurrent' | 'company' | 'classes' | 'ready'> & {
-  started: readonly { uuid: string }[];
-}) {
+  session,
+}: NewShareClassOptions) {
+  const apiClient = useApiClient();
   const [choice, setChoice] = useState('ordinary');
   const [name, setName] = useState('Ordinary shares');
   const [symbol, setSymbol] = useState('ORD');
@@ -55,6 +41,14 @@ export function useNewShareClass({
     guard();
     checkCurrent();
     if (!ready) throw createUserFriendlyError('Refresh current company authority and records before continuing.');
+  };
+  const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: check });
+  const choose = (selected: string) => {
+    const common = REGISTER_SETUP_CLASSES.find((item) => item.type === selected);
+    setChoice(selected);
+    setName(common?.name ?? '');
+    setSymbol(common?.symbol ?? '');
+    setTokenType(common?.type ?? 'ordinary');
   };
   const resolveRegister = async () => {
     check();
@@ -75,7 +69,7 @@ export function useNewShareClass({
     if (!operation.token) {
       const tokens = await readEveryPage((page) => {
         check();
-        return getRegisterClasses(apiClient, { company_uuid: company.uuid, page }, { ledovaSubmissionGuard: check });
+        return getRegisterClasses(apiClient, { company_uuid: company.uuid, page }, config());
       });
       check();
       const existing = tokens.find((token) => token.symbol === operation.request.symbol);
@@ -90,9 +84,7 @@ export function useNewShareClass({
           throw createUserFriendlyError(
             'This class code already exists. Choose that share class or use its actual distinct code.',
           );
-        const { data } = await getCompanyToken(apiClient, existing.uuid, {
-          ledovaSubmissionGuard: check,
-        });
+        const { data } = await getCompanyToken(apiClient, existing.uuid, config());
         check();
         operation.token = data;
       } else {
@@ -103,7 +95,7 @@ export function useNewShareClass({
         operation.dispatched = true;
         let data: CompanyShareToken;
         try {
-          ({ data } = await createCompanyToken(apiClient, operation.request, { ledovaSubmissionGuard: check }));
+          ({ data } = await createCompanyToken(apiClient, operation.request, config()));
         } catch (failure) {
           if (failureStatus(failure) === 400 || failureStatus(failure) === 409) {
             creation.current = null;
@@ -129,9 +121,9 @@ export function useNewShareClass({
       token.status !== 'draft'
     )
       throw createUserFriendlyError('The share class receipt did not match the requested company and details.');
-    const register = await readRegister(apiClient, token.uuid, guard);
+    const register = await readRegister(apiClient, token.uuid, guard, session);
     check();
-    const people = await readPeople(apiClient, token.uuid, check);
+    const people = await readPeople(apiClient, token.uuid, check, session);
     check();
     return { register, members: people.members, emptyOpeningAllowed: canOpenEmptyRegister(register, token) };
   };
@@ -147,7 +139,7 @@ export function useNewShareClass({
     );
   return {
     choice,
-    setChoice,
+    choose,
     name,
     setName,
     symbol,

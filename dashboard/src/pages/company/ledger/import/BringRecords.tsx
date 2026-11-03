@@ -1,11 +1,18 @@
 import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { useLayoutEffect, useState } from 'react';
-import { FIELD_LIMITS, formatDate, formatShareCount, type RegisterTransferMember } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  blankMember,
+  formatDate,
+  formatShareCount,
+  type MemberDraft,
+  type PreparationDraft,
+  type RegisterTransferMember,
+} from '@ledova/shared';
 import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberFields } from './MemberFields';
-import { blankMember, type PreparationDraft, type MemberDraft } from './preparation';
 import { ShowMore, Failure } from '@components/Ledger';
 
 export function BringRecords({

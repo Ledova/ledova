@@ -7,6 +7,7 @@ import {
   formatDate,
   formatDateTime,
   formatShareCount,
+  importFigures,
   registerImportTotals,
   type RegisterImport,
   type RegisterImportDecisionPreview,
@@ -24,13 +25,7 @@ function ImportPreview({ preview }: { preview: RegisterImportDecisionPreview }) 
   return (
     <>
       {(preview.statedTotal !== null || preview.statedMemberCount !== null) && (
-        <p className="text-sm text-text-primary">
-          {preview.statedTotal === null
-            ? REGISTER_IMPORT_COPY.STATED_COUNT(preview.statedMemberCount!)
-            : preview.statedMemberCount === null
-              ? REGISTER_IMPORT_COPY.STATED_TOTAL(formatShareCount(preview.statedTotal))
-              : REGISTER_IMPORT_COPY.STATED_FIGURES(formatShareCount(preview.statedTotal), preview.statedMemberCount)}
-        </p>
+        <p className="text-sm text-text-primary">{importFigures(preview.statedTotal, preview.statedMemberCount)}</p>
       )}
       <p className="text-sm text-text-primary">
         {REGISTER_IMPORT_COPY.IMPORTED_FIGURES(formatShareCount(preview.importedTotal), preview.importedMemberCount)}
@@ -135,14 +130,7 @@ export function ImportRecord({
           </Rows>
           {(proposal.asicIssuedTotal !== null || proposal.asicMemberCount !== null) && (
             <p className="text-sm text-text-primary">
-              {proposal.asicIssuedTotal === null
-                ? REGISTER_IMPORT_COPY.STATED_COUNT(proposal.asicMemberCount!)
-                : proposal.asicMemberCount === null
-                  ? REGISTER_IMPORT_COPY.STATED_TOTAL(formatShareCount(proposal.asicIssuedTotal))
-                  : REGISTER_IMPORT_COPY.STATED_FIGURES(
-                      formatShareCount(proposal.asicIssuedTotal),
-                      proposal.asicMemberCount,
-                    )}
+              {importFigures(proposal.asicIssuedTotal, proposal.asicMemberCount)}
             </p>
           )}
           <p className="text-sm text-text-primary">

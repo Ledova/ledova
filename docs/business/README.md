@@ -215,13 +215,14 @@ confirmed, and a confirmed one is not yet final ([chain](../engineering/chain.md
 The web dashboard reaches the records and workflows described here. The mobile app holds a person's
 own records and account, and lists the same companies as the web: a company's administrators and
 register readers see its ownership overview and each class's shareholders there, its share classes on
-Ledger with each class's page, class rights and shareholder documents, prepare, approve and record its
-share issues and non-paid transfers under Issue shares and Transfer shares, prepare, approve and apply
-corrections and read the opening records and particulars changes under Corrections, list its
+Ledger with each class's page, class rights and shareholder documents, set up its ledger, prepare,
+approve and record its share issues and non-paid transfers under Issue shares and Transfer shares,
+prepare, approve and apply corrections, bring in, review and confirm the opening records and read the
+particulars changes under Corrections, list its
 shareholders, open each one's page, add a person, change particulars, record employee awards and their
 vesting and manage member access under Shareholders, and prepare its certificates and inspection
 copies in Documents, where its administrators also prepare the company pack; Settings holds Team,
-Activation and representative authority, while register setup stays on the web
+Activation and representative authority
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
 retains its existing route checks;
 company actions follow the person's current appointments, and

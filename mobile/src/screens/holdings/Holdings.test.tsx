@@ -11,9 +11,11 @@ import {
   REGISTER_AWARD_COPY,
   REGISTER_CORRECTION_COPY,
   REGISTER_GRANT_COPY,
+  REGISTER_IMPORT_COPY,
   REGISTER_TRANSFER_COPY,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
+  TECHNICAL_SHARE_LIMIT,
   formatDate,
   ownAppointmentsKey,
   ownershipCompaniesKey,
@@ -40,12 +42,14 @@ import {
   type RegisterGrant,
   type RegisterGrantPreparation,
   type RegisterImport,
+  type RegisterImportPreparation,
   type RegisterMemberDocumentRequest,
   type RegisterParticularsChange,
   type RegisterTransfer,
   type RegisterTransferDecideRequest,
   type RegisterTransferDecisionRequest,
   type RegisterTransferPreparation,
+  type TokenCreate,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -72,6 +76,7 @@ import { CorrectionPreparationScreen } from '../ledger/CorrectionPreparationScre
 import { CorrectionsScreen } from '../ledger/CorrectionsScreen';
 import { IssueSharesScreen } from '../ledger/IssueSharesScreen';
 import { LedgerScreen } from '../ledger/LedgerScreen';
+import { RegisterSetupScreen } from '../ledger/RegisterSetupScreen';
 import { ShareClassScreen } from '../ledger/ShareClassScreen';
 import { TransferPreparationScreen } from '../ledger/TransferPreparationScreen';
 import { TransferSharesScreen } from '../ledger/TransferSharesScreen';
@@ -87,6 +92,7 @@ import { DashboardScreen } from './DashboardScreen';
 import { InvitationScreen } from './InvitationScreen';
 
 const mockNavigate = jest.fn();
+const mockSetParams = jest.fn();
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
@@ -96,7 +102,7 @@ jest.mock('@react-navigation/native', () => ({
     replace: mockNavigate,
     getState: () => ({ routes: [] }),
     setOptions: jest.fn(),
-    setParams: jest.fn(),
+    setParams: mockSetParams,
   }),
   useIsFocused: () => true,
   useFocusEffect: (effect: () => void) =>
@@ -421,6 +427,53 @@ const OPENING: RegisterImport = {
   submittedBy: 1,
   createdAt: '2026-10-26T00:00:00Z',
 };
+const PREFERENCE = { uuid: '53535353-5353-4353-8353-535353535353', name: 'Preference shares', symbol: 'PRF' };
+const importFrom = ({
+  operationId,
+  tokenId,
+  appointment,
+  members,
+  registerEvidence,
+  asicEvidence,
+  asicIssuedTotal,
+  asicMemberCount,
+  correctionOf,
+  ...request
+}: RegisterImportPreparation): RegisterImport => ({
+  ...OPENING,
+  ...request,
+  uuid: operationId,
+  token: tokenId,
+  preparingAppointment: appointment,
+  members: members.map(({ documents, ...member }) => ({
+    ...member,
+    amountPaid: null,
+    ...(documents && {
+      documents: documents.map((document) => ({
+        ...document,
+        snapshot: {
+          evidence: document.evidence,
+          company: ADMINISTERED.uuid,
+          documentType: 'supporting',
+          providedBy: 'company',
+          name: 'synthetic.pdf',
+          fileSize: 4,
+          mimeType: 'application/pdf',
+          sha256: 'a'.repeat(64),
+        },
+      })),
+    }),
+  })),
+  registerEvidence: registerEvidence ?? null,
+  asicEvidence: asicEvidence ?? null,
+  asicIssuedTotal: asicIssuedTotal ?? null,
+  asicMemberCount: asicMemberCount ?? null,
+  correctionOf: correctionOf ?? null,
+  authority: 'company_records',
+  authorityReference: request.sourceReference,
+  approvingDirector: '',
+  createdAt: '2026-11-04T08:00:00Z',
+});
 const PARTICULARS_EDIT: RegisterParticularsChange = {
   uuid: '50505050-5050-4050-8050-505050505050',
   company: ADMINISTERED.uuid,
@@ -473,6 +526,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let grants: RegisterGrant[] = [];
   let transfers: RegisterTransfer[] = [];
   let corrections: RegisterCorrection[] = [];
+  let imports: RegisterImport[] = [OPENING];
   api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
@@ -484,7 +538,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.REGISTER) {
       const company = (config?.params as { company_uuid?: string } | undefined)?.company_uuid;
       const classes = [
-        { ...FOUNDERS, companyUuid: ADMINISTERED.uuid },
+        { ...FOUNDERS, companyUuid: ADMINISTERED.uuid, tokenTypeDisplay: 'Ordinary', totalSupply: '1000' },
         { ...ELSEWHERE, companyUuid: ELSEWHERE_COMPANY },
       ];
       return page(classes.filter((item) => !company || item.companyUuid === company));
@@ -507,7 +561,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
       };
     }
     if (url === URLS.REGISTER_PEOPLE) return { data: { company: ADMINISTERED.uuid, members: [] } };
-    if (url === URLS.REGISTER_MEMBERS(FOUNDERS.uuid)) {
+    if (url === URLS.HOLDERS(PREFERENCE.uuid)) {
+      const token = { ...REGISTER.token, ...PREFERENCE, totalSupply: TECHNICAL_SHARE_LIMIT };
+      return { data: { ...REGISTER, token, initialized: false, issuedSupply: null } };
+    }
+    if (url === URLS.REGISTER_MEMBERS(FOUNDERS.uuid) || url === URLS.REGISTER_MEMBERS(PREFERENCE.uuid)) {
       const members = [HOLDER_A, HOLDER_B].map(({ member, name }) => ({
         member,
         name,
@@ -532,7 +590,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.REGISTER_ALLOTMENTS) return page(allotments);
     if (url === URLS.REGISTER_TRANSFERS) return page(transfers);
     if (url === URLS.REGISTER_CORRECTIONS) return page(corrections);
-    if (url === URLS.REGISTER_IMPORTS) return page([OPENING]);
+    if (url === URLS.REGISTER_IMPORTS) {
+      const { token } = (config?.params ?? {}) as { token?: string };
+      return page(imports.filter((proposal) => proposal.token === token));
+    }
     if (url === URLS.REGISTER_PARTICULARS_CHANGES) return page([PARTICULARS_EDIT]);
     if (url === URLS.MEMBER_INVITATIONS) return page([]);
     if (url === URLS.REGISTER_ENTRIES(FOUNDERS.uuid)) return { data: { results: [CERTIFIED], next: null, count: 1 } };
@@ -851,6 +912,58 @@ it('associates a member by invitation code, switches to their company on Dashboa
       corrections = [correctionFrom(value as RegisterCorrectionPreparation)];
       return { data: corrections[0] };
     }
+    if (url === URLS.BASE) {
+      const request = value as TokenCreate;
+      const detail = { chain: null, contractAddress: null, deployedAt: null, deploymentTxHash: null };
+      return { data: { ...request, ...detail, uuid: PREFERENCE.uuid, companyUuid: request.company, status: 'draft' } };
+    }
+    if (url === URLS.REGISTER_IMPORTS) {
+      imports = [importFrom(value as RegisterImportPreparation), ...imports];
+      return { data: imports[0] };
+    }
+    const opening = imports.find(
+      ({ uuid }) => url === URLS.REGISTER_IMPORT_PREVIEW(uuid) || url === URLS.REGISTER_IMPORT_DECIDE(uuid),
+    );
+    if (opening && url === URLS.REGISTER_IMPORT_PREVIEW(opening.uuid)) {
+      const comparison = opening.members.map(({ member, name, shares, enteredOn }) => ({
+        member,
+        name,
+        imported: shares,
+        importedEnteredOn: enteredOn,
+        stored: null,
+        enteredOn: null,
+        liveName: name,
+        liveAddress: null,
+        wallets: [],
+      }));
+      const totals = { importedTotal: '5', importedMemberCount: opening.members.length };
+      const figures = { statedTotal: null, statedMemberCount: null, sourceReference: opening.sourceReference };
+      const preview = { previewDigest: DIGEST, registerSequence: 13, canDecide: true, unmetRequirements: [] };
+      const correcting = { correctionOf: opening.correctionOf, correctionAllowed: false };
+      return { data: { ...preview, ...totals, ...figures, ...correcting, comparison, opensRegister: true } };
+    }
+    if (opening && url === URLS.REGISTER_IMPORT_DECIDE(opening.uuid)) {
+      const request = value as RegisterDecideRequest;
+      const decidedAt = '2026-11-04T09:00:00Z';
+      const decision = {
+        uuid: request.idempotencyKey,
+        appointment: request.appointment,
+        kind: request.kind,
+        digest: request.previewDigest,
+        idempotencyKey: request.idempotencyKey,
+        reason: request.reason ?? '',
+        decidedAt,
+        decidedBy: 1,
+        decidedByName: PROFILE.fullName,
+      };
+      const applied =
+        request.kind === 'apply'
+          ? { status: 'applied' as const, stage: 'applied', reviewedAt: decidedAt, correctionAllowed: true }
+          : { stage: 'approved' };
+      const decided = { ...opening, ...applied, decisions: [...opening.decisions, decision] };
+      imports = imports.map((proposal) => (proposal.uuid === opening.uuid ? decided : proposal));
+      return { data: decided };
+    }
     if (corrections[0] && url === URLS.REGISTER_CORRECTION_PREVIEW(corrections[0].uuid)) {
       const { changes, effectiveOn } = corrections[0];
       const originalChanges = CERTIFIED.changes.map(({ member, shares }) => ({ member, shares }));
@@ -1139,6 +1252,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
         params: { company: MEMBER_RECORD.company.uuid, token, entry: MEMBER_ENTRY.uuid },
       }}
     />,
+    <RegisterSetupScreen
+      key="setup"
+      route={{ key: 'setup', name: 'RegisterSetup', params: { company: MEMBER_RECORD.company.uuid } }}
+    />,
     <TransferPreparationScreen
       key="transfer"
       route={{
@@ -1286,6 +1403,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByText('Elsewhere · ELS')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Class details (Founders)' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('ShareClass', founders);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Add share class' }));
+  const setup = { company: ADMINISTERED.uuid };
+  expect(mockNavigate).toHaveBeenLastCalledWith('RegisterSetup', setup);
   await view.rerender(<ShareholdersScreen />);
   expect(await screen.findByText('FND 5 · 62.50%')).toBeTruthy();
   expect(screen.getByText('1–2 of 2 people')).toBeTruthy();
@@ -1601,7 +1721,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
   expect(await screen.findByText('Copied opening')).toBeTruthy();
   expect(await screen.findByText(`${HOLDER_A.name} new address`)).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Review|Confirm)/ })).toBeNull();
+  const opening = `copied opening, record date ${formatDate(OPENING.asAt)}`;
+  expect(screen.getByRole('button', { name: `Review (${opening})` })).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Bring records (Founders)' }));
+  const bringing = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, from: 'Corrections' as const };
+  expect(mockNavigate).toHaveBeenLastCalledWith('RegisterSetup', bringing);
   await fireEvent.press(correct);
   const correcting = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, entry: CERTIFIED.uuid };
   expect(mockNavigate).toHaveBeenLastCalledWith('CorrectionPreparation', correcting);
@@ -1670,6 +1794,127 @@ it('associates a member by invitation code, switches to their company on Dashboa
     [URLS.REGISTER_CORRECTION_PREVIEW(correction.uuid), decision('apply'), expect.anything()],
     [URLS.REGISTER_CORRECTION_DECIDE(correction.uuid), decided('apply'), expect.anything()],
   ]);
+  const importPosts = () =>
+    api.post.mock.calls.filter(([url]) => url === URLS.BASE || url.startsWith(URLS.REGISTER_IMPORTS));
+  await fireEvent.press(screen.getByRole('button', { name: `Review (${opening})` }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Review import', disabled: false }));
+  await waitFor(() => expect(importPosts()).toHaveLength(2));
+  await settled();
+  await fireEvent.press(screen.getByRole('button', { name: `Confirm (${opening})` }));
+  expect(await screen.findByText(REGISTER_IMPORT_COPY.NOT_ON_CHAIN_NOTE)).toBeTruthy();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Confirm import', disabled: false }));
+  await waitFor(() => expect(importPosts()).toHaveLength(4));
+  await settled();
+  expect(importPosts()).toEqual([
+    [URLS.REGISTER_IMPORT_PREVIEW(OPENING.uuid), decision('approve'), expect.anything()],
+    [URLS.REGISTER_IMPORT_DECIDE(OPENING.uuid), decided('approve'), expect.anything()],
+    [URLS.REGISTER_IMPORT_PREVIEW(OPENING.uuid), decision('apply'), expect.anything()],
+    [URLS.REGISTER_IMPORT_DECIDE(OPENING.uuid), decided('apply'), expect.anything()],
+  ]);
+  await fireEvent.press(screen.getByRole('button', { name: 'Correct copied opening (Founders)' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('RegisterSetup', bringing);
+  await view.rerender(<RegisterSetupScreen route={{ key: 'opening', name: 'RegisterSetup', params: bringing }} />);
+  await fireEvent.changeText(
+    await screen.findByLabelText('Reason for correcting the mirror'),
+    'Synthetic opening correction',
+  );
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Save draft and review' }));
+  await waitFor(() =>
+    expect(mockSetParams).toHaveBeenLastCalledWith({ token: FOUNDERS.uuid, record: imports[0].uuid }),
+  );
+  const replacement = imports[0];
+  const holderA = { member: HOLDER_A.member, name: HOLDER_A.name, residentialAddress: `${HOLDER_A.name} address` };
+  const copied = { sourceReference: 'Company-provided share records', sourceConfirmed: true, formerMembers: [] };
+  expect(importPosts()[4]).toEqual([
+    URLS.REGISTER_IMPORTS,
+    {
+      operationId: replacement.uuid,
+      appointment: ADMINISTRATION.uuid,
+      tokenId: FOUNDERS.uuid,
+      asAt: OPENING.asAt,
+      members: [{ ...holderA, shares: '5', enteredOn: '2026-10-26', allotments: [] }],
+      ...copied,
+      correctionOf: OPENING.uuid,
+      reason: 'Synthetic opening correction',
+    },
+    expect.anything(),
+  ]);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Cancel (ledger setup)', disabled: false }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('Corrections', { company: ADMINISTERED.uuid, token: FOUNDERS.uuid });
+  await settled();
+  const posted = importPosts().length;
+  await view.rerender(<RegisterSetupScreen route={{ key: 'new-class', name: 'RegisterSetup', params: setup }} />);
+  await fireEvent.press(await screen.findByRole('radio', { name: 'Preference (PRF)' }));
+  await settled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Add a shareholder' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Company shareholder: none chosen' }));
+  await fireEvent.press(screen.getByRole('radio', { name: /^Synthetic Holder A/ }));
+  await fireEvent.changeText(screen.getByLabelText('Date first added to register'), '2026-10-26');
+  await fireEvent.changeText(screen.getByLabelText('Current shares held'), '5');
+  await fireEvent.press(screen.getByRole('button', { name: 'Add allocation (shareholder 1)' }));
+  await fireEvent.changeText(screen.getByLabelText('Allocation date'), '2026-10-26');
+  await fireEvent.changeText(screen.getByLabelText('Allocation shares'), '5');
+  await fireEvent.changeText(screen.getByLabelText('Amount paid'), '5');
+  await fireEvent.press(screen.getByRole('button', { name: 'Add document' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'File. Choose file' }));
+  await screen.findByRole('button', { name: 'File, synthetic.pdf. Choose file' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Add shareholder' }));
+  expect(importPosts()).toHaveLength(posted);
+  await fireEvent.press(screen.getByRole('button', { name: 'Save draft and review' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Confirm', disabled: false }));
+  await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('Dashboard'));
+  const opened = imports[0];
+  expect(mockSetParams).toHaveBeenLastCalledWith({ token: PREFERENCE.uuid, record: opened.uuid });
+  const allocation = {
+    allottedOn: '2026-10-26',
+    fullyPaid: true,
+    beneficiallyHeld: null,
+    shares: '5',
+    amountPaid: '5.00',
+    amountUnpaid: '0.00',
+    shareReference: null,
+    certificateReference: null,
+  };
+  expect(importPosts().slice(posted)).toEqual([
+    [
+      URLS.BASE,
+      {
+        company: ADMINISTERED.uuid,
+        name: PREFERENCE.name,
+        symbol: PREFERENCE.symbol,
+        tokenType: 'preference',
+        totalSupply: TECHNICAL_SHARE_LIMIT,
+      },
+      expect.anything(),
+    ],
+    [
+      URLS.REGISTER_IMPORTS,
+      {
+        operationId: opened.uuid,
+        appointment: ADMINISTRATION.uuid,
+        tokenId: PREFERENCE.uuid,
+        asAt: utcToday(),
+        members: [
+          {
+            ...holderA,
+            shares: '5',
+            enteredOn: '2026-10-26',
+            documents: [{ evidence, category: 'other' }],
+            allotments: [allocation],
+          },
+        ],
+        ...copied,
+        reason: 'Mirror the company’s existing share records.',
+      },
+      expect.anything(),
+    ],
+    [URLS.REGISTER_IMPORT_PREVIEW(opened.uuid), decision('approve'), expect.anything()],
+    [URLS.REGISTER_IMPORT_DECIDE(opened.uuid), decided('approve'), expect.anything()],
+    [URLS.REGISTER_IMPORT_PREVIEW(opened.uuid), decision('apply'), expect.anything()],
+    [URLS.REGISTER_IMPORT_DECIDE(opened.uuid), decided('apply'), expect.anything()],
+  ]);
   await view.rerender(awardPage);
   await fireEvent.press(
     await screen.findByRole('button', {
@@ -1698,7 +1943,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(<IssueSharesScreen route={{ key: 'read-only', name: 'IssueShares', params: undefined }} />);
   expect(await screen.findByText(REGISTER_ALLOTMENT_COPY.READ_ONLY_NOTE)).toBeTruthy();
   expect(screen.getByText(REGISTER_GRANT_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  expect(screen.getByLabelText('Status: Approved, Shares issued')).toBeTruthy();
+  expect(await screen.findByLabelText('Status: Approved, Shares issued')).toBeTruthy();
   expect(screen.getByLabelText('Status: Shares issued')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Prepare issue|Review and approve|Record issue|Reject)/ })).toBeNull();
   expect(issuePosts()).toHaveLength(8);
@@ -1730,8 +1975,22 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await waitFor(() => expect(screen.getAllByText(`Correction of the ${certified}`)).toHaveLength(2));
   await settled();
   expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Correct|Approve|Apply|Reject) \(/ })).toBeNull();
+  expect(screen.getAllByText('Copied opening correction')).toHaveLength(1);
+  expect(
+    screen.queryByRole('button', { name: /^(Correct|Approve|Apply|Reject|Review|Confirm|Bring records)( |$)/ }),
+  ).toBeNull();
   expect(correctionPosts()).toHaveLength(5);
+  const decidedImports = importPosts().length;
+  await view.rerender(<LedgerScreen />);
+  expect(await screen.findByText('Founders · FND')).toBeTruthy();
+  await settled();
+  expect(screen.queryByRole('button', { name: 'Add share class' })).toBeNull();
+  await view.rerender(
+    <RegisterSetupScreen route={{ key: 'read-only-setup', name: 'RegisterSetup', params: bringing }} />,
+  );
+  expect(await screen.findByText(REGISTER_IMPORT_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Continue|Save draft and review|Edit records|Confirm)$/ })).toBeNull();
+  expect(importPosts()).toHaveLength(decidedImports);
   await view.rerender(<ShareClassScreen route={{ key: 'founders', name: 'ShareClass', params: founders }} />);
   expect(await screen.findByText('No rights recorded.')).toBeTruthy();
   expect(screen.getByText('FND · Ordinary')).toBeTruthy();

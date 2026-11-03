@@ -1,4 +1,5 @@
 import type {
+  RegisterDocumentFile,
   RegisterImportMemberDocument,
   RegisterMemberDocument,
   RegisterMemberDocumentCategory,
@@ -7,6 +8,14 @@ import type {
 } from '../types';
 import { REGISTER_MEMBER_DOCUMENT_CATEGORIES } from '../constants/business/register';
 import { isUuid } from './validation';
+
+export type DocumentDraft = {
+  id: string;
+  category: RegisterMemberDocumentCategory;
+  file: RegisterDocumentFile | null;
+  evidence?: string;
+  snapshot?: RegisterMemberDocumentSnapshot;
+};
 
 const CATEGORIES = Object.keys(REGISTER_MEMBER_DOCUMENT_CATEGORIES) as RegisterMemberDocumentCategory[];
 

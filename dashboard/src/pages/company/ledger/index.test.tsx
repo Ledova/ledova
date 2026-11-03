@@ -33,6 +33,13 @@ import {
   type RegisterMemberDocumentRequest,
   peopleKey,
   readPeople,
+  blankAllotment,
+  blankMember,
+  canOpenEmptyRegister,
+  preparationProblems,
+  memberRows,
+  type MemberDraft,
+  useNewShareClass,
 } from '@ledova/shared';
 import SettingsPage from '@pages/settings';
 import apiClient from '@services/apiClient';
@@ -50,15 +57,6 @@ import { ShareClass } from './detail/ShareClass';
 import { MemberDocuments } from './shared/MemberDocuments';
 import CompanyRegisterImportPage from './import';
 import { ImportForm } from './import/ImportForm';
-import { useNewShareClass } from './import/useNewShareClass';
-import {
-  blankAllotment,
-  blankMember,
-  canOpenEmptyRegister,
-  preparationProblems,
-  memberRows,
-  type MemberDraft,
-} from './import/preparation';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../testSupport/company';
 import {
   choose,
@@ -2824,8 +2822,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     throw new Error('Class result lost');
   });
   const createHook = () =>
-    renderHook(() =>
-      useNewShareClass({ guard: () => {}, checkCurrent: () => {}, company, classes: [], started: [], ready: true }),
+    renderHook(
+      () =>
+        useNewShareClass({ guard: () => {}, checkCurrent: () => {}, company, classes: [], started: [], ready: true }),
+      { wrapper: ({ children }) => <ApiClientProvider client={apiClient}>{children}</ApiClientProvider> },
     );
   const uncertainClass = createHook();
   await act(async () => {

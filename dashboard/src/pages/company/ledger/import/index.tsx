@@ -2,7 +2,6 @@ import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany'
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
 import { AccountCheck } from '@components/AccountCheck';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
-import { useImportRegister, importRegisterKey } from './useImportRegister';
 import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -27,13 +26,15 @@ import {
   type RegisterSteps,
   importsKey,
   useRegisterImports,
+  canOpenEmptyRegister,
+  importRegisterKey,
+  useImportRegister,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 
 import { ImportForm } from './ImportForm';
 import { NewClassSetup } from './NewClassSetup';
-import { canOpenEmptyRegister } from './preparation';
 import { LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { Keyboard, RefreshControl, ScrollView, Text, View } from 'react-native';
-import type { RouteProp } from '@react-navigation/native';
+import { useNavigation, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
@@ -211,6 +212,7 @@ function ClassIssues({
   const card = useCardStyles();
   const look = useLedgerStyles();
   const client = useQueryClient();
+  const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const [preparing, setPreparing] = useState(false);
   const [reviewing, setReviewing] = useState<string | null>(null);
   const reviewChanged = useCallback((uuid: string, open: boolean) => {
@@ -243,6 +245,7 @@ function ClassIssues({
     reviewing,
     onReviewChange: reviewChanged,
     onFocusRecord,
+    onSetup: () => navigation.navigate('RegisterSetup', { company, token: register.token.uuid, from: 'IssueShares' }),
   });
   const nonPaid = useNonPaidIssues({
     owner,

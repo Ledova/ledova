@@ -1,17 +1,17 @@
-import {
-  isCalendarDate,
-  registerImportTotals,
-  registerImportMoney,
-  wholeShares,
-  type RegisterImport,
-  type RegisterImportAllotment,
-  type RegisterImportCurrentMemberRow,
-  type RegisterImportFormerRow,
-  type TokenHoldersResponse,
-  type RegisterTransferMember,
-  type CompanyShareTokenListItem,
-  type DocumentDraft,
-} from '@ledova/shared';
+import type {
+  CompanyShareTokenListItem,
+  RegisterDocumentFile,
+  RegisterImport,
+  RegisterImportAllotment,
+  RegisterImportCurrentMemberRow,
+  RegisterImportFormerRow,
+  RegisterTransferMember,
+  TokenHoldersResponse,
+} from '../types';
+import { isCalendarDate } from './date';
+import { registerImportMoney, registerImportTotals } from './register-imports';
+import type { DocumentDraft } from './register-member-documents';
+import { wholeShares } from './share-quantities';
 
 export type AllotmentDraft = Omit<
   RegisterImportAllotment,
@@ -37,8 +37,8 @@ export type MemberDraft = {
 export type FormerDraft = { id: string; name: string; residentialAddress: string; shares: string; ceasedOn: string };
 
 export type PreparationDraft = {
-  registerFile: File | null;
-  asicFile: File | null;
+  registerFile: RegisterDocumentFile | null;
+  asicFile: RegisterDocumentFile | null;
   registerEvidence?: string;
   asicEvidence?: string;
   earlierCopiesNotReused?: boolean;
@@ -50,6 +50,8 @@ export type PreparationDraft = {
   statedTotal: string;
   statedCount: string;
 };
+
+const randomKey = () => crypto.randomUUID();
 
 function positiveShares(value: string) {
   const shares = wholeShares(value.trim());
@@ -68,9 +70,9 @@ export function allotmentProblems(allotment: AllotmentDraft, asAt: string) {
   return problems;
 }
 
-export function blankAllotment(): AllotmentDraft {
+export function blankAllotment(newKey: () => string = randomKey): AllotmentDraft {
   return {
-    id: crypto.randomUUID(),
+    id: newKey(),
     allottedOn: '',
     shares: '',
     shareReference: '',
@@ -82,9 +84,9 @@ export function blankAllotment(): AllotmentDraft {
   };
 }
 
-export function blankMember(): MemberDraft {
+export function blankMember(newKey: () => string = randomKey): MemberDraft {
   return {
-    member: crypto.randomUUID(),
+    member: newKey(),
     name: '',
     residentialAddress: '',
     shares: '',
@@ -94,7 +96,11 @@ export function blankMember(): MemberDraft {
   };
 }
 
-export function initialMembers(register: TokenHoldersResponse, correction?: RegisterImport): MemberDraft[] {
+export function initialMembers(
+  register: TokenHoldersResponse,
+  correction?: RegisterImport,
+  newKey: () => string = randomKey,
+): MemberDraft[] {
   if (correction)
     return correction.members.map((row) => ({
       member: row.member,
@@ -102,17 +108,17 @@ export function initialMembers(register: TokenHoldersResponse, correction?: Regi
       residentialAddress: row.residentialAddress,
       shares: row.shares,
       enteredOn: row.enteredOn,
-      documents: (row.documents ?? []).map((document) => ({ ...document, id: crypto.randomUUID(), file: null })),
+      documents: (row.documents ?? []).map((document) => ({ ...document, id: newKey(), file: null })),
       allotments: row.allotments?.length
         ? row.allotments.map((allotment) => ({
             ...allotment,
-            id: crypto.randomUUID(),
+            id: newKey(),
             shareReference: allotment.shareReference ?? '',
             certificateReference: allotment.certificateReference ?? '',
           }))
         : [],
     }));
-  if (!register.initialized) return [blankMember()];
+  if (!register.initialized) return [blankMember(newKey)];
   return register.holders.map((holder) => ({
     member: holder.member,
     name: holder.name ?? '',

@@ -11,9 +11,7 @@ import type {
   RegisterDocumentFile,
   RegisterEvidence,
   RegisterMemberDocument,
-  RegisterMemberDocumentCategory,
   RegisterMemberDocumentRequest,
-  RegisterMemberDocumentSnapshot,
 } from '../types';
 import { downloadedFile, type FileDelivery } from '../utils/downloads';
 import { createUserFriendlyError, failureSentence, failureStatus } from '../utils/errors';
@@ -23,20 +21,12 @@ import {
   hasCurrentRegisterReadAuthority,
   isRegisterEvidenceReceipt,
 } from '../utils/register-commands';
-import { isRegisterMemberDocumentReceipt } from '../utils/register-member-documents';
+import { isRegisterMemberDocumentReceipt, type DocumentDraft } from '../utils/register-member-documents';
 import { useApiClient } from './useApiClient';
 import { ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 export type DocumentHolding = { member: string; token: string; label: string };
-
-export type DocumentDraft = {
-  id: string;
-  category: RegisterMemberDocumentCategory;
-  file: RegisterDocumentFile | null;
-  evidence?: string;
-  snapshot?: RegisterMemberDocumentSnapshot;
-};
 
 type Editor = { member: string; token: string; documents: DocumentDraft[] };
 type Pending = Editor & { appointment: string };

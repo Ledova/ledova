@@ -1,9 +1,17 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { FIELD_LIMITS, formatDate, formatShareCount, registerImportMoney, wholeShares } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  allotmentProblems,
+  blankAllotment,
+  formatDate,
+  formatShareCount,
+  registerImportMoney,
+  wholeShares,
+  type AllotmentDraft,
+} from '@ledova/shared';
 import { Field, TextInput } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { PageAction } from '@components/Page';
-import { allotmentProblems, blankAllotment, type AllotmentDraft } from './preparation';
 
 export function AllotmentFields({
   allotments,

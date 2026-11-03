@@ -131,24 +131,27 @@ export function SearchSelect({
           <View accessibilityRole="radiogroup" accessibilityLabel={label}>
             {listed.map((choice) => {
               const selected = choice.value === value;
+              const unavailable = !!choice.unavailable;
+              const detail = [choice.detail, choice.unavailable].filter(Boolean).join(' · ');
               return (
                 <Pressable
                   key={choice.value}
                   accessibilityRole="radio"
-                  accessibilityState={{ checked: selected }}
-                  accessibilityLabel={choice.detail ? `${choice.label} · ${choice.detail}` : choice.label}
+                  accessibilityState={{ checked: selected, disabled: unavailable }}
+                  accessibilityLabel={detail ? `${choice.label} · ${detail}` : choice.label}
+                  disabled={unavailable}
                   onPress={() => {
                     if (!selected) onChange(choice.value);
                     close();
                   }}
-                  style={[styles.option, selected && styles.chosen]}
+                  style={[styles.option, selected && styles.chosen, unavailable && styles.disabled]}
                 >
                   <View style={[styles.tick, !selected && styles.other]}>
                     <CheckIcon size={16} color={theme.colors.text.primary} />
                   </View>
                   <View style={styles.text}>
                     <Text style={styles.name}>{choice.label}</Text>
-                    {!!choice.detail && <Text style={styles.detail}>{choice.detail}</Text>}
+                    {!!detail && <Text style={styles.detail}>{detail}</Text>}
                   </View>
                 </Pressable>
               );

@@ -32,7 +32,7 @@ The class-creation API requires a current personal company administrator or prep
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
 [Register setup](register.md#bringing-in-existing-records) on the web lists companies from those
 appointments, including a preparer who is not the owner. Classes are created only through that
-setup: on the web **Ledger**, **Add share class**.
+setup: **Ledger**, **Add share class**, on the web or in the app.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
@@ -42,8 +42,8 @@ should close is delisted, and a class is paused to stop transfers. Deployment, c
 pausing are company decisions; earlier direct actions by the owner or platform staff are retired,
 and their records stay readable. The register API can confirm a zero-issued opening for a genuinely
 unopened draft class without a contract or former members. It creates no shareholder, holding or
-ISSUE; a subsequent approved grant or investor allotment records the first shares. Web setup exposes
-this empty-opening choice through the same draft, review and confirmation as copied holdings
+ISSUE; a subsequent approved grant or investor allotment records the first shares. Setup, on the web
+and in the app, offers this empty-opening choice through the same draft, review and confirmation as copied holdings
 ([register setup](register.md#bringing-in-existing-records)).
 
 The web app no longer offers the chain actions described below: the owner removed a class's

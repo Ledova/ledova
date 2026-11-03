@@ -1,4 +1,4 @@
-import type { RegisterDecisionKind } from '../../types';
+import type { RegisterDecisionKind, TokenType } from '../../types';
 
 export const REGISTER_IMPORT_UNMET_COPY: Record<string, string> = {
   appointment_capability_required: 'Your appointment does not include this step.',
@@ -73,3 +73,26 @@ export const REGISTER_IMPORT_COPY = {
   PREVIEW_FAILED: 'The decision could not be previewed. Refresh and try again.',
   DECIDE_FAILED: 'The decision was not recorded. Retry the same decision after refreshing.',
 };
+
+export const REGISTER_SETUP_STEPS = [
+  { id: 'details', label: 'Share details' },
+  { id: 'shareholders', label: 'Shareholders' },
+  { id: 'review', label: 'Review' },
+] as const;
+
+export const REGISTER_SETUP_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
+  { type: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', label: 'Ordinary (ORD)' },
+  { type: 'preference', name: 'Preference shares', symbol: 'PRF', label: 'Preference (PRF)' },
+  { type: 'redeemable', name: 'Redeemable shares', symbol: 'RED', label: 'Redeemable (RED)' },
+];
+
+export const REGISTER_SETUP_CHOICES = [
+  ...REGISTER_SETUP_CLASSES.map((item) => [item.type, item.label] as const),
+  ['custom', 'Another class'] as const,
+];
+
+export const REGISTER_CLASS_TYPES: readonly (readonly [TokenType, string])[] = [
+  ['ordinary', 'Ordinary'],
+  ['preference', 'Preference'],
+  ['redeemable', 'Redeemable'],
+];

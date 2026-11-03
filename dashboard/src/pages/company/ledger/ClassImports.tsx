@@ -13,6 +13,7 @@ import {
   registerSteps,
   entriesKey,
   importsKey,
+  openingRecordsLink,
   useRegisterImports,
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading } from '@components/Ledger';
@@ -61,6 +62,7 @@ export function ClassImports({
   const changed = [importsKey(owner, token), registerHoldersKey(owner), entriesKey(owner, token)];
   const decided = () => refresh(changed);
   const refused = () => refresh([...changed, ownAppointmentsKey(owner)]);
+  const link = imports.isSuccess ? openingRecordsLink(register, imports.data) : null;
   return (
     <div className="flex flex-col gap-3">
       {appointments.isError ? (
@@ -73,23 +75,11 @@ export function ClassImports({
           <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>
         )
       )}
-      {privateReady &&
-        steps?.prepare &&
-        (register.initialized || register.token.status === 'draft') &&
-        imports.isSuccess &&
-        (!imports.data.some((proposal) => proposal.status === 'applied') ||
-          imports.data.some((proposal) => proposal.correctionAllowed)) && (
-          <div className="border-b border-border-subtle">
-            <LinkRow
-              to={generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: token })}
-              label={
-                imports.data.some((proposal) => proposal.correctionAllowed)
-                  ? 'Correct copied opening'
-                  : REGISTER_IMPORT_COPY.PREPARE
-              }
-            />
-          </div>
-        )}
+      {privateReady && steps?.prepare && link && (
+        <div className="border-b border-border-subtle">
+          <LinkRow to={generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: token })} label={link} />
+        </div>
+      )}
       {imports.isPending ? (
         <Loading>Loading imports…</Loading>
       ) : imports.isError ? (
