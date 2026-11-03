@@ -2,15 +2,16 @@ import { useId } from 'react';
 import { Field, TextInput, FileField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
+import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import { FormActions, PageAction } from '@components/Page';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
   type CompanyAuthorityRequest,
   type CompanyListItem,
   failureSentence,
+  useAuthorityRequestForm,
   utcToday,
 } from '@ledova/shared';
-import { useAuthorityRequestForm } from './useAuthorityRequestForm';
 import { Failure } from '@components/Ledger';
 
 export function AuthorityRequestForm({
@@ -26,6 +27,7 @@ export function AuthorityRequestForm({
   onSuccess: (request: CompanyAuthorityRequest) => void;
   onCancel: () => void;
 }) {
+  const dates = useIncompleteDates<'expiry'>();
   const {
     setFile,
     requested,
@@ -38,7 +40,6 @@ export function AuthorityRequestForm({
     change,
     busy,
     problems,
-    watchDate,
     toggle,
     send,
   } = useAuthorityRequestForm({
@@ -46,6 +47,7 @@ export function AuthorityRequestForm({
     disabled,
     guard,
     onSuccess,
+    incomplete: dates.incomplete,
   });
   const checks = useErrorSummary(problems);
   const actions = checks.field('actions');
@@ -109,7 +111,7 @@ export function AuthorityRequestForm({
           type="date"
           min={utcToday()}
           value={expiry}
-          {...watchDate('expiry')}
+          {...dates.watch('expiry')}
           disabled={disabled || busy}
           onChange={(event) => change(() => setExpiry(event.target.value))}
         />

@@ -18,3 +18,5 @@ export const COMPANY_AUTHORITY_CAPABILITIES = [
   { value: 'finance', label: 'Manage company payments' },
   { value: 'read_register', label: 'Read company register' },
 ] as const satisfies readonly { value: CompanyCapability; label: string }[];
+
+export const AUTHORITY_REQUEST_TONES = new Map<string, 'waiting'>([['pending', 'waiting']]);

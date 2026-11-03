@@ -1,13 +1,19 @@
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
-import { DESTINATIONS, failureSentence, useSubmissionOwner, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  failureSentence,
+  useAuthorityRequests,
+  useSubmissionOwner,
+  type OrderSubmissionOwner,
+} from '@ledova/shared';
 import { LoadError, Loading, Failure } from '@components/Ledger';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { useAuthorityRequests } from '@pages/company/authority/shared/useAuthorityRequests';
 import { AuthorityRequestRecord } from './AuthorityRequestRecord';
 import { AccountCheck } from '@components/AccountCheck';
+import { saveFile } from '@utils/saveFile';
 
 export default function CompanyAuthorityRequestPage() {
   const { uuid = '' } = useParams();
@@ -37,7 +43,12 @@ function OwnAuthorityRequest({
   currentOwner: () => OrderSubmissionOwner | null;
   uuid: string;
 }) {
-  const { history, lifecycle, opening } = useAuthorityRequests({ owner, currentOwner, readCompanies: false });
+  const { history, lifecycle, opening } = useAuthorityRequests({
+    owner,
+    currentOwner,
+    readCompanies: false,
+    save: (data, request) => saveFile(new Blob([data], { type: request.mimeType }), request.originalFilename),
+  });
   const context = useCompanyContext();
   const back = context?.companyPath(DESTINATIONS.companyAuthority.path) ?? DESTINATIONS.companyAuthority.path;
   const request = history.data?.find((item) => item.uuid === uuid);

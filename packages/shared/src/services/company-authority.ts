@@ -45,7 +45,7 @@ export const submitCompanyAuthorityRequest = (
   const form = new FormData();
   form.append('company', data.company);
   form.append('idempotency_key', data.idempotencyKey);
-  form.append('file', data.file);
+  form.append('file', data.file as Blob);
   data.requestedCapabilities.forEach((capability) => form.append('requested_capabilities', capability));
   data.delegatableCapabilities.forEach((capability) => form.append('delegatable_capabilities', capability));
   if (data.requestedExpiresAt) form.append('requested_expires_at', data.requestedExpiresAt);
