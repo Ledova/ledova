@@ -340,7 +340,7 @@ function ClassCorrections({
   useLayoutEffect(() => {
     refreshRef.current = () =>
       Promise.allSettled([
-        client.refetchQueries({ queryKey: entriesKey(owner, token), exact: true }),
+        history.refresh(),
         corrections.refetch({ cancelRefetch: false }),
         imports.refetch({ cancelRefetch: false }),
       ]);

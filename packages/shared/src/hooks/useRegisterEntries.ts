@@ -82,6 +82,7 @@ export function useRegisterEntries(
     isFetching: query.isFetching,
     isLoadingMore: query.isFetchingNextPage,
     retry: () => void query.refetch(),
+    refresh: () => query.refetch({ cancelRefetch: false }),
     loadMore: () => void pages.loadMore(),
   };
 }

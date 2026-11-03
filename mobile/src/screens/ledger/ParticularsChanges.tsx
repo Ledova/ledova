@@ -184,7 +184,11 @@ export function ParticularsChanges({
     owner,
     firstClass,
     check,
-    readable && sourceReady && !!firstClass && (changes.data ?? []).some((change) => !names.get(change.member)),
+    readable &&
+      !appointments.isFetching &&
+      sourceReady &&
+      !!firstClass &&
+      (changes.data ?? []).some((change) => !names.get(change.member)),
     orderSubmissionSession,
   );
   const nameOf = (member: string) =>
