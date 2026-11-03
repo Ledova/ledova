@@ -119,9 +119,9 @@ export function CertificateRecords({
               >
                 <span className="min-w-0 space-y-1 md:col-span-2">
                   {changes.map((change) => (
-                    <span key={change.member} className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
+                    <span key={change.member} className="grid grid-cols-[minmax(0,1fr)_auto] gap-4">
                       <span className="break-words font-medium">{change.name ?? 'Shareholder'}</span>
-                      <span className="break-words text-right tabular-nums">
+                      <span className="whitespace-nowrap text-right tabular-nums">
                         {shareChange(change.shares)} {selectedClass?.symbol} shares
                       </span>
                     </span>

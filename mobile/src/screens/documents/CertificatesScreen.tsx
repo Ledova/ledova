@@ -35,8 +35,8 @@ function useCertificateStyles() {
       row: { gap: 12, paddingVertical: theme.spacing.md },
       change: { gap: theme.spacing.xs },
       line: { flexDirection: 'row' as const, gap: theme.spacing.md },
-      name: { ...text, flex: 2, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
-      shares: { ...text, flex: 1, textAlign: 'right' as const, color: theme.colors.text.primary },
+      name: { ...text, flex: 1, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
+      shares: { ...text, flexShrink: 0, textAlign: 'right' as const, color: theme.colors.text.primary },
       muted: { ...text, color: theme.colors.text.muted },
     };
   });
