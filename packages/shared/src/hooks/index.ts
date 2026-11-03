@@ -99,6 +99,6 @@ export { useAwardVestingForm } from './useAwardVestingForm';
 export { useAwardAdjustmentForm } from './useAwardAdjustmentForm';
 export { useAwardRecordDownload } from './useAwardRecordDownload';
 export { useShareClass } from './useShareClass';
-export { useClassRights } from './useClassRights';
+export { classRightsKey, useClassRights } from './useClassRights';
 export { memberDocumentsKey, useMemberDocuments } from './useMemberDocuments';
 export type { DocumentDraft, DocumentHolding } from './useMemberDocuments';

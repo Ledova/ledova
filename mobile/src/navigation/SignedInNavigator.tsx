@@ -12,6 +12,8 @@ import { CompanyPackScreen } from '../screens/documents/CompanyPackScreen';
 import { InspectionCopiesScreen } from '../screens/documents/InspectionCopiesScreen';
 import { DashboardScreen } from '../screens/holdings/DashboardScreen';
 import { InvitationScreen } from '../screens/holdings/InvitationScreen';
+import { LedgerScreen } from '../screens/ledger/LedgerScreen';
+import { ShareClassScreen } from '../screens/ledger/ShareClassScreen';
 import { AccountScreen, DataPrivacyScreen, SettingsScreen } from '../screens/settings';
 import { ActivationScreen } from '../screens/settings/ActivationScreen';
 import { AuthorityRequestScreen } from '../screens/settings/AuthorityRequestScreen';
@@ -28,6 +30,8 @@ import { TopBar } from './headers';
 
 export type SignedInStackParamList = {
   Dashboard: { record?: string; award?: string } | undefined;
+  Ledger: undefined;
+  ShareClass: { company: string; token: string };
   Shareholders: undefined;
   Shareholder: { company: string; member: string; outcome?: string };
   ShareholderParticulars: { company: string; member: string };
@@ -79,6 +83,8 @@ export function SignedInNavigator() {
             screenOptions={{ contentStyle: { backgroundColor: theme.colors.surface.base } }}
           >
             <Stack.Screen name="Dashboard" component={DashboardScreen} options={topBar('Dashboard')} />
+            <Stack.Screen name="Ledger" component={LedgerScreen} options={topBar('Ledger')} />
+            <Stack.Screen name="ShareClass" component={ShareClassScreen} options={topBar('Ledger')} />
             <Stack.Screen name="Shareholders" component={ShareholdersScreen} options={topBar('Shareholders')} />
             <Stack.Screen name="Shareholder" component={ShareholderScreen} options={topBar('Shareholders')} />
             <Stack.Screen

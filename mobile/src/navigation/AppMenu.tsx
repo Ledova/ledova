@@ -2,6 +2,7 @@ import { useEffect, useState, type ComponentType } from 'react';
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  BookOpenIcon,
   CaretDownIcon,
   CaretRightIcon,
   FilesIcon,
@@ -29,10 +30,11 @@ import { useSignOut } from '../hooks/useSignOut';
 import { useUserProfile } from '../hooks/useUserProfile';
 import { orderSubmissionSession } from '../services/orderSubmissions';
 
-export type Section = 'Dashboard' | 'Shareholders' | 'Documents' | 'Settings';
+export type Section = 'Dashboard' | 'Ledger' | 'Shareholders' | 'Documents' | 'Settings';
 
 export type MenuRoute =
   | 'Dashboard'
+  | 'Ledger'
   | 'Shareholders'
   | 'EmployeeScheme'
   | 'MemberAccess'
@@ -63,6 +65,7 @@ const sections = (canReadRegister: boolean): MenuItem[] => [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
   ...(canReadRegister
     ? [
+        { name: 'Ledger' as const, label: 'Ledger', icon: BookOpenIcon, route: 'Ledger' as const },
         {
           name: 'Shareholders' as const,
           label: 'Shareholders',

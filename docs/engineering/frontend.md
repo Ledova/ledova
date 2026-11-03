@@ -859,6 +859,12 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current
   register-read appointment.
+- A share class's page on the web (`dashboard/src/pages/company/ledger/detail`) reads the class and
+  its current holders through the shared `useShareClass`, its Class rights through `useClassRights`
+  (whose rights groups, checks and summaries are in `packages/shared/src/utils/class-rights.ts`) and
+  its Shareholder documents through `useMemberDocuments`, which a shareholder's page uses too; their
+  downloads go through the client's `FileDelivery`. The app's Ledger overview and class page render
+  the same views at phone width, without **Add share class** ([navigation](mobile.md#navigation)).
 - Choosing a person on the web: register setup, investor and non-paid issues, transfers and employee
   awards read one people list (`packages/shared/src/hooks/usePeople.ts`, the
   `register/members/` read validated by `isRegisterImportMembers`) and render `PersonSelect` and

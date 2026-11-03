@@ -1,8 +1,8 @@
 import { useUserPreferences, type OrderSubmissionOwner } from '@ledova/shared';
-import { AccountCheck } from '../../components/AccountCheck';
-import { CompanyContextNotice } from '../../components/CompanyContextNotice';
-import { LoadError, Loading } from '../../components/Ledger';
-import { useMemberRecordsState } from '../../contexts';
+import { AccountCheck } from './AccountCheck';
+import { CompanyContextNotice } from './CompanyContextNotice';
+import { LoadError, Loading } from './Ledger';
+import { useMemberRecordsState } from '../contexts';
 
 export function RegisterAccess({ owner }: { owner: OrderSubmissionOwner | null }) {
   const preferences = useUserPreferences();

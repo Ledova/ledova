@@ -30,10 +30,10 @@ import { Action, Actions, LinkRow, LoadError, Loading, Rows, Section } from '../
 import { Page } from '../../components/Page';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
+import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { AwardForm } from './AwardForms';
-import { useCompanyRegisters } from './useCompanyRegisters';
 import { useShareholderStyles } from './useShareholderStyles';
 
 const TITLE = DESTINATIONS.companyRegister.views.awards;

@@ -53,8 +53,9 @@ The web app no longer offers the chain actions described below: the owner remove
 
 ### Class rights
 
-On the web, choose **Class details** on a class's Ledger card. **Class rights** records the company's
-description of existing terms below the current register summary. Choose **Edit** to record:
+On the web or in the mobile app, choose **Class details** on a class's Ledger card. **Class rights**
+records the company's description of existing terms below the current register summary. Choose
+**Edit** to record:
 
 - **Voting:** general or conditional voting, including a recorded weight on a poll.
 - **Dividends:** participation or a preference, with its basis and conditions.

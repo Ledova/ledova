@@ -32,11 +32,11 @@ import {
 } from '@ledova/shared';
 import { Action, Fact, LinkRow, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
+import { RegisterAccess } from '../../components/RegisterAccess';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { RegisterAccess } from './RegisterAccess';
 import { useShareholderStyles } from './useShareholderStyles';
 
 const PRIVATE_NOTE =

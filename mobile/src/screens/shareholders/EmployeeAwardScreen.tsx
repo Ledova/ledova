@@ -29,11 +29,11 @@ import {
 } from '@ledova/shared';
 import { Action, LoadError, Loading } from '../../components/Ledger';
 import { Page } from '../../components/Page';
+import { RegisterAccess } from '../../components/RegisterAccess';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { AwardRecord } from './AwardRecord';
-import { RegisterAccess } from './RegisterAccess';
 import { useShareholderStyles } from './useShareholderStyles';
 
 const TITLE = DESTINATIONS.companyRegisterAward.title;

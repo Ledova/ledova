@@ -15,6 +15,8 @@ import {
   ownershipCompaniesKey,
   sydneyToday,
   utcToday,
+  type ClassRightsRequest,
+  type ClassRightsRevision,
   type CompanyAuthorityRequest,
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
@@ -40,6 +42,8 @@ import { destinationOf } from '../../components/notifications/NotificationsPanel
 import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { CompanyPackScreen } from '../documents/CompanyPackScreen';
 import { InspectionCopiesScreen } from '../documents/InspectionCopiesScreen';
+import { LedgerScreen } from '../ledger/LedgerScreen';
+import { ShareClassScreen } from '../ledger/ShareClassScreen';
 import { AuthorityRequestScreen } from '../settings/AuthorityRequestScreen';
 import { AuthorityScreen } from '../settings/AuthorityScreen';
 import { TeamScreen } from '../settings/TeamScreen';
@@ -316,6 +320,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let revokedLink = '';
   let awards: RegisterAward[] = [];
   let vestings: RegisterAwardVesting[] = [];
+  let rights: ClassRightsRevision[] = [];
   api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
@@ -367,6 +372,15 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.REGISTER_GRANTS) return page([]);
     if (url === URLS.MEMBER_INVITATIONS) return page([]);
     if (url === URLS.REGISTER_ENTRIES(FOUNDERS.uuid)) return { data: { results: [CERTIFIED], next: null, count: 1 } };
+    if (url === URLS.DETAIL(FOUNDERS.uuid)) {
+      const company = { company: ADMINISTERED.uuid, companyUuid: ADMINISTERED.uuid, companyName: ADMINISTERED.name };
+      return { data: { ...FOUNDERS, ...company, status: 'draft', tokenTypeDisplay: 'Ordinary', totalSupply: '1000' } };
+    }
+    if (url === URLS.CLASS_RIGHTS(FOUNDERS.uuid)) {
+      const administrationAppointment = own.capabilities.includes('admin') ? own.uuid : null;
+      return { data: { ...page(rights).data, previous: null, current: rights[0] ?? null, administrationAppointment } };
+    }
+    if (url === URLS.REGISTER_MEMBER_DOCUMENTS) return page([]);
     const preview = {
       token: FOUNDERS.uuid,
       appointment: ADMINISTRATION.uuid,
@@ -467,6 +481,27 @@ it('associates a member by invitation code, switches to their company on Dashboa
         unvestedRemainingShares: String(BigInt(award.shares) - BigInt(vesting.shares)),
       }));
       return { data: vesting };
+    }
+    if (url === URLS.CLASS_RIGHTS(FOUNDERS.uuid)) {
+      const request = value as ClassRightsRequest;
+      rights = [
+        {
+          uuid: '43434343-4343-4343-8343-434343434343',
+          token: FOUNDERS.uuid,
+          revision: request.previousRevision + 1,
+          appointment: request.appointment,
+          summary: request.summary,
+          attributes: request.attributes ?? {},
+          effectiveDate: request.effectiveDate ?? null,
+          documentReference: '',
+          documents: [],
+          idempotencyKey: request.idempotencyKey,
+          recordedBy: 1,
+          recordedByName: PROFILE.fullName,
+          createdAt: '2026-11-04T00:00:00Z',
+        },
+      ];
+      return { data: rights[0] };
     }
     const file = (type: string) => ({ data: new ArrayBuffer(4), headers: { 'content-type': type } });
     if (url === URLS.REGISTER_CERTIFICATE(FOUNDERS.uuid)) return file('application/pdf');
@@ -629,7 +664,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
   const registerReads = () =>
     api.get.mock.calls.filter(
-      ([url]) => url === URLS.OWNERSHIP || /\/(register|holders|packs)\/|-holders\/$/.test(url),
+      ([url]) =>
+        url === URLS.OWNERSHIP ||
+        url === URLS.DETAIL(MEMBER_RECORD.classes[0].uuid) ||
+        /\/(register|holders|packs|class-rights|register-member-documents)\/|-holders\/$/.test(url),
     );
   const outputPosts = () => api.post.mock.calls.filter(([url]) => /\/register\/|\/pack\/$/.test(url));
   const menu = <AppMenu visible current="Documents" route="Certificates" onSelect={jest.fn()} onClose={jest.fn()} />;
@@ -637,7 +675,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByRole('button', { name: 'Documents', selected: true })).toBeTruthy();
   expect(
     screen.queryByRole('button', {
-      name: /Inspection copies|Company pack|Documents navigation|Shareholders|Employee scheme|Member access/,
+      name: /Ledger|Inspection copies|Company pack|Documents navigation|Shareholders|Employee scheme|Member access/,
     }),
   ).toBeNull();
   const shareholder = { company: ADMINISTERED.uuid, member: HOLDER_A.member };
@@ -663,6 +701,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
       }}
     />,
     <EmployeeSchemeScreen key="scheme" />,
+    <LedgerScreen key="ledger" />,
+    <ShareClassScreen
+      key="class"
+      route={{ key: 'class', name: 'ShareClass', params: { company: MEMBER_RECORD.company.uuid, token } }}
+    />,
     <EmployeeAwardScreen
       key="award"
       route={{
@@ -707,6 +750,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByText('1–25 of 26 shareholders')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Next (Class shareholders)' }));
   expect(await screen.findByText('26–26 of 26 shareholders')).toBeTruthy();
+  const founders = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid };
+  await fireEvent.press(screen.getByRole('button', { name: 'Class details (Founders)' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('ShareClass', founders);
   expect(
     registerReads().every(
       ([url, config]) =>
@@ -774,11 +820,21 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(menu);
   expect(await screen.findByRole('button', { name: 'Inspection copies' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Company pack' })).toBeTruthy();
+  expect(
+    screen.getAllByText(/^(Dashboard|Ledger|Shareholders|Documents|Settings)$/).map(({ props }) => props.children),
+  ).toEqual(['Dashboard', 'Ledger', 'Shareholders', 'Documents', 'Settings']);
   await fireEvent.press(screen.getByRole('button', { name: 'Expand Shareholders navigation' }));
   expect(screen.getAllByText(/^(Employee scheme|Member access)$/).map(({ props }) => props.children)).toEqual([
     'Employee scheme',
     'Member access',
   ]);
+  await view.rerender(<LedgerScreen />);
+  expect(await screen.findByText('Founders · FND')).toBeTruthy();
+  expect(screen.getByLabelText('Issued shares: 8')).toBeTruthy();
+  expect(screen.getByLabelText('Current shareholders: 2')).toBeTruthy();
+  expect(screen.queryByText('Elsewhere · ELS')).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Class details (Founders)' }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('ShareClass', founders);
   await view.rerender(<ShareholdersScreen />);
   expect(await screen.findByText('FND 5 · 62.50%')).toBeTruthy();
   expect(screen.getByText('1–2 of 2 people')).toBeTruthy();
@@ -885,10 +941,39 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByText(REGISTER_AWARD_COPY.READ_ONLY_NOTE)).toBeTruthy();
   expect(screen.queryByRole('button', { name: REGISTER_AWARD_COPY.PREPARE })).toBeNull();
   expect(awardPosts()).toHaveLength(2);
+  await view.rerender(<ShareClassScreen route={{ key: 'founders', name: 'ShareClass', params: founders }} />);
+  expect(await screen.findByText('No rights recorded.')).toBeTruthy();
+  expect(screen.getByText('FND · Ordinary')).toBeTruthy();
+  expect(screen.getByLabelText('Issued shares: 8')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
   own = ADMINISTRATION;
   await act(async () => {
     await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
   });
+  await act(async () => screen.getByTestId('share-class-scroll').props.refreshControl.props.onRefresh());
+  await fireEvent.press(await screen.findByRole('button', { name: 'Edit (Class rights)' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Voting: Not recorded' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'General voting' }));
+  await fireEvent.changeText(screen.getByLabelText('Additional terms'), ' Synthetic class terms ');
+  const rightsPosts = () => api.post.mock.calls.filter(([url]) => url.endsWith('/class-rights/'));
+  expect(rightsPosts()).toHaveLength(0);
+  await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+  expect(await screen.findByText('Class rights saved.')).toBeTruthy();
+  expect(rightsPosts()).toEqual([
+    [
+      URLS.CLASS_RIGHTS(FOUNDERS.uuid),
+      {
+        appointment: ADMINISTRATION.uuid,
+        previousRevision: 0,
+        summary: 'Synthetic class terms',
+        attributes: { voting: { type: 'general' } },
+        effectiveDate: null,
+        documents: [],
+        idempotencyKey: expect.stringMatching(/^00000000-0000-4000-8000-/),
+      },
+      expect.anything(),
+    ],
+  ]);
   await view.rerender(<CertificatesScreen route={{ key: 'register', name: 'Certificates', params: undefined }} />);
   expect(await screen.findByText('Certificate: Can prepare')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Prepare certificate (entry 13)', disabled: false }));
