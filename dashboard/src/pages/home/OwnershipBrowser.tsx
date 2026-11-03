@@ -264,7 +264,11 @@ function SignedInOwnership({
                       <Section
                         title="Class details"
                         header={
-                          <h2 ref={details} tabIndex={-1} className="font-display text-xl focus:outline-none">
+                          <h2
+                            ref={details}
+                            tabIndex={-1}
+                            className="break-words font-display text-xl focus:outline-none"
+                          >
                             {selectedClass?.name ?? 'Class unavailable'}
                           </h2>
                         }

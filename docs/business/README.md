@@ -258,8 +258,8 @@ who can prepare the register but is not an administrator is pointed to Ledger in
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
 shares, current shareholders (each person counted once across classes) and the number of share
-classes, then one ownership ring and linked class list. Choosing a class opens its searchable,
-paged holders with exact shares and percentages of that class's issued shares. A class without an opened
+classes, then one ownership ring and linked class list. Choosing a class opens its paged holders
+with exact shares and percentages of that class's issued shares. A class without an opened
 register makes the company totals incomplete, and a failed or inconsistent read withholds totals
 and charts rather than showing zero. Detailed history and every action are on the
 [Ledger page](register.md#the-register-page).
