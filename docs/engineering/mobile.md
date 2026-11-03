@@ -86,8 +86,10 @@ above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pag
 corners under a 20-point title; the page's own title is the top bar's. Dashboard
 (`mobile/src/screens/holdings/DashboardScreen.tsx`) follows the web's per-company Dashboard. The
 selected company is remembered per account under the web's key (`ledova.company.<user>.<account>`, in
-AsyncStorage), and is otherwise the first by name; **Switch company** lists the member's companies
-when there are several. Its Ownership overview comes from the shared `ownershipView`, read from the
+AsyncStorage), and is otherwise the first by name. With several companies, **Switch company** opens
+the web's company popover beneath its icon (`FilterPopover` with `CompanyPicker`): a search field
+("Type a company name") over the companies, the current one ticked on the left and highlighted
+(owner, 3 November 2026). Its Ownership overview comes from the shared `ownershipView`, read from the
 member record's shared ownership, or from the member's own shares when the company does not share
 its totals: your shares, issued shares, current shareholders and share classes, then each class,
 ranked by the shared `rankOwnershipClasses`, with its issued count, percentage and your holding.

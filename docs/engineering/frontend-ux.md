@@ -659,7 +659,8 @@ a toggle and without opening on focus (`SearchSelect`'s `inline`), so opening th
 companies with the current one ticked. Its label remains accessible but visually hidden. An accepted
 switch request closes the panel and returns focus to its icon; the existing form confirmation and
 held-work guards still decide navigation. Company selection has no separate row above the ownership
-view; class exploration keeps its breadcrumb.
+view; class exploration keeps its breadcrumb. The app's **Switch company** opens the same popover and
+list, with its search field starting empty; choosing the current company only closes it.
 
 A single company opens directly and hides the switcher. With several companies, an address that names
 no company, including sign-in, opens the company the person used last in this browser (remembered per
