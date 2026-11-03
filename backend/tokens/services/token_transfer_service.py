@@ -327,7 +327,6 @@ def create_order_and_match(
     order = TransferOrder.objects.create(
         uuid=order_id,
         creation_submission=submission,
-        eligibility_decision=admission.decision,
         token=token,
         order_type=order_type,
         wallet=wallet,

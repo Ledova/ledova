@@ -7,6 +7,11 @@
 [implementation index](README.md) lists the
 increments delivered under it and the remaining scope.
 
+Investor eligibility (classification claims, payslips and company eligibility decisions) was removed
+on 2 November 2026 ([decision](../../decisions.md#verification-limited-to-id-checks)). Where this
+plan names eligibility decisions or classification outcomes, Ledova no longer records them, and its
+only check of a person is the identity check.
+
 ## Decision
 
 **Ledova operates the platform. Companies operate their own share registers.**
@@ -100,7 +105,7 @@ legal, signature or filing requirements resolved.
 Appointments carry flat capabilities (`admin`, `prepare`, `approve`, `apply`,
 `finance` and `read_register`) with invitations, expiry and revocation.
 `RegisterMember` remains a shareholder record, not an administrative role, and
-participant access to one's holding/notices does not imply company admin access.
+participant access to one's holding does not imply company admin access.
 
 Platform permissions and company appointments are independent. Company membership
 must not confer global staff privileges. Company capabilities come from recorded
@@ -122,8 +127,9 @@ non-tokenised register member.
 
 Bootstrap starts with fresh company and participant signup. Establish initial
 company access through the representative's authorisation declaration, retaining
-the existing representative identity check; the ABR company lookup runs at
-activation ([19 October decision](../../decisions.md#abr-company-lookup-at-activation)).
+the existing representative identity check; the ABR company lookup, which ran at
+activation, was removed on 2 November 2026
+([decision](../../decisions.md#abr-company-check-removed)).
 The selected [representative authority route](#representative-verification) is
 self-declaration, followed by scoped in-app delegation. It does not approve pending instructions
 or replace action-specific company approvals.
@@ -149,10 +155,10 @@ authorised to act for the company, which registers itself and remains
 responsible for its information, filings and legal obligations. Company details
 are shown as provided by the company, never verified by Ledova, and Ledova
 changes administrators only through existing administrators or at a court's or
-regulator's direction. The representative identity check and ABR lookup remain,
-the lookup at activation since 19 October, and a declaration turns neither into a
-success result. No impersonation or fraud verification is added unless a legal
-duty on Ledova requires it; such a duty is
+regulator's direction. The representative identity check remains, and a
+declaration does not turn it into a success result; the ABR lookup, at activation
+from 19 October, was removed on 2 November 2026. No impersonation or fraud
+verification is added unless a legal duty on Ledova requires it; such a duty is
 raised with the owner, not built. Other representatives receive in-app
 delegation within their recorded delegatable scope; self-declaration approves no
 issue or payment. The [authority guide](../../business/companies.md)
@@ -177,8 +183,9 @@ are delivered.
 
 New integrated payments and marketplace settlement (#869), advanced
 publications/voting/distributions (#870), and filing preparation/submission
-(#872) are deferred. Preserve existing governed functionality and retained
-records. Neither a generated filing draft nor an external receipt establishes
+(#872) are deferred; the staff-run shareholder publications were
+[removed](../../decisions.md#shareholder-publications-removed) on 2 November 2026.
+Preserve existing governed functionality and retained records. Neither a generated filing draft nor an external receipt establishes
 lodgement, regulatory acceptance or share issuance. Future integration choices
 remain owner decisions.
 
@@ -223,7 +230,8 @@ rather than issuing them a second time.
 - Company A's appointee cannot read or act on company B's private records; reject
   foreign company/class/member/document references, even for a shared owner.
 - Initial admission records the representative's authorisation declaration,
-  retaining the existing identity check; activation runs the ABR lookup. Company
+  retaining the existing identity check; activation records its own declaration
+  under the same identity check. Company
   details are attributed to the company, with responsibility stated in the terms, and never
   labelled verified by Ledova. Administrator changes require existing company
   administrators or court/regulator direction; own-account recovery remains separate.
@@ -245,7 +253,7 @@ rather than issuing them a second time.
 - Missing authority, director conflict, insufficient headroom,
   conflicting identity, chain reorganisation or changed finality policy produce
   actionable pending/refused outcomes, never invented completion.
-- Shareholders/employees read their own records/notices independently of unrelated
+- Shareholders/employees read their own records independently of unrelated
   offering eligibility; no wallet is required where no chain action is involved.
 - Receipt, issue authority, execution, holding and register effect remain separate
   and reconcile to the same quantity. Payment alone does not create an issue.

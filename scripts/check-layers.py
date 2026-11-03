@@ -38,7 +38,6 @@ SCOPING_CALLS = frozenset(
         "none",
         "get_object",
         "get_queryset",
-        "investor_eligibility",
     }
 )
 
@@ -80,10 +79,9 @@ ALLOWED: dict[str, tuple[int, str]] = {
     ),
     "backend/shared/apps.py:django-signals": (
         1,
-        "The post_delete receiver that deletes a private file when its row is gone. A cascade delete "
-        "never reaches a service, so an explicit call in each delete path cannot cover it: deleting a "
-        "Company takes its CompanyDocument rows and deleting a user takes their Document rows, and the "
-        "files would outlive both. Stated in docs/engineering/backend.md; the receiver is shared/storage.py.",
+        "The post_delete receiver that deletes a private file when its row is gone, whichever path deleted "
+        "the row. A cascade delete never reaches a service, so an explicit call in each delete path cannot "
+        "cover it. Stated in docs/engineering/backend.md; the receiver is shared/storage.py.",
     ),
 }
 

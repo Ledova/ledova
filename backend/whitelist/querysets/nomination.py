@@ -3,7 +3,9 @@ from django.db.models import QuerySet
 
 class CompanyWalletNominationQuerySet(QuerySet):
     def owned_by(self, user):
-        return self.filter(request__user_account__user_profile__user=user)
+        if user is None or not user.is_authenticated:
+            return self.none()
+        return self.filter(submitted_by=user)
 
     def register_readable_by(self, user):
         from companies.models import Company

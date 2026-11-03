@@ -104,9 +104,7 @@ def _identity(token, member, address):
 
 
 def _wallet_requirements(proposal):
-    nomination = (
-        CompanyWalletNomination.objects.select_related("request", "decision").filter(pk=proposal.nomination_id).first()
-    )
+    nomination = CompanyWalletNomination.objects.select_related("company").filter(pk=proposal.nomination_id).first()
     if nomination is None or nomination.company_id != proposal.company_id:
         return ["wallet_source_changed"]
     unmet = nomination_requirements(nomination)
@@ -418,7 +416,6 @@ def prepare_issue(
                     "chain_id": approval.chain_id,
                     "expires_at": approval.expires_at.isoformat() if approval.expires_at else "",
                     "proof_completed_at": nominated.snapshot["proof_completed_at"],
-                    "eligibility_expires_at": nominated.snapshot["eligibility_expires_at"],
                 },
                 "register": {
                     "uuid": str(register.pk),
@@ -637,7 +634,8 @@ def permanent_source_loss(proposal, unmet):
         code in unmet
         for code in (
             "company_source_expired",
-            "eligibility_source_lapsed",
+            "participant_not_current",
+            "company_inactive",
             "wallet_proof_required",
             "wallet_approval_lapsed",
         )

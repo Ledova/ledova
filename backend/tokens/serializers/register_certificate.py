@@ -5,20 +5,7 @@ from shared.api.search import SEARCH_MAX_LENGTH
 
 class RegisterCertificateEntriesQuerySerializer(serializers.Serializer):
     search = serializers.CharField(max_length=SEARCH_MAX_LENGTH, required=False, allow_blank=True, default="")
-    certificate_status = serializers.ChoiceField(
-        choices=[
-            "all",
-            "can_prepare",
-            "reversed",
-            "not_requested",
-            "requested",
-            "withdrawn",
-            "fulfilled",
-            "not_applicable",
-        ],
-        required=False,
-    )
-    association = serializers.UUIDField(required=False)
+    certificate_status = serializers.ChoiceField(choices=["all", "can_prepare", "reversed"], required=False)
 
 
 class RegisterCertificateSelectionSerializer(serializers.Serializer):
@@ -39,16 +26,3 @@ class RegisterCertificateRequestSerializer(RegisterCertificateSelectionSerialize
     appointment = serializers.UUIDField()
     source_digest = serializers.RegexField(regex=r"^[0-9a-f]{64}$")
     instruction = serializers.CharField(max_length=255, required=False)
-
-
-class MemberCertificateFulfilmentPreviewSerializer(RegisterCertificatePreviewSerializer):
-    company = serializers.UUIDField()
-    member_request = serializers.UUIDField()
-    member = serializers.UUIDField()
-
-
-class MemberCertificateFulfilmentCreateSerializer(serializers.Serializer):
-    operation_id = serializers.UUIDField()
-    appointment = serializers.UUIDField()
-    source_digest = serializers.RegexField(regex=r"^[0-9a-f]{64}$")
-    instruction = serializers.CharField(max_length=255)

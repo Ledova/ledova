@@ -1,31 +1,22 @@
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
-  CERTIFICATE_STATUSES,
-  MEMBER_CERTIFICATE_STATUS_LABELS,
-  certificateStatus,
   REGISTER_CORRECTION_COPY,
+  certificateStatus,
   formatDate,
-  formatDateTime,
-  searchRows,
   shareChange,
-  type MemberCertificateRequest,
+  type CertificateStatus,
   type OrderSubmissionOwner,
   type OwnMemberEntry,
   type OwnMemberRecord,
   type RegisterEntry,
   type RegisterEntryKind,
   type TokenHoldersResponse,
-  type useMemberRecords,
 } from '@ledova/shared';
-import { MoreToggle, Failure } from '@components/Ledger';
 import { LoadMore, TABLE_SCROLL_CLASS, TABLE_HEADER_CLASS } from '@components/List';
-import { PageAction } from '@components/Page';
 import { ClassCertificate } from './ClassCertificate';
-import { useMemberCertificateDownload } from './useMemberCertificateDownload';
 import type { CertificateFilterValues } from './useCompanyCertificates';
 
 export type CertificateClass = Pick<OwnMemberRecord['classes'][number], 'uuid' | 'name' | 'symbol'>;
-type Read = ReturnType<typeof useMemberRecords>;
 export type CompanyCertificateSource = {
   owner: OrderSubmissionOwner;
   register: TokenHoldersResponse;
@@ -35,40 +26,31 @@ export type CompanyCertificateSource = {
   readReady: boolean;
   more: { hasMore: boolean; failed: boolean; loading: boolean; onLoad: () => unknown };
 };
+export type OwnCertificateSource = Pick<OwnMemberRecord, 'member' | 'name'> & { entries: OwnMemberEntry[] };
 type CertificateRecord = { uuid: string; company?: RegisterEntry; own?: OwnMemberEntry };
 
-const ROW_COLUMNS =
+const COMPANY_COLUMNS =
   'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_10rem]';
+const OWN_COLUMNS = 'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]';
+const CERTIFICATE_STATES: Record<Exclude<CertificateStatus, 'all'>, string> = {
+  can_prepare: 'Can prepare',
+  reversed: 'None due, the entry was reversed',
+};
 
 export function CertificateRecords({
-  read,
   selectedClass,
-  companyUuid,
   onEditingChange,
   company,
-  held,
-  running,
-  onRequest,
-  onWithdraw,
+  own,
   filters,
 }: {
-  read: Read;
   selectedClass?: CertificateClass;
-  companyUuid: string;
   onEditingChange?: (open: boolean) => void;
   company?: CompanyCertificateSource;
-  held: boolean;
-  running: string | null;
-  onRequest: (uuid: string) => void;
-  onWithdraw: (request: MemberCertificateRequest) => void;
-  filters: CertificateFilterValues;
+  own?: OwnCertificateSource;
+  filters?: CertificateFilterValues;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
-  const [otherExpanded, setOtherExpanded] = useState(false);
-  const otherId = useId();
-  const retry = read.retry;
-  const record =
-    read.record?.company.uuid === companyUuid && read.selectedUuid === read.record.uuid ? read.record : null;
   const editingChange = useCallback(
     (uuid: string, open: boolean) => {
       setEditing((current) => (open ? uuid : current === uuid ? null : current));
@@ -76,51 +58,19 @@ export function CertificateRecords({
     },
     [onEditingChange],
   );
-  const own =
-    record?.classes.some((item) => item.uuid === selectedClass?.uuid) && read.selectedToken === selectedClass?.uuid;
-  const ownEntries = own ? read.entries : [];
-  const ownById = new Map(ownEntries.map((entry) => [entry.uuid, entry]));
-  const requests = [...(record ? (read.requests?.certificates ?? []) : [])].sort(
-    (a, b) => b.createdAt.localeCompare(a.createdAt) || b.uuid.localeCompare(a.uuid),
-  );
-  const statusOf = (row: CertificateRecord) => certificateStatus(row, requests, selectedClass?.uuid);
-  const extras = searchRows(
-    ownEntries.filter((entry) => !company || !['issue', 'transfer'].includes(entry.kind.toLowerCase())),
-    () => record?.name ?? '',
-    filters.search,
-  ).filter((entry) => filters.status === 'all' || statusOf({ uuid: entry.uuid, own: entry }) === filters.status);
-  const records = new Map<string, CertificateRecord>();
-  for (const entry of company?.entries ?? []) {
-    if (['issue', 'transfer'].includes(entry.kind) && Number.isSafeInteger(entry.sequence) && entry.sequence > 0)
-      records.set(entry.uuid, { uuid: entry.uuid, company: entry, own: ownById.get(entry.uuid) });
-  }
-  for (const entry of extras) if (!records.has(entry.uuid)) records.set(entry.uuid, { uuid: entry.uuid, own: entry });
-  const ordered = [...records.values()].sort((a, b) =>
+  const records: CertificateRecord[] = company
+    ? company.entries
+        .filter(
+          (entry) =>
+            ['issue', 'transfer'].includes(entry.kind) && Number.isSafeInteger(entry.sequence) && entry.sequence > 0,
+        )
+        .map((entry) => ({ uuid: entry.uuid, company: entry }))
+    : (own?.entries ?? []).map((entry) => ({ uuid: entry.uuid, own: entry }));
+  const ordered = records.sort((a, b) =>
     (b.company?.recordedAt ?? b.own?.createdAt ?? '').localeCompare(a.company?.recordedAt ?? a.own?.createdAt ?? ''),
   );
-  const filtered = !!filters.search || filters.status !== 'all';
-  const otherRequests = requests.filter(
-    (request) => request.token !== selectedClass?.uuid || !records.has(request.entry),
-  );
-  const otherActive =
-    (retry?.kind === 'certificate' && otherRequests.some((request) => request.entry === retry.entry)) ||
-    (retry?.kind === 'withdraw' && otherRequests.some((request) => request.uuid === retry.uuid));
-  const otherShown = otherExpanded || otherActive;
-  const actions = (request: MemberCertificateRequest) => (
-    <CertificateActions key={request.uuid} read={read} request={request} held={held} onWithdraw={onWithdraw} />
-  );
-  const requestRecord = (request: MemberCertificateRequest) => (
-    <div key={request.uuid} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3 text-sm">
-      <div className="min-w-0 space-y-1">
-        <p className="font-medium">
-          {record?.classes.find((item) => item.uuid === request.token)?.name ?? 'Share certificate'} ·{' '}
-          {MEMBER_CERTIFICATE_STATUS_LABELS[request.status]}
-        </p>
-        <p className="text-text-muted">Requested {formatDate(request.createdAt)}</p>
-      </div>
-      <div className="ml-auto flex flex-wrap items-center gap-2 empty:hidden">{actions(request)}</div>
-    </div>
-  );
+  const filtered = !!filters && (!!filters.search || filters.status !== 'all');
+  const columns = company ? COMPANY_COLUMNS : OWN_COLUMNS;
   return (
     <>
       {filtered && ordered.length === 0 && (
@@ -129,41 +79,43 @@ export function CertificateRecords({
         </p>
       )}
       {ordered.length === 0 && !filtered && (
-        <p className="text-sm text-text-muted">No eligible certificate records in the loaded entries.</p>
+        <p className="text-sm text-text-muted">
+          {company
+            ? 'No eligible certificate records in the loaded entries.'
+            : selectedClass
+              ? 'No register entries for this class yet.'
+              : 'No register entries yet.'}
+        </p>
       )}
       <div className={ordered.length > 0 && !editing ? TABLE_SCROLL_CLASS : undefined}>
         {ordered.length > 0 && !editing && (
           <div className={`${TABLE_HEADER_CLASS} hidden py-3 font-medium md:block`} aria-hidden="true">
-            <div className={`grid gap-4 ${ROW_COLUMNS}`}>
+            <div className={`grid gap-4 ${columns}`}>
               <span>Shareholder</span>
               <span className="text-right">Shares</span>
               <span>Date</span>
-              <span>Certificate</span>
-              <span className="sr-only">Action</span>
+              {company && (
+                <>
+                  <span>Certificate</span>
+                  <span className="sr-only">Action</span>
+                </>
+              )}
             </div>
           </div>
         )}
         <ul aria-label="Certificate records" className="divide-y divide-border-subtle">
           {ordered.map((row) => {
             const entry = row.company ?? row.own!;
-            const related = requests.filter(
-              (request) => request.entry === row.uuid && request.token === selectedClass?.uuid,
-            );
-            const latest = related[0];
-            const receiving =
-              !!row.own && ['issue', 'transfer'].includes(row.own.kind.toLowerCase()) && BigInt(row.own.delta) > 0n;
             const kind =
               REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind.toLowerCase() as RegisterEntryKind] ?? 'Register change';
-            const changes = row.company?.changes ?? [
-              { member: record!.member, name: record!.name, shares: row.own!.delta },
-            ];
+            const changes = row.company?.changes ?? [{ member: own!.member, name: own!.name, shares: row.own!.delta }];
             const focused = editing === row.uuid;
             const companyDated = ['issue', 'transfer'].includes(entry.kind.toLowerCase());
             return (
               <li
                 key={`${selectedClass?.uuid}/${row.uuid}`}
                 hidden={!!editing && !focused}
-                className={`grid gap-3 py-4 text-sm md:gap-4 ${ROW_COLUMNS}`}
+                className={`grid gap-3 py-4 text-sm md:gap-4 ${columns}`}
               >
                 <span className="min-w-0 space-y-1 md:col-span-2">
                   {changes.map((change) => (
@@ -186,48 +138,29 @@ export function CertificateRecords({
                     </span>
                   )}
                 </span>
-                <span className="text-text-muted">
-                  {latest?.status === 'requested'
-                    ? `Requested ${formatDate(latest.createdAt)}`
-                    : CERTIFICATE_STATUSES.find(([value]) => value === statusOf(row))?.[1]}
-                  {latest && latest.status !== 'requested' && (
-                    <span className="block">Requested {formatDate(latest.createdAt)}</span>
-                  )}
-                </span>
-                <div
-                  className={
-                    focused
-                      ? 'md:col-span-4 xl:col-span-5'
-                      : 'flex flex-wrap items-start justify-end gap-2 empty:hidden md:col-span-4 xl:col-span-1'
-                  }
-                >
-                  {company && row.company && (
-                    <ClassCertificate
-                      sourceKey={`${company.owner.userUuid}/${company.owner.ownerAccountUuid}`}
-                      register={company.register}
-                      entry={row.company}
-                      guard={company.guard}
-                      sourceReady={company.sourceReady && !held}
-                      onEditingChange={editingChange}
-                    />
-                  )}
-                  {!focused && receiving && latest?.status !== 'requested' && (
-                    <PageAction
-                      label="Request certificate"
-                      context={`${selectedClass?.name ?? 'Shares'}, entry ${entry.sequence}`}
-                      busy={running === `certificate:${row.uuid}`}
-                      busyLabel="Requesting…"
-                      disabled={held}
-                      onClick={() => onRequest(row.uuid)}
-                    />
-                  )}
-                  {!focused && latest && actions(latest)}
-                </div>
-                {related.length > 1 && (
-                  <div hidden={focused} className="divide-y divide-border-subtle md:col-span-4 xl:col-span-5">
-                    <h3 className="text-sm font-medium">Earlier requests</h3>
-                    {related.slice(1).map(requestRecord)}
-                  </div>
+                {company && row.company && (
+                  <>
+                    <span className="text-text-muted">
+                      <span className="md:sr-only">Certificate: </span>
+                      {CERTIFICATE_STATES[certificateStatus(row.company)]}
+                    </span>
+                    <div
+                      className={
+                        focused
+                          ? 'md:col-span-4 xl:col-span-5'
+                          : 'flex flex-wrap items-start justify-end gap-2 empty:hidden md:col-span-4 xl:col-span-1'
+                      }
+                    >
+                      <ClassCertificate
+                        sourceKey={`${company.owner.userUuid}/${company.owner.ownerAccountUuid}`}
+                        register={company.register}
+                        entry={row.company}
+                        guard={company.guard}
+                        sourceReady={company.sourceReady}
+                        onEditingChange={editingChange}
+                      />
+                    </div>
+                  </>
                 )}
               </li>
             );
@@ -236,72 +169,9 @@ export function CertificateRecords({
       </div>
       {company && (
         <div hidden={!!editing}>
-          <LoadMore
-            noun={['register entry', 'register entries']}
-            {...company.more}
-            disabled={held || !company.readReady}
-          />
+          <LoadMore noun={['register entry', 'register entries']} {...company.more} disabled={!company.readReady} />
         </div>
       )}
-      {otherRequests.length > 0 && (
-        <div hidden={!!editing} className="space-y-2">
-          <MoreToggle
-            open={otherShown}
-            controls={otherId}
-            disabled={otherActive}
-            onToggle={() => setOtherExpanded((current) => !current)}
-          >
-            {otherShown
-              ? 'Hide other certificate requests'
-              : `Show other certificate requests (${otherRequests.length})`}
-          </MoreToggle>
-          <div id={otherId} hidden={!otherShown} className="divide-y divide-border-subtle">
-            {otherRequests.map(requestRecord)}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function CertificateActions({
-  read,
-  request,
-  held,
-  onWithdraw,
-}: {
-  read: Read;
-  request: MemberCertificateRequest;
-  held: boolean;
-  onWithdraw: (request: MemberCertificateRequest) => void;
-}) {
-  if (request.status === 'requested')
-    return (
-      <PageAction
-        label="Withdraw request"
-        context={`requested ${formatDateTime(request.createdAt)}`}
-        disabled={held}
-        onClick={() => onWithdraw(request)}
-      />
-    );
-  if (request.status === 'fulfilled' && request.fulfilment)
-    return <MemberCertificateDownload read={read} request={request} />;
-  return null;
-}
-
-function MemberCertificateDownload({ read, request }: { read: Read; request: MemberCertificateRequest }) {
-  const { busy, error, download } = useMemberCertificateDownload(read, request);
-  return (
-    <>
-      <PageAction
-        label="Download PDF"
-        context={`unsigned certificate requested ${formatDateTime(request.createdAt)}`}
-        busy={busy}
-        busyLabel="Downloading…"
-        disabled={read.busy || !!read.retry}
-        onClick={() => void download()}
-      />
-      <Failure>{error}</Failure>
     </>
   );
 }

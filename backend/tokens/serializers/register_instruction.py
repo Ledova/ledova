@@ -6,7 +6,7 @@ from tokens.models import RegisterInstruction, RegisterInstructionKind
 class RegisterInstructionCreateSerializer(serializers.Serializer):
     operation_id = serializers.UUIDField()
     token_id = serializers.UUIDField()
-    document_id = serializers.UUIDField()
+    authority_evidence = serializers.UUIDField()
     kind = serializers.ChoiceField(choices=RegisterInstructionKind.choices)
     items = serializers.ListField(
         child=serializers.DictField(child=serializers.CharField()), allow_empty=False, max_length=10000
@@ -29,6 +29,7 @@ class RegisterInstructionSerializer(serializers.ModelSerializer):
             "authority_reference",
             "reason",
             "source_document",
+            "authority_evidence",
             "evidence_fingerprint",
             "evidence_snapshot",
             "submitted_by",

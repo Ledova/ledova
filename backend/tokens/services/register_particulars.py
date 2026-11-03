@@ -1,39 +1,49 @@
-from datetime import date
 from uuid import UUID
 
-from django.core.files.base import ContentFile
+from django.contrib.auth import get_user_model
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
-from companies.models import CompanyAppointment, CompanyCapability
+from companies.models import Company, CompanyAppointment, CompanyCapability
+from companies.services.administration import company_operation
 from companies.services.authority_requests import _requester_principal
 from shared.db import use_operator
 from tokens.constants import REGISTER_IMPORT_ADDRESS_LENGTH
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterAward,
-    RegisterEvidence,
-    RegisterEvidenceKind,
     RegisterMember,
     RegisterMemberParticulars,
     RegisterParticularsChange,
-    RegisterParticularsChangeDecision,
     RegisterPersonRegistration,
     RegisterPosition,
 )
 from tokens.services.former_holders import member_left_on, retention_cutoff
-from tokens.services.register_authority import register_appointment, register_command
-from tokens.services.register_decisions import DecisionFamily, decide, preview
-from tokens.services.register_evidence import (
-    discard,
-    evidence_snapshot,
-    matching_bytes,
-    own_evidence_bytes,
+from tokens.services.member_events import current_associations
+from tokens.services.register_authority import (
+    APPOINTMENT_NOT_FOUND,
+    holds,
+    register_appointment,
+    register_command,
 )
 
 MEMBER_NOT_FOUND = "Register member not found."
-EVIDENCE_REFUSAL = "Name the supporting document you uploaded for this company."
+STALE = (
+    "This member's recorded particulars changed after you read them. Check their current particulars and make the "
+    "change again."
+)
+LINKED = (
+    "This member keeps their name and address up to date in their Ledova profile, so the company does not change "
+    "them here."
+)
+LONG_ADDRESS = (
+    f"A residential address may have at most {REGISTER_IMPORT_ADDRESS_LENGTH:,} characters, because the companies "
+    "whose registers you are linked to record it."
+)
+PROFILE = "member_particulars_profile"
+EDITORS = (CompanyCapability.PREPARE, CompanyCapability.APPROVE, CompanyCapability.APPLY)
 LIMITS = {
     "name": RegisterParticularsChange._meta.get_field("name").max_length,
     "residential address": REGISTER_IMPORT_ADDRESS_LENGTH,
@@ -41,12 +51,13 @@ LIMITS = {
 }
 
 
-def _text(value, label):
-    if not isinstance(value, str) or not value.strip():
+def _text(value, label, optional=False):
+    text = value.strip() if isinstance(value, str) else ""
+    if not text and not optional:
         raise ValidationError(f"A particulars change needs a {label}.")
-    if len(value.strip()) > LIMITS[label]:
+    if len(text) > LIMITS[label]:
         raise ValidationError(f"A particulars change's {label} may have at most {LIMITS[label]} characters.")
-    return value.strip()
+    return text
 
 
 def _company_of(actor, member_id):
@@ -72,140 +83,86 @@ def _beyond_retention(member_id):
     return left_on is None or left_on < retention_cutoff()
 
 
-def prepare_particulars_change(
-    *, actor, operation_id, appointment, member, supporting_evidence, name, residential_address, as_at, reason
-):
+def _seen(particulars):
+    if not particulars:
+        return ("", "")
+    return (particulars["name"], particulars["residential_address"])
+
+
+def edit_particulars(*, actor, operation_id, appointment, member, name, residential_address, expected, reason=""):
     try:
-        operation_id, appointment, member, supporting_evidence = (
-            UUID(str(value)) for value in (operation_id, appointment, member, supporting_evidence)
-        )
-        as_at = date.fromisoformat(str(as_at))
+        operation_id, appointment, member = (UUID(str(value)) for value in (operation_id, appointment, member))
     except (ValueError, TypeError, AttributeError):
-        raise ValidationError("Particulars change references must be UUIDs and its date an ISO date.") from None
-    if as_at > timezone.localdate():
-        raise ValidationError(
-            "A particulars change cannot be dated after the day it is prepared. Date it today (UTC) or earlier."
-        )
+        raise ValidationError("Particulars change references must be UUIDs.") from None
     values = {
         "name": _text(name, "name"),
         "residential_address": _text(residential_address, "residential address"),
-        "reason": _text(reason, "reason"),
+        "reason": _text(reason, "reason", optional=True),
     }
-    change = None
-    try:
-        with register_command(actor, _company_of(actor, member), "register_particulars_prepare") as (
-            company,
-            current_actor,
-            profile,
-            operator,
-        ):
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
-            subject = RegisterMember.objects.filter(pk=member, company=company).first()
-            if subject is None:
-                raise NotFound(MEMBER_NOT_FOUND)
-            existing = RegisterParticularsChange.objects.filter(pk=operation_id).first()
-            if existing is not None:
-                expected = {
-                    **values,
-                    "company_id": company.pk,
-                    "member_id": subject.pk,
-                    "supporting_evidence_id": supporting_evidence,
-                    "as_at": as_at,
-                    "preparing_appointment_id": source.pk,
-                    "submitted_by_id": current_actor.pk,
-                }
-                if any(getattr(existing, key) != value for key, value in expected.items()):
-                    raise RegisterChangeConflict()
-                return existing, False
-            held = RegisterMemberParticulars.objects.filter(member=subject).first()
-            if held is not None and held.as_at > as_at:
-                raise ValidationError(
-                    f"The register already records this member's particulars as at {held.as_at.isoformat()}, after "
-                    f"{as_at.isoformat()}. Date the change on or after {held.as_at.isoformat()}, or keep the later "
-                    "particulars."
-                )
-            if _beyond_retention(subject.pk):
-                raise ValidationError(
-                    f"This member has held no shares since {retention_cutoff().isoformat()}, so the register no "
-                    "longer keeps their particulars."
-                )
-            copy = RegisterEvidence.objects.select_for_update().filter(pk=supporting_evidence).first()
-            raw = own_evidence_bytes(copy, RegisterEvidenceKind.SUPPORTING, company, current_actor, EVIDENCE_REFUSAL)
-            change = RegisterParticularsChange(
-                uuid=operation_id,
-                company=company,
-                member=subject,
-                as_at=as_at,
-                supporting_evidence=copy,
-                evidence_fingerprint=copy.sha256,
-                evidence_snapshot=evidence_snapshot(copy),
-                preparing_appointment=source,
-                submitted_by=current_actor,
+    seen = _seen(expected)
+    with register_command(actor, _company_of(actor, member), "register_particulars_edit") as (
+        company,
+        current_actor,
+        profile,
+        operator,
+    ):
+        source = register_appointment(company, current_actor, profile, operator, appointment)
+        if not all(holds(source, capability) for capability in EDITORS):
+            raise NotFound(APPOINTMENT_NOT_FOUND)
+        subject = RegisterMember.objects.filter(pk=member, company=company).first()
+        if subject is None:
+            raise NotFound(MEMBER_NOT_FOUND)
+        existing = RegisterParticularsChange.objects.filter(pk=operation_id).first()
+        if existing is not None:
+            recorded = {
                 **values,
-            )
-            change.file.save("supporting.bin", ContentFile(raw), save=False)
-            try:
-                change.save(force_insert=True)
-            except IntegrityError:
-                raise RegisterChangeConflict() from None
-            return change, True
-    except BaseException:
-        if change is not None:
-            discard(change.file)
-        raise
-
-
-def _effect_requirements(change):
-    unmet = []
-    try:
-        matching_bytes(change.file, change.evidence_snapshot["file_size"], change.evidence_fingerprint)
-    except ValidationError:
-        unmet.append("evidence_unavailable")
-    if _beyond_retention(change.member_id):
-        unmet.append("member_left_retention")
-    if RegisterMemberParticulars.objects.filter(member_id=change.member_id, as_at__gt=change.as_at).exists():
-        unmet.append("newer_particulars_exist")
-    return unmet
-
-
-def _details(change):
-    held = RegisterMemberParticulars.objects.filter(member_id=change.member_id).first()
-    return {
-        "member": change.member_id,
-        "name": change.name,
-        "residential_address": change.residential_address,
-        "as_at": change.as_at,
-        "current": (
-            None
-            if held is None
-            else {
-                "name": held.name,
-                "residential_address": held.residential_address,
-                "as_at": held.as_at,
-                "source_import": held.source_import_id,
-                "source_change": held.source_change_id,
-                "source_grant": held.source_grant_id,
-                "source_transfer": held.source_transfer_id,
-                "source_allotment": held.source_allotment_id,
-                "source_award": held.source_award_id,
-                "source_registration": held.source_registration_id,
+                "company_id": company.pk,
+                "member_id": subject.pk,
+                "preparing_appointment_id": source.pk,
+                "submitted_by_id": current_actor.pk,
+                "status": "applied",
             }
-        ),
-    }
+            if (
+                any(getattr(existing, key) != value for key, value in recorded.items())
+                or _seen(existing.previous_particulars) != seen
+            ):
+                raise RegisterChangeConflict()
+            return existing, False
+        if current_associations(company_id=company.pk, member=subject.pk).exists():
+            raise ValidationError(LINKED)
+        held = RegisterMemberParticulars.objects.select_for_update().filter(member=subject).first()
+        current = ("", "") if held is None else (held.name, held.residential_address)
+        if current != seen:
+            raise RegisterChangeConflict(STALE)
+        if current == (values["name"], values["residential_address"]):
+            raise ValidationError("These are already the member's recorded name and residential address.")
+        if _beyond_retention(subject.pk):
+            raise ValidationError(
+                f"This member has held no shares since {retention_cutoff().isoformat()}, so the register no "
+                "longer keeps their particulars."
+            )
+        change = RegisterParticularsChange(
+            uuid=operation_id,
+            company=company,
+            member=subject,
+            as_at=timezone.now().date(),
+            evidence_fingerprint="",
+            evidence_snapshot={},
+            preparing_appointment=source,
+            submitted_by=current_actor,
+            status="applied",
+            reviewed_by=current_actor,
+            **values,
+        )
+        try:
+            change.save(force_insert=True)
+        except IntegrityError:
+            raise RegisterChangeConflict() from None
+        _hold(change)
+        return change, True
 
 
-def _lock(change):
-    list(
-        RegisterMemberParticulars.objects.select_for_update()
-        .filter(member_id=change.member_id)
-        .values_list("uuid", flat=True)
-    )
-    return RegisterParticularsChange.objects.select_for_update().get(pk=change.pk)
-
-
-def _apply(change, actor, decision):
+def _hold(change):
     RegisterMemberParticulars.objects.update_or_create(
         member_id=change.member_id,
         defaults={
@@ -221,43 +178,49 @@ def _apply(change, actor, decision):
             "source_change": change,
         },
     )
-    change.status = "applied"
-    change.reviewed_by = actor
-    change.reviewed_at = decision.decided_at
-    change.save(update_fields=["status", "reviewed_by", "reviewed_at", "updated_at"])
 
 
-PARTICULARS = DecisionFamily(
-    model=RegisterParticularsChange,
-    decision_model=RegisterParticularsChangeDecision,
-    field="register_particulars_change",
-    operation="register_particulars",
-    approved_function="tokens_register_particulars_approved",
-    digest_function="tokens_register_particulars_decision_digest",
-    effect_requirements=_effect_requirements,
-    lock=_lock,
-    apply=_apply,
-    noun="change",
-)
+def _provided(value, kept):
+    return value if isinstance(value, str) and value.strip() else kept
 
 
-def preview_particulars_decision(*, actor, change_id, appointment, kind, reason=""):
-    return preview(
-        PARTICULARS, _details, actor=actor, proposal_id=change_id, appointment=appointment, kind=kind, reason=reason
-    )
+def apply_profile(actor, profile, association):
+    with company_operation(actor, association.company_id, PROFILE):
+        list(Company.objects.select_for_update().filter(pk=association.company_id).values_list("pk", flat=True))
+        held = RegisterMemberParticulars.objects.select_for_update().filter(member_id=association.member).first()
+        if held is None or not current_associations(pk=association.pk, user=actor).exists():
+            return None
+        name = _provided(profile.full_name, held.name)
+        address = _provided(profile.residential_address, held.residential_address)
+        if (name, address) == (held.name, held.residential_address):
+            return None
+        if len(address) > REGISTER_IMPORT_ADDRESS_LENGTH:
+            raise ValidationError({"residential_address": [LONG_ADDRESS]})
+        change = RegisterParticularsChange.objects.create(
+            company_id=association.company_id,
+            member_id=association.member,
+            member_association=association,
+            name=name,
+            residential_address=address,
+            as_at=timezone.now().date(),
+            evidence_fingerprint="",
+            evidence_snapshot={},
+            submitted_by=actor,
+            status="applied",
+            reviewed_by=actor,
+        )
+        _hold(change)
+        return change
 
 
-def decide_particulars_change(
-    *, actor, change_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""
-):
-    return decide(
-        PARTICULARS,
-        actor=actor,
-        proposal_id=change_id,
-        appointment=appointment,
-        kind=kind,
-        idempotency_key=idempotency_key,
-        preview_digest=preview_digest,
-        confirmation=confirmation,
-        reason=reason,
-    )
+def lock_profile_save(actor):
+    linked = current_associations(user=actor).order_by("company_id").values_list("company_id", flat=True)
+    for company_id in linked.distinct():
+        with company_operation(actor, company_id, PROFILE):
+            list(Company.objects.select_for_update().filter(pk=company_id).values_list("pk", flat=True))
+    get_object_or_404(get_user_model().objects.select_for_update(), pk=actor.pk, is_active=True)
+
+
+def follow_profile(actor, profile):
+    for association in current_associations(user=actor).order_by("company_id", "uuid"):
+        apply_profile(actor, profile, association)

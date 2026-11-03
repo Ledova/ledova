@@ -50,7 +50,7 @@ def mint_positions(share_class, records):
     ]
     if not requests:
         return []
-    document = authority(
+    copy = authority(
         records.companies[share_class.company],
         f"issue-{share_class.symbol.lower()}",
         f"issue of the {share_class.symbol} shares already on the register",
@@ -58,12 +58,11 @@ def mint_positions(share_class, records):
             f"The directors resolved to issue on chain the {share_class.name} the register already records,",
             "to each member's wallet, so that the register can be kept on the platform.",
         ],
-        records.documents,
     )
     instruct(
         token,
         [request_item(request) for request in requests],
-        document,
+        copy,
         records,
         reference=f"{reference_prefix(token)}-ISS-{share_class.symbol}",
         reason="Issue on chain the shares the company's register already records.",
@@ -85,18 +84,17 @@ def apply_request(item, records):
         with atomic(), frozen(item.decided_at):
             request.reject(staff, item.decision)
     elif item.status in ("approved", "executed"):
-        document = authority(
+        copy = authority(
             records.companies[item.share_class.split("/")[0]],
             f"issue-{item.key}",
             f"issue of {item.shares:,} {token.symbol} shares",
             [item.reason, f"The directors resolved to issue {item.shares:,} {token.name} to {item.address}."],
-            records.documents,
             at=item.decided_at - timedelta(hours=3),
         )
         instruct(
             token,
             [request_item(request)],
-            document,
+            copy,
             records,
             reference=f"{reference_prefix(token)}-ISS-{item.key.upper()}",
             reason=item.reason,

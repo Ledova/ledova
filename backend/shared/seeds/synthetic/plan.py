@@ -98,52 +98,6 @@ class WalletPlan:
 
 
 @dataclass(frozen=True)
-class Payslip:
-    filename: str
-    uploaded_at: datetime
-    employer: str
-    employer_abn: str
-    employee: str
-    period_start: date
-    period_end: date
-    gross: Decimal
-    tax: Decimal
-    superannuation: Decimal
-    ytd_gross: Decimal
-    ytd_tax: Decimal
-    succeeded: bool
-    confidence: float
-    duration_ms: int
-    warnings: tuple = ()
-
-
-@dataclass(frozen=True)
-class Certificate:
-    issued_on: date
-    certifier: str
-    body: str
-    membership: str
-
-
-@dataclass(frozen=True)
-class Claim:
-    category: str
-    status: str
-    submitted_at: datetime
-    declared_basis: str
-    reviewed_at: datetime | None = None
-    reviewer: str | None = None
-    expires_at: datetime | None = None
-    review_notes: str = ""
-    rejection_reason: str = ""
-    verified_at: datetime | None = None
-    verifier: str | None = None
-    certificate: Certificate | None = None
-    payslips: tuple = ()
-    existing: bool = False
-
-
-@dataclass(frozen=True)
 class Device:
     token: str
     device_type: str
@@ -186,8 +140,6 @@ class Person:
     last_login: datetime | None = None
     alerts_enabled: bool = True
     wallets: tuple = ()
-    claims: tuple = ()
-    payslips: tuple = ()
     devices: tuple = ()
     notes: tuple = ()
     existing: bool = False
@@ -199,16 +151,6 @@ class Person:
     @property
     def profiled(self):
         return self.signup_step in (None, "financial-profile")
-
-
-@dataclass(frozen=True)
-class CompanyDocumentPlan:
-    document_type: str
-    name: str
-    uploaded_at: datetime
-    valid_from: date | None = None
-    verified_at: datetime | None = None
-    rejection_reason: str = ""
 
 
 @dataclass(frozen=True)
@@ -229,7 +171,6 @@ class CompanyPlan:
     industry: str
     description: str
     founded_year: int
-    incorporated_on: date
     phone: str
     address_line_1: str
     address_line_2: str
@@ -241,7 +182,6 @@ class CompanyPlan:
     declarant_name: str
     board_resolution_reference: str
     operator_wallet: str | None = None
-    documents: tuple = ()
     steps: tuple = ()
     existing: bool = False
 

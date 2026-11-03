@@ -42,10 +42,6 @@ class Market:
     def operations(self):
         return self.staff["operations"]
 
-    @property
-    def documents(self):
-        return self.staff["documents"]
-
     def user(self, investor):
         return User.objects.get(email=investor)
 

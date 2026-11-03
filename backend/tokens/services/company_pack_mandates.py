@@ -1,4 +1,4 @@
-from companies.models import CompanyAppointment, CompanyDocument
+from companies.models import CompanyAppointment
 from tokens.exceptions import RegisterIntegrityError
 from tokens.models import (
     RegisterAgreement,
@@ -51,11 +51,6 @@ def _source(record, evidence_field, fingerprint_field, snapshot_field, document_
         evidence.company_id != record.company_id
         or evidence.sha256 != getattr(record, fingerprint_field)
         or evidence.sha256 != snapshot.get("sha256")
-    ):
-        _refuse(record)
-    if (
-        document_id is not None
-        and CompanyDocument.objects.filter(pk=document_id).exclude(company_id=record.company_id).exists()
     ):
         _refuse(record)
     if snapshot.get("company") is not None and snapshot["company"] != str(record.company_id):
@@ -209,14 +204,9 @@ def _wallet_change(record):
 
 
 def _nomination(record):
-    _related(record, record.request)
-    if record.decision.request_id != record.request_id:
-        _refuse(record)
     return {
         "uuid": record.pk,
         "company": record.company_id,
-        "request": record.request_id,
-        "decision": record.decision_id,
         "submitted_by": _name(record.submitted_by),
         "submitted_at": record.submitted_at,
         "sharing_accepted": record.sharing_accepted,
@@ -224,12 +214,11 @@ def _nomination(record):
         "address": record.snapshot.get("address"),
         "chain": record.snapshot.get("chain"),
         "proof_completed_at": record.snapshot.get("proof_completed_at"),
-        "eligibility_expires_at": record.snapshot.get("eligibility_expires_at"),
     }
 
 
 def _appointment_record(appointment):
-    for source in (appointment.request, appointment.invitation, appointment.legacy_owner, appointment.registry_check):
+    for source in (appointment.request, appointment.invitation, appointment.legacy_owner):
         _related(appointment, source)
     revocation = getattr(appointment, "revocation", None)
     return {
@@ -315,7 +304,7 @@ def section(company):
                 "as_at": record.as_at,
             },
         )
-        for record in _records(RegisterParticularsChange, company)
+        for record in _records(RegisterParticularsChange, company).filter(member_association__isnull=True)
     ]
     grants = [
         _record(
@@ -459,7 +448,7 @@ def section(company):
     nominations = [
         _nomination(record)
         for record in CompanyWalletNomination.objects.filter(company=company)
-        .select_related("submitted_by__userprofile", "request", "decision")
+        .select_related("submitted_by__userprofile")
         .order_by("submitted_at", "uuid")
     ]
     awards = [

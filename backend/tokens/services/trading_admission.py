@@ -11,7 +11,7 @@ from rest_framework.exceptions import NotFound
 from shared.db import current_alias, principal_of, use_operator
 from users.exceptions import InvestorNotEligibleException
 from users.models import UserAccount, UserProfile
-from users.services.company_eligibility_consumption import company_eligibility
+from users.services.participants import participant_requirements
 from wallets.models import Wallet
 
 SETTING = "app.trading_admission"
@@ -19,12 +19,11 @@ SETTING = "app.trading_admission"
 
 @dataclass(frozen=True)
 class TradingAdmission:
-    decision: object | None
     command: dict | None
     reasons: tuple[str, ...]
 
     def require_current(self):
-        if self.decision is None:
+        if self.command is None or self.reasons:
             raise InvestorNotEligibleException(self.reasons)
 
 
@@ -87,6 +86,7 @@ def lock_participant(actor, account_id, wallet_id):
         cursor.execute("SELECT id FROM public.operators_operator WHERE id = 1 FOR SHARE")
         if cursor.fetchone() is None:
             raise NotFound("Trading configuration not found.")
+    profile.user = holder
     account.user_profile = profile
     wallet.user_account = account
     return account, wallet
@@ -108,11 +108,9 @@ def prepare_admission(
     settlement_digest=None,
 ):
     account, wallet = lock_participant(actor, account.pk, wallet.pk)
-    outcome = company_eligibility(account, token.company)
-    if not outcome.is_eligible:
-        return TradingAdmission(None, None, outcome.reasons)
-    decision = outcome.decision
-    request = decision.request
+    reasons = tuple(participant_requirements(account, token.company))
+    if reasons:
+        return TradingAdmission(None, reasons)
     command = {
         "version": 1,
         "operation": operation,
@@ -122,11 +120,6 @@ def prepare_admission(
         "owner_account_uuid": str(account.pk),
         "wallet_uuid": str(wallet.pk),
         "profile_uuid": str(account.user_profile_id),
-        "source_uuid": str(request.source_id),
-        "request_uuid": str(request.pk),
-        "decision_uuid": str(decision.pk),
-        "request_digest": request.digest,
-        "decision_digest": decision.digest,
         "target_uuid": str(target_id),
     }
     if operation in ("create_order", "modify_order"):
@@ -151,13 +144,12 @@ def prepare_admission(
     with connections[current_alias()].cursor() as cursor:
         cursor.execute("SELECT set_config(%s, %s, true)", [SETTING, json.dumps(command)])
         cursor.execute("SELECT public.tokens_lock_trading_admission(%s::jsonb)", [json.dumps(command)])
-    outcome = company_eligibility(account, token.company, decision_id=decision.pk)
-    return TradingAdmission(decision if outcome.is_eligible else None, command, outcome.reasons)
+    return TradingAdmission(command, ())
 
 
-def eligibility_guard_refusal(exc):
+def participant_guard_refusal(exc):
     cause = exc.__cause__
     return (
         getattr(cause, "sqlstate", None) == "23514"
-        and getattr(getattr(cause, "diag", None), "constraint_name", None) == "tokens_trading_eligibility_current"
+        and getattr(getattr(cause, "diag", None), "constraint_name", None) == "tokens_trading_participant_current"
     )

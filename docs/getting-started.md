@@ -84,7 +84,7 @@ founder are
 adopts any existing account at those addresses and resets its password, active flag and email
 verification. For the investor and founder it also overwrites the profile, role and status and adds
 a verified wallet: the founder becomes the owner of the active Demo Robotics company with a draft
-share class, and the investor gets a verified classification and a whitelist entry. Check that
+share class, and the investor gets a whitelist entry. Check that
 nobody uses the two `ledova.io` addresses on an environment before seeding it.
 
 The first run on a database also adds a synthetic population with six months of history. A fixed
@@ -93,26 +93,25 @@ dated relative to the day of the run. The modules under
 [`backend/shared/seeds/synthetic/`](../backend/shared/seeds/synthetic) are the description of
 record; the main ones:
 
-| Module                       | What it adds                                                                                                                                                                                                                                         |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reference.py`               | Countries, the operator's blank identity fields with an eleven-zero ABN, six months of BTC, ETH, USDC and USDT prices and a USD to AUD rate                                                                                                          |
-| `staff.py`                   | A compliance officer and a document reviewer, both in the Document operations group, an operations officer who can open the operator console, and a deactivated former staff member                                                                  |
-| `people.py`, `identities.py` | 60 investors unless `--investors` asks for at least 20, in every signup, identity, standing and classification state, with wallets on Base, Ethereum and Bitcoin testnet, transactions, holdings, inactive device tokens, notifications and payslips |
-| `companies.py`               | Demo Robotics and two more active companies with verified documents, officeholder attestation and a passed ABR check from a synthetic observation, one company with information requested and one submitted                                          |
-| `eligibility.py`             | Company eligibility decisions                                                                                                                                                                                                                        |
-| `alerts.py`                  | Alerts in every status, one with a suspicious matter report, with AUD amounts the rules compare and activation dates that make only customers in their first 30 days new                                                                             |
+| Module                       | What it adds                                                                                                                                                                                                               |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `reference.py`               | Countries, the operator's blank identity fields with an eleven-zero ABN, six months of BTC, ETH, USDC and USDT prices and a USD to AUD rate                                                                                |
+| `staff.py`                   | A compliance officer, an operations officer who can open the operator console, and a deactivated former staff member                                                                                                       |
+| `people.py`, `identities.py` | 60 investors unless `--investors` asks for at least 20, in every signup, identity and standing state, with wallets on Base, Ethereum and Bitcoin testnet, transactions, holdings, inactive device tokens and notifications |
+| `companies.py`               | Demo Robotics and two more active companies with officeholder attestation, one company with information requested and one submitted                                                                                        |
+| `alerts.py`                  | Alerts in every status, one with a suspicious matter report, with AUD amounts the rules compare and activation dates that make only customers in their first 30 days new                                                   |
 
 The founder's wallet is development account #0, the operator's
 signer. The investor has seven wallets on the three networks, two unverified: development accounts
-#1 to #4 and two Bitcoin testnet addresses. The investor also has a classification history,
-payslips, and more than a page of notifications and wallet activity; the founder has a full
+#1 to #4 and two Bitcoin testnet addresses. The investor also has more than a page of
+notifications and wallet activity; the founder has a full
 profile and Demo Robotics' review history.
 
 A later run finds the population, adds nothing and says so. Synthetic people use
 `@demo.ledova.test` addresses, ACMA fictional phone numbers and made-up addresses; the companies use
 ACNs in the unissued 9xx range with matching ABNs; wallet keys come from a namespaced hash, except
 the testers' development accounts. The seed sends nothing and queues no job: no email, push
-notification, identity check or ABR lookup. To start over, run `make dev-clean`, then `make dev-up`
+notification or identity check. To start over, run `make dev-clean`, then `make dev-up`
 and `make dev-seed`; a run that stopped part-way says to start over.
 
 The chain layer ([`seeds/synthetic/chain/`](../backend/shared/seeds/synthetic/chain)) and the market
@@ -127,9 +126,7 @@ Wallet balances follow the worker's hourly sync wherever it can read a chain: on
 synthetic wallet reads zero and a development account its test ether. Ethereum and Bitcoin wallets
 keep their seeded balances until the
 [provider URLs](operations/configuration.md#market-data-and-chain-providers) are set; then the sync
-replaces them with what the wallets hold on the public testnets, normally nothing. Unattached
-payslips are purged 30 days after upload, as in production, so the seeded ones, uploaded up to 26
-days before the run, disappear over the following weeks; a rerun does not bring them back.
+replaces them with what the wallets hold on the public testnets, normally nothing.
 
 For a development database only, `register_foundation load-synthetic-opening` opens a share
 class's register from a JSON file with synthetic member UUIDs and whole-share amounts, attributed
@@ -198,7 +195,7 @@ Check the environment and the command's actual outcome before changing code.
 | All assertions pass but the test process fails                                                | Inspect the exit status and teardown: leaked React queries, unmounted components or unresolved promises can fail after assertions finish.                                                                                                                              |
 | Upload returns 503                                                                            | Check Redis and ClamAV readiness and signature loading; there is no scanner bypass. `UPLOAD_PROCESS_MEMORY_BYTES` or `UPLOAD_PROCESS_CPU_SECONDS` below 1 refuses every upload.                                                                                        |
 | Backend logs `Upload workers run without RLIMIT_AS`                                           | Expected on macOS; on Linux it is a fault to investigate ([upload limits](operations/jobs-and-storage.md#upload-limits)).                                                                                                                                              |
-| LLM or a chain node on the host times out from a container                                    | Check bridge-to-host reachability, and prefer a service on the Compose network ([document extraction](operations/configuration.md#document-extraction)).                                                                                                               |
+| A chain node on the host times out from a container                                           | Check bridge-to-host reachability, and prefer a node on the Compose network ([reaching the node](operations/chains.md#reaching-the-node-from-compose)).                                                                                                                |
 | `make chain-test` says `CHAIN_TEST_PORT=8545 is already in use`                               | The stack's chain holds 8545: run `make chain-test CHAIN_TEST_PORT=8546`, or any free port.                                                                                                                                                                            |
 | `chain-deploy` exits 1, and `migrate`, `backend`, `worker` and `dashboard` never start        | Its message names the difference, for example contracts built from other sources after a change to `contracts/`. Reset the chain and database together: `make dev-clean`, then `make dev-up` ([the local stack's chain](operations/chains.md#the-local-stacks-chain)). |
 | `migrate` stops at `admit_local_signer` with _the chain was reset, or lost its latest blocks_ | The database recorded transactions the chain no longer has: the chain volume was deleted alone or Anvil was killed between state writes. `make dev-clean` resets both.                                                                                                 |

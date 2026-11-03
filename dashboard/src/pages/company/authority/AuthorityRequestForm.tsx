@@ -116,7 +116,6 @@ export function AuthorityRequestForm({
       </Field>
       <FileField
         label="Supporting document"
-        hint="Supporting documents can also be uploaded later in Eligibility → Supporting."
         disabled={disabled || busy}
         onFile={(file) => change(() => setFile(file))}
       />

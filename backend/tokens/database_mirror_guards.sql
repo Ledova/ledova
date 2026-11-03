@@ -234,7 +234,10 @@ BEGIN
             SELECT 1 FROM tokens_registerposition position JOIN tokens_registermemberparticulars particulars ON particulars.member_id = position.member_id
             WHERE position.register_id = head.uuid AND position.member_id::text = item->>'member'
                 AND position.shares = (item->>'shares')::numeric
-                AND (particulars.source_import_id = candidate.uuid OR particulars.as_at > candidate.as_at)))
+                AND (particulars.source_import_id = candidate.uuid OR particulars.as_at > candidate.as_at
+                    OR EXISTS (SELECT 1 FROM tokens_memberassociation link WHERE link.company_id = candidate.company_id
+                        AND link.member = position.member_id AND link.current
+                        AND tokens_member_association_current(link.uuid, link.user_id)))))
         OR EXISTS (SELECT 1 FROM tokens_registerposition position WHERE position.register_id = head.uuid AND position.shares > 0
             AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(candidate.members) item WHERE item->>'member' = position.member_id::text)) THEN
         RAISE EXCEPTION 'A confirmed mirror must project exactly its reviewed holdings and particulars' USING ERRCODE = '23514'; END IF;

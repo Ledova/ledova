@@ -3,13 +3,12 @@ from uuid import uuid4
 
 from django.utils import timezone
 
-from companies.models import CompanyDocument, DocumentType
-from companies.services.document_review import private_document_bytes
 from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
 from shared.seeds.synthetic.chain.records import member_id
 from shared.seeds.synthetic.clock import frozen
-from shared.seeds.synthetic.paper import authority
+from shared.seeds.synthetic.identities import slug
+from shared.seeds.synthetic.paper import acn_text, authority, evidence, pdf
 from tokens.models import (
     IssuanceStatus,
     RegisterDecisionKind,
@@ -20,7 +19,6 @@ from tokens.models import (
     ShareToken,
 )
 from tokens.services.former_holders import fold_former_holders
-from tokens.services.register_evidence import retain_register_evidence
 from tokens.services.register_imports import (
     decide_import,
     prepare_import,
@@ -49,14 +47,14 @@ def request_item(request):
     return {"request": str(request.pk), "recipient": request.recipient_address, "amount": str(request.amount)}
 
 
-def instruct(token, items, document, records, *, reference, reason, at=None):
+def instruct(token, items, copy, records, *, reference, reason, at=None):
     company_key = records.company_key(token.company_id)
     with frozen(at) if at else nullcontext():
         proposal = submit_instruction(
             actor=token.company.owner,
             operation_id=uuid4(),
             token_id=token.pk,
-            document_id=document.pk,
+            authority_evidence=copy.pk,
             kind="issue",
             items=items,
             approving_director=records.plan.directors[company_key],
@@ -79,7 +77,7 @@ def open_register(share_class, records):
         }
     )
     mapping = [{"address": address, "member": str(records.member(company_key, address))} for address in holders]
-    document = authority(
+    copy = authority(
         records.companies[company_key],
         f"register-{share_class.symbol.lower()}",
         f"the register of {share_class.name}",
@@ -87,26 +85,15 @@ def open_register(share_class, records):
             f"The directors resolved to keep the register of {share_class.name} ({share_class.symbol}) on Ledova,",
             "opened from the share class's deployment, with the wallets of each member listed in the mapping.",
         ],
-        records.documents,
     )
     company = token.company
     appointment = historical_owner_appointment(company)
-    evidence, _ = retain_register_evidence(
-        actor=company.owner,
-        company_id=company.pk,
-        appointment=appointment.pk,
-        kind=RegisterEvidenceKind.AUTHORITY,
-        idempotency_key=uuid4(),
-        name=document.name,
-        raw=private_document_bytes(document.file),
-        mime_type=document.mime_type,
-    )
     proposal, _ = prepare_opening(
         actor=company.owner,
         operation_id=uuid4(),
         appointment=appointment.pk,
         token_id=token.pk,
-        authority_evidence=evidence.pk,
+        authority_evidence=copy.pk,
         mapping=mapping,
         authority="director_resolution",
         approving_director=records.plan.directors[company_key],
@@ -191,23 +178,14 @@ def import_particulars(share_class, records):
     ]
     company = token.company
     appointment = historical_owner_appointment(company)
-    documents = CompanyDocument.objects.filter(company=company, is_verified=True)
     copies = {
-        kind: retain_register_evidence(
-            actor=company.owner,
-            company_id=company.pk,
-            appointment=appointment.pk,
-            kind=kind,
-            idempotency_key=uuid4(),
-            name=document.name,
-            raw=private_document_bytes(document.file),
-            mime_type=document.mime_type,
-        )[0]
-        for kind, document in (
-            (RegisterEvidenceKind.SHARE_REGISTER, documents.filter(document_type=DocumentType.SHARE_REGISTER)),
-            (RegisterEvidenceKind.ASIC_EXTRACT, documents.filter(document_type=DocumentType.ASIC_EXTRACT)),
+        kind: evidence(
+            company,
+            kind,
+            f"{slug(company.trading_name or company.name)}-{kind.label.lower().replace(' ', '-')}.pdf",
+            pdf(kind.label, [company.name, acn_text(company.acn), f"Prepared: {today:%d %B %Y}"]),
         )
-        for document in (document.latest("verified_at"),)
+        for kind in (RegisterEvidenceKind.SHARE_REGISTER, RegisterEvidenceKind.ASIC_EXTRACT)
     }
     proposal, _ = prepare_import(
         actor=company.owner,

@@ -51,6 +51,16 @@ export function appointmentForRegisterStep(appointments: OwnCompanyAppointment[]
     .sort((left, right) => left.uuid.localeCompare(right.uuid))[0];
 }
 
+export function appointmentForParticularsEdit(appointments: OwnCompanyAppointment[], company: string) {
+  return appointments
+    .filter((appointment) =>
+      (['prepare', 'approve', 'apply'] as const).every((step) =>
+        appointmentForRegisterStep([appointment], company, step),
+      ),
+    )
+    .sort((left, right) => left.uuid.localeCompare(right.uuid))[0];
+}
+
 export function hasCurrentRegisterReadAuthority(appointments: OwnCompanyAppointment[], company: string) {
   return appointments.some(
     (appointment) =>

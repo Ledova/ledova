@@ -29,9 +29,6 @@ class CompanyAppointment(BaseModel):
         null=True,
         editable=False,
     )
-    registry_check = models.ForeignKey(
-        "companies.CompanyRegistryCheck", on_delete=models.PROTECT, related_name="+", null=True
-    )
     capabilities = models.JSONField(editable=False)
     delegatable_capabilities = models.JSONField(editable=False)
     expires_at = models.DateTimeField(null=True, editable=False)
@@ -58,7 +55,6 @@ class CompanyAppointment(BaseModel):
                         request__isnull=True,
                         invitation__isnull=False,
                         legacy_owner__isnull=True,
-                        registry_check__isnull=True,
                         declaration_version__isnull=False,
                         declaration_text__isnull=False,
                     )
@@ -66,7 +62,6 @@ class CompanyAppointment(BaseModel):
                         request__isnull=True,
                         invitation__isnull=True,
                         legacy_owner__isnull=False,
-                        registry_check__isnull=True,
                         declaration_version__isnull=True,
                         declaration_text__isnull=True,
                     )
