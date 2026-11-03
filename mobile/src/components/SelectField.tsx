@@ -63,7 +63,9 @@ export function SelectField<T extends string>({
         onPress={() => setOpen((shown) => !shown)}
         style={[styles.control, open && styles.open, disabled && styles.disabled]}
       >
-        <Text style={styles.value}>{current}</Text>
+        <Text numberOfLines={1} style={styles.value}>
+          {current}
+        </Text>
         <CaretDownIcon size={theme.icon.sizes.sm} color={theme.colors.text.primary} />
       </Pressable>
       {open && !disabled && (

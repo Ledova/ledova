@@ -51,6 +51,7 @@ export function Page({ ref, title, titleAction, lede, children, ...scroll }: Pag
       style={styles.page}
       contentContainerStyle={[styles.content, inFrame && styles.framed]}
       keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
       {...scroll}
     >
       {inFrame ? (
