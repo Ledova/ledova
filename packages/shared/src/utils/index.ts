@@ -117,6 +117,15 @@ export {
 export { invitationMembers } from './invitationMembers';
 export { isRegisterMemberDocument, isRegisterMemberDocumentReceipt } from './register-member-documents';
 export {
+  RIGHTS_GROUPS,
+  classRightsTerms,
+  preferenceMeasure,
+  rightsAttributeProblems,
+  rightsGroupValues,
+  structuredRightsRows,
+  visibleRightsFields,
+} from './class-rights';
+export {
   NEW_PERSON,
   NEW_PERSON_PROBLEMS,
   peopleFrom,

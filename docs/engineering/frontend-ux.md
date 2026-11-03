@@ -59,7 +59,7 @@ position, followed by the ranked holder list, 25 to a page, only for company-aut
 card has no **Filters**: the class rows switch classes, the trail's **Company ownership** returns to
 the overview, also from a class the overview no longer lists, and shareholder search stays on
 Shareholders (owner, 3 November 2026). For company-authorised readers, a **Class details** row at the
-end of the card opens the class's Ledger page; the app leaves it out until it has that page. A member
+end of the card opens the class's Ledger page, on the web and in the app. A member
 without register access gets a
 **Certificates** row there for a class they hold, as on mobile. Each
 compact holder row aligns the shareholder's name, a
@@ -349,7 +349,8 @@ in the same form. Keep one Class rights heading and focus the first field. Put r
 details beside their choice; combine conditions, exceptions and custom rights in Additional terms
 rather than repeating a Conditions field in each group. Groups start Not recorded; show further
 fields only for the selected terms. Do not infer values from a class label or treat an unanswered
-choice as No.
+choice as No. The app's share class page has the same form in its Class rights card, its groups
+stacked at phone width.
 Attachments use the existing document controls with concise labels; they do not open another editor
 or repeat optional markers. Validation, pending-request holds,
 stale-record handling and original-save recovery still apply. Other existing dialogs keep their
@@ -419,8 +420,8 @@ opening the people list. Documents uses the same pattern for **Certificates** (t
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
 **Team** and **Activation** where permitted, without an extra overview page; the app's menu has
-Shareholders with Employee scheme and Member access, Documents' pages, Team and Activation under the
-same conditions. A group with only one permitted page, such as Documents with only Certificates, is a
+Ledger, without the tasks it doesn't have yet, Shareholders with Employee scheme and Member access,
+Documents' pages, Team and Activation under the same conditions. A group with only one permitted page, such as Documents with only Certificates, is a
 plain link to that page, marked current there. Profile always holds personal information. Team, Activation and
 Company details follow current company access. Personal edits never change company-recorded particulars.
 Account has three cards: **Security** (the identity check's status with **Review**, which the app
@@ -617,7 +618,8 @@ not automatically a shareholder or a Ledova user and remains a documentary field
     same list with **New person** first.
 - **`SearchSelect`** (`dashboard/src/components/SearchSelect.tsx`) is used directly by a share
   class's **Shareholder documents**, to choose the holder a new document belongs to from the
-  class's holders alone.
+  class's holders alone. The app has the same control (`mobile/src/components/SearchSelect.tsx`),
+  which its person lists wrap.
 
 How the list behaves:
 
@@ -958,8 +960,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     reads the form's problems, keyed by field, and forms that share one summary, such as Member
     access's invitation, revocation and certificate instruction, check only the fields their action
     needs. The app's Team, Activation, representative authority, inspection copy, company pack, Add
-    person, particulars change, member access and employee award, vesting and entitlement-change forms
-    use it too, showing each problem under its field without a summary.
+    person, particulars change, member access, employee award, vesting and entitlement-change and
+    class rights forms use it too, showing each problem under its field without a summary.
     A box that must be ticked is a `CheckboxField`,
     except sign-up pre-screening's four declarations,
     which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking
@@ -992,8 +994,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     input and blur, and the form treats it as a problem: the team invitation's deadline and
     appointment expiry and a representative authority request's expiry. The app's Team and
     representative authority request take these dates as typed `YYYY-MM-DD` text, which the same
-    checks read as written, as do its inspection copy's request date and its employee award forms'
-    dates.
+    checks read as written, as do its inspection copy's request date, its employee award forms'
+    dates and a class's rights effective date.
 
 - **Request errors.** A failure reads as one `role="alert"` sentence, `Failure`
   (`dashboard/src/components/Ledger.tsx`, which renders nothing without a sentence), from

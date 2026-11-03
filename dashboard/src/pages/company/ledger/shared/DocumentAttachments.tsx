@@ -1,8 +1,11 @@
 import { FileField } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { PageAction } from '@components/Page';
-import { REGISTER_MEMBER_DOCUMENT_CATEGORIES, type RegisterMemberDocumentCategory } from '@ledova/shared';
-import type { DocumentDraft } from './documentAttachmentDraft';
+import {
+  REGISTER_MEMBER_DOCUMENT_CATEGORIES,
+  type DocumentDraft,
+  type RegisterMemberDocumentCategory,
+} from '@ledova/shared';
 
 export function DocumentAttachments({
   documents,

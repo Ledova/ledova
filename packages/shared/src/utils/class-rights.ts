@@ -1,4 +1,5 @@
-import { FIELD_LIMITS, type ClassRightsAttributes } from '@ledova/shared';
+import { FIELD_LIMITS } from '../constants/business/field-limits';
+import type { ClassRightsAttributes } from '../types';
 
 type Choice = { value: string; label: string };
 type RightsField = {

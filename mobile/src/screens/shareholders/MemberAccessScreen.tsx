@@ -23,10 +23,10 @@ import { Page } from '../../components/Page';
 import { Field } from '../../components/register/RegisterFields';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { PersonSelect } from './PersonSelect';
-import { useCompanyRegisters } from './useCompanyRegisters';
 import { useShareholderStyles } from './useShareholderStyles';
 
 const TITLE = 'Member access';

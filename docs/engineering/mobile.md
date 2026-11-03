@@ -38,17 +38,21 @@ folder names, with relative imports and no path aliases:
 
 Shared register UI (fields, the file picker's `FileField` and document sharing) lives in
 `components/register`, and its styles and picked-file hook (`usePickedDocument.ts`) in `hooks/`; the
-award chart that Dashboard and an award's page share is `components/AwardStatus.tsx`. The signed-in
+award chart that Dashboard and an award's page share is `components/AwardStatus.tsx`, and the
+searchable list that a person or a shareholder is chosen from is `components/SearchSelect.tsx`, which
+Shareholders' `PersonSelect.tsx` wraps. The signed-in
 member records state is a context (`mobile/src/contexts/MemberRecordsContext.tsx`), with its notices and
-pull to refresh in `mobile/src/components/MemberRecords.tsx`, and the account check and company notice
-that several areas show (`AccountCheck.tsx`, `CompanyContextNotice.tsx`) in `components/`. Production
-screens import no other area's internals.
+pull to refresh in `mobile/src/components/MemberRecords.tsx`, and the account check, company notice
+and register access notice that several areas show (`AccountCheck.tsx`, `CompanyContextNotice.tsx`,
+`RegisterAccess.tsx`) in `components/`; Ledger and Shareholders read the selected company's classes and
+holders through `hooks/useCompanyRegisters.ts`. Production screens import no other area's internals.
 Profile, operator, member, company list, appointment and company ownership reads, Team's reads
 and forms, Activation's company read and confirmation, representative authority's reads, actions
 and request form, Documents' class source, certificate records, preparations and prepared
 outputs, Shareholders' register, people and shareholder reads, list, Add person, particulars change
-and member access form, and the employee scheme's award, vesting and grant reads, award, vesting and
-entitlement-change forms and award document downloads live in `packages/shared`, with native session,
+and member access form, the employee scheme's award, vesting and grant reads, award, vesting and
+entitlement-change forms and award document downloads, and a share class's read, class rights and
+shareholder documents live in `packages/shared`, with native session,
 result and transport policies kept in the client: the app passes its session to each shared read and
 request.
 
@@ -85,20 +89,23 @@ as read** while any are unread, and the web's rows with an unread dot and a dism
 **Load more notifications** and the web's loading, failure and "No notifications yet." states
 (owner, 3 November 2026).
 The menu (`AppMenu`) slides in from the left like the
-web's phone drawer, 208 points wide: Dashboard, Shareholders for a register reader of the selected
-company, Documents and Settings, and a footer
+web's phone drawer, 208 points wide: Dashboard, Ledger and Shareholders for a register reader of the
+selected company, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
-loses focus, and it marks the section the page belongs to: Shareholders for Shareholders, a
+loses focus, and it marks the section the page belongs to: Ledger for Ledger and a share class's page,
+Shareholders for Shareholders, a
 shareholder's page, its particulars change, Employee share scheme, an award's page and Member access,
 Documents for Certificates, Inspection copies and Company pack, Settings for Profile, Account, Data and
 privacy, Team and Activation, Dashboard for Invitation. Like the web's sidebar, it marks Team on
 Representative authority and its requests, and Employee scheme on an award's page. Choosing Dashboard
-returns to it. Shareholders opens its people list, Documents opens Certificates and Settings opens
-Profile.
+returns to it. Ledger opens its overview, Shareholders its people list, Documents opens Certificates
+and Settings opens Profile.
 Like the web's groups, a caret shows a group's pages beneath it, open while one of them is shown.
-Shareholders appears, as on the web, when the selected company's `canReadRegister` allows it, and
-lists Employee scheme (read out as Employee share scheme, the web's tooltip) and Member access.
+Ledger and Shareholders appear, as on the web, when the selected company's `canReadRegister` allows
+it. Ledger is one link: the web's Issue shares, Transfer shares and Corrections are not in the app yet.
+Shareholders lists Employee scheme (read out as Employee share scheme, the web's tooltip) and Member
+access.
 Documents lists Certificates, Inspection copies and Company pack when the selected company's
 `canReadRegister` allows it, as the web's sidebar does, and is otherwise one link to Certificates.
 Settings lists Profile, Account and Data and privacy, then Team when the selected company's `canManage`
@@ -124,8 +131,9 @@ and the classes ranked by issued shares; choosing a class adds the trail and a c
 current shareholders, largest first, 25 to a page with the web's pager, and the member's own position
 and awards where they hold shares. It has the web's loading, incomplete-total, unopened-class, no
 shareholder and failure states with Try again, and the trail returns from a class the overview no
-longer lists. The app does not yet have the web's Getting started card or the class card's **Class
-details** row, whose pages it lacks. For a company where the person is only a member, the Ownership
+longer lists. The class card ends with the web's **Class details** row, which opens the class's page.
+The app does not yet have the web's Getting started card. For a company where the person is only a
+member, the Ownership
 overview comes from the shared `ownershipView`, read from the member record's shared ownership, or
 from the member's own shares when the company does not share its totals: your shares, issued shares,
 current shareholders and share classes, then each class, ranked by the shared `rankOwnershipClasses`,
@@ -202,8 +210,9 @@ and deadline. **Invite a member** replaces them with the web's form, choosing th
 searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
 access to the company, each of these pages reads nothing and points to Dashboard. Pulling down rereads
 each of them while no form or action is open. Unlike the web, which keeps a held save on its page,
-leaving an app page drops that save's retry, so adding the person, sending the invitation or recording
-the award or its vesting again could record it twice; an app-wide fix is planned.
+leaving an app page drops that save's retry, so adding the person, sending the invitation, recording
+the award or its vesting or adding shareholder documents again could record it twice; an app-wide fix
+is planned.
 Employee share scheme (`EmployeeSchemeScreen.tsx`) is the web's view at phone width for a register
 reader of the selected company, read through `useCompanyRegisters.ts` and the shared
 `useRegisterAwards`: one share class's card, titled with the class (oldest first by default, and **Share
@@ -228,6 +237,28 @@ instead of actions. Dates are typed as `YYYY-MM-DD` (UTC), and documents are pic
 representative authority. Until the app has Issue shares, the award's page leaves out **Issue vested
 shares**, and its non-paid issues don't open their records. Pulling down rereads either page while no
 form is open or held.
+Ledger (`mobile/src/screens/ledger/LedgerScreen.tsx`) is the web's Ledger overview at phone width for
+a register reader of the selected company, read through `useCompanyRegisters.ts`: one card per share
+class, titled with its name and code, with Issued shares and Current shareholders, **Ledger not
+opened** while that applies, the authorised shares when the class has a limit other than the internal
+quantity guard, the web's notes when completed issues or transfers wait or cannot be checked, and a
+**Class details** row that opens the class's page; a company without classes shows No share classes
+yet. The web's **Add share class**, which opens register setup, is left out until the app has register
+setup. A class's page (`ShareClassScreen.tsx`, the class's name as its title) is the web's, read
+through the shared `useShareClass`: Summary with the class's code and type, Issued shares, Current
+shareholders, **Ledger opened** or not, the authorised shares, the non-transferable note and the
+waiting notes; Class rights (`ClassRights.tsx`, through the shared `useClassRights`) with the
+structured rights, Additional terms, the effective date, the documents with **Download**, the recorded
+line and **Show previous versions**, and **Edit** when the server names a current administration
+appointment, which opens the web's form in the card: the six rights groups with the fields their
+choice needs, Additional terms, the effective date typed as `YYYY-MM-DD` (UTC) and the documents, with
+the web's retry of an uncertain save; and Shareholder documents (`ShareholderDocuments.tsx`, through
+the shared `useMemberDocuments`) with the class's retained supporting files, each with its category,
+holder and **Download**, and **Add documents** for someone who can prepare the register, choosing the
+holder from a searchable list and each file's category. Without register access to the company, both
+pages read nothing and point to Dashboard, and a class of another company is not in a register you can
+read. The web's **Back to Ledger** is left out, as the app has no back buttons. Pulling down rereads
+either page while no form is open.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
 Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form
@@ -412,7 +443,8 @@ JavaScript. Make release builds from a fresh prebuild
 ([building from a clean checkout](mobile-releases.md#building-from-a-clean-checkout)).
 
 A representative authority request's evidence, an employee award's agreement and the evidence for its
-vesting and entitlement changes are picked with `expo-file-system`'s own picker (`File.pickFileAsync`,
+vesting and entitlement changes, and a share class's rights documents and shareholder documents, are
+picked with `expo-file-system`'s own picker (`File.pickFileAsync`,
 through `FileField`), so no picker module returns. On iOS it hands over a copy in the temporary
 folder's `-Inbox` folder, deleted when another file replaces it, the form goes (its request recorded,
 the form cancelled or the page left) or the session changes; a closed authority request form keeps it
@@ -442,8 +474,9 @@ in `mobile/src/services/documentCopies.ts`, the app's file delivery for the shar
 ([downloads](frontend.md#client-sessions-and-caches)): checked as on the web, by the response's
 content type, since React Native's Android blobs carry none, and shared under the web's file name. An
 award's agreement and event evidence take the same route through the shared `useAwardRecordDownload`,
-under their retained file names. Documents' outputs, an award's documents and the authority evidence,
-shared from their pages, go through `shareFile`: a
+and a share class's rights documents and shareholder documents through the shared `useClassRights`
+and `useMemberDocuments`, under their retained file names. Documents' outputs, an award's documents, a
+class's documents and the authority evidence, shared from their pages, go through `shareFile`: a
 sheet that fails to open reports the failure, and one still open after 1.5 seconds counts as
 delivered, because iOS never settles a cancelled Save to Files. Data and privacy's export instead
 waits for its sheet to close (`Sharing.shareAsync`): the sheet is presented from the export's dialog,

@@ -43,9 +43,9 @@ import { Field } from '../../components/register/RegisterFields';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { useCompanyRegisters } from './useCompanyRegisters';
 import { useShareholderStyles } from './useShareholderStyles';
 
 const TITLE = 'Shareholders';

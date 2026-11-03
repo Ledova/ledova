@@ -1,8 +1,14 @@
-import { FIELD_LIMITS, type ClassRightsAttributes } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  RIGHTS_GROUPS,
+  preferenceMeasure,
+  rightsGroupValues,
+  visibleRightsFields,
+  type ClassRightsAttributes,
+} from '@ledova/shared';
 import { CheckboxField, Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import type { FieldCheck } from '@hooks/useErrorSummary';
-import { RIGHTS_GROUPS, preferenceMeasure, rightsGroupValues, visibleRightsFields } from './rightsAttributes';
 
 export function StructuredRightsFields({
   attributes,

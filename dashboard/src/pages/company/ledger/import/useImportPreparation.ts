@@ -17,6 +17,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type RegisterEvidence,
+  type RegisterEvidenceFile,
   type RegisterEvidenceKind,
   type RegisterImport,
   type RegisterImportPreparation,
@@ -46,7 +47,7 @@ import {
 
 const CLOSED = 'This setup is closed. Reopen it before continuing.';
 
-type Upload = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };
+type Upload = { file: RegisterEvidenceFile; appointment: string; key: string; receipt: RegisterEvidence | null };
 
 export type ImportFormProps = {
   owner: OrderSubmissionOwner;
@@ -313,7 +314,7 @@ export function useImportPreparation({
         problem.startsWith(`Shareholder ${index + 1},`) ||
         problem.startsWith('Each company'),
     );
-  const upload = async (kind: RegisterEvidenceKind, file: File, cacheKey = kind as string) => {
+  const upload = async (kind: RegisterEvidenceKind, file: RegisterEvidenceFile, cacheKey = kind as string) => {
     const preparingAppointment = checkPreparation();
     const previous = uploads.current[cacheKey];
     const same = previous?.file === file && previous.appointment === preparingAppointment.uuid;

@@ -309,6 +309,7 @@ function CompanyRegister({
   const styles = useCompanyStyles();
   const look = useDashboardStyles();
   const theme = useAppTheme();
+  const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   const registerReady =
     !company.canReadRegister ||
     (ownership.classes.isSuccess &&
@@ -391,6 +392,17 @@ function CompanyRegister({
                           )}
                         </>
                       ))}
+                    {selected && company.canReadRegister && (
+                      <Rows>
+                        <LinkRow
+                          label="Class details"
+                          accessibilityLabel={`Class details (${selected.name})`}
+                          onPress={() =>
+                            navigation.navigate('ShareClass', { company: company.uuid, token: selected.uuid })
+                          }
+                        />
+                      </Rows>
+                    )}
                   </ClassDetails>
                 )}
               </>

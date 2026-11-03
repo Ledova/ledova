@@ -10,8 +10,8 @@ import {
   type TokenHoldersResponse,
   type RegisterTransferMember,
   type CompanyShareTokenListItem,
+  type DocumentDraft,
 } from '@ledova/shared';
-import type { DocumentDraft } from '@pages/company/ledger/shared/documentAttachmentDraft';
 
 export type AllotmentDraft = Omit<
   RegisterImportAllotment,

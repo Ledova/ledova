@@ -19,6 +19,7 @@ export function Field({
   autoCapitalize,
   autoCorrect,
   autoFocus,
+  hint,
   error,
   onChange,
 }: {
@@ -35,6 +36,7 @@ export function Field({
   autoCapitalize?: TextInputProps['autoCapitalize'];
   autoCorrect?: boolean;
   autoFocus?: boolean;
+  hint?: string;
   error?: string | null;
   onChange: (value: string) => void;
 }) {
@@ -64,6 +66,7 @@ export function Field({
         accessibilityHint={error ?? undefined}
         onChangeText={onChange}
       />
+      {!!hint && <Text style={styles.muted}>{hint}</Text>}
       {!!error && <Text style={styles.error}>{error}</Text>}
     </View>
   );

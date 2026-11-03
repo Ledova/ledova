@@ -8,7 +8,7 @@ import {
   useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { orderSubmissionSession } from '../services/orderSubmissions';
 
 export function useCompanyRegisters(
   owner: OrderSubmissionOwner,

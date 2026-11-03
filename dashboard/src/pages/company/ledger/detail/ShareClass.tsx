@@ -8,16 +8,17 @@ import {
   TECHNICAL_SHARE_LIMIT,
   USER_PREFERENCES_QUERY_KEY,
   formatShareCount,
+  useClassRights,
+  useShareClass,
   useUserPreferences,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { LoadError, Loading, Section, Status } from '@components/Ledger';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
-import { useShareClass } from './useShareClass';
 import { ClassRights } from './ClassRights';
-import { useClassRights } from './useClassRights';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
+import { BROWSER_FILES } from '@utils/saveFile';
 
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
@@ -51,6 +52,8 @@ function ShareClassRights({ data, uuid }: { data: ReturnType<typeof useShareClas
     uuid,
     data.token.isSuccess && data.token.fetchStatus === 'idle',
     data.token.data?.companyUuid,
+    BROWSER_FILES,
+    () => crypto.randomUUID(),
   );
   useEffect(() => {
     data.holdReads('class-rights', !!rights.editor || rights.pending || rights.busy);

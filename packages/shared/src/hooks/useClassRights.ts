@@ -1,44 +1,38 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  USER_PREFERENCES_QUERY_KEY,
-  assertNextPageAdvances,
-  createUserFriendlyError,
-  downloadClassRightsFile,
-  failureSentence,
-  failureStatus,
-  getClassRights,
-  getNextPageParam,
-  isRegisterEvidenceReceipt,
-  isCalendarDate,
-  isUuid,
-  recordClassRights,
-  uploadRegisterEvidence,
-  useSubmissionOwner,
-  useUserPreferences,
-  type ClassRightsRequest,
-  type ClassRightsRevision,
-  type ClassRightsDocument,
-  type ClassRightsAttributes,
-  type OrderSubmissionOwner,
-  type RegisterEvidence,
-  READ_TIMING,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { saveFile } from '@utils/saveFile';
+import { READ_TIMING } from '../constants/api';
+import { downloadClassRightsFile, getClassRights, recordClassRights } from '../services/class-rights';
+import { uploadRegisterEvidence } from '../services/register-commands';
+import type {
+  ClassRightsAttributes,
+  ClassRightsDocument,
+  ClassRightsRequest,
+  ClassRightsRevision,
+  RegisterDocumentFile,
+  RegisterEvidence,
+} from '../types';
 import {
   classRightsTerms,
   cleanRightsAttributes,
   isRightsAttributes,
   rightsWithoutConditions,
   sameRightsAttributes,
-} from './rightsAttributes';
+} from '../utils/class-rights';
+import { isCalendarDate } from '../utils/date';
+import { downloadedFile, type FileDelivery } from '../utils/downloads';
+import { createUserFriendlyError, failureSentence, failureStatus } from '../utils/errors';
+import { assertNextPageAdvances, getNextPageParam } from '../utils/pagination';
+import { isRegisterEvidenceReceipt } from '../utils/register-commands';
+import { isUuid } from '../utils/validation';
+import { useApiClient } from './useApiClient';
+import { useSubmissionOwner, type OrderSubmissionOwner, type OrderSubmissionSession } from './useSubmissionOwner';
+import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 
 export function classRightsKey(owner: OrderSubmissionOwner | null, token: string) {
   return ['class-rights', owner?.userUuid, owner?.ownerAccountUuid, token];
 }
 
-type ClassDocumentDraft = { id: string; file: File | null; snapshot?: ClassRightsDocument };
+type ClassDocumentDraft = { id: string; file: RegisterDocumentFile | null; snapshot?: ClassRightsDocument };
 type Editor = {
   appointment: string;
   previousRevision: number;
@@ -47,7 +41,9 @@ type Editor = {
   summary: string;
   documents: ClassDocumentDraft[];
 };
-type Upload = { file: File; key: string; receipt?: RegisterEvidence };
+type Upload = { file: RegisterDocumentFile; key: string; receipt?: RegisterEvidence };
+
+const DOWNLOAD_FAILED = 'The class document could not be downloaded. Try again.';
 
 function isDocument(document: ClassRightsDocument, company: string) {
   return (
@@ -97,12 +93,23 @@ function matchesReceipt(
     receipt.documentReference === (request.documentReference ?? '') &&
     Array.isArray(receipt.documents) &&
     receipt.documents.length === documents.length &&
-    receipt.documents.every((document, index) => matchesDocument(document, documents[index]))
+    receipt.documents.every((document, index) => {
+      const expected = documents[index];
+      return !!expected && matchesDocument(document, expected);
+    })
   );
 }
 
-export function useClassRights(token: string, tokenReady: boolean, company: string | undefined) {
-  const { owner, boundary } = useSubmissionOwner();
+export function useClassRights(
+  token: string,
+  tokenReady: boolean,
+  company: string | undefined,
+  files: FileDelivery,
+  newKey: () => string,
+  session?: OrderSubmissionSession,
+) {
+  const apiClient = useApiClient();
+  const { owner, boundary } = useSubmissionOwner(session);
   const queryClient = useQueryClient();
   const preferences = useUserPreferences();
   const mounted = useRef(true);
@@ -141,13 +148,14 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
     if (!source.current)
       throw createUserFriendlyError('The current share class and account could not be confirmed. Try again.');
   };
+  const config = (ledovaSubmissionGuard: () => void) => ({ ...session?.requestConfig(), ledovaSubmissionGuard });
   const query = useInfiniteQuery({
     queryKey: classRightsKey(owner, token),
     enabled,
     initialPageParam: 1,
     queryFn: async ({ pageParam }) => {
       guard();
-      const { data } = await getClassRights(apiClient, token, { page: pageParam }, { ledovaSubmissionGuard: guard });
+      const { data } = await getClassRights(apiClient, token, { page: pageParam }, config(guard));
       guard();
       assertNextPageAdvances(pageParam, data);
       const valid = (revision: ClassRightsRevision) =>
@@ -226,7 +234,7 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
           apiClient,
           token,
           { idempotency_key: request.idempotencyKey },
-          { ledovaSubmissionGuard: guard },
+          config(guard),
         );
         guard();
         receipt = data.results.find((revision) => matchesReceipt(revision, request!, token, expectedDocuments.current));
@@ -266,7 +274,7 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
           const file = document.file!;
           let upload = uploads.current.get(document.id);
           if (!upload || upload.file !== file) {
-            upload = { file, key: crypto.randomUUID() };
+            upload = { file, key: newKey() };
             uploads.current.set(document.id, upload);
           }
           const uploadRequest = {
@@ -280,7 +288,7 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
             const { data } = await uploadRegisterEvidence(
               apiClient,
               { ...uploadRequest, file },
-              { ledovaSubmissionGuard: checkPreparation },
+              config(checkPreparation),
             );
             checkPreparation();
             if (!isRegisterEvidenceReceipt(data, uploadRequest, file.size))
@@ -310,13 +318,13 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
           attributes: cleanRightsAttributes(source.attributes),
           effectiveDate: source.effectiveDate || null,
           documents: documents.map((document) => document.evidence),
-          idempotencyKey: crypto.randomUUID(),
+          idempotencyKey: newKey(),
         };
         pending.current = request;
       }
       if (!receipt) {
         guard();
-        ({ data: receipt } = await recordClassRights(apiClient, token, request, { ledovaSubmissionGuard: guard }));
+        ({ data: receipt } = await recordClassRights(apiClient, token, request, config(guard)));
         guard();
         if (!matchesReceipt(receipt, request, token, expectedDocuments.current))
           throw createUserFriendlyError('The class rights receipt could not be confirmed. Retry the original save.');
@@ -350,18 +358,22 @@ export function useClassRights(token: string, tokenReady: boolean, company: stri
     setError('');
     try {
       guard();
-      const { data } = await downloadClassRightsFile(
+      const response = await downloadClassRightsFile(
         apiClient,
         token,
         { revision: revision.uuid, evidence: document.evidence },
-        { ledovaSubmissionGuard: guard },
+        { ...config(guard), ...(files.responseType ? { responseType: files.responseType } : {}) },
       );
       guard();
-      saveFile(data, document.name);
+      const file = downloadedFile(response);
+      if (!file) throw createUserFriendlyError(DOWNLOAD_FAILED);
+      await Promise.resolve(files.save(file.data, document.name, file.type)).catch(() => {
+        throw createUserFriendlyError(DOWNLOAD_FAILED);
+      });
     } catch (failure) {
       try {
         guard();
-        setError(failureSentence(failure, 'The class document could not be downloaded. Try again.'));
+        setError(failureSentence(failure, DOWNLOAD_FAILED));
       } catch {
         return;
       }

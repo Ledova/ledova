@@ -1,9 +1,14 @@
 import { LoadError, Loading, Section, Failure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { SearchSelect } from '@components/SearchSelect';
-import { REGISTER_MEMBER_DOCUMENT_CATEGORIES, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  REGISTER_MEMBER_DOCUMENT_CATEGORIES,
+  useMemberDocuments,
+  type DocumentHolding,
+  type OrderSubmissionOwner,
+} from '@ledova/shared';
+import { BROWSER_FILES } from '@utils/saveFile';
 import { DocumentAttachments } from './DocumentAttachments';
-import { useMemberDocuments, type DocumentHolding } from './useMemberDocuments';
 import { useEffect } from 'react';
 
 export function MemberDocuments(props: {
@@ -27,9 +32,12 @@ export function MemberDocuments(props: {
 }
 
 function OwnMemberDocuments(
-  props: Parameters<typeof useMemberDocuments>[0] & { title?: string; onHeldChange?: (held: boolean) => void },
+  props: Omit<Parameters<typeof useMemberDocuments>[0], 'files' | 'newKey' | 'session'> & {
+    title?: string;
+    onHeldChange?: (held: boolean) => void;
+  },
 ) {
-  const documents = useMemberDocuments(props);
+  const documents = useMemberDocuments({ ...props, files: BROWSER_FILES, newKey: () => crypto.randomUUID() });
   const editor = documents.editor;
   useEffect(() => {
     props.onHeldChange?.(!!editor || documents.busy || documents.held);

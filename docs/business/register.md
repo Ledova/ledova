@@ -3,8 +3,9 @@
 [Business processes](README.md) · [Documentation](../README.md)
 
 How a company keeps the register of members of each share class in Ledova, and what the web Ledger
-page shows; of the register administration, the mobile app has Shareholders, a shareholder's page,
-the Employee share scheme with each award's page, and Member access
+page shows; of the register administration, the mobile app has the Ledger overview, each share class's
+page, Shareholders, a shareholder's page, the Employee share scheme with each award's page, and Member
+access
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). It is for company representatives,
 product owners, support staff and engineers learning the domain. Issuing shares is in
 [share classes and issuing shares](issuing-shares.md); copies, certificates and member access are in
@@ -278,7 +279,8 @@ retention period; and while a deployment of the class is pending.
 
 On the web, each shareholder can have optional Share certificate, Shareholder agreement,
 Subscription agreement or Other supporting document attachments. Add them in the shareholder form
-during setup, or afterwards from the shareholder's page or the relevant class's details. Each
+during setup, or afterwards from the shareholder's page or the relevant class's details; in the app,
+from the class's page. Each
 attachment belongs to the company, person and share class; a setup attachment also keeps its source
 opening record. Recording existing holdings creates no historical share issue. Company source
 copies belong to the whole opening and remain separate.
@@ -597,6 +599,9 @@ The Ledger view shows:
 - **Add share class** below the cards, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
+The mobile app's Ledger shows the same cards, each with **Class details**, for a register reader of the
+selected company; register setup, and so **Add share class**, and Ledger's tasks stay on the web.
+
 Ledger's three web sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the overview cards: Issue shares
 ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
@@ -727,7 +732,9 @@ company's optional
 [Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,
 and its separate **Shareholder documents** section. Shareholder management stays on Shareholders and
 register downloads on Documents. The summary gives the authorised shares when the class has a limit
-other than the internal quantity guard, and says when the class is recorded as non-transferable.
+other than the internal quantity guard, and says when the class is recorded as non-transferable. The
+mobile app's class page has the same Summary, Class rights with **Edit** and Shareholder documents with
+**Add documents**.
 
 The page no longer shows a class's chain state or offers its chain workflows: the owner removed the
 **On chain** card, **Chain actions** and **Put this class on chain** on 31 October 2026
