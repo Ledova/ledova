@@ -27,6 +27,11 @@ jest.mock('@react-navigation/native', () => ({
   useFocusEffect: (effect: () => void) =>
     jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
 }));
+jest.mock('../../components/AnchoredPanel', () => ({
+  ...jest.requireActual('../../components/AnchoredPanel'),
+  useAnchor: () => (_button: unknown, open: (anchor: { top: number; right: number }) => void) =>
+    open({ top: 0, right: 0 }),
+}));
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn(async () => {}) }));
 jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
 const api = { get: jest.mocked(apiClient.get), post: jest.mocked(apiClient.post) };

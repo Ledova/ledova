@@ -6,10 +6,12 @@ import { AnchoredPanel, useAnchor, type Anchor } from './AnchoredPanel';
 
 export function FilterPopover({
   label = 'Filters',
+  icon,
   active = false,
   children,
 }: {
   label?: string;
+  icon?: ReactNode;
   active?: boolean;
   children: (close: () => void) => ReactNode;
 }) {
@@ -39,7 +41,12 @@ export function FilterPopover({
         onPress={() => anchorOf(button.current, setAnchor)}
         style={styles.button}
       >
-        <FunnelIcon size={theme.icon.sizes.md} color={active ? theme.colors.brand.light : theme.colors.text.primary} />
+        {icon ?? (
+          <FunnelIcon
+            size={theme.icon.sizes.md}
+            color={active ? theme.colors.brand.light : theme.colors.text.primary}
+          />
+        )}
       </Pressable>
       <AnchoredPanel anchor={anchor} closeLabel={`Close ${label.toLowerCase()}`} onClose={close}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">

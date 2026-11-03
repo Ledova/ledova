@@ -656,7 +656,8 @@ actions. Inside it, `CompanyPicker` (`dashboard/src/components/CompanyPicker.tsx
 searchable list as [choosing a person](#choosing-a-person), showing company names and useful muted
 details, never internal identifiers. The list sits in the panel beneath its search field, without
 a toggle and without opening on focus (`SearchSelect`'s `inline`), so opening the popover lists the
-companies with the current one ticked. Its label remains accessible but visually hidden. An accepted
+companies with the current one ticked. Its label remains accessible but visually hidden. The app's
+**Switch company** opens the same popover and list, with its search field starting empty. An accepted
 switch request closes the panel and returns focus to its icon; the existing form confirmation and
 held-work guards still decide navigation. Company selection has no separate row above the ownership
 view; class exploration keeps its breadcrumb.

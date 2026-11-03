@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp, type RouteProp } from '@react-navigation/native';
 import { BuildingsIcon, CaretRightIcon } from 'phosphor-react-native';
 import {
@@ -13,6 +13,7 @@ import {
   type OwnMemberRecord,
   type useMemberRecords,
 } from '@ledova/shared';
+import { FilterPopover } from '../../components/FilterPopover';
 import { Action, Actions, Fact, LinkRow, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useThemedStyles } from '../../contexts';
@@ -28,13 +29,6 @@ type Ownership = NonNullable<ReturnType<typeof ownershipView>>;
 
 function useDashboardStyles() {
   return useThemedStyles((theme) => ({
-    switcher: {
-      width: 40,
-      height: 40,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
-      borderRadius: 20,
-    },
     trail: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, alignItems: 'center' as const, gap: 12 },
     trailLink: {
       paddingVertical: 8,
@@ -87,12 +81,10 @@ export function DashboardScreen({ route }: { route: RouteProp<SignedInStackParam
 
 function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStackParamList, 'Dashboard'> }) {
   const styles = useCompanyStyles();
-  const look = useDashboardStyles();
   const theme = useAppTheme();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   const { companies, company, selectCompany } = useMemberRecordsState();
   const refresh = useMemberRefresh(read, 'dashboard-refresh');
-  const [picking, setPicking] = useState(false);
   const [chosenClass, setChosenClass] = useState<{ company: string; token: string } | null>(null);
   const opened = route.params?.record;
   const openedAward = route.params?.award;
@@ -117,15 +109,22 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
       title="Dashboard"
       titleAction={
         company && companies.length > 1 ? (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Switch company"
-            onPress={() => setPicking(true)}
-            hitSlop={2}
-            style={look.switcher}
+          <FilterPopover
+            label="Switch company"
+            icon={<BuildingsIcon size={theme.icon.sizes.md} color={theme.colors.text.primary} />}
           >
-            <BuildingsIcon size={theme.icon.sizes.md} color={theme.colors.text.primary} />
-          </TouchableOpacity>
+            {(close) => (
+              <CompanyPicker
+                companies={companies}
+                current={company.company.uuid}
+                onChoose={(uuid) => {
+                  if (!selectCompany(uuid)) return;
+                  setChosenClass(null);
+                  close();
+                }}
+              />
+            )}
+          </FilterPopover>
         ) : undefined
       }
       lede="Explore your companies and their share ownership."
@@ -160,17 +159,6 @@ function Dashboard({ read, route }: { read: Read; route: RouteProp<SignedInStack
           onChoose={(token) => setChosenClass(token ? { company: company.company.uuid, token } : null)}
         />
       )}
-      <CompanyPicker
-        visible={picking}
-        companies={companies}
-        current={company?.company.uuid}
-        onChoose={(uuid) => {
-          if (!selectCompany(uuid)) return;
-          setPicking(false);
-          setChosenClass(null);
-        }}
-        onClose={() => setPicking(false)}
-      />
     </Page>
   );
 }
