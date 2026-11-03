@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Field, TextInput } from '@components/Field';
-import { FIELD_LIMITS, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  companyPacksKey,
+  useCompanyPack,
+  useCompanyPackAuthority,
+  type OrderSubmissionOwner,
+} from '@ledova/shared';
 import { Outcome, Section, LoadError, Loading, ShowMore, Failure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { useCompanyPackAuthority, useCompanyPack } from './useCompanyPack';
+import { BROWSER_FILES } from '@utils/saveFile';
 import { CompanyPackHistory } from './OutputHistory';
-import { companyPacksKey } from './useOutputHistory';
 
 export function CompanyPack({
   owner,
@@ -78,7 +83,7 @@ function PackForm({
     return () => onEditingChange?.(editingKey, false);
   }, [editingKey, onEditingChange, open]);
   const { instruction, setInstruction, recipient, setRecipient, busy, error, downloaded, problems, download } =
-    useCompanyPack({ company, appointment, guard, sourceReady, onDownloaded: onPrepared });
+    useCompanyPack({ company, appointment, guard, sourceReady, onDownloaded: onPrepared, files: BROWSER_FILES });
   const checks = useErrorSummary(problems);
   if (!open)
     return (

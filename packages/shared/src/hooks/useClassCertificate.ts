@@ -1,16 +1,16 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import {
-  createRegisterCertificate,
-  getRegisterCertificatePreview,
-  type RegisterCertificatePreview,
-  type RegisterCertificateRequest,
-  type RegisterEntry,
-  type TokenHoldersResponse,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { saveFile } from '@utils/saveFile';
+import { createRegisterCertificate, getRegisterCertificatePreview } from '../services/company-tokens';
+import type {
+  RegisterCertificatePreview,
+  RegisterCertificateRequest,
+  RegisterEntry,
+  TokenHoldersResponse,
+} from '../types';
+import { downloadedFile, type FileDelivery } from '../utils/downloads';
+import { useApiClient } from './useApiClient';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 
-export type Source = {
+export type ClassCertificateSource = {
   register: TokenHoldersResponse;
   entry: RegisterEntry;
   guard: () => void;
@@ -21,7 +21,15 @@ type Target = { preview: RegisterCertificatePreview; request: Readonly<RegisterC
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function useClassCertificate({ register, entry, guard, sourceReady }: Source) {
+export function useClassCertificate({
+  register,
+  entry,
+  guard,
+  sourceReady,
+  files,
+  session,
+}: ClassCertificateSource & { files: FileDelivery; session?: OrderSubmissionSession }) {
+  const apiClient = useApiClient();
   const [target, setTarget] = useState<Target | null>(null);
   const [busy, setBusy] = useState<'preview' | 'download' | null>(null);
   const [error, setError] = useState('');
@@ -54,6 +62,7 @@ export function useClassCertificate({ register, entry, guard, sourceReady }: Sou
     try {
       assertCurrent(controller);
       const { data } = await getRegisterCertificatePreview(apiClient, register.token.uuid, entry.sequence, {
+        ...session?.requestConfig(),
         signal: controller.signal,
         ledovaSubmissionGuard: () => assertCurrent(controller),
       });
@@ -103,14 +112,21 @@ export function useClassCertificate({ register, entry, guard, sourceReady }: Sou
     setError('');
     try {
       assertCurrent(controller);
-      const { data } = await createRegisterCertificate(apiClient, register.token.uuid, target.request, {
+      const response = await createRegisterCertificate(apiClient, register.token.uuid, target.request, {
+        ...session?.requestConfig(),
+        responseType: files.responseType ?? 'blob',
         signal: controller.signal,
         ledovaSubmissionGuard: () => assertCurrent(controller),
       });
       assertCurrent(controller);
-      if (!(data instanceof Blob) || !/^application\/pdf(?:;|$)/.test(data.type) || data.size < 1)
+      const file = downloadedFile(response);
+      if (!file || !/^application\/pdf(?:;|$)/.test(file.type) || file.size < 1)
         throw new Error('The certificate could not be confirmed.');
-      saveFile(data, `certificate-${register.token.symbol ?? register.token.uuid}-${entry.sequence}.pdf`);
+      await files.save(
+        file.data,
+        `certificate-${register.token.symbol ?? register.token.uuid}-${entry.sequence}.pdf`,
+        file.type,
+      );
       setTarget(null);
       setDownloaded(true);
     } catch {

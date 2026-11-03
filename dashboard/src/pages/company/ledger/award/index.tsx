@@ -14,6 +14,7 @@ import {
   type OwnCompanyAppointment,
   useOwnAppointments,
   registerKey,
+  useRegisterClasses,
 } from '@ledova/shared';
 import { LoadError, Loading } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
@@ -21,7 +22,6 @@ import { PageTitle } from '@components/PageTitle';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { registersQuery } from '@pages/company/shared/useCompanyRegister';
-import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { allPeopleKey } from '@pages/company/ledger/shared/usePeople';
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';

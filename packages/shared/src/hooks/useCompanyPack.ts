@@ -1,29 +1,26 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  apiErrorSentence,
-  appointmentForRegisterStep,
-  createCompanyPack,
-  USER_PREFERENCES_QUERY_KEY,
-  type CompanyPackRequest,
-  type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
-  ownAppointmentsKey,
-  useOwnAppointments,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { saveFile } from '@utils/saveFile';
+import { createCompanyPack } from '../services/companies';
+import type { CompanyPackRequest, OwnCompanyAppointment } from '../types';
+import { downloadedFile, downloadedText, type FileDelivery } from '../utils/downloads';
+import { apiErrorSentence } from '../utils/errors';
+import { appointmentForRegisterStep } from '../utils/register-commands';
+import { useApiClient } from './useApiClient';
+import { hasProblems, type Problems } from './useErrorSummary';
+import { ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
+import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 
 const FAILED =
   'The company pack could not be downloaded. Check your current company appointment and try again. A full pack is unavailable when it includes unsupported records; use supported inspection copies or unsigned certificates where applicable.';
 
 async function failureMessage(cause: unknown) {
-  const response = (cause as { response?: { status?: number; data?: unknown } })?.response;
-  if (response?.data instanceof Blob) {
-    if (response.data.size > 65536 || response.data.type.split(';')[0] !== 'application/json') return FAILED;
+  const response = (cause as { response?: { status?: number; data?: unknown; headers?: unknown } })?.response;
+  const body = response && downloadedFile(response);
+  if (response && body) {
+    if (body.size > 65536 || body.type.split(';')[0] !== 'application/json') return FAILED;
     try {
-      return apiErrorSentence({ response: { ...response, data: JSON.parse(await response.data.text()) } }, FAILED);
+      return apiErrorSentence({ response: { ...response, data: JSON.parse(await downloadedText(body)) } }, FAILED);
     } catch {
       return FAILED;
     }
@@ -43,13 +40,15 @@ export function useCompanyPackAuthority({
   owner,
   guard,
   company,
+  session,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
+  session?: OrderSubmissionSession;
 }) {
   const client = useQueryClient();
-  const appointments = useOwnAppointments(owner, guard);
+  const appointments = useOwnAppointments(owner, guard, { session });
   const appointment =
     appointments.isSuccess && !appointments.isFetching ? administrator(appointments.data, company) : undefined;
   const check = () => {
@@ -75,13 +74,18 @@ export function useCompanyPack({
   guard,
   sourceReady,
   onDownloaded,
+  files,
+  session,
 }: {
   company: string;
   appointment: string;
   guard: () => void;
   sourceReady: boolean;
   onDownloaded?: () => void;
+  files: FileDelivery;
+  session?: OrderSubmissionSession;
 }) {
+  const apiClient = useApiClient();
   const [instruction, setInstruction] = useState('');
   const [recipient, setRecipient] = useState('');
   const [busy, setBusy] = useState(false);
@@ -122,18 +126,17 @@ export function useCompanyPack({
     setDownloaded(false);
     try {
       check();
-      const { data } = await createCompanyPack(apiClient, company, request, {
+      const response = await createCompanyPack(apiClient, company, request, {
+        ...session?.requestConfig(),
+        responseType: files.responseType ?? 'blob',
         signal: controller.signal,
         ledovaSubmissionGuard: check,
       });
       check();
-      if (
-        !(data instanceof Blob) ||
-        data.type.split(';')[0].trim().toLowerCase() !== 'application/zip' ||
-        data.size === 0
-      )
+      const file = downloadedFile(response);
+      if (!file || (file.type.split(';')[0] ?? '').trim().toLowerCase() !== 'application/zip' || file.size === 0)
         throw new Error('The company pack response is not a ZIP archive.');
-      saveFile(data, `company-pack-${company}.zip`);
+      await files.save(file.data, `company-pack-${company}.zip`, file.type);
       setDownloaded(true);
       onDownloaded?.();
     } catch (cause) {

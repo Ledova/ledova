@@ -6,10 +6,10 @@ import {
   type OrderSubmissionOwner,
   READ_TIMING,
   registerKey,
+  useRegisterClasses,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { registersQuery } from '@pages/company/shared/useCompanyRegister';
-import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { readMemberEntries, registerEntriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
 import { usePeople } from '@pages/company/ledger/shared/usePeople';
 

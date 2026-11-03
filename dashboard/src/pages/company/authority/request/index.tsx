@@ -47,7 +47,7 @@ function OwnAuthorityRequest({
     owner,
     currentOwner,
     readCompanies: false,
-    save: (data, request) => saveFile(new Blob([data], { type: request.mimeType }), request.originalFilename),
+    save: (data, request) => saveFile(data, request.originalFilename, request.mimeType),
   });
   const context = useCompanyContext();
   const back = context?.companyPath(DESTINATIONS.companyAuthority.path) ?? DESTINATIONS.companyAuthority.path;

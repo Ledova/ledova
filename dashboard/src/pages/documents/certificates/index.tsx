@@ -2,7 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   CERTIFICATE_STATUSES,
+  useCompanyCertificates,
   useSubmissionOwner,
+  type CertificateFilterValues,
   type CertificateStatus,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
@@ -14,7 +16,6 @@ import { useMemberWorkspace } from '@components/member-records/useMemberWorkspac
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { CertificateRecords, type CertificateClass } from './CertificateRecords';
 import { CertificateFilters } from './CertificateFilters';
-import { useCompanyCertificates, type CertificateFilterValues } from './useCompanyCertificates';
 
 export default function CertificatesPage() {
   const context = useCompanyContext();

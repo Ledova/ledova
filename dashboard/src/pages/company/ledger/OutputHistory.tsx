@@ -1,7 +1,12 @@
 import type { ReactNode } from 'react';
-import { formatDate, formatDateTime, type OrderSubmissionOwner } from '@ledova/shared';
+import {
+  formatDate,
+  formatDateTime,
+  useCompanyPacks,
+  useInspectionCopies,
+  type OrderSubmissionOwner,
+} from '@ledova/shared';
 import { LoadError, Loading } from '@components/Ledger';
-import { useCompanyPacks, useInspectionCopies } from './useOutputHistory';
 
 function prepared(at: string, by: string) {
   return by ? `Prepared ${formatDateTime(at)} by ${by}` : `Prepared ${formatDateTime(at)}`;

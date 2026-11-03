@@ -437,9 +437,11 @@ still signing up can always leave.
 
 ## Client sessions and caches
 
-Browser blob downloads use `dashboard/src/utils/saveFile.ts`: it clicks one temporary link, removes
-that link and revokes the object URL after 60 seconds. Each caller keeps its own filename, MIME type
-and authority checks.
+Browser downloads use `dashboard/src/utils/saveFile.ts`: it takes a blob, or the downloaded bytes
+with their type, clicks one temporary link, removes that link and revokes the object URL after 60
+seconds. Each caller keeps its own filename, MIME type and authority checks. The shared output hooks
+deliver their file through a `FileDelivery` each client supplies (`downloadedFile` in
+`packages/shared/src/utils/downloads.ts` reads the response): the web's `BROWSER_FILES` saves it.
 
 The session itself is in [authentication](security.md#authentication-and-sessions);
 `packages/shared/src/hooks/useAuth.ts` owns the authentication query (`AUTH_QUERY_KEY`).
@@ -628,7 +630,7 @@ commands' client layer went with their pages under
   `packages/shared/src/hooks/useRegisterDecision.ts`) with the generic receipt check;
 - copy with a sentence for every requirement a decision can leave unmet.
 
-The web's base class read in `dashboard/src/hooks/useRegisterClasses.ts` and holder reads in
+The base class read (`packages/shared/src/hooks/useRegisterClasses.ts`) and the web's holder reads in
 `dashboard/src/pages/company/shared/useCompanyRegister.ts` receive their caller's original owner
 guard. Company register controllers use `dashboard/src/pages/company/shared/ownerGuard.ts`.
 The reads check the guard before and after each request and pass it as `ledovaSubmissionGuard`, so

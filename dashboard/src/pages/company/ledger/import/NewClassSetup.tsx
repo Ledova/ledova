@@ -20,12 +20,12 @@ import {
   registerClassesKey,
   useOwnAppointments,
   ownAppointmentsKey,
+  useRegisterClasses,
 } from '@ledova/shared';
 
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { registerSteps } from '@pages/company/shared/proposals';
-import { useRegisterClasses } from '@hooks/useRegisterClasses';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { peopleKey, usePeople } from '@pages/company/ledger/shared/usePeople';
 import { ImportForm } from './ImportForm';
