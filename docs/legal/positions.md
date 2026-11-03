@@ -716,7 +716,7 @@ conveying (s0).
 **What the code does.** [requirements.txt](../../backend/requirements.txt) makes
 PyMuPDF a runtime dependency, installed into the backend image when that image
 is built. The upload checker imports it in a resource-limited child process to
-check uploaded PDFs and render their first page for extraction, and
+check uploaded PDFs, and
 [certificates](../business/member-records.md#certificates) import it when one is
 rendered. Tests use it to build and read PDFs. The project modifies none of it
 and publishes no image or other copy of it: the repository only names it as a

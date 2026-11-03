@@ -9,6 +9,7 @@ from shared.upload_process import UploadProcessTimeout, run_upload_worker
 WORKER = Path(__file__).with_name("upload_worker.py")
 INVALID_CONTENT = "The file is not a valid, supported PDF, PNG or JPEG document."
 PROCESSING_LIMIT = "The file exceeds the document processing limits."
+REPLY_BYTES = 1024
 
 
 def processing_limits():
@@ -17,8 +18,7 @@ def processing_limits():
         "pages": settings.UPLOAD_MAX_PDF_PAGES,
         "pixels": settings.UPLOAD_MAX_SOURCE_PIXELS,
         "decoded_bytes": settings.UPLOAD_MAX_DECODED_BYTES,
-        "side": settings.UPLOAD_RENDER_MAX_SIDE,
-        "output_bytes": settings.UPLOAD_RENDER_MAX_BYTES,
+        "file_bytes": settings.UPLOAD_PROCESS_FILE_BYTES,
         "memory_bytes": settings.UPLOAD_PROCESS_MEMORY_BYTES,
         "cpu_seconds": settings.UPLOAD_PROCESS_CPU_SECONDS,
     }
@@ -27,25 +27,20 @@ def processing_limits():
     return limits
 
 
-def process_upload(raw, mode="inspect"):
+def process_upload(raw):
     limits = processing_limits()
     if not raw or len(raw) > limits["input_bytes"]:
         raise UploadRejected(PROCESSING_LIMIT)
-    limit = limits["output_bytes"] if mode == "render" else 1024
     try:
         returncode, value = run_upload_worker(
-            WORKER, [mode, json.dumps(limits)], raw, settings.UPLOAD_PROCESS_WALL_SECONDS, limit
+            WORKER, [json.dumps(limits)], raw, settings.UPLOAD_PROCESS_WALL_SECONDS, REPLY_BYTES
         )
     except UploadProcessTimeout:
         raise UploadRejected(PROCESSING_LIMIT) from None
     if returncode:
         raise UploadRejected(INVALID_CONTENT if returncode == 2 else PROCESSING_LIMIT)
-    if not value or len(value) > limit:
+    if not value or len(value) > REPLY_BYTES:
         raise UploadRejected(PROCESSING_LIMIT)
-    if mode == "render":
-        if not value.startswith(b"\x89PNG\r\n\x1a\n"):
-            raise UploadRejected(INVALID_CONTENT)
-        return value
     try:
         return json.loads(value)["mime_type"]
     except (ValueError, KeyError, TypeError):
