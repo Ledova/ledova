@@ -1,7 +1,5 @@
 from rest_framework import serializers
 
-from shared.api.search import SEARCH_MAX_LENGTH
-
 
 class CompanyOwnershipQuerySerializer(serializers.Serializer):
     company = serializers.UUIDField()
@@ -9,7 +7,6 @@ class CompanyOwnershipQuerySerializer(serializers.Serializer):
 
 class ClassOwnershipQuerySerializer(serializers.Serializer):
     sequence = serializers.IntegerField(min_value=1)
-    search = serializers.CharField(max_length=SEARCH_MAX_LENGTH, required=False, allow_blank=True, default="")
 
 
 class OwnershipClassSerializer(serializers.Serializer):

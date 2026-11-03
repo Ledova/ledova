@@ -734,11 +734,7 @@ server:
   your search" or "No shareholders match".
 - **Compact filters:** secondary filters use `FilterPopover`: an icon button named **Filters** with
   a tooltip, opening an anchored panel. Place its icon in the page heading's top-right actions on
-  every filtered page, without a separate row or another control in a card heading. The one
-  exception, at the owner's request on 28 October 2026, is Dashboard's class details card: its own
-  Filters icon in the card heading holds the holder search and the **Share class** choice with
-  **All classes**, since the page heading holds **Switch company** and both apply only to the
-  selected class. Page owners use
+  every filtered page, without a separate row or another control in a card heading. Page owners use
   `Page.actions`; deeper owners contribute through `PageActions` in
   `dashboard/src/components/Page.tsx`. Keep filter state with its owner and explicitly omit header
   controls for hidden retained views; a header contribution escapes its original hidden container.

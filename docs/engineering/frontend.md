@@ -518,9 +518,8 @@ Every list follows these rules:
   retains immediate selection. Shareholders keeps Search people inside
   its panel above the class selector, with its existing debounce, Clear and match counts.
   Every filter icon sits in the page heading's top-right actions, without a separate row or
-  card-specific placement, apart from Dashboard's class details card
-  ([UX](frontend-ux.md#lists-search-filters-and-paging)). Page-level owners pass `Page.actions`;
-  deeper owners use `PageActions`
+  card-specific placement ([UX](frontend-ux.md#lists-search-filters-and-paging)). Page-level
+  owners pass `Page.actions`; deeper owners use `PageActions`
   (`dashboard/src/components/Page.tsx`), a UI-only portal to the stable header target supplied by
   `PageActionsTarget` (`dashboard/src/components/PageTitle.ts`). Filter state stays under its owner.
   Hidden retained views explicitly omit their header contribution; their controllers remain mounted.

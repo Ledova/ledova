@@ -32505,13 +32505,6 @@
           },
           {
             "in": "query",
-            "name": "search",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
             "name": "sequence",
             "required": true,
             "schema": {
