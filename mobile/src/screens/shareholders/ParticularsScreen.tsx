@@ -14,7 +14,7 @@ import {
   useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { Action, FormActions, LoadError, Loading, Row, Rows, Section } from '../../components/Ledger';
+import { Action, Fact, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { Field } from '../../components/register/RegisterFields';
 import { useMemberRecordsState } from '../../contexts';
@@ -129,8 +129,8 @@ function OwnParticulars({
             </LoadError>
           ) : (
             <Rows>
-              <Row label="Name">{recorded?.name || found.name || 'Not recorded'}</Row>
-              <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
+              <Fact label="Name">{recorded?.name || found.name || 'Not recorded'}</Fact>
+              <Fact label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Fact>
             </Rows>
           )}
           <Text style={look.muted}>{recorded?.followsProfile ? COPY.FOLLOWS_PROFILE : COPY.PRECEDENCE_NOTE}</Text>

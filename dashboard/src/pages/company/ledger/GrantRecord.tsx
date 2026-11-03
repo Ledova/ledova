@@ -8,12 +8,13 @@ import {
   type RegisterGrant,
   shareCount,
   formatDate,
+  STAGE_TONES,
 } from '@ledova/shared';
 import { Row, Rows, Status, ShowMore } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
+import type { RegisterSteps } from '@pages/company/shared/proposals';
 import { useGrantRecordDownload } from './useRegisterRecordDownload';
 import { IssueSummary } from './IssueSummary';
 import { GrantReview } from './GrantReview';

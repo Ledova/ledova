@@ -1,26 +1,37 @@
 import { useQuery } from '@tanstack/react-query';
+import { READ_TIMING } from '../constants/api';
 import {
   getRegisterAward,
-  getRegisterAwards,
-  getRegisterAwardVestings,
   getRegisterAwardEnds,
   getRegisterAwardVestingReversals,
-  hasValidRegisterAwardTotals,
+  getRegisterAwardVestings,
+  getRegisterAwards,
+} from '../services/register-awards';
+import { readEveryPage } from '../utils/pagination';
+import {
   hasValidRegisterAwardEnd,
+  hasValidRegisterAwardTotals,
   hasValidRegisterAwardVestingReversal,
-  readEveryPage,
-  type OrderSubmissionOwner,
-  READ_TIMING,
-  registerKey,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
+} from '../utils/register-awards';
+import { useApiClient } from './useApiClient';
+import { registerKey } from './useCompanyOwnership';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
-export const awardsKey = (owner: OrderSubmissionOwner, token: string) => [...registerKey(owner), 'awards', token];
-export const awardVestingsKey = (owner: OrderSubmissionOwner, award: string) => [
-  ...registerKey(owner),
-  'award-vestings',
-  award,
-];
+export function awardsKey(owner: OrderSubmissionOwner, token: string) {
+  return [...registerKey(owner), 'awards', token];
+}
+
+export function awardVestingsKey(owner: OrderSubmissionOwner, award: string) {
+  return [...registerKey(owner), 'award-vestings', award];
+}
+
+export function awardEndsKey(owner: OrderSubmissionOwner, award: string) {
+  return [...registerKey(owner), 'award-ends', award];
+}
+
+export function awardVestingReversalsKey(owner: OrderSubmissionOwner, award: string) {
+  return [...registerKey(owner), 'award-vesting-reversals', award];
+}
 
 export function useRegisterAwards(
   owner: OrderSubmissionOwner,
@@ -28,14 +39,20 @@ export function useRegisterAwards(
   token: string,
   guard: () => void,
   enabled = true,
+  session?: OrderSubmissionSession,
 ) {
+  const apiClient = useApiClient();
   return useQuery({
     queryKey: awardsKey(owner, token),
     enabled,
     queryFn: async () => {
       const rows = await readEveryPage(async (page) => {
         guard();
-        const response = await getRegisterAwards(apiClient, { company, token, page }, { ledovaSubmissionGuard: guard });
+        const response = await getRegisterAwards(
+          apiClient,
+          { company, token, page },
+          { ...session?.requestConfig(), ledovaSubmissionGuard: guard },
+        );
         guard();
         return response;
       });
@@ -56,13 +73,18 @@ export function useRegisterAward(
   uuid: string,
   guard: () => void,
   enabled = true,
+  session?: OrderSubmissionSession,
 ) {
+  const apiClient = useApiClient();
   return useQuery({
     queryKey: [...awardsKey(owner, token), uuid],
     enabled: enabled && !!uuid && !!company,
     queryFn: async () => {
       guard();
-      const { data } = await getRegisterAward(apiClient, uuid, { ledovaSubmissionGuard: guard });
+      const { data } = await getRegisterAward(apiClient, uuid, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: guard,
+      });
       guard();
       if (data.uuid !== uuid || data.company !== company || data.token !== token || !hasValidRegisterAwardTotals(data))
         throw new Error('The award does not match this company and share class.');
@@ -77,7 +99,9 @@ export function useRegisterAwardVestings(
   company: string,
   award: string,
   guard: () => void,
+  session?: OrderSubmissionSession,
 ) {
+  const apiClient = useApiClient();
   return useQuery({
     queryKey: awardVestingsKey(owner, award),
     queryFn: async () => {
@@ -86,7 +110,7 @@ export function useRegisterAwardVestings(
         const response = await getRegisterAwardVestings(
           apiClient,
           { company, award, page },
-          { ledovaSubmissionGuard: guard },
+          { ...session?.requestConfig(), ledovaSubmissionGuard: guard },
         );
         guard();
         return response;
@@ -101,18 +125,14 @@ export function useRegisterAwardVestings(
   });
 }
 
-export const awardEndsKey = (owner: OrderSubmissionOwner, award: string) => [
-  ...registerKey(owner),
-  'award-ends',
-  award,
-];
-export const awardVestingReversalsKey = (owner: OrderSubmissionOwner, award: string) => [
-  ...registerKey(owner),
-  'award-vesting-reversals',
-  award,
-];
-
-export function useRegisterAwardEnds(owner: OrderSubmissionOwner, company: string, award: string, guard: () => void) {
+export function useRegisterAwardEnds(
+  owner: OrderSubmissionOwner,
+  company: string,
+  award: string,
+  guard: () => void,
+  session?: OrderSubmissionSession,
+) {
+  const apiClient = useApiClient();
   return useQuery({
     queryKey: awardEndsKey(owner, award),
     queryFn: async () => {
@@ -121,7 +141,7 @@ export function useRegisterAwardEnds(owner: OrderSubmissionOwner, company: strin
         const response = await getRegisterAwardEnds(
           apiClient,
           { company, award, page },
-          { ledovaSubmissionGuard: guard },
+          { ...session?.requestConfig(), ledovaSubmissionGuard: guard },
         );
         guard();
         return response;
@@ -141,7 +161,9 @@ export function useRegisterAwardVestingReversals(
   company: string,
   award: string,
   guard: () => void,
+  session?: OrderSubmissionSession,
 ) {
+  const apiClient = useApiClient();
   return useQuery({
     queryKey: awardVestingReversalsKey(owner, award),
     queryFn: async () => {
@@ -150,7 +172,7 @@ export function useRegisterAwardVestingReversals(
         const response = await getRegisterAwardVestingReversals(
           apiClient,
           { company, award, page },
-          { ledovaSubmissionGuard: guard },
+          { ...session?.requestConfig(), ledovaSubmissionGuard: guard },
         );
         guard();
         return response;

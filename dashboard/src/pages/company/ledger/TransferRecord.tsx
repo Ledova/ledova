@@ -9,12 +9,13 @@ import {
   type RegisterTransferDecisionRequest,
   shareCount,
   formatDate,
+  STAGE_TONES,
 } from '@ledova/shared';
 import { Row, Rows, Status, ShowMore, Fact } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
+import type { RegisterSteps } from '@pages/company/shared/proposals';
 import { useTransferRecordDownload } from './useRegisterRecordDownload';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 import { TransferReview } from './TransferReview';

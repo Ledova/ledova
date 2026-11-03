@@ -7,8 +7,8 @@ import {
   REGISTER_AWARD_COPY as COPY,
   type OwnCompanyAppointment,
   type RegisterAward,
+  useAwardVestingForm,
 } from '@ledova/shared';
-import { useAwardVestingForm } from './useAwardVestingForm';
 import { Failure } from '@components/Ledger';
 
 export function AwardVestingForm({
@@ -33,7 +33,17 @@ export function AwardVestingForm({
   canPrepare?: boolean;
 }) {
   const { shares, setShares, vestedOn, setVestedOn, setFile, busy, held, error, today, problems, submit } =
-    useAwardVestingForm({ award, appointment, guard, blocked, onRecorded, onHeldChange, visible, canPrepare });
+    useAwardVestingForm({
+      award,
+      appointment,
+      guard,
+      blocked,
+      onRecorded,
+      onHeldChange,
+      visible,
+      canPrepare,
+      newKey: () => crypto.randomUUID(),
+    });
   const checks = useErrorSummary(problems);
   const cancel = (
     <PageAction

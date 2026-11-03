@@ -17,6 +17,8 @@ import { ActivationScreen } from '../screens/settings/ActivationScreen';
 import { AuthorityRequestScreen } from '../screens/settings/AuthorityRequestScreen';
 import { AuthorityScreen } from '../screens/settings/AuthorityScreen';
 import { TeamScreen } from '../screens/settings/TeamScreen';
+import { EmployeeAwardScreen } from '../screens/shareholders/EmployeeAwardScreen';
+import { EmployeeSchemeScreen } from '../screens/shareholders/EmployeeSchemeScreen';
 import { MemberAccessScreen } from '../screens/shareholders/MemberAccessScreen';
 import { ParticularsScreen } from '../screens/shareholders/ParticularsScreen';
 import { ShareholderScreen } from '../screens/shareholders/ShareholderScreen';
@@ -29,6 +31,8 @@ export type SignedInStackParamList = {
   Shareholders: undefined;
   Shareholder: { company: string; member: string; outcome?: string };
   ShareholderParticulars: { company: string; member: string };
+  EmployeeScheme: undefined;
+  EmployeeAward: { company: string; token: string; award: string };
   MemberAccess: { company?: string; inviteMember?: string } | undefined;
   Certificates: { record?: string; token?: string } | undefined;
   InspectionCopies: undefined;
@@ -82,6 +86,8 @@ export function SignedInNavigator() {
               component={ParticularsScreen}
               options={topBar('Shareholders')}
             />
+            <Stack.Screen name="EmployeeScheme" component={EmployeeSchemeScreen} options={topBar('Shareholders')} />
+            <Stack.Screen name="EmployeeAward" component={EmployeeAwardScreen} options={topBar('Shareholders')} />
             <Stack.Screen name="MemberAccess" component={MemberAccessScreen} options={topBar('Shareholders')} />
             <Stack.Screen name="Certificates" component={CertificatesScreen} options={topBar('Documents')} />
             <Stack.Screen name="InspectionCopies" component={InspectionCopiesScreen} options={topBar('Documents')} />

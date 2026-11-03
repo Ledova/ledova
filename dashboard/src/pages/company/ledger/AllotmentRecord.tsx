@@ -10,12 +10,13 @@ import {
   shareCount,
   formatMoney,
   formatDate,
+  STAGE_TONES,
 } from '@ledova/shared';
 import { Row, Rows, Status, ShowMore } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { STAGE_TONES, type RegisterSteps } from '@pages/company/shared/proposals';
+import type { RegisterSteps } from '@pages/company/shared/proposals';
 import { useAllotmentRecordDownload } from './useRegisterRecordDownload';
 import { AllotmentReview } from './AllotmentReview';
 import { IssueSummary } from './IssueSummary';

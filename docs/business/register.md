@@ -3,8 +3,9 @@
 [Business processes](README.md) · [Documentation](../README.md)
 
 How a company keeps the register of members of each share class in Ledova, and what the web Ledger
-page shows; of the register administration, the mobile app has Shareholders, a shareholder's page and
-Member access ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). It is for company representatives,
+page shows; of the register administration, the mobile app has Shareholders, a shareholder's page,
+the Employee share scheme with each award's page, and Member access
+([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). It is for company representatives,
 product owners, support staff and engineers learning the domain. Issuing shares is in
 [share classes and issuing shares](issuing-shares.md); copies, certificates and member access are in
 [member records and register outputs](member-records.md).
@@ -650,7 +651,8 @@ The Employee share scheme view, Employee scheme under Shareholders, shows one cl
 [awards](issuing-shares.md#employee-awards-and-vesting) at a time, chosen with Share class,
 each listing the non-paid issues prepared from it; Documents holds each class's inspection copy,
 unsigned certificate preparation and the company pack as compact choices, opening one preparation
-form at a time.
+form at a time. The mobile app's Employee scheme shows the same view and each award's page for a
+register reader of the selected company ([employee awards](issuing-shares.md#employee-awards-and-vesting)).
 
 Issues are prepared in place under Issue shares, and each other preparation has its own page. Each
 keeps an uploaded document if the response is interrupted.
@@ -681,8 +683,9 @@ reached from Recipient details on their award's page. It shows:
 Details show only while the account, the classes and the holdings read are current; a refresh
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger. The app's shareholder page shows
-the same sections and **Change particulars**; until the app has their pages it leaves out Documents,
-**Issue shares to them**, **Transfer shares**, the award rows' link and **Open Employee share scheme**.
+the same sections and **Change particulars**, with award rows opening their pages and **Open Employee
+share scheme**; until the app has their pages it leaves out Documents, **Issue shares to them** and
+**Transfer shares**.
 
 ### Choosing a person
 

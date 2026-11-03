@@ -15,7 +15,7 @@ import {
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, FormActions, LoadError, Loading, Outcome, Row, Rows, Section } from '../../components/Ledger';
+import { Action, Fact, FormActions, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { Field } from '../../components/register/RegisterFields';
 import { SelectField } from '../../components/SelectField';
@@ -216,10 +216,10 @@ function InspectionForm({
       </Text>
       {target ? (
         <Rows>
-          <Row label="Share class">{register.token.name}</Row>
-          <Row label="Instruction">{target.request.instruction}</Row>
-          <Row label="Recipient">{target.request.recipient}</Row>
-          <Row label="Request date">{formatDate(target.request.requestedOn)}</Row>
+          <Fact label="Share class">{register.token.name}</Fact>
+          <Fact label="Instruction">{target.request.instruction}</Fact>
+          <Fact label="Recipient">{target.request.recipient}</Fact>
+          <Fact label="Request date">{formatDate(target.request.requestedOn)}</Fact>
         </Rows>
       ) : (
         <>

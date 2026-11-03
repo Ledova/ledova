@@ -101,7 +101,11 @@ function CompanyMemberAccess({
         />
       }
     >
-      {source.hasError ? (
+      {source.accountError ? (
+        <LoadError retry={source.retryAccount} busy={source.isRefreshing}>
+          Your account could not be loaded.
+        </LoadError>
+      ) : source.hasError ? (
         <LoadError retry={source.retry} busy={source.isRefreshing}>
           The register could not be loaded.
         </LoadError>

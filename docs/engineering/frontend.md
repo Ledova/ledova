@@ -169,7 +169,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   work never crosses accounts. Its query keys carry the owner and every request passes
   `ledovaSubmissionGuard`, which `apiClient` checks, so a late reply cannot reach another account
   (the owner key in `dashboard/src/pages/home/OwnershipBrowser.tsx`, the guard in
-  `dashboard/src/pages/company/ledger/shared/useRegisterGrants.ts`). Mobile adds the session epoch
+  `packages/shared/src/hooks/useRegisterGrants.ts`). Mobile adds the session epoch
   ([session scope](mobile.md#session-scope)).
 - **API client.** Shared services take the axios instance first. Shared hooks read it with
   `useApiClient()` and never take it as an argument; dashboard hooks import the `apiClient`
@@ -440,7 +440,8 @@ still signing up can always leave.
 Browser downloads use `dashboard/src/utils/saveFile.ts`: it takes a blob, or the downloaded bytes
 with their type, clicks one temporary link, removes that link and revokes the object URL after 60
 seconds. Each caller keeps its own filename, MIME type and authority checks. The shared output hooks
-deliver their file through a `FileDelivery` each client supplies (`downloadedFile` in
+and an award's document downloads (`useAwardRecordDownload`) deliver their file through a
+`FileDelivery` each client supplies (`downloadedFile` in
 `packages/shared/src/utils/downloads.ts` reads the response): the web's `BROWSER_FILES` saves it, and
 the app's `SHARE_SHEET_FILES` asks for the bytes and shares them
 ([document view copies](mobile.md#document-view-copies)).
@@ -848,7 +849,12 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   mounted. Preparation replaces that class's award list while preserving its controllers. Each award row
   links to `pages/company/ledger/award`, which reads the award, its class register, grants and appointments,
   hosts `AwardRecord`'s vesting and entitlement-change forms, and publishes its held state through
-  `LedgerNavigation` so `CompanyContextProvider` blocks leaving while an outcome is uncertain. A section whose
+  `LedgerNavigation` so `CompanyContextProvider` blocks leaving while an outcome is uncertain. The award
+  reads (`useRegisterAwards`, `useRegisterAward` and the award's vesting, ending and reversal reads), the
+  grant read (`useRegisterGrants`), the forms (`useAwardForm`, `useAwardVestingForm`,
+  `useAwardAdjustmentForm`) and the document downloads (`useAwardRecordDownload`) are shared, and the
+  app's Employee share scheme and award page render the same views at phone width
+  ([navigation](mobile.md#navigation)). A section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current

@@ -9,10 +9,10 @@ import {
   registerClassesKey,
   registerHoldersKey,
   allPeopleKey,
+  awardsKey,
+  grantsKey,
 } from '@ledova/shared';
-import { grantsKey } from './shared/useRegisterGrants';
 import { allotmentsKey } from './useRegisterAllotments';
-import { awardsKey } from './shared/useRegisterAwards';
 import { entriesKey } from './shared/useRegisterEntries';
 
 export function useIssueEntryRead({

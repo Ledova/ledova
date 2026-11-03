@@ -17,10 +17,14 @@ import type {
   RegisterTransferDecisionRequest,
 } from './register-transfer';
 import type { RegisterParticularsChange } from './register-particulars';
+import type { UploadFile } from './company-authority';
 
 export type RegisterEvidence = ApiSchema<'RegisterEvidence'>;
 export type RegisterEvidenceKind = ApiSchema<'RegisterEvidenceKindEnum'>;
-export type RegisterEvidenceUpload = ApiRequest<'api_v1_tokens_register_evidence_create'>;
+export type RegisterEvidenceFile = UploadFile & { size: number };
+export type RegisterEvidenceUpload = Omit<ApiRequest<'api_v1_tokens_register_evidence_create'>, 'file'> & {
+  file: UploadFile;
+};
 export type RegisterDecisionKind = ApiSchema<'RegisterDecisionKindEnum'>;
 export type RegisterProposal =
   | RegisterAllotment

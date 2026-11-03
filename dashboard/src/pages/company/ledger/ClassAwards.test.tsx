@@ -1,7 +1,5 @@
 // @vitest-environment jsdom
 
-import { awardsKey } from './shared/useRegisterAwards';
-import { grantsKey } from './shared/useRegisterGrants';
 import { allotmentsKey } from './useRegisterAllotments';
 
 import {
@@ -16,6 +14,8 @@ import {
   ownAppointmentsKey,
   registerClassesKey,
   registerHoldersKey,
+  awardsKey,
+  grantsKey,
 } from '@ledova/shared';
 import type {
   OwnCompanyAppointment,
@@ -49,7 +49,11 @@ import { companyPreferences, prepareCompanyClient } from '../../../testSupport/c
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), save: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
-vi.mock('@utils/saveFile', async (original) => ({ ...(await original<object>()), saveFile: api.save }));
+vi.mock('@utils/saveFile', async (original) => ({
+  ...(await original<object>()),
+  saveFile: api.save,
+  BROWSER_FILES: { save: api.save },
+}));
 const OWNER = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
 const guard = () => {};
 const FILE = new File(['%PDF synthetic'], 'synthetic.pdf', { type: 'application/pdf' });

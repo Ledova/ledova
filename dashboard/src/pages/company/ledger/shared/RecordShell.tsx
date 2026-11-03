@@ -1,8 +1,8 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { apiErrorSentence } from '@ledova/shared';
+import { STAGE_TONES, apiErrorSentence } from '@ledova/shared';
 import { Outcome, Row, Status, Failure } from '@components/Ledger';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
-import { DOWNLOAD_FAILED, STAGE_TONES } from '@pages/company/shared/proposals';
+import { DOWNLOAD_FAILED } from '@pages/company/shared/proposals';
 
 export function RecordShell({
   children,

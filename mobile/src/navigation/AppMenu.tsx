@@ -34,6 +34,7 @@ export type Section = 'Dashboard' | 'Shareholders' | 'Documents' | 'Settings';
 export type MenuRoute =
   | 'Dashboard'
   | 'Shareholders'
+  | 'EmployeeScheme'
   | 'MemberAccess'
   | 'Certificates'
   | 'InspectionCopies'
@@ -49,10 +50,14 @@ type MenuItem = {
   label: string;
   icon: ComponentType<IconProps>;
   route: MenuRoute;
-  items?: { route: MenuRoute; label: string }[];
+  items?: { route: MenuRoute; label: string; hint?: string }[];
 };
 
-const PARENT_ROUTES: Partial<Record<string, MenuRoute>> = { Authority: 'Team', AuthorityRequest: 'Team' };
+const PARENT_ROUTES: Partial<Record<string, MenuRoute>> = {
+  Authority: 'Team',
+  AuthorityRequest: 'Team',
+  EmployeeAward: 'EmployeeScheme',
+};
 
 const sections = (canReadRegister: boolean): MenuItem[] => [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
@@ -63,7 +68,10 @@ const sections = (canReadRegister: boolean): MenuItem[] => [
           label: 'Shareholders',
           icon: UsersThreeIcon,
           route: 'Shareholders' as const,
-          items: [{ route: 'MemberAccess' as const, label: 'Member access' }],
+          items: [
+            { route: 'EmployeeScheme' as const, label: 'Employee scheme', hint: 'Employee share scheme' },
+            { route: 'MemberAccess' as const, label: 'Member access' },
+          ],
         },
       ]
     : []),
@@ -277,6 +285,7 @@ export function AppMenu({
               <TouchableOpacity
                 key={child.route}
                 accessibilityRole="button"
+                accessibilityHint={child.hint}
                 accessibilityState={{ selected: child.route === marked }}
                 onPress={() => onSelect(child.route)}
                 style={row(child.route === marked)}

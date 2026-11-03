@@ -12,9 +12,9 @@ import {
   type RegisterImport,
   type RegisterParticularsChange,
   type RegisterTransfer,
+  retainedName,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
-import { retainedName } from '@pages/company/shared/proposals';
 import { saveFile } from '@utils/saveFile';
 
 export function useAllotmentRecordDownload(allotment: RegisterAllotment, guard: () => void) {

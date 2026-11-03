@@ -27,12 +27,12 @@ import { FilterPopover } from '../../components/FilterPopover';
 import {
   Action,
   Actions,
+  Fact,
   FormActions,
   LinkRow,
   LoadError,
   Loading,
   Outcome,
-  Row,
   Rows,
   Section,
   ShowMore,
@@ -205,7 +205,11 @@ function CompanyShareholders({
         />
       }
     >
-      {source.hasError || source.invalid ? (
+      {source.accountError ? (
+        <LoadError retry={source.retryAccount} busy={source.isRefreshing}>
+          Your account could not be loaded.
+        </LoadError>
+      ) : source.hasError || source.invalid ? (
         <LoadError retry={source.retry} busy={source.isRefreshing}>
           The register could not be loaded.
         </LoadError>
@@ -433,26 +437,26 @@ function FormerMembers({
                   />
                 )}
                 <Rows>
-                  <Row label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Row>
-                  <Row label="Ceased on">{formatDate(former.ceasedOn)}</Row>
-                  <Row label="Identity source">{former.identitySourceDisplay}</Row>
+                  <Fact label="Shares at cessation">{formatShareCount(former.sharesAtCessation)}</Fact>
+                  <Fact label="Ceased on">{formatDate(former.ceasedOn)}</Fact>
+                  <Fact label="Identity source">{former.identitySourceDisplay}</Fact>
                   {former.sourceEntrySequence !== null && (
-                    <Row label="Cessation entry">{String(former.sourceEntrySequence)}</Row>
+                    <Fact label="Cessation entry">{String(former.sourceEntrySequence)}</Fact>
                   )}
                   {!!former.sourceEntryKind && (
-                    <Row label="Cessation entry kind">
+                    <Fact label="Cessation entry kind">
                       {REGISTER_CORRECTION_COPY.ENTRY_KINDS[former.sourceEntryKind as RegisterEntryKind]}
-                    </Row>
+                    </Fact>
                   )}
                   {!!former.sourceEffectiveOn && (
-                    <Row label="Source effective date">{formatDate(former.sourceEffectiveOn)}</Row>
+                    <Fact label="Source effective date">{formatDate(former.sourceEffectiveOn)}</Fact>
                   )}
-                  {!!former.correctedBy && <Row label="Correction">Cessation corrected by a later entry</Row>}
-                  {!!former.returnedOn && <Row label="Returned on">{formatDate(former.returnedOn)}</Row>}
+                  {!!former.correctedBy && <Fact label="Correction">Cessation corrected by a later entry</Fact>}
+                  {!!former.returnedOn && <Fact label="Returned on">{formatDate(former.returnedOn)}</Fact>}
                   {!!former.walletAddress && (
-                    <Row label="Recorded wallet" mono>
+                    <Fact label="Recorded wallet" mono>
                       {former.walletAddress}
-                    </Row>
+                    </Fact>
                   )}
                 </Rows>
               </View>

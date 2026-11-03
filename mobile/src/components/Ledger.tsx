@@ -61,79 +61,59 @@ export function Rows({ children }: { children: ReactNode }) {
   );
 }
 
-export function Row({
+export function Fact({
   label,
   mono = false,
-  accessibilityLabel,
   children,
 }: {
   label: string;
   mono?: boolean;
-  accessibilityLabel?: string;
-  children: ReactNode;
+  children: string | ReactElement;
 }) {
-  const styles = useThemedStyles((theme) => ({
-    row: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      gap: theme.spacing.sm,
-      paddingVertical: 10,
-    },
-    label: { flexShrink: 1, fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
-    value: {
-      flexGrow: 1,
-      flexShrink: 1,
-      fontFamily: theme.fontFamily.regular,
-      fontSize: 14,
-      color: theme.colors.text.primary,
-      textAlign: 'right' as const,
-    },
-    mono: { fontFamily: theme.fontFamily.mono },
-  }));
-  return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, mono && styles.mono]} accessibilityLabel={accessibilityLabel}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
-export function Fact({ label, children }: { label: string; children: string | ReactElement }) {
   const styles = useThemedStyles((theme) => ({
     fact: { gap: theme.spacing.xs, paddingVertical: theme.spacing.smd },
     label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.muted },
     value: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
+    mono: { fontFamily: theme.fontFamily.mono },
   }));
   const text = typeof children === 'string';
   return (
     <View accessible={text} accessibilityLabel={text ? `${label}: ${children}` : undefined} style={styles.fact}>
       <Text style={styles.label}>{label}</Text>
-      {text ? <Text style={styles.value}>{children}</Text> : children}
+      {text ? <Text style={[styles.value, mono && styles.mono]}>{children}</Text> : children}
     </View>
+  );
+}
+
+export function MoreToggle({ open, onToggle, children }: { open: boolean; onToggle: () => void; children: string }) {
+  const styles = useThemedStyles((theme) => ({
+    toggle: { alignSelf: 'flex-start' as const },
+    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.brand.light },
+  }));
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      hitSlop={12}
+      onPress={onToggle}
+      style={styles.toggle}
+    >
+      <Text style={styles.label}>{children}</Text>
+    </Pressable>
   );
 }
 
 export function ShowMore({ show, hide, children }: { show: string; hide: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const styles = useThemedStyles((theme) => ({
-    toggle: { alignSelf: 'flex-start' as const },
-    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.brand.light },
     content: { gap: theme.spacing.smd },
     hidden: { display: 'none' as const },
   }));
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        hitSlop={12}
-        onPress={() => setOpen((shown) => !shown)}
-        style={styles.toggle}
-      >
-        <Text style={styles.label}>{open ? hide : show}</Text>
-      </Pressable>
+      <MoreToggle open={open} onToggle={() => setOpen((shown) => !shown)}>
+        {open ? hide : show}
+      </MoreToggle>
       <View style={[styles.content, !open && styles.hidden]}>{children}</View>
     </>
   );

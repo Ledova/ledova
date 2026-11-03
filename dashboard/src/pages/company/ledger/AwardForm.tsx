@@ -2,9 +2,14 @@ import { Field, TextArea, TextInput, FileField } from '@components/Field';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { FIELD_LIMITS, REGISTER_AWARD_COPY as COPY, type OwnCompanyAppointment, type Person } from '@ledova/shared';
+import {
+  FIELD_LIMITS,
+  REGISTER_AWARD_COPY as COPY,
+  useAwardForm,
+  type OwnCompanyAppointment,
+  type Person,
+} from '@ledova/shared';
 import { PersonFields, PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
-import { useAwardForm } from './useAwardForm';
 import { Failure } from '@components/Ledger';
 
 export function AwardForm({
@@ -65,6 +70,7 @@ export function AwardForm({
     onHeldChange,
     visible,
     canPrepare,
+    newKey: () => crypto.randomUUID(),
   });
   const checks = useErrorSummary(problems);
   const cancel = (

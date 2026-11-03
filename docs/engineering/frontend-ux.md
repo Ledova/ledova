@@ -137,11 +137,11 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   paragraph in a card, including its forms' notes but not flex, right-aligned or truncated rows, and a page's
   lede keep a readable width (`max-w-prose`).
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
-  shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
-  mobile's `Row` right-aligns them, and its `Fact` puts the label above the value, as the web's rows
-  do on a phone (Dashboard's class card and Profile). Breakdowns of figures (company ownership, a
-  class's totals on the web, register setup's summary) and an award's chart legend keep their own
-  layout, without tinted tiles.
+  shareholder's holding or an import's supporting records. The web sets values in tabular numerals
+  and, below `sm`, puts each label above its value; the app's `Rows` hold `Fact`s, which always do,
+  left-aligned, with `mono` for a recorded wallet. Breakdowns of figures (company ownership, a class's
+  totals on the web, register setup's summary) and an award's chart legend keep their own layout,
+  without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines and an aside. A step in a checklist, such
   as "Activate your company", and a row that starts a task, such as "Prepare a non-paid
@@ -222,6 +222,10 @@ from this award**, each shown only when it has records, and one muted recorded l
 unissued rights and Correct a vesting event open their form inside the Entitlement card, keeping the
 agreement visible and hiding the other cards. While an action's outcome is uncertain the page reports
 held work, so leaving it is blocked as on Ledger.
+The app's Employee share scheme and an award's page have the same cards, rows, forms and states at
+phone width, the forms' fields stacked; they leave out **Back to Employee share scheme**, as the app has
+no back buttons, and **Issue vested shares** and the non-paid issues' links, whose Issue shares page the
+app lacks.
 Inline vesting uses one named field group with the event quantity, date and document, short contextual
 labels and the same responsive grid. While an award editor is open, its footer owns the actions;
 hide unrelated record actions instead of leaving a disabled row above the form.
@@ -415,9 +419,9 @@ opening the people list. Documents uses the same pattern for **Certificates** (t
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
 **Team** and **Activation** where permitted, without an extra overview page; the app's menu has
-Shareholders with Member access, Documents' pages, Team and Activation under the same conditions. A group with only one
-permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
-there. Profile always holds personal information. Team, Activation and
+Shareholders with Employee scheme and Member access, Documents' pages, Team and Activation under the
+same conditions. A group with only one permitted page, such as Documents with only Certificates, is a
+plain link to that page, marked current there. Profile always holds personal information. Team, Activation and
 Company details follow current company access. Personal edits never change company-recorded particulars.
 Account has three cards: **Security** (the identity check's status with **Review**, which the app
 leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
@@ -609,7 +613,8 @@ not automatically a shareholder or a Ledova user and remains a documentary field
     the class's members and award recipients (`usePeople`).
   - member invitations, which list the company's current and former holders in every class and its
     award recipients (`invitationMembers`), without addresses. The app's invitation form uses the same
-    choices, matching and 50-match limit in its own searchable list.
+    choices, matching and 50-match limit in its own searchable list, and its employee award form the
+    same list with **New person** first.
 - **`SearchSelect`** (`dashboard/src/components/SearchSelect.tsx`) is used directly by a share
   class's **Shareholder documents**, to choose the holder a new document belongs to from the
   class's holders alone.
@@ -894,7 +899,8 @@ Some messages keep their own form:
   shows it passes `showUploadHint`, and its hint then starts with "PDF, PNG or JPEG, up to 10 MB."
   (class rights, bringing records, award adjustments and document attachments). Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
-  of up to 10 MB." on the field.
+  of up to 10 MB." on the field. The app's `FileField` (`mobile/src/components/register/RegisterFields.tsx`)
+  is the same **Choose file** control over the system's file picker, with the same rule, hint and refusal.
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.
 - **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
@@ -952,8 +958,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     reads the form's problems, keyed by field, and forms that share one summary, such as Member
     access's invitation, revocation and certificate instruction, check only the fields their action
     needs. The app's Team, Activation, representative authority, inspection copy, company pack, Add
-    person, particulars change and member access forms use it too, showing each problem under its field
-    without a summary.
+    person, particulars change, member access and employee award, vesting and entitlement-change forms
+    use it too, showing each problem under its field without a summary.
     A box that must be ticked is a `CheckboxField`,
     except sign-up pre-screening's four declarations,
     which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking
@@ -986,7 +992,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     input and blur, and the form treats it as a problem: the team invitation's deadline and
     appointment expiry and a representative authority request's expiry. The app's Team and
     representative authority request take these dates as typed `YYYY-MM-DD` text, which the same
-    checks read as written, as does its inspection copy's request date.
+    checks read as written, as do its inspection copy's request date and its employee award forms'
+    dates.
 
 - **Request errors.** A failure reads as one `role="alert"` sentence, `Failure`
   (`dashboard/src/components/Ledger.tsx`, which renders nothing without a sentence), from

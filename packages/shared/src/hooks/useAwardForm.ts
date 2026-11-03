@@ -1,26 +1,16 @@
-import {
-  REGISTER_AWARD_COPY as COPY,
-  apiErrorSentence,
-  createUserFriendlyError,
-  failureStatus,
-  getRegisterAward,
-  isRecordedRegisterAward,
-  isRegisterEvidenceReceipt,
-  recordRegisterAward,
-  uploadRegisterEvidence,
-  type OwnCompanyAppointment,
-  type RegisterAwardPreparation,
-  type RegisterEvidence,
-  personRequest,
-  NEW_PERSON_PROBLEMS,
-  type Person,
-  REGISTER_AWARD_UNMET_COPY,
-  refusalSentence,
-  utcToday,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { REGISTER_AWARD_COPY as COPY, REGISTER_AWARD_UNMET_COPY } from '../constants/business/register-awards';
+import { getRegisterAward, recordRegisterAward } from '../services/register-awards';
+import { uploadRegisterEvidence } from '../services/register-commands';
+import type { OwnCompanyAppointment, RegisterAwardPreparation, RegisterEvidence, RegisterEvidenceFile } from '../types';
+import { utcToday } from '../utils/date';
+import { apiErrorSentence, createUserFriendlyError, failureStatus, refusalSentence } from '../utils/errors';
+import { NEW_PERSON_PROBLEMS, personRequest, type Person } from '../utils/people';
+import { isRecordedRegisterAward } from '../utils/register-awards';
+import { isRegisterEvidenceReceipt } from '../utils/register-commands';
+import { useApiClient } from './useApiClient';
+import { hasProblems, type Problems } from './useErrorSummary';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 
 export function useAwardForm({
   company,
@@ -33,6 +23,8 @@ export function useAwardForm({
   onHeldChange,
   visible = true,
   canPrepare = true,
+  newKey,
+  session,
 }: {
   company: string;
   token: string;
@@ -44,8 +36,11 @@ export function useAwardForm({
   onHeldChange?: (held: boolean) => void;
   visible?: boolean;
   canPrepare?: boolean;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 }) {
-  const [memberId] = useState(() => crypto.randomUUID());
+  const apiClient = useApiClient();
+  const [memberId] = useState(newKey);
   const [member, setMember] = useState('new');
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
@@ -53,7 +48,7 @@ export function useAwardForm({
   const [termsOn, setTermsOn] = useState(utcToday);
   const [terms, setTerms] = useState('');
   const [schedule, setSchedule] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<RegisterEvidenceFile | null>(null);
   const [busy, setBusy] = useState(false);
   const [held, setHeld] = useState(false);
   const [error, setError] = useState('');
@@ -63,7 +58,7 @@ export function useAwardForm({
     unavailable.current = blocked || !visible;
   }, [blocked, visible]);
   const pending = useRef(false);
-  const upload = useRef<{ file: File; key: string; receipt: RegisterEvidence | null } | null>(null);
+  const upload = useRef<{ file: RegisterEvidenceFile; key: string; receipt: RegisterEvidence | null } | null>(null);
   const operation = useRef<{ request: RegisterAwardPreparation; confirmed: boolean; uncertain: boolean } | null>(null);
   useEffect(() => {
     live.current = true;
@@ -77,6 +72,7 @@ export function useAwardForm({
       throw createUserFriendlyError('Refresh company access and award records before continuing.');
     if (!live.current) throw createUserFriendlyError('This award form is closed. Reopen it before continuing.');
   };
+  const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: check });
   const today = utcToday();
   const problems: Problems<'name' | 'address' | 'shares' | 'termsOn' | 'terms' | 'file' | 'schedule'> = {
     name: member === 'new' && !name.trim() && NEW_PERSON_PROBLEMS.NAME,
@@ -102,7 +98,7 @@ export function useAwardForm({
       if (!command) {
         if (!canPrepare) throw createUserFriendlyError('Current preparation authority is required to record an award.');
         if (!file) return;
-        if (upload.current?.file !== file) upload.current = { file, key: crypto.randomUUID(), receipt: null };
+        if (upload.current?.file !== file) upload.current = { file, key: newKey(), receipt: null };
         const request = {
           companyId: company,
           appointment: appointment.uuid,
@@ -110,11 +106,7 @@ export function useAwardForm({
           idempotencyKey: upload.current.key,
         };
         if (!upload.current.receipt) {
-          const { data } = await uploadRegisterEvidence(
-            apiClient,
-            { ...request, file },
-            { ledovaSubmissionGuard: check },
-          );
+          const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, config());
           check();
           if (!isRegisterEvidenceReceipt(data, request, file.size)) {
             upload.current = null;
@@ -132,7 +124,7 @@ export function useAwardForm({
           schedule: schedule.trim(),
           agreementEvidence: upload.current.receipt.uuid,
         };
-        command = { request: { operationId: crypto.randomUUID(), ...body }, confirmed: false, uncertain: false };
+        command = { request: { operationId: newKey(), ...body }, confirmed: false, uncertain: false };
         operation.current = command;
         setHeld(true);
         onHeldChange?.(true);
@@ -141,9 +133,7 @@ export function useAwardForm({
       if (command.uncertain && !command.confirmed) {
         try {
           check();
-          const { data } = await getRegisterAward(apiClient, command.request.operationId, {
-            ledovaSubmissionGuard: check,
-          });
+          const { data } = await getRegisterAward(apiClient, command.request.operationId, config());
           check();
           if (!isRecordedRegisterAward(data, command.request, company))
             throw createUserFriendlyError(COPY.RECORDING_FAILED);
@@ -157,7 +147,7 @@ export function useAwardForm({
       if (!command.confirmed) {
         try {
           check();
-          const { data } = await recordRegisterAward(apiClient, command.request, { ledovaSubmissionGuard: check });
+          const { data } = await recordRegisterAward(apiClient, command.request, config());
           check();
           if (!isRecordedRegisterAward(data, command.request, company))
             throw createUserFriendlyError(COPY.RECORDING_FAILED);
@@ -167,9 +157,7 @@ export function useAwardForm({
           if (!absent || !status || status < 400 || status >= 500) throw cause;
           check();
           try {
-            const { data } = await getRegisterAward(apiClient, command.request.operationId, {
-              ledovaSubmissionGuard: check,
-            });
+            const { data } = await getRegisterAward(apiClient, command.request.operationId, config());
             check();
             if (!isRecordedRegisterAward(data, command.request, company))
               throw createUserFriendlyError(COPY.RECORDING_FAILED);

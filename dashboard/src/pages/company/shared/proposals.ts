@@ -7,16 +7,8 @@ import {
   type TokenHoldersResponse,
   formatDate,
 } from '@ledova/shared';
-import type { Tone } from '@components/Ledger';
 
 export type RegisterSteps = Partial<Record<RegisterStep, OwnCompanyAppointment>>;
-
-export const STAGE_TONES: Record<string, Tone> = {
-  submitted: 'waiting',
-  approved: 'moving',
-  applied: 'done',
-  rejected: 'closed',
-};
 
 export const DOWNLOAD_FAILED = 'The file could not be downloaded. Try again.';
 
@@ -37,11 +29,6 @@ export function registerMembers(registers: TokenHoldersResponse[]) {
   for (const { member, name } of registers.flatMap((register) => register.holders))
     if (!members.get(member)) members.set(member, name);
   return members;
-}
-
-export function retainedName(snapshot: unknown, fallback: string) {
-  const name = (snapshot as { name?: unknown } | null)?.name;
-  return typeof name === 'string' && name ? name : fallback;
 }
 
 type EntryDates = Pick<RegisterEntry, 'kind' | 'effectiveOn' | 'companyEventOn'>;

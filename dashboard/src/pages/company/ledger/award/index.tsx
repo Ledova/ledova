@@ -17,6 +17,10 @@ import {
   useRegisterClasses,
   allPeopleKey,
   useRegisters,
+  awardsKey,
+  grantsKey,
+  useRegisterAward,
+  useRegisterGrants,
 } from '@ledova/shared';
 import { LoadError, Loading } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
@@ -25,8 +29,6 @@ import { useLedgerNavigation } from '@components/LedgerNavigation';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
-import { awardsKey, useRegisterAward } from '@pages/company/ledger/shared/useRegisterAwards';
-import { grantsKey, useRegisterGrants } from '@pages/company/ledger/shared/useRegisterGrants';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 import { AwardRecord } from './AwardRecord';
 import { AccountCheck } from '@components/AccountCheck';

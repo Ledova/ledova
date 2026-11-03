@@ -14,14 +14,16 @@ import {
   ownAppointmentsKey,
   allPeopleKey,
   usePeople,
+  awardsKey,
+  grantsKey,
+  useRegisterAward,
+  useRegisterGrants,
 } from '@ledova/shared';
 
 import { GrantForm } from './GrantForm';
 import { GrantRecord } from './GrantRecord';
 import { registerSteps } from '@pages/company/shared/proposals';
 import { entriesKey } from '@pages/company/ledger/shared/useRegisterEntries';
-import { grantsKey, useRegisterGrants } from '@pages/company/ledger/shared/useRegisterGrants';
-import { awardsKey, useRegisterAward } from '@pages/company/ledger/shared/useRegisterAwards';
 import { LoadError, Loading } from '@components/Ledger';
 
 export function useNonPaidIssues({

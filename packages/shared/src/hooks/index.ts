@@ -82,3 +82,19 @@ export { usePersonRegistration } from './usePersonRegistration';
 export { INVITATION_FIELDS, useMemberAccessForm } from './useMemberAccessForm';
 export { particularsKey, useParticularsEdit } from './useParticularsEdit';
 export { useParticularsMember } from './useParticularsMember';
+export {
+  awardEndsKey,
+  awardVestingReversalsKey,
+  awardVestingsKey,
+  awardsKey,
+  useRegisterAward,
+  useRegisterAwardEnds,
+  useRegisterAwardVestingReversals,
+  useRegisterAwardVestings,
+  useRegisterAwards,
+} from './useRegisterAwards';
+export { grantsKey, useRegisterGrants } from './useRegisterGrants';
+export { useAwardForm } from './useAwardForm';
+export { useAwardVestingForm } from './useAwardVestingForm';
+export { useAwardAdjustmentForm } from './useAwardAdjustmentForm';
+export { useAwardRecordDownload } from './useAwardRecordDownload';

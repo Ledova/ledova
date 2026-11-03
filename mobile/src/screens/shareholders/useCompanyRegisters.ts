@@ -5,6 +5,7 @@ import {
   ownershipSummary,
   useRegisterClasses,
   useRegisters,
+  useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -16,20 +17,21 @@ export function useCompanyRegisters(
   page: string,
 ) {
   const client = useQueryClient();
+  const preferenceRead = useUserPreferences();
   const guard = useMemo(
     () => () => {
-      const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
-      if (currentOwner() !== owner || preferences?.status !== 'success' || preferences.fetchStatus !== 'idle')
-        throw new Error(`Your signed-in account changed. Reopen ${page}.`);
+      if (currentOwner() !== owner) throw new Error(`Your signed-in account changed. Reopen ${page}.`);
     },
-    [client, currentOwner, owner, page],
+    [currentOwner, owner, page],
   );
+  const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
+  const settled = preferences?.status === 'success' && preferences.fetchStatus === 'idle';
   const classes = useRegisterClasses(owner, guard, orderSubmissionSession);
   const tokens = (classes.data ?? []).filter((item) => item.companyUuid === company).map(({ uuid }) => uuid);
   const read = useRegisters(owner, tokens, guard, orderSubmissionSession);
   const loaded = classes.isSuccess && (tokens.length === 0 || (read.isSuccess && read.data.length === tokens.length));
   const registers = loaded ? (tokens.length ? read.data : []) : undefined;
-  const sourceReady = loaded && !classes.isFetching && !read.isFetching;
+  const sourceReady = settled && loaded && !classes.isFetching && !read.isFetching;
   let ownershipReady = false;
   if (sourceReady && registers) {
     try {
@@ -45,8 +47,10 @@ export function useCompanyRegisters(
     sourceReady,
     ownershipReady,
     invalid: sourceReady && !ownershipReady,
+    accountError: preferenceRead.isError,
+    retryAccount: () => preferenceRead.refetch(),
     hasError: classes.isError || (tokens.length > 0 && read.isError),
-    isRefreshing: classes.isFetching || read.isFetching,
+    isRefreshing: preferenceRead.isFetching || classes.isFetching || read.isFetching,
     retry: () => Promise.all([classes.refetch(), ...(tokens.length ? [read.refetch()] : [])]),
   };
 }

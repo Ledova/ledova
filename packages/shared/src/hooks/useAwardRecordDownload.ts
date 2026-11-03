@@ -1,26 +1,25 @@
 import { useLayoutEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
+  downloadRegisterAwardEndFile,
   downloadRegisterAwardFile,
   downloadRegisterAwardVestingFile,
-  downloadRegisterAwardEndFile,
   downloadRegisterAwardVestingReversalFile,
-  type OrderSubmissionOwner,
-  type RegisterAward,
-  ownAppointmentsKey,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { retainedName } from '@pages/company/shared/proposals';
+} from '../services/register-awards';
+import type { RegisterAward } from '../types';
+import { downloadedFile, retainedName, type FileDelivery } from '../utils/downloads';
+import { useApiClient } from './useApiClient';
+import { ownAppointmentsKey } from './useOwnAppointments';
 import {
-  awardsKey,
-  awardVestingsKey,
   awardEndsKey,
   awardVestingReversalsKey,
+  awardVestingsKey,
+  awardsKey,
   type useRegisterAwardEnds,
   type useRegisterAwardVestingReversals,
   type useRegisterAwardVestings,
-} from '@pages/company/ledger/shared/useRegisterAwards';
-import { saveFile } from '@utils/saveFile';
+} from './useRegisterAwards';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 export function useAwardRecordDownload(
   owner: OrderSubmissionOwner,
@@ -31,7 +30,10 @@ export function useAwardRecordDownload(
   events: ReturnType<typeof useRegisterAwardVestings>,
   ends: ReturnType<typeof useRegisterAwardEnds>,
   reversals: ReturnType<typeof useRegisterAwardVestingReversals>,
+  files: FileDelivery,
+  session?: OrderSubmissionSession,
 ) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
   const latestReady = useRef({ blocked, visible });
   useLayoutEffect(() => {
@@ -59,15 +61,22 @@ export function useAwardRecordDownload(
           throw new Error('Refresh the current award and its events before downloading evidence.');
       };
       check();
-      const { data } =
+      const config = {
+        ...session?.requestConfig(),
+        ...(files.responseType ? { responseType: files.responseType } : {}),
+        ledovaSubmissionGuard: check,
+      };
+      const response =
         event?.kind === 'vesting'
-          ? await downloadRegisterAwardVestingFile(apiClient, event.uuid, { ledovaSubmissionGuard: check })
+          ? await downloadRegisterAwardVestingFile(apiClient, event.uuid, config)
           : event?.kind === 'end'
-            ? await downloadRegisterAwardEndFile(apiClient, event.uuid, { ledovaSubmissionGuard: check })
+            ? await downloadRegisterAwardEndFile(apiClient, event.uuid, config)
             : event?.kind === 'reversal'
-              ? await downloadRegisterAwardVestingReversalFile(apiClient, event.uuid, { ledovaSubmissionGuard: check })
-              : await downloadRegisterAwardFile(apiClient, award.uuid, { ledovaSubmissionGuard: check });
+              ? await downloadRegisterAwardVestingReversalFile(apiClient, event.uuid, config)
+              : await downloadRegisterAwardFile(apiClient, award.uuid, config);
       check();
+      const file = downloadedFile(response);
+      if (!file) throw new Error('The retained document could not be read.');
       const snapshot =
         event?.kind === 'vesting'
           ? events.data?.find((row) => row.uuid === event.uuid)?.evidenceSnapshot
@@ -76,7 +85,7 @@ export function useAwardRecordDownload(
             : event?.kind === 'reversal'
               ? reversals.data?.find((row) => row.uuid === event.uuid)?.evidenceSnapshot
               : award.agreementSnapshot;
-      saveFile(data, retainedName(snapshot, `award-${event?.uuid || award.uuid}`));
+      await files.save(file.data, retainedName(snapshot, `award-${event?.uuid || award.uuid}`), file.type);
     },
   });
 }

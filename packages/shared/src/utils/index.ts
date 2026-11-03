@@ -103,6 +103,7 @@ export {
   isCertificateEntry,
   type CertificateStatus,
 } from './certificateRecords';
+export { retainedName } from './downloads';
 export type { FileDelivery } from './downloads';
 export { parseTheme } from './theme';
 
