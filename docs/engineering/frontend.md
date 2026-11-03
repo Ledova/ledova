@@ -518,9 +518,8 @@ Every list follows these rules:
   retains immediate selection. Shareholders keeps Search people inside
   its panel above the class selector, with its existing debounce, Clear and match counts.
   Every filter icon sits in the page heading's top-right actions, without a separate row or
-  card-specific placement, apart from Dashboard's class details card
-  ([UX](frontend-ux.md#lists-search-filters-and-paging)). Page-level owners pass `Page.actions`;
-  deeper owners use `PageActions`
+  card-specific placement ([UX](frontend-ux.md#lists-search-filters-and-paging)). Page-level
+  owners pass `Page.actions`; deeper owners use `PageActions`
   (`dashboard/src/components/Page.tsx`), a UI-only portal to the stable header target supplied by
   `PageActionsTarget` (`dashboard/src/components/PageTitle.ts`). Filter state stays under its owner.
   Hidden retained views explicitly omit their header contribution; their controllers remain mounted.
@@ -752,11 +751,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   through `CompanyPicker` inside the page heading's top-right **Switch company** popover. It reuses
   `FilterPopover` with a company icon and label, and lists the companies in the panel; the shared
   presentation owns no company state. The switcher
-  hides for single-company accounts. For company-authorised readers of a class with an open ledger,
-  the class details card holds its own **Filters** popover for the server-searched holder list and
-  the **Share class** choice, whose **All classes** returns to the overview. Everyone else switches
-  class through the class rows and returns through the trail's **Company ownership**. A member
-  without register access also gets a **Certificates** `LinkRow` for a class they hold.
+  hides for single-company accounts. The class details card has no filter: everyone switches class
+  through the class rows and returns through the trail's **Company ownership**. Company-authorised
+  readers get the paged holder list and a **Class details** `LinkRow`; a member without register
+  access gets a **Certificates** `LinkRow` for a class they hold.
   An unavailable explicit company address keeps its refusal and offers **Open your company** when
   only one company remains. Selection still uses `CompanyContextProvider` and its navigation guards.
   Company and class context belong in the address, so browser Back/Forward and task links retain the

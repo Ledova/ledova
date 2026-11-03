@@ -9552,7 +9552,6 @@ export interface ApiOperations {
       query: {
         page?: number;
         page_size?: number;
-        search?: string;
         sequence: number;
       };
       header?: never;

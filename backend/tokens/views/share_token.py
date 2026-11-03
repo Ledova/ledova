@@ -227,7 +227,6 @@ class ShareTokenViewSet(
         operation_id="api_v1_tokens_ownership_holders_list",
         parameters=[
             OpenApiParameter("sequence", OpenApiTypes.INT, required=True),
-            OpenApiParameter("search", OpenApiTypes.STR),
             OpenApiParameter("page", OpenApiTypes.INT),
             OpenApiParameter("page_size", OpenApiTypes.INT),
         ],

@@ -121,11 +121,6 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertTrue(first.json()["next"])
         later = self.client.get(endpoint, {"sequence": 1, "page_size": 1, "page": 2}).json()
         self.assertEqual((later["results"][0]["name"], later["results"][0]["balance"]), ("Synthetic Second", "40"))
-        found = self.client.get(endpoint, {"sequence": 1, "search": "SECOND synthetic"}).json()
-        self.assertEqual((found["count"], found["results"][0]["name"]), (1, "Synthetic Second"))
-        empty = self.client.get(endpoint, {"sequence": 1, "search": "missing"}).json()
-        self.assertEqual((empty["count"], empty["results"]), (0, []))
-        self.assertEqual(self.client.get(endpoint, {"sequence": 1, "search": "x" * 101}).status_code, 400)
         self.assertEqual(self.client.get(endpoint, {"sequence": 1, "page": 0}).status_code, 404)
         self.assertEqual(
             self.client.get("/api/v1/tokens/not-a-class/ownership-holders/", {"sequence": 1}).status_code,

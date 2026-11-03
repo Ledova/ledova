@@ -19,13 +19,7 @@ import CompanyDashboardPage from '.';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { MemberRecordsProvider } from '@components/member-records/MemberRecordsProvider';
-import {
-  companyPreferences,
-  companyRecord,
-  prepareCompanyClient,
-  renderCompanyPage,
-  showAllClasses,
-} from '../../testSupport/company';
+import { companyPreferences, companyRecord, prepareCompanyClient, renderCompanyPage } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -81,18 +75,15 @@ function overview(registers: TokenHoldersResponse[], sequences: Record<string, n
   };
 }
 
-function holderPage(row: TokenHoldersResponse, params: { search?: string; page?: number }, sequence = 1) {
-  const filtered = row.holders.filter(
-    (holder) => !params.search || holder.name!.toLowerCase().includes(params.search.toLowerCase()),
-  );
+function holderPage(row: TokenHoldersResponse, params: { page?: number }, sequence = 1) {
   const page = params.page ?? 1;
-  const results = filtered
+  const results = row.holders
     .slice((page - 1) * 25, page * 25)
     .map((holder) => ({ member: holder.member, name: holder.name, balance: holder.balance, percentage: '0.00' }));
   return {
     data: {
-      count: filtered.length,
-      next: page * 25 < filtered.length ? '?page=2' : null,
+      count: row.holders.length,
+      next: page * 25 < row.holders.length ? '?page=2' : null,
       previous: page > 1 ? '?page=1' : null,
       token: row.token.uuid,
       sequence,
@@ -163,7 +154,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   const additional = Array.from({ length: 26 }, (_, index) => register(`class-${String(index).padStart(2, '0')}`, '1'));
   const inventory = () =>
     mode === 'draft-empty' ? [] : mode === 'many' ? [ordinary, preference, ...additional] : [ordinary, preference];
-  api.get.mockImplementation(async (url: string, config?: { params?: { search?: string; page?: number } }) => {
+  api.get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
     if (url === USER_PREFERENCES_ENDPOINTS.BASE)
       return { data: companyPreferences(mode === 'readable-investor' ? 'investor' : 'company') };
     if (url === '/api/v1/companies/')
@@ -312,21 +303,17 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(await screen.findByRole('list', { name: 'ordinary shares shareholders' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: /Next/ }));
   expect(await screen.findByText('26–28 of 28 shareholders')).toBeTruthy();
-  const holderFilters = screen.getByRole('button', { name: 'Filters' });
-  expect(holderFilters.closest('section')).toBe(
-    screen.getByRole('heading', { name: 'ordinary shares' }).closest('section'),
-  );
-  fireEvent.click(holderFilters);
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Search shareholders' }), {
-    target: { value: 'Small holder 27' },
-  });
-  expect(await screen.findByText('1–1 of 1 shareholder')).toBeTruthy();
+  expect(
+    within(screen.getByRole('heading', { name: 'ordinary shares' }).closest('section')!).queryByRole('button', {
+      name: 'Filters',
+    }),
+  ).toBeNull();
   expect(screen.queryByText('Example Shareholder')).toBeNull();
-  const filteredHolding = screen.getByRole('button', { name: 'Highlight Small holder 27’s holding' });
-  expect(within(filteredHolding).getByText('<0.01%')).toBeTruthy();
-  const filteredBar = filteredHolding.querySelector<HTMLElement>('[aria-hidden="true"] > span');
-  expect(Number.parseFloat(filteredBar!.style.width)).toBeGreaterThan(0);
-  expect(Number.parseFloat(filteredBar!.style.width)).toBeLessThan(0.01);
+  const smallHolding = screen.getByRole('button', { name: 'Highlight Small holder 27’s holding' });
+  expect(within(smallHolding).getByText('<0.01%')).toBeTruthy();
+  const smallBar = smallHolding.querySelector<HTMLElement>('[aria-hidden="true"] > span');
+  expect(Number.parseFloat(smallBar!.style.width)).toBeGreaterThan(0);
+  expect(Number.parseFloat(smallBar!.style.width)).toBeLessThan(0.01);
   mode = 'denied';
   await act(async () => {
     await client.refetchQueries({
@@ -344,8 +331,8 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   mode = 'complete';
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   expect(await screen.findByRole('region', { name: 'Company ownership summary' })).toBeTruthy();
-  expect(await screen.findByText('Small holder 27')).toBeTruthy();
-  showAllClasses();
+  expect(await screen.findByText('Example Shareholder')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
   expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Explore ordinary shares (ORDINARY)' }));
 
   mode = 'many';
@@ -359,21 +346,22 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   fireEvent.click(lastClass);
   expect(await screen.findByRole('list', { name: 'class-25 shares shareholders' })).toBeTruthy();
   const lastRead = api.get.mock.calls.find(([url]) => url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('class-25'));
-  expect(lastRead?.[1].params).toMatchObject({ search: '', page: 1 });
-  showAllClasses();
+  expect(lastRead?.[1].params).toMatchObject({ page: 1 });
+  expect(lastRead?.[1].params).not.toHaveProperty('search');
+  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
   expect(document.activeElement).toBe(screen.getByRole('searchbox', { name: 'Search share classes' }));
   fireEvent.change(screen.getByRole('searchbox', { name: 'Search share classes' }), { target: { value: 'class-25' } });
   expect(await screen.findByText('1 share class matches your search.')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Explore ordinary shares (ORDINARY)' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Explore class-25 shares (CLASS-25)' }));
   expect(await screen.findByRole('list', { name: 'class-25 shares shareholders' })).toBeTruthy();
-  showAllClasses();
+  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
   expect((screen.getByRole('searchbox', { name: 'Search share classes' }) as HTMLInputElement).value).toBe('');
   mode = 'zero';
   await refresh();
   fireEvent.click(screen.getByRole('button', { name: 'Explore ordinary shares (ORDINARY)' }));
   expect(await screen.findByText('No current shareholders yet.')).toBeTruthy();
-  showAllClasses();
+  fireEvent.click(screen.getByRole('button', { name: 'Company ownership' }));
   mode = 'unopened';
   await refresh();
   expect(await screen.findByText(/Company totals are not complete/)).toBeTruthy();
@@ -447,10 +435,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
     let oldGuard: (() => void) | undefined;
     let currentGuard: (() => void) | undefined;
     api.get.mockImplementation(
-      async (
-        url: string,
-        config?: { ledovaSubmissionGuard?: () => void; params?: { search?: string; page?: number } },
-      ) => {
+      async (url: string, config?: { ledovaSubmissionGuard?: () => void; params?: { page?: number } }) => {
         if (url === USER_PREFERENCES_ENDPOINTS.BASE)
           return { data: changed ? currentPreferences : companyPreferences() };
         const delayedUrl =

@@ -9,7 +9,6 @@ from rest_framework.exceptions import ValidationError
 from companies.models import Company
 from companies.services.administration import company_operation
 from operators.models import Operator
-from shared.api.search import every_word
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterEntry, RegisterPosition, ShareRegister, ShareToken
 from tokens.services.register import _snapshot
@@ -101,7 +100,7 @@ def _ownership_summary(company, *, member_id=None):
     }
 
 
-def class_ownership_holders(*, actor, token_id, sequence, search, paginate):
+def class_ownership_holders(*, actor, token_id, sequence, paginate):
     company_id = readable_token_company_id(actor, token_id)
     with _company_snapshot(actor, company_id) as company:
         token = get_object_or_404(ShareToken.objects, pk=token_id, company=company)
@@ -115,8 +114,8 @@ def class_ownership_holders(*, actor, token_id, sequence, search, paginate):
         issued = int(register.issued_supply)
         if int(quantity["total"] or 0) != issued or quantity["foreign_holders"]:
             raise ValidationError("Ownership totals are unavailable until the register is consistent.")
-        matching = every_word(positions, search, "member__particulars__name").order_by("-shares", "member_id")
-        page = paginate(matching.values("member_id", "shares", "member__particulars__name"))
+        ranked = positions.order_by("-shares", "member_id")
+        page = paginate(ranked.values("member_id", "shares", "member__particulars__name"))
         rows = []
         for position in page:
             shares = int(position["shares"])

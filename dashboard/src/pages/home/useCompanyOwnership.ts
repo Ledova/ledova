@@ -51,12 +51,7 @@ function checkOverview(data: CompanyOwnershipSummary, company: string, expected:
   return data;
 }
 
-function checkHolders(
-  data: ClassOwnershipHolders,
-  token: CompanyOwnershipSummary['classes'][number],
-  search: string,
-  page: number,
-) {
+function checkHolders(data: ClassOwnershipHolders, token: CompanyOwnershipSummary['classes'][number], page: number) {
   if (
     data.token !== token.uuid ||
     data.sequence !== token.sequence ||
@@ -65,7 +60,7 @@ function checkHolders(
     data.results.length > PAGE_SIZE ||
     data.results.length > data.count ||
     (data.results.length > 0 && (page - 1) * PAGE_SIZE + data.results.length > data.count) ||
-    (!search && data.count !== token.totalHolders) ||
+    data.count !== token.totalHolders ||
     new Set(data.results.map(({ member }) => member)).size !== data.results.length ||
     data.results.some(({ balance }) => !WHOLE.test(balance) || balance === '0') ||
     data.results.reduce((total, { balance }) => total + BigInt(balance), 0n) > BigInt(data.issuedSupply)
@@ -126,7 +121,6 @@ export function useCompanyOwnership(
       company?.uuid,
       selected?.uuid,
       selected?.sequence,
-      list.search,
       list.page,
     ],
     enabled: ready && !held && !!selected?.initialized && selected.issuedSupply !== null && selected.sequence !== null,
@@ -135,11 +129,11 @@ export function useCompanyOwnership(
       const { data } = await getClassOwnershipHolders(
         apiClient,
         selected!.uuid,
-        { sequence: selected!.sequence!, page: list.page, page_size: PAGE_SIZE, search: list.search },
+        { sequence: selected!.sequence!, page: list.page, page_size: PAGE_SIZE },
         { ledovaSubmissionGuard: guard },
       );
       guard();
-      return checkHolders(data, selected!, list.search, list.page);
+      return checkHolders(data, selected!, list.page);
     },
     ...READ_TIMING,
     retry: false,

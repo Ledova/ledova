@@ -9,12 +9,11 @@ import {
   useSubmissionOwner,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { Page, PageAction, PageLink } from '@components/Page';
+import { Page, PageAction } from '@components/Page';
 import { LinkRow, LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
-import { ListSearch, Pager } from '@components/List';
+import { Pager } from '@components/List';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { FilterPopover } from '@components/FilterPopover';
-import { SelectField } from '@components/SelectField';
 import { ICON_MD } from '@components/iconSizes';
 import { OwnershipMetrics } from './OwnershipMetrics';
 import { ownershipColor } from './ownershipColors';
@@ -265,44 +264,13 @@ function SignedInOwnership({
                       <Section
                         title="Class details"
                         header={
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <h2 ref={details} tabIndex={-1} className="font-display text-xl focus:outline-none">
-                              {selectedClass?.name ?? 'Class unavailable'}
-                            </h2>
-                            {company.canReadRegister && selectedClass?.initialized && (
-                              <FilterPopover active={!!ownership.list.search}>
-                                {(close) => (
-                                  <>
-                                    <ListSearch
-                                      label="Search shareholders"
-                                      list={ownership.list}
-                                      noun={['shareholder', 'shareholders']}
-                                      count={
-                                        ownership.holders.isSuccess && !ownership.holders.isFetching
-                                          ? ownership.holders.data.count
-                                          : undefined
-                                      }
-                                    />
-                                    <SelectField
-                                      label="Share class"
-                                      options={[
-                                        { value: '', label: 'All classes' },
-                                        ...view.classes.map((row) => ({
-                                          value: row.uuid,
-                                          label: `${row.name} · ${row.symbol}`,
-                                        })),
-                                      ]}
-                                      value={selected}
-                                      onChange={(value) => {
-                                        close();
-                                        ownership.select(value || null);
-                                      }}
-                                    />
-                                  </>
-                                )}
-                              </FilterPopover>
-                            )}
-                          </div>
+                          <h2
+                            ref={details}
+                            tabIndex={-1}
+                            className="break-words font-display text-xl focus:outline-none"
+                          >
+                            {selectedClass?.name ?? 'Class unavailable'}
+                          </h2>
                         }
                       >
                         {!selectedClass ? (
@@ -357,11 +325,7 @@ function SignedInOwnership({
                                           The class’s shareholders could not be confirmed.
                                         </LoadError>
                                       ) : ownership.holders.data.count === 0 ? (
-                                        <p className="text-sm text-text-muted">
-                                          {ownership.list.search
-                                            ? 'No shareholders match your search.'
-                                            : 'No current shareholders yet.'}
-                                        </p>
+                                        <p className="text-sm text-text-muted">No current shareholders yet.</p>
                                       ) : (
                                         <OwnershipHolders
                                           holders={ownership.holders.data}
@@ -381,7 +345,7 @@ function SignedInOwnership({
                                     )}
                                   </>
                                 )}
-                                <PageLink
+                                <LinkRow
                                   to={
                                     context?.companyPath(
                                       generatePath(DESTINATIONS.companyClass.path, { uuid: selectedClass.uuid }),
