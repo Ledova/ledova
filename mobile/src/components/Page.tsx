@@ -8,11 +8,12 @@ type PageProps = Pick<ScrollViewProps, 'testID' | 'refreshControl' | 'showsVerti
   ref?: Ref<ScrollView>;
   title: string;
   titleAction?: ReactNode;
+  links?: ReactNode;
   lede?: string;
   children?: ReactNode;
 };
 
-export function Page({ ref, title, titleAction, lede, children, ...scroll }: PageProps) {
+export function Page({ ref, title, titleAction, links, lede, children, ...scroll }: PageProps) {
   const inFrame = useContext(InSignedInFrame);
   const navigation =
     useNavigation<NavigationProp<ParamListBase, string, string | undefined, NavigationState, FrameOptions>>();
@@ -55,7 +56,10 @@ export function Page({ ref, title, titleAction, lede, children, ...scroll }: Pag
       {...scroll}
     >
       {inFrame ? (
-        ledeText
+        <>
+          {links}
+          {ledeText}
+        </>
       ) : (
         <View>
           <View style={styles.titleRow}>
@@ -64,6 +68,7 @@ export function Page({ ref, title, titleAction, lede, children, ...scroll }: Pag
             </Text>
             {titleAction}
           </View>
+          {links}
           {ledeText}
         </View>
       )}

@@ -1,11 +1,20 @@
 import { useMemo, useState } from 'react';
 import { Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 import { CaretDownIcon, CheckIcon } from 'phosphor-react-native';
-import { formatShareCount, personChoices, searchEntries, searchMatches, type Person } from '@ledova/shared';
+import {
+  NEW_PERSON,
+  formatShareCount,
+  personChoices,
+  searchEntries,
+  searchMatches,
+  type Person,
+  type PersonChoice,
+} from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 const SHOWN = 50;
+const NEW_CHOICE: PersonChoice = { value: 'new', label: NEW_PERSON, detail: '' };
 
 const counted = (count: number) => `${formatShareCount(String(count))} ${count === 1 ? 'person' : 'people'}`;
 
@@ -15,6 +24,7 @@ export function PersonSelect({
   value,
   onChange,
   context,
+  allowNew = false,
   disabled = false,
   error,
 }: {
@@ -23,6 +33,7 @@ export function PersonSelect({
   value: string;
   onChange: (value: string) => void;
   context?: (person: Person) => string;
+  allowNew?: boolean;
   disabled?: boolean;
   error?: string | null;
 }) {
@@ -89,7 +100,9 @@ export function PersonSelect({
   const searchable = useMemo(() => searchEntries(choices), [choices]);
   const matches = searchMatches(searchable, query);
   const found = matches ?? choices;
-  const chosen = choices.find((choice) => choice.value === value);
+  const first = allowNew ? [NEW_CHOICE] : [];
+  const chosen = [...first, ...choices].find((choice) => choice.value === value);
+  const listed = [...(matches ? [] : first), ...found.slice(0, SHOWN), ...(matches && !found.length ? first : [])];
   const close = () => {
     Keyboard.dismiss();
     setOpen(false);
@@ -124,7 +137,7 @@ export function PersonSelect({
             style={styles.search}
           />
           <View accessibilityRole="radiogroup" accessibilityLabel={label}>
-            {found.slice(0, SHOWN).map((choice) => {
+            {listed.map((choice) => {
               const selected = choice.value === value;
               return (
                 <Pressable

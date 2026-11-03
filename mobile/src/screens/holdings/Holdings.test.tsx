@@ -7,14 +7,22 @@ import {
   COMPANY_SIGNUP_DECLARATION,
   COMPANY_SIGNUP_DECLARATION_VERSION,
   COMPANY_TOKEN_ENDPOINTS as URLS,
+  REGISTER_AWARD_COPY,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
+  formatDate,
+  ownAppointmentsKey,
   ownershipCompaniesKey,
   sydneyToday,
+  utcToday,
   type CompanyAuthorityRequest,
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
   type OwnMemberRecord,
+  type RegisterAward,
+  type RegisterAwardPreparation,
+  type RegisterAwardVesting,
+  type RegisterAwardVestingPreparation,
   type RegisterEntry,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -26,7 +34,7 @@ import { MemberRecordsProvider } from '../../contexts';
 import { AppMenu } from '../../navigation/AppMenu';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch } from '../../services/sessionScope';
-import { REGISTER } from '../../../../packages/shared/tests/fixtures/employee-awards';
+import { REGISTER, awardFrom, vestingFrom } from '../../../../packages/shared/tests/fixtures/employee-awards';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
 import { destinationOf } from '../../components/notifications/NotificationsPanel';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
@@ -35,6 +43,8 @@ import { InspectionCopiesScreen } from '../documents/InspectionCopiesScreen';
 import { AuthorityRequestScreen } from '../settings/AuthorityRequestScreen';
 import { AuthorityScreen } from '../settings/AuthorityScreen';
 import { TeamScreen } from '../settings/TeamScreen';
+import { EmployeeAwardScreen } from '../shareholders/EmployeeAwardScreen';
+import { EmployeeSchemeScreen } from '../shareholders/EmployeeSchemeScreen';
 import { MemberAccessScreen } from '../shareholders/MemberAccessScreen';
 import { ShareholderScreen } from '../shareholders/ShareholderScreen';
 import { ShareholdersScreen } from '../shareholders/ShareholdersScreen';
@@ -56,6 +66,10 @@ jest.mock('../../components/AnchoredPanel', () => ({
     button && open({ top: 0, right: 0 }),
 }));
 jest.mock('expo-sharing', () => ({ isAvailableAsync: jest.fn(async () => true), shareAsync: jest.fn(async () => {}) }));
+jest.mock('expo-crypto', () => {
+  let count = 0;
+  return { randomUUID: () => `00000000-0000-4000-8000-${String((count += 1)).padStart(12, '0')}` };
+});
 jest.mock('expo-file-system', () => {
   class Directory {
     uri: string;
@@ -68,6 +82,12 @@ jest.mock('expo-file-system', () => {
     }
   }
   class File extends Directory {
+    static pickFileAsync = async () => ({ uri: 'file:///picked/synthetic.pdf' });
+    type = 'application/pdf';
+    size = 4;
+    get name() {
+      return this.uri.split('/').pop() ?? '';
+    }
     create() {}
     write() {}
   }
@@ -291,13 +311,16 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let refused = false;
   let administered = false;
   let appointed = false;
+  let own = ADMINISTRATION;
   let revoked = false;
   let revokedLink = '';
+  let awards: RegisterAward[] = [];
+  let vestings: RegisterAwardVesting[] = [];
   api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
     if (url === COMPANY_ENDPOINTS.BASE) return page(administered ? [ADMINISTERED] : []);
-    if (url === APPOINTMENTS) return page(appointed ? [ADMINISTRATION] : []);
+    if (url === APPOINTMENTS) return page(appointed ? [own] : []);
     if (url === `${APPOINTMENTS}team/`) return { data: [revoked ? { ...READER, ...REVOKED } : READER] };
     if (url === '/api/v1/company-authority/invitations/') return page([]);
     if (url === AUTHORITY_REQUESTS) return page([PENDING, ADMITTED]);
@@ -320,7 +343,29 @@ it('associates a member by invitation code, switches to their company on Dashboa
       };
     }
     if (url === URLS.REGISTER_PEOPLE) return { data: { company: ADMINISTERED.uuid, members: [] } };
-    if (url === URLS.REGISTER_AWARDS || url === URLS.MEMBER_INVITATIONS) return page([]);
+    if (url === URLS.REGISTER_MEMBERS(FOUNDERS.uuid)) {
+      const members = [HOLDER_A, HOLDER_B].map(({ member, name }) => ({
+        member,
+        name,
+        residentialAddress: `${name} address`,
+        currentShares: '1',
+        enteredOn: '2026-10-26',
+        lastCeasedOn: null,
+        walletless: true,
+        particularsRetained: true,
+      }));
+      return { data: { members, awardRecipients: [] } };
+    }
+    if (url === URLS.REGISTER_AWARDS) {
+      const { token, member } = (config?.params ?? {}) as { token?: string; member?: string };
+      return page(awards.filter((award) => (!token || award.token === token) && (!member || award.member === member)));
+    }
+    if (awards.some((award) => url === URLS.REGISTER_AWARD(award.uuid)))
+      return { data: awards.find((award) => url === URLS.REGISTER_AWARD(award.uuid)) };
+    if (url === URLS.REGISTER_AWARD_VESTINGS) return page(vestings);
+    if (url === URLS.REGISTER_AWARD_ENDS || url === URLS.REGISTER_AWARD_VESTING_REVERSALS) return page([]);
+    if (url === URLS.REGISTER_GRANTS) return page([]);
+    if (url === URLS.MEMBER_INVITATIONS) return page([]);
     if (url === URLS.REGISTER_ENTRIES(FOUNDERS.uuid)) return { data: { results: [CERTIFIED], next: null, count: 1 } };
     const preview = {
       token: FOUNDERS.uuid,
@@ -388,6 +433,40 @@ it('associates a member by invitation code, switches to their company on Dashboa
           current: true,
         },
       };
+    }
+    if (url === URLS.REGISTER_EVIDENCE) {
+      const field = (name: string) => String((value as FormData).getAll(name)[0]);
+      return {
+        data: {
+          uuid: `evidence-${field('idempotency_key')}`,
+          company: field('company_id'),
+          appointment: field('appointment'),
+          kind: field('kind'),
+          idempotencyKey: field('idempotency_key'),
+          originalFilename: 'synthetic.pdf',
+          fileSize: 4,
+          mimeType: 'application/pdf',
+          sha256: 'a'.repeat(64),
+          providedBy: 'company',
+          createdAt: '2026-11-04T00:00:00Z',
+        },
+      };
+    }
+    if (url === URLS.REGISTER_AWARDS) {
+      const award = { ...awardFrom(value as RegisterAwardPreparation), company: ADMINISTERED.uuid };
+      awards = [{ ...award, name: HOLDER_B.name, recipientName: HOLDER_B.name }];
+      return { data: awards[0] };
+    }
+    if (url === URLS.REGISTER_AWARD_VESTINGS) {
+      const vesting = { ...vestingFrom(value as RegisterAwardVestingPreparation), company: ADMINISTERED.uuid };
+      vestings = [vesting];
+      awards = awards.map((award) => ({
+        ...award,
+        vestedShares: vesting.shares,
+        availableShares: vesting.shares,
+        unvestedRemainingShares: String(BigInt(award.shares) - BigInt(vesting.shares)),
+      }));
+      return { data: vesting };
     }
     const file = (type: string) => ({ data: new ArrayBuffer(4), headers: { 'content-type': type } });
     if (url === URLS.REGISTER_CERTIFICATE(FOUNDERS.uuid)) return file('application/pdf');
@@ -558,7 +637,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByRole('button', { name: 'Documents', selected: true })).toBeTruthy();
   expect(
     screen.queryByRole('button', {
-      name: /Inspection copies|Company pack|Documents navigation|Shareholders|Member access/,
+      name: /Inspection copies|Company pack|Documents navigation|Shareholders|Employee scheme|Member access/,
     }),
   ).toBeNull();
   const shareholder = { company: ADMINISTERED.uuid, member: HOLDER_A.member };
@@ -583,13 +662,22 @@ it('associates a member by invitation code, switches to their company on Dashboa
         params: { company: MEMBER_RECORD.company.uuid, member: MEMBER_RECORD.member },
       }}
     />,
+    <EmployeeSchemeScreen key="scheme" />,
+    <EmployeeAwardScreen
+      key="award"
+      route={{
+        key: 'award',
+        name: 'EmployeeAward',
+        params: { company: MEMBER_RECORD.company.uuid, token: MEMBER_RECORD.classes[0].uuid, award: 'own-award' },
+      }}
+    />,
   ]) {
     await view.rerender(page);
     expect(await screen.findByText('Choose company on Dashboard')).toBeTruthy();
   }
   const peopleReads = () =>
     api.get.mock.calls.filter(([url]) =>
-      /\/(register-people|register-awards|member-invitations|member-associations)\/$/.test(url),
+      /\/(register-people|register-award[a-z-]*|member-invitations|member-associations)\//.test(url),
     );
   await view.rerender(<CertificatesScreen route={{ key: 'member', name: 'Certificates', params: undefined }} />);
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
@@ -686,7 +774,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(menu);
   expect(await screen.findByRole('button', { name: 'Inspection copies' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Company pack' })).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Expand Shareholders navigation' })).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Expand Shareholders navigation' }));
+  expect(screen.getAllByText(/^(Employee scheme|Member access)$/).map(({ props }) => props.children)).toEqual([
+    'Employee scheme',
+    'Member access',
+  ]);
   await view.rerender(<ShareholdersScreen />);
   expect(await screen.findByText('FND 5 · 62.50%')).toBeTruthy();
   expect(screen.getByText('1–2 of 2 people')).toBeTruthy();
@@ -717,6 +809,86 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(
     screen.getByRole('button', { name: 'Revoke access (Synthetic Holder B, holder-b@example.test)' }),
   ).toBeTruthy();
+  const scheme = <EmployeeSchemeScreen />;
+  await view.rerender(scheme);
+  expect(await screen.findByText(REGISTER_AWARD_COPY.EMPTY)).toBeTruthy();
+  expect(screen.getByText('Founders · FND')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: REGISTER_AWARD_COPY.PREPARE, disabled: false }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Recipient: New person' }));
+  await fireEvent.press(screen.getByRole('radio', { name: /^Synthetic Holder B/ }));
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_AWARD_COPY.SHARES), '40');
+  await fireEvent.press(screen.getByRole('button', { name: 'Document. Choose file' }));
+  await screen.findByRole('button', { name: 'Document, synthetic.pdf. Choose file' });
+  await fireEvent.changeText(screen.getByLabelText('Terms'), 'Synthetic award terms');
+  await fireEvent.changeText(screen.getByLabelText('Schedule'), 'Synthetic vesting schedule');
+  const awardPosts = () =>
+    api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARDS || url === URLS.REGISTER_AWARD_VESTINGS);
+  await fireEvent.press(screen.getByRole('button', { name: REGISTER_AWARD_COPY.SUBMIT }));
+  const agreement = `${HOLDER_B.name} (employee award, agreement ${formatDate(utcToday())})`;
+  await fireEvent.press(await screen.findByRole('button', { name: agreement }));
+  const evidence = expect.stringMatching(/^evidence-/);
+  const recorded = awards[0];
+  expect(awardPosts()).toEqual([
+    [
+      URLS.REGISTER_AWARDS,
+      {
+        operationId: recorded.uuid,
+        appointment: ADMINISTRATION.uuid,
+        tokenId: FOUNDERS.uuid,
+        member: HOLDER_B.member,
+        newMember: false,
+        shares: '40',
+        termsOn: utcToday(),
+        terms: 'Synthetic award terms',
+        schedule: 'Synthetic vesting schedule',
+        agreementEvidence: evidence,
+      },
+      expect.anything(),
+    ],
+  ]);
+  const awarded = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, award: recorded.uuid };
+  expect(mockNavigate).toHaveBeenCalledWith('EmployeeAward', awarded);
+  const awardPage = <EmployeeAwardScreen route={{ key: 'awarded', name: 'EmployeeAward', params: awarded }} />;
+  await view.rerender(awardPage);
+  expect(await screen.findByText('40 shares promised · 0 company-recorded vested')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Record vesting', disabled: false }));
+  await fireEvent.changeText(screen.getByLabelText('Shares in this event'), '10');
+  await fireEvent.press(screen.getByRole('button', { name: 'Document. Choose file' }));
+  await screen.findByRole('button', { name: 'Document, synthetic.pdf. Choose file' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Record vesting' }));
+  expect(await screen.findByText('Vesting history')).toBeTruthy();
+  expect(awardPosts().slice(1)).toEqual([
+    [
+      URLS.REGISTER_AWARD_VESTINGS,
+      {
+        operationId: vestings[0].uuid,
+        appointment: ADMINISTRATION.uuid,
+        award: recorded.uuid,
+        shares: '10',
+        vestedOn: utcToday(),
+        evidence,
+      },
+      expect.anything(),
+    ],
+  ]);
+  own = { ...ADMINISTRATION, capabilities: ['read_register'] };
+  const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+  });
+  expect(await screen.findByText(REGISTER_AWARD_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(screen.getByText('40 shares promised · 10 company-recorded vested')).toBeTruthy();
+  expect(
+    screen.queryByRole('button', { name: /^(Record vesting|End unissued rights|Correct a vesting event)/ }),
+  ).toBeNull();
+  await view.rerender(scheme);
+  expect(await screen.findByText(REGISTER_AWARD_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: REGISTER_AWARD_COPY.PREPARE })).toBeNull();
+  expect(awardPosts()).toHaveLength(2);
+  own = ADMINISTRATION;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+  });
   await view.rerender(<CertificatesScreen route={{ key: 'register', name: 'Certificates', params: undefined }} />);
   expect(await screen.findByText('Certificate: Can prepare')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Prepare certificate (entry 13)', disabled: false }));

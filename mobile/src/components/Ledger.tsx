@@ -115,25 +115,35 @@ export function Fact({ label, children }: { label: string; children: string | Re
   );
 }
 
-export function ShowMore({ show, hide, children }: { show: string; hide: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+export function MoreToggle({ open, onToggle, children }: { open: boolean; onToggle: () => void; children: string }) {
   const styles = useThemedStyles((theme) => ({
     toggle: { alignSelf: 'flex-start' as const },
     label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.brand.light },
+  }));
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      hitSlop={12}
+      onPress={onToggle}
+      style={styles.toggle}
+    >
+      <Text style={styles.label}>{children}</Text>
+    </Pressable>
+  );
+}
+
+export function ShowMore({ show, hide, children }: { show: string; hide: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const styles = useThemedStyles((theme) => ({
     content: { gap: theme.spacing.smd },
     hidden: { display: 'none' as const },
   }));
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        hitSlop={12}
-        onPress={() => setOpen((shown) => !shown)}
-        style={styles.toggle}
-      >
-        <Text style={styles.label}>{open ? hide : show}</Text>
-      </Pressable>
+      <MoreToggle open={open} onToggle={() => setOpen((shown) => !shown)}>
+        {open ? hide : show}
+      </MoreToggle>
       <View style={[styles.content, !open && styles.hidden]}>{children}</View>
     </>
   );

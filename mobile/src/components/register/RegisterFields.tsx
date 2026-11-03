@@ -2,6 +2,8 @@ import { Pressable, Text, TextInput, View, type KeyboardTypeOptions, type TextIn
 import { CheckIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { usePickedDocument } from '../../hooks/usePickedDocument';
+import type { PickedDocument } from '../../services/documentCopies';
 
 export function Field({
   label,
@@ -124,5 +126,66 @@ export function Checkbox({
       </View>
       <Text style={look.label}>{label}</Text>
     </Pressable>
+  );
+}
+
+export function FileField({
+  label,
+  hint,
+  disabled,
+  error,
+  onFile,
+}: {
+  label: string;
+  hint?: string;
+  disabled: boolean;
+  error?: string | null;
+  onFile: (file: PickedDocument | null) => void;
+}) {
+  const styles = useCompanyStyles();
+  const look = useThemedStyles((theme) => ({
+    file: {
+      flexDirection: 'row' as const,
+      alignItems: 'center' as const,
+      gap: theme.spacing.smd,
+      padding: theme.spacing.smd,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: theme.borderRadius.md,
+      backgroundColor: theme.colors.surface.raised,
+    },
+    choose: { fontFamily: theme.fontFamily.regular, fontSize: 16, color: theme.colors.text.primary },
+    filename: { flex: 1, fontFamily: theme.fontFamily.regular, fontSize: 16, color: theme.colors.text.muted },
+    off: { opacity: 0.5 },
+  }));
+  const picked = usePickedDocument(onFile);
+  const unavailable = disabled || picked.isPicking;
+  const problem = picked.refusal ?? error;
+  return (
+    <View style={styles.group}>
+      <Text style={styles.text}>{label}</Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={picked.file ? `${label}, ${picked.file.name}. Choose file` : `${label}. Choose file`}
+        accessibilityState={{ disabled: unavailable }}
+        accessibilityHint={problem ?? undefined}
+        disabled={unavailable}
+        onPress={() => void picked.choose()}
+        style={[look.file, unavailable && look.off]}
+      >
+        <Text style={look.choose}>Choose file</Text>
+        {!!picked.file && (
+          <Text numberOfLines={1} style={look.filename}>
+            {picked.file.name}
+          </Text>
+        )}
+      </Pressable>
+      {!!hint && <Text style={styles.muted}>{hint}</Text>}
+      {!!problem && (
+        <Text accessibilityRole={picked.refusal ? 'alert' : undefined} style={styles.error}>
+          {problem}
+        </Text>
+      )}
+    </View>
   );
 }

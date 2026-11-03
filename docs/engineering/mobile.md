@@ -36,18 +36,21 @@ folder names, with relative imports and no path aliases:
 | `services/`           | `services/`             | `apiClient`, the session scope, token storage, document copies, notifications |
 | `config/`, `styles/`  |                         | Network policy and public links; the theme                                    |
 
-Shared register UI (fields and document sharing) lives in `components/register`, and its styles in
-`hooks/`. The signed-in member records state is a context
-(`mobile/src/contexts/MemberRecordsContext.tsx`), with its notices and pull to refresh in
-`mobile/src/components/MemberRecords.tsx`, and the account check and company notice that several
-areas show (`AccountCheck.tsx`, `CompanyContextNotice.tsx`) in `components/`. Production screens
-import no other area's internals.
+Shared register UI (fields, the file picker's `FileField` and document sharing) lives in
+`components/register`, and its styles and picked-file hook (`usePickedDocument.ts`) in `hooks/`; the
+award chart that Dashboard and an award's page share is `components/AwardStatus.tsx`. The signed-in
+member records state is a context (`mobile/src/contexts/MemberRecordsContext.tsx`), with its notices and
+pull to refresh in `mobile/src/components/MemberRecords.tsx`, and the account check and company notice
+that several areas show (`AccountCheck.tsx`, `CompanyContextNotice.tsx`) in `components/`. Production
+screens import no other area's internals.
 Profile, operator, member, company list, appointment and company ownership reads, Team's reads
 and forms, Activation's company read and confirmation, representative authority's reads, actions
 and request form, Documents' class source, certificate records, preparations and prepared
-outputs, and Shareholders' register, people and shareholder reads, list, Add person, particulars change
-and member access form live in `packages/shared`, with native session, result and transport policies
-kept in the client: the app passes its session to each shared read and request.
+outputs, Shareholders' register, people and shareholder reads, list, Add person, particulars change
+and member access form, and the employee scheme's award, vesting and grant reads, award, vesting and
+entitlement-change forms and award document downloads live in `packages/shared`, with native session,
+result and transport policies kept in the client: the app passes its session to each shared read and
+request.
 
 ### Shared package resolution
 
@@ -87,14 +90,15 @@ company, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Shareholders for Shareholders, a
-shareholder's page, its particulars change and Member access, Documents for Certificates, Inspection
-copies and Company pack, Settings for Profile, Account, Data and privacy, Team and Activation,
-Dashboard for Invitation. Like the web's sidebar, it marks Team on Representative authority and its
-requests. Choosing Dashboard returns to it. Shareholders opens its people list, Documents opens
-Certificates and Settings opens Profile.
+shareholder's page, its particulars change, Employee share scheme, an award's page and Member access,
+Documents for Certificates, Inspection copies and Company pack, Settings for Profile, Account, Data and
+privacy, Team and Activation, Dashboard for Invitation. Like the web's sidebar, it marks Team on
+Representative authority and its requests, and Employee scheme on an award's page. Choosing Dashboard
+returns to it. Shareholders opens its people list, Documents opens Certificates and Settings opens
+Profile.
 Like the web's groups, a caret shows a group's pages beneath it, open while one of them is shown.
 Shareholders appears, as on the web, when the selected company's `canReadRegister` allows it, and
-lists Member access; the web's Employee scheme joins it when the app has that page.
+lists Employee scheme (read out as Employee share scheme, the web's tooltip) and Member access.
 Documents lists Certificates, Inspection copies and Company pack when the selected company's
 `canReadRegister` allows it, as the web's sidebar does, and is otherwise one link to Certificates.
 Settings lists Profile, Account and Data and privacy, then Team when the selected company's `canManage`
@@ -188,8 +192,9 @@ records**, which opens Member access with them chosen, each with the web's loadi
 states. **Change particulars** opens the web's Particulars change page (`ParticularsScreen.tsx`, through
 the shared `useParticularsMember` and `useParticularsEdit`): Current particulars and the one-step form,
 which returns to the shareholder's page saying Particulars changed., since the app has no Corrections to
-land on. Until the app has their pages, a shareholder's page leaves out Documents, **Issue shares to
-them**, **Transfer shares**, the award rows' link and **Open Employee share scheme**. Member access
+land on. Each Employee awards row opens that award's page, and **Open Employee share scheme** opens the
+scheme; until the app has their pages, a shareholder's page leaves out Documents, **Issue shares to
+them** and **Transfer shares**. Member access
 (`MemberAccessScreen.tsx`, through the shared `useMemberAccessForm`) has the web's People and
 Invitations: each person's name, email, Linked date and access, with **Revoke access**, whose reason
 form and confirmation dialog send nothing until confirmed, and each invitation's Invited date, status
@@ -197,8 +202,32 @@ and deadline. **Invite a member** replaces them with the web's form, choosing th
 searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
 access to the company, each of these pages reads nothing and points to Dashboard. Pulling down rereads
 each of them while no form or action is open. Unlike the web, which keeps a held save on its page,
-leaving an app page drops that save's retry, so adding the person or sending the invitation again
-could record it twice; an app-wide fix is planned.
+leaving an app page drops that save's retry, so adding the person, sending the invitation or recording
+the award or its vesting again could record it twice; an app-wide fix is planned.
+Employee share scheme (`EmployeeSchemeScreen.tsx`) is the web's view at phone width for a register
+reader of the selected company, read through `useCompanyRegisters.ts` and the shared
+`useRegisterAwards`: one share class's card, titled with the class (oldest first by default, and **Share
+class** in Filters when there is more than one, locked while a preparation is open or held), listing
+each award as a row with the recipient, Agreement date and its promised, vested and issued shares, or
+the web's empty, read-only, loading and failure lines. **Record an employee award**, below the card for
+someone who can prepare the register of an opened draft class, replaces the list with the web's form
+(`AwardForms.tsx`, through the shared `useAwardForm`): the recipient from a searchable list of the
+class's people without a linked wallet whose particulars are retained, with **New person** first and its
+name and address, the promised shares, then Agreement (date, document and terms) and Vesting (the
+schedule), with its retry of an uncertain recording. A row opens the award's page
+(`EmployeeAwardScreen.tsx`, the recipient as its title, the class and agreement date as its lede and
+**Recipient details** above it), read through the shared `useRegisterAward`, `useRegisterGrants` and the
+award's events, as on the web: Entitlement (the web's chart with **Record vesting** and **End unissued
+rights**), Agreement and vesting schedule with **Download agreement**, Vesting history (the latest
+three, with **Show all**, each with **Download vesting evidence** and **Correct a vesting event**, or
+why it can't be corrected), Entitlement changes with their downloads, the non-paid issues prepared from
+the award with their stage, and the recorded line. Recording vesting, ending rights and correcting a
+vesting open the web's forms in the Entitlement card (through the shared `useAwardVestingForm` and
+`useAwardAdjustmentForm`), and someone without preparation authority gets the web's read-only note
+instead of actions. Dates are typed as `YYYY-MM-DD` (UTC), and documents are picked as for
+representative authority. Until the app has Issue shares, the award's page leaves out **Issue vested
+shares**, and its non-paid issues don't open their records. Pulling down rereads either page while no
+form is open or held.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
 Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form
@@ -382,10 +411,12 @@ the next native build drops its module, and a development app built with it stil
 JavaScript. Make release builds from a fresh prebuild
 ([building from a clean checkout](mobile-releases.md#building-from-a-clean-checkout)).
 
-A representative authority request's evidence is picked with `expo-file-system`'s own picker
-(`File.pickFileAsync`), so no picker module returns. On iOS it hands over a copy in the temporary
-folder's `-Inbox` folder, deleted when another file replaces it, the form goes (its request recorded
-or the page left) or the session changes; a closed form keeps it with its draft. On Android it hands
+A representative authority request's evidence, an employee award's agreement and the evidence for its
+vesting and entitlement changes are picked with `expo-file-system`'s own picker (`File.pickFileAsync`,
+through `FileField`), so no picker module returns. On iOS it hands over a copy in the temporary
+folder's `-Inbox` folder, deleted when another file replaces it, the form goes (its request recorded,
+the form cancelled or the page left) or the session changes; a closed authority request form keeps it
+with its draft. On Android it hands
 over the chosen document itself, which the app never deletes, named from its address. As on the web,
 a file whose name ends in a PDF, PNG or JPEG extension that doesn't match its type is refused. Any
 other name, with no extension, as Android's names from an address usually are, or ending in something
@@ -409,8 +440,10 @@ representative authority request's page its evidence, under its original file na
 unsigned certificate, inspection copy and company pack arrive as bytes, through `SHARE_SHEET_FILES`
 in `mobile/src/services/documentCopies.ts`, the app's file delivery for the shared output hooks
 ([downloads](frontend.md#client-sessions-and-caches)): checked as on the web, by the response's
-content type, since React Native's Android blobs carry none, and shared under the web's file name.
-Documents' outputs and the authority evidence, shared from their pages, go through `shareFile`: a
+content type, since React Native's Android blobs carry none, and shared under the web's file name. An
+award's agreement and event evidence take the same route through the shared `useAwardRecordDownload`,
+under their retained file names. Documents' outputs, an award's documents and the authority evidence,
+shared from their pages, go through `shareFile`: a
 sheet that fails to open reports the failure, and one still open after 1.5 seconds counts as
 delivered, because iOS never settles a cancelled Save to Files. Data and privacy's export instead
 waits for its sheet to close (`Sharing.shareAsync`): the sheet is presented from the export's dialog,

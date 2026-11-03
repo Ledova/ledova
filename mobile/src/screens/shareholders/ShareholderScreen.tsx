@@ -30,7 +30,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Action, LoadError, Loading, Outcome, Row, Rows, Section } from '../../components/Ledger';
+import { Action, LinkRow, LoadError, Loading, Outcome, Row, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -320,18 +320,27 @@ function OwnShareholder({
           )}
           {settled(data.awards) && !!data.awards.data?.length && (
             <Section title="Employee awards">
-              <Rows>
-                {data.awards.data.map((award) => (
-                  <View key={award.uuid} style={look.row}>
-                    <Text style={look.title}>{className(award.token)}</Text>
-                    <Text style={look.small}>Agreement {formatDate(award.termsOn)}</Text>
-                    <Text style={look.small}>
-                      {formatShareCount(award.shares)} promised · {formatShareCount(award.vestedShares)} vested ·{' '}
-                      {formatShareCount(award.issuedShares)} issued
-                    </Text>
-                  </View>
-                ))}
-              </Rows>
+              <View accessibilityLabel="Employee awards">
+                <Rows>
+                  {data.awards.data.map((award) => (
+                    <LinkRow
+                      key={award.uuid}
+                      label={className(award.token)}
+                      accessibilityLabel={`${className(award.token)} (employee award, agreement ${formatDate(award.termsOn)})`}
+                      onPress={() =>
+                        navigation.navigate('EmployeeAward', { company, token: award.token, award: award.uuid })
+                      }
+                    >
+                      <Text style={look.small}>Agreement {formatDate(award.termsOn)}</Text>
+                      <Text style={look.small}>
+                        {formatShareCount(award.shares)} promised · {formatShareCount(award.vestedShares)} vested ·{' '}
+                        {formatShareCount(award.issuedShares)} issued
+                      </Text>
+                    </LinkRow>
+                  ))}
+                </Rows>
+              </View>
+              <Action label="Open Employee share scheme" onPress={() => navigation.navigate('EmployeeScheme')} />
             </Section>
           )}
           {access.access && (

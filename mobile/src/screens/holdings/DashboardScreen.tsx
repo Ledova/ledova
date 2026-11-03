@@ -18,6 +18,7 @@ import {
   type OwnMemberRecord,
   type useMemberRecords,
 } from '@ledova/shared';
+import { AwardStatus } from '../../components/AwardStatus';
 import { FilterPopover } from '../../components/FilterPopover';
 import { Action, Actions, Fact, LinkRow, LoadError, Rows, Section } from '../../components/Ledger';
 import { MemberNotice, useMemberRefresh } from '../../components/MemberRecords';
@@ -27,7 +28,6 @@ import { memberOf, useAppTheme, useMemberRecordsState, useThemedStyles } from '.
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { AwardStatus } from './AwardStatus';
 import { CompanyPicker } from './CompanyPicker';
 
 type Read = ReturnType<typeof useMemberRecords>;
@@ -716,7 +716,7 @@ function MemberAwards({ record, token }: { record: OwnMemberRecord; token: strin
                 {record.classes.find(({ uuid }) => uuid === award.token)?.name ?? 'Employee award'} ·{' '}
                 {formatDate(award.termsOn)}
               </Text>
-              <AwardStatus award={award} />
+              <AwardStatus award={award} compact />
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ expanded: shown }}

@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
@@ -9,11 +9,10 @@ import {
   type CompanyListItem,
 } from '@ledova/shared';
 import { Action, FormActions } from '../../components/Ledger';
-import { Checkbox, Field } from '../../components/register/RegisterFields';
+import { Checkbox, Field, FileField } from '../../components/register/RegisterFields';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { usePickedDocument } from './usePickedDocument';
 
 export function AuthorityRequestForm({
   company,
@@ -33,19 +32,6 @@ export function AuthorityRequestForm({
     form: { gap: theme.spacing.md },
     group: { gap: theme.spacing.sm },
     legend: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
-    file: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: theme.spacing.smd,
-      padding: theme.spacing.smd,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.raised,
-    },
-    choose: { fontFamily: theme.fontFamily.regular, fontSize: 16, color: theme.colors.text.primary },
-    filename: { flex: 1, fontFamily: theme.fontFamily.regular, fontSize: 16, color: theme.colors.text.muted },
-    off: { opacity: 0.5 },
   }));
   const {
     setFile,
@@ -69,9 +55,6 @@ export function AuthorityRequestForm({
     session: orderSubmissionSession,
     newKey: randomUUID,
   });
-  const evidence = usePickedDocument((file) =>
-    change(() => setFile(file && { uri: file.uri, name: file.name, type: file.type })),
-  );
   const checks = useErrorSummary(problems);
   const actionsError = checks.field('actions').error;
   const unavailable = disabled || busy;
@@ -121,33 +104,11 @@ export function AuthorityRequestForm({
         error={checks.field('expiry').error}
         onChange={(text) => change(() => setExpiry(text.trim()))}
       />
-      <View style={styles.group}>
-        <Text style={styles.text}>Supporting document</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            evidence.file
-              ? `Supporting document, ${evidence.file.name}. Choose file`
-              : 'Supporting document. Choose file'
-          }
-          accessibilityState={{ disabled: unavailable || evidence.isPicking }}
-          disabled={unavailable || evidence.isPicking}
-          onPress={() => void evidence.choose()}
-          style={[look.file, (unavailable || evidence.isPicking) && look.off]}
-        >
-          <Text style={look.choose}>Choose file</Text>
-          {!!evidence.file && (
-            <Text numberOfLines={1} style={look.filename}>
-              {evidence.file.name}
-            </Text>
-          )}
-        </Pressable>
-        {!!evidence.refusal && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {evidence.refusal}
-          </Text>
-        )}
-      </View>
+      <FileField
+        label="Supporting document"
+        disabled={unavailable}
+        onFile={(file) => change(() => setFile(file && { uri: file.uri, name: file.name, type: file.type }))}
+      />
       {submission.isError && (
         <Text accessibilityRole="alert" style={styles.error}>
           {failureSentence(submission.error, 'The request could not be recorded. Retry with the same details.')}

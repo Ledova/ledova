@@ -255,6 +255,10 @@ the records. Preparation groups recipient and promised shares above Agreement an
 on wide screens and stacked on smaller ones. Preparation, vesting and entitlement-change forms keep Cancel beside their recording
 action in the bottom-right footer. The view reads on entry and after your changes, without background
 refreshes. Failed reads retain Try again, and an interrupted submission keeps its original retry.
+The mobile app's **Shareholders → Employee scheme** has the same rows, award pages and forms at phone
+width, for a register reader of the selected company, and shares each retained document through the
+phone's share sheet. It has no **Issue vested shares** yet, so issuing stays on the web, and the
+non-paid issues on an award's page don't open their records there.
 
 1. Choose Shareholders → Employee scheme in the sidebar, select the share class, then Record an employee award. Choose the recipient
    ([choosing a person](register.md#choosing-a-person)) and give the promised shares, the agreement date and terms, the recorded vesting

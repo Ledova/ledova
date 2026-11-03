@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { uploadRefusal } from '@ledova/shared';
-import { discardDocument, pickDocument, type PickedDocument } from '../../services/documentCopies';
+import { discardDocument, pickDocument, type PickedDocument } from '../services/documentCopies';
 
 export function usePickedDocument(onFile: (file: PickedDocument | null) => void) {
   const [file, setFile] = useState<PickedDocument | null>(null);

@@ -4,11 +4,21 @@ import {
   hasValidRegisterAwardTotals,
   REGISTER_AWARD_COPY as COPY,
   shareCount,
-  type OwnMemberRecord,
+  type RegisterAward,
 } from '@ledova/shared';
-import { useThemedStyles } from '../../contexts';
+import { useThemedStyles } from '../contexts';
 
-type Award = OwnMemberRecord['awards'][number];
+type Award = Pick<
+  RegisterAward,
+  | 'shares'
+  | 'vestedShares'
+  | 'issuedShares'
+  | 'availableShares'
+  | 'endedUnvestedShares'
+  | 'endedVestedShares'
+  | 'unvestedRemainingShares'
+  | 'remainingUnissuedShares'
+>;
 
 function useStyles() {
   return useThemedStyles((theme) => ({
@@ -39,7 +49,7 @@ function useStyles() {
   }));
 }
 
-export function AwardStatus({ award }: { award: Award }) {
+export function AwardStatus({ award, compact = false }: { award: Award; compact?: boolean }) {
   const styles = useStyles();
   if (!hasValidRegisterAwardTotals(award))
     return (
@@ -55,9 +65,17 @@ export function AwardStatus({ award }: { award: Award }) {
     { label: COPY.ENDED_UNVESTED, quantity: BigInt(award.endedUnvestedShares), look: styles.ended },
     { label: COPY.ENDED_VESTED, quantity: BigInt(award.endedVestedShares), look: styles.ended },
   ];
+  const notes = [
+    !compact &&
+      `${shareCount(award.remainingUnissuedShares)} ${award.remainingUnissuedShares === '1' ? 'remains' : 'remain'} unissued.`,
+    BigInt(award.issuedShares) > 0n && 'Issued award shares are already included in the holding.',
+  ].filter(Boolean);
   return (
     <View style={styles.status}>
-      <Text style={styles.muted}>{shareCount(award.shares)} promised</Text>
+      <Text style={styles.muted}>
+        {shareCount(award.shares)} promised
+        {!compact && ` · ${formatShareCount(award.vestedShares)} company-recorded vested`}
+      </Text>
       <View
         accessible
         accessibilityRole="image"
@@ -84,9 +102,7 @@ export function AwardStatus({ award }: { award: Award }) {
             <Text style={styles.quantity}>{shareCount(String(part.quantity))}</Text>
           </View>
         ))}
-      {BigInt(award.issuedShares) > 0n && (
-        <Text style={styles.note}>Issued award shares are already included in the holding.</Text>
-      )}
+      {notes.length > 0 && <Text style={styles.note}>{notes.join(' ')}</Text>}
     </View>
   );
 }
