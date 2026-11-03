@@ -13,8 +13,8 @@ type Award = OwnMemberRecord['awards'][number];
 function useStyles() {
   return useThemedStyles((theme) => ({
     status: { gap: theme.spacing.smd },
-    muted: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
-    note: { fontFamily: theme.fontFamily.regular, fontSize: 12, lineHeight: 18, color: theme.colors.text.muted },
+    muted: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.muted },
+    note: { fontFamily: theme.fontFamily.regular, fontSize: 12, lineHeight: 16, color: theme.colors.text.muted },
     bar: {
       flexDirection: 'row' as const,
       height: 12,
@@ -24,7 +24,13 @@ function useStyles() {
     },
     term: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.sm },
     swatch: { width: 10, height: 10, borderRadius: 4 },
-    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.muted },
+    label: {
+      flexShrink: 1,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 14,
+      lineHeight: 20,
+      color: theme.colors.text.muted,
+    },
     quantity: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
     unvested: { backgroundColor: theme.colors.text.muted, opacity: 0.35 },
     available: { backgroundColor: theme.colors.brand.mid, opacity: 0.45 },
