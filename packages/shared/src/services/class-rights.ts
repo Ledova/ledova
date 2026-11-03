@@ -27,4 +27,11 @@ export const downloadClassRightsFile = (
   uuid: string,
   params: ClassRightsFileQuery,
   config: AxiosRequestConfig = {},
-) => api.get<Blob>(COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS_FILE(uuid), { ...config, params, responseType: 'blob' });
+) =>
+  config.responseType === 'arraybuffer'
+    ? api.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS_FILE(uuid), {
+        ...config,
+        params,
+        responseType: 'arraybuffer',
+      })
+    : api.get<Blob>(COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS_FILE(uuid), { ...config, params, responseType: 'blob' });

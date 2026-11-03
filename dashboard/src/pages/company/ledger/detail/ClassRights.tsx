@@ -1,11 +1,15 @@
 import { useEffect, useId, useRef } from 'react';
 import {
   FIELD_LIMITS,
+  classRightsTerms,
   formatDate,
   formatDateTime,
   isCalendarDate,
+  rightsAttributeProblems,
+  structuredRightsRows,
   utcToday,
   type ClassRightsRevision,
+  type useClassRights,
 } from '@ledova/shared';
 import { Field, FileField, TextArea, TextInput } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
@@ -14,9 +18,7 @@ import { LoadMore } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useIncompleteDates } from '@hooks/useIncompleteDates';
-import { useClassRights } from './useClassRights';
 import { StructuredRightsFields } from './StructuredRightsFields';
-import { classRightsTerms, rightsAttributeProblems, structuredRightsRows } from './rightsAttributes';
 
 function RightsSummary({
   revision,

@@ -1,23 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  getCompanyToken,
-  getCompanyTokenHolders,
-  ownershipSummary,
-  wholeShares,
-  useSubmissionOwner,
-  createUserFriendlyError,
-  type CompanyShareToken,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
+import { getCompanyToken, getCompanyTokenHolders } from '../services/company-tokens';
+import type { CompanyShareToken } from '../types';
+import { createUserFriendlyError } from '../utils/errors';
+import { ownershipSummary } from '../utils/register-ownership';
+import { wholeShares } from '../utils/share-quantities';
+import { useApiClient } from './useApiClient';
+import { useSubmissionOwner, type OrderSubmissionSession } from './useSubmissionOwner';
 
 export function shareClassKey(uuid: string) {
   return ['token', uuid];
 }
 
-export function useShareClass(uuid: string) {
+export function useShareClass(uuid: string, session?: OrderSubmissionSession) {
+  const apiClient = useApiClient();
   const queryClient = useQueryClient();
-  const { owner, boundary } = useSubmissionOwner();
+  const { owner, boundary } = useSubmissionOwner(session);
   const [view, setView] = useState({ owner, generation: 0 });
   if (view.owner !== owner) setView({ owner, generation: view.generation + 1 });
   const [readHolds, setReadHolds] = useState<Record<string, boolean>>({});
@@ -49,7 +47,7 @@ export function useShareClass(uuid: string) {
     },
     [scopeKey],
   );
-  const config = { ledovaSubmissionGuard: guard };
+  const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: guard });
   const token = useQuery({
     queryKey: tokenKey,
     enabled: !!uuid && !!owner,
@@ -57,7 +55,7 @@ export function useShareClass(uuid: string) {
     refetchOnReconnect: false,
     queryFn: async () => {
       guard();
-      const { data } = await getCompanyToken(apiClient, uuid, config);
+      const { data } = await getCompanyToken(apiClient, uuid, config());
       guard();
       if (
         data.uuid !== uuid ||
@@ -77,7 +75,7 @@ export function useShareClass(uuid: string) {
     refetchOnReconnect: false,
     queryFn: async () => {
       guard();
-      const { data } = await getCompanyTokenHolders(apiClient, uuid, config);
+      const { data } = await getCompanyTokenHolders(apiClient, uuid, config());
       guard();
       const quantities = [data.token.totalSupply, ...data.holders.map(({ balance }) => balance)];
       if (data.issuedSupply !== null) quantities.push(data.issuedSupply);

@@ -1,35 +1,48 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { READ_TIMING } from '../constants/api';
+import { uploadRegisterEvidence } from '../services/register-commands';
+import {
+  createRegisterMemberDocument,
+  downloadRegisterMemberDocumentFile,
+  getRegisterMemberDocuments,
+} from '../services/register-member-documents';
+import type {
+  RegisterDocumentFile,
+  RegisterEvidence,
+  RegisterMemberDocument,
+  RegisterMemberDocumentCategory,
+  RegisterMemberDocumentRequest,
+  RegisterMemberDocumentSnapshot,
+} from '../types';
+import { downloadedFile, type FileDelivery } from '../utils/downloads';
+import { createUserFriendlyError, failureSentence, failureStatus } from '../utils/errors';
+import { readEveryPage } from '../utils/pagination';
 import {
   appointmentForRegisterStep,
-  createRegisterMemberDocument,
-  createUserFriendlyError,
-  downloadRegisterMemberDocumentFile,
-  failureSentence,
-  failureStatus,
-  getRegisterMemberDocuments,
   hasCurrentRegisterReadAuthority,
   isRegisterEvidenceReceipt,
-  isRegisterMemberDocumentReceipt,
-  readEveryPage,
-  uploadRegisterEvidence,
-  type OrderSubmissionOwner,
-  type RegisterEvidence,
-  type RegisterMemberDocument,
-  type RegisterMemberDocumentRequest,
-  READ_TIMING,
-  ownAppointmentsKey,
-  useOwnAppointments,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { saveFile } from '@utils/saveFile';
-import type { DocumentDraft } from './documentAttachmentDraft';
+} from '../utils/register-commands';
+import { isRegisterMemberDocumentReceipt } from '../utils/register-member-documents';
+import { useApiClient } from './useApiClient';
+import { ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 export type DocumentHolding = { member: string; token: string; label: string };
 
+export type DocumentDraft = {
+  id: string;
+  category: RegisterMemberDocumentCategory;
+  file: RegisterDocumentFile | null;
+  evidence?: string;
+  snapshot?: RegisterMemberDocumentSnapshot;
+};
+
 type Editor = { member: string; token: string; documents: DocumentDraft[] };
 type Pending = Editor & { appointment: string };
-type Upload = { file: File; appointment: string; key: string; receipt?: RegisterEvidence };
+type Upload = { file: RegisterDocumentFile; appointment: string; key: string; receipt?: RegisterEvidence };
+
+const DOWNLOAD_FAILED = 'The document could not be downloaded. Try again.';
 
 export function memberDocumentsKey(owner: OrderSubmissionOwner, company: string) {
   return ['register-member-documents', owner.userUuid, owner.ownerAccountUuid, company];
@@ -44,6 +57,9 @@ export function useMemberDocuments({
   sourceReady,
   holdings,
   readsPaused = false,
+  files,
+  newKey,
+  session,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
@@ -53,7 +69,11 @@ export function useMemberDocuments({
   sourceReady: boolean;
   holdings: DocumentHolding[];
   readsPaused?: boolean;
+  files: FileDelivery;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 }) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
   const mounted = useRef(true);
   const running = useRef(false);
@@ -67,6 +87,7 @@ export function useMemberDocuments({
   const [error, setError] = useState('');
   const appointments = useOwnAppointments(owner, guard, {
     enabled: sourceReady && !readsPaused,
+    session,
   });
   const authorised =
     sourceReady &&
@@ -107,17 +128,14 @@ export function useMemberDocuments({
     )
       throw createUserFriendlyError('Refresh your preparation appointment and the shareholder’s holding.');
   };
+  const config = (ledovaSubmissionGuard: () => void) => ({ ...session?.requestConfig(), ledovaSubmissionGuard });
   const query = useQuery({
     queryKey: [...memberDocumentsKey(owner, company), member ?? '', token ?? ''],
     enabled: authorised && !readsPaused,
     queryFn: () =>
       readEveryPage(async (page) => {
         check();
-        const result = await getRegisterMemberDocuments(
-          apiClient,
-          { company, member, token, page },
-          { ledovaSubmissionGuard: check },
-        );
+        const result = await getRegisterMemberDocuments(apiClient, { company, member, token, page }, config(check));
         check();
         return result;
       }),
@@ -126,9 +144,10 @@ export function useMemberDocuments({
   });
   const ready = authorised && query.isSuccess && query.fetchStatus === 'idle';
   const open = () => {
-    if (!ready || !appointment || !holdings.length || pending.current) return;
+    const first = holdings[0];
+    if (!ready || !appointment || !first || pending.current) return;
     setError('');
-    setEditor({ member: holdings[0].member, token: holdings[0].token, documents: [] });
+    setEditor({ member: first.member, token: first.token, documents: [] });
   };
   const close = () => {
     if (running.current || pending.current) return;
@@ -160,7 +179,7 @@ export function useMemberDocuments({
           const { data } = await getRegisterMemberDocuments(
             apiClient,
             { company, member: request.member, token: request.token, idempotencyKey: request.idempotencyKey },
-            { ledovaSubmissionGuard: check },
+            config(check),
           );
           check();
           receipt = data.results.find((row) => isRegisterMemberDocumentReceipt(row, request!));
@@ -173,7 +192,7 @@ export function useMemberDocuments({
             const file = document.file!;
             let upload = uploads.current.get(document.id);
             if (upload?.file !== file || upload.appointment !== requestSet.appointment) {
-              upload = { file, appointment: requestSet.appointment, key: crypto.randomUUID() };
+              upload = { file, appointment: requestSet.appointment, key: newKey() };
               uploads.current.set(document.id, upload);
             }
             const uploadRequest = {
@@ -184,11 +203,7 @@ export function useMemberDocuments({
             };
             const checkUpload = () => checkPreparation(requestSet!.appointment, requestSet!);
             if (!upload.receipt) {
-              const { data } = await uploadRegisterEvidence(
-                apiClient,
-                { ...uploadRequest, file },
-                { ledovaSubmissionGuard: checkUpload },
-              );
+              const { data } = await uploadRegisterEvidence(apiClient, { ...uploadRequest, file }, config(checkUpload));
               checkUpload();
               if (!isRegisterEvidenceReceipt(data, uploadRequest, file.size))
                 throw createUserFriendlyError('The document upload could not be confirmed. Recover the original save.');
@@ -201,18 +216,18 @@ export function useMemberDocuments({
               evidence: upload.receipt.uuid,
               category: document.category,
               appointment: requestSet.appointment,
-              idempotencyKey: crypto.randomUUID(),
+              idempotencyKey: newKey(),
             };
             requests.current.set(document.id, request);
           }
           const checkWrite = () => checkPreparation(requestSet!.appointment, requestSet!);
-          const { data } = await createRegisterMemberDocument(apiClient, request, {
-            ledovaSubmissionGuard: checkWrite,
-          }).catch((failure) => {
-            const status = failureStatus(failure);
-            refused = status !== undefined && status >= 400 && status < 500;
-            throw failure;
-          });
+          const { data } = await createRegisterMemberDocument(apiClient, request, config(checkWrite)).catch(
+            (failure) => {
+              const status = failureStatus(failure);
+              refused = status !== undefined && status >= 400 && status < 500;
+              throw failure;
+            },
+          );
           check();
           if (!isRegisterMemberDocumentReceipt(data, request))
             throw createUserFriendlyError('The document receipt could not be confirmed. Recover the original save.');
@@ -259,15 +274,20 @@ export function useMemberDocuments({
     setError('');
     try {
       check();
-      const { data } = await downloadRegisterMemberDocumentFile(apiClient, document.uuid, {
-        ledovaSubmissionGuard: check,
+      const response = await downloadRegisterMemberDocumentFile(apiClient, document.uuid, {
+        ...config(check),
+        ...(files.responseType ? { responseType: files.responseType } : {}),
       });
       check();
-      saveFile(data, document.snapshot.name);
+      const file = downloadedFile(response);
+      if (!file) throw createUserFriendlyError(DOWNLOAD_FAILED);
+      await Promise.resolve(files.save(file.data, document.snapshot.name, file.type)).catch(() => {
+        throw createUserFriendlyError(DOWNLOAD_FAILED);
+      });
     } catch (failure) {
       try {
         guard();
-        if (mounted.current) setError(failureSentence(failure, 'The document could not be downloaded. Try again.'));
+        if (mounted.current) setError(failureSentence(failure, DOWNLOAD_FAILED));
       } catch {
         return;
       }

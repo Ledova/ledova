@@ -22,6 +22,7 @@ import type { UploadFile } from './company-authority';
 export type RegisterEvidence = ApiSchema<'RegisterEvidence'>;
 export type RegisterEvidenceKind = ApiSchema<'RegisterEvidenceKindEnum'>;
 export type RegisterEvidenceFile = UploadFile & { size: number };
+export type RegisterDocumentFile = RegisterEvidenceFile & { name: string };
 export type RegisterEvidenceUpload = Omit<ApiRequest<'api_v1_tokens_register_evidence_create'>, 'file'> & {
   file: UploadFile;
 };
