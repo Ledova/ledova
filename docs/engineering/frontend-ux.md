@@ -105,8 +105,9 @@ available after a selected-company read fails, while withholding that company's 
 combine different companies' shares into a single ownership percentage or imply a valuation.
 
 Awards remain in a separate card below the ownership panel. Member awards show the promise and
-nonzero lifecycle quantities, with the full breakdown and terms under **Show award details**. Issued
-award shares are already included in the holding. The Dashboard contains the overview and read-only
+nonzero lifecycle quantities, each label above its number, with the full breakdown and terms under
+**Show award details**. An award that has issued shares notes that they are already included in the
+holding (owner, 3 November 2026). The Dashboard contains the overview and read-only
 awards; requests, documents and record-management actions stay on their focused pages.
 Profile holds Personal information, with **Edit** to open its form, and Company details for a company
 administrator; it shows no company's recorded particulars.
