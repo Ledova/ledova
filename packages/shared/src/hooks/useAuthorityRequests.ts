@@ -12,6 +12,8 @@ import type { CompanyAuthorityRequest } from '../types';
 import { readEveryPage } from '../utils/pagination';
 import { useApiClient } from './useApiClient';
 import { ownCompaniesKey } from './useCompanySelection';
+import { ownAppointmentsKey } from './useOwnAppointments';
+import { ownershipCompaniesKey } from './useOwnershipCompanies';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 export function authorityRequestsKey(owner: OrderSubmissionOwner) {
@@ -107,7 +109,7 @@ export function useAuthorityRequests({
         throw new Error('The request outcome could not be confirmed. Refresh your requests or retry.');
       return data;
     },
-    onSuccess: async (request) => {
+    onSuccess: async (request, { action }) => {
       guard();
       const refused = client.getQueryState(historyKey)?.status === 'error';
       await client.cancelQueries({ queryKey: historyKey, exact: true });
@@ -116,6 +118,10 @@ export function useAuthorityRequests({
         client.setQueryData<CompanyAuthorityRequest[]>(historyKey, (previous) =>
           previous?.map((item) => (item.uuid === request.uuid ? request : item)),
         );
+      if (action !== 'withdraw') {
+        void client.invalidateQueries({ queryKey: ownAppointmentsKey(owner) });
+        void client.invalidateQueries({ queryKey: ownershipCompaniesKey(owner) });
+      }
     },
   });
   const opening = useMutation({
