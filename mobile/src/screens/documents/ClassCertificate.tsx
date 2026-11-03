@@ -8,7 +8,7 @@ import {
   useClassCertificate,
   type ClassCertificateSource,
 } from '@ledova/shared';
-import { Action, Actions, FormActions, Outcome, Row, Rows } from '../../components/Ledger';
+import { Action, Actions, Fact, FormActions, Outcome, Rows } from '../../components/Ledger';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -82,12 +82,12 @@ function CertificateForm({
         Unsigned certificate
       </Text>
       <Rows>
-        <Row label="Share movements">{formatRegisterChanges(entry.changes).join('\n')}</Row>
-        <Row label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Row>
-        <Row label="Entry">{entry.sequence}</Row>
-        <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
-        <Row label="Recorded on">{formatDateTime(entry.recordedAt)}</Row>
-        {target && <Row label="PDF pages">{target.preview.pageCount}</Row>}
+        <Fact label="Share movements">{formatRegisterChanges(entry.changes).join('\n')}</Fact>
+        <Fact label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Fact>
+        <Fact label="Entry">{String(entry.sequence)}</Fact>
+        <Fact label="Ledger date">{formatDate(entry.effectiveOn)}</Fact>
+        <Fact label="Recorded on">{formatDateTime(entry.recordedAt)}</Fact>
+        {target && <Fact label="PDF pages">{String(target.preview.pageCount)}</Fact>}
       </Rows>
       <Text style={styles.muted}>Includes names and residential addresses. The company arranges signing.</Text>
       {!!error && (

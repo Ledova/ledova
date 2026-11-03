@@ -61,42 +61,6 @@ export function Rows({ children }: { children: ReactNode }) {
   );
 }
 
-export function Row({
-  label,
-  accessibilityLabel,
-  children,
-}: {
-  label: string;
-  accessibilityLabel?: string;
-  children: ReactNode;
-}) {
-  const styles = useThemedStyles((theme) => ({
-    row: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      gap: theme.spacing.sm,
-      paddingVertical: 10,
-    },
-    label: { flexShrink: 1, fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.muted },
-    value: {
-      flexGrow: 1,
-      flexShrink: 1,
-      fontFamily: theme.fontFamily.regular,
-      fontSize: 14,
-      color: theme.colors.text.primary,
-      textAlign: 'right' as const,
-    },
-  }));
-  return (
-    <View style={styles.row}>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={styles.value} accessibilityLabel={accessibilityLabel}>
-        {children}
-      </Text>
-    </View>
-  );
-}
-
 export function Fact({
   label,
   mono = false,
