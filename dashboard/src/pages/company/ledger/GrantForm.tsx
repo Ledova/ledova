@@ -75,6 +75,7 @@ export function GrantForm({
     setTermsOn,
     approvingDirector,
     setApprovingDirector,
+    terms,
     setTerms,
     authorityReference,
     setAuthorityReference,
@@ -203,7 +204,7 @@ export function GrantForm({
                 <TextArea
                   maxLength={FIELD_LIMITS.TERMS}
                   rows={3}
-                  value={retainedSummary}
+                  value={terms}
                   onChange={(event) => setTerms(event.target.value)}
                 />
               </Field>
