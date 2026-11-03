@@ -294,9 +294,10 @@ remain in the audit records. Keep unavailable reads and their retries distinct
 from confirmed empty collections.
 Invite a member sits in a right-aligned row beneath the Invitations card. Invitation preparation replaces
 the collection with a focused view across the workspace, with member and email fields in the existing
-responsive grid and Cancel and Send invitation together at the bottom right. Keep invitation tokens
-out of visible fields: the email link opens one focused Member invitation page, continuing through sign-in or
-signup in the same tab. Show company, shareholder, intended email and expiry before an explicit
+responsive grid and Cancel and Send invitation together at the bottom right. Keep invitation codes
+out of URLs, query keys and logs: the email link opens one focused Member invitation page, continuing through
+sign-in or signup in the same tab. Opened without the link, the page takes a pasted link or its code
+in a field (owner, 3 November 2026), kept for the session like the link's. Show company, shareholder, intended email and expiry before an explicit
 Accept invitation action; opening the link must never accept it. The company sees acceptance status
 and an honest sending result, with a retry on failure; provider acceptance is not inbox delivery.
 Show an action reason only for a selected revocation. Preserve drafts, current authority,

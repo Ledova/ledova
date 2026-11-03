@@ -62,9 +62,7 @@ export function InvitationScreen() {
     <Page testID="invitation-scroll" title="Member invitation">
       <MemberNotice read={read} />
       <Section title="Access to your shares">
-        <Text style={styles.muted}>
-          Open the invitation link from your company’s email, or paste the link or its code here.
-        </Text>
+        <Text style={styles.muted}>Paste the invitation link or its code from your company’s email.</Text>
         <Field
           label="Link or code from the email"
           value={code}

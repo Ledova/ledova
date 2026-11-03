@@ -2,9 +2,11 @@ import { useContext, useState } from 'react';
 import {
   INVITATION_CODE_PROBLEM,
   failureSentence,
+  failureStatus,
   formatDate,
   invitationCodeFrom,
   isInvitationCode,
+  type UserFriendlyError,
 } from '@ledova/shared';
 import { AuthHeader, AuthLayout } from '@components/auth';
 import { Field, TextInput } from '@components/Field';
@@ -91,7 +93,9 @@ export default function MemberInvitationPage() {
         </>
       ) : preview.isError ? (
         <LoadError retry={() => preview.refetch()} busy={preview.isFetching}>
-          {failureSentence(preview.error, 'Your invitation could not be checked. Reopen the invitation email.')}
+          {failureStatus((preview.error as UserFriendlyError).originalError ?? preview.error) === 404
+            ? 'No invitation matches this code. Check it against the email.'
+            : failureSentence(preview.error, 'Your invitation could not be checked. Reopen the invitation email.')}
         </LoadError>
       ) : shown ? (
         <>

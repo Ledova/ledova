@@ -33,8 +33,10 @@ export function useMemberInvitation(typed = '') {
   const entered = useMemo(() => ({ code: isInvitationCode(typed) ? typed : '', id: crypto.randomUUID() }), [typed]);
   const { code, id } = link.code ? link : entered;
   useEffect(() => {
+    if (link.code) return;
     if (entered.code) rememberMemberInvitation(entered.code);
-  }, [entered.code]);
+    else clearMemberInvitation();
+  }, [link.code, entered.code]);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ owner: typeof owner; message: string } | null>(null);
   const scope = useMemo(() => ({ owner, profileSource, id: crypto.randomUUID() }), [owner, profileSource]);

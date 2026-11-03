@@ -367,14 +367,15 @@ Settings uses the same one-level pattern: Profile, Account and Data and privacy 
 Team and Activation where permitted. Its default is Profile (`/settings#profile`), combining personal
 details and permitted company information. Account
 (`/settings#account`) has Security (identity status with Review, the password with Change), Account
-details and Company invitation cards, and Data and privacy (`/settings#data`) holds Export data and
+details and Invitations cards, and Data and privacy (`/settings#data`) holds Export data and
 Delete account in the same rows, with **Export** and **Delete**. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
 sections keep their separate records, editors and authority checks. Existing `/user-profile`,
 `/company` (whatever its hash) and `/settings#company-recorded-details` links, like any other Settings
 hash, redirect to Profile. Activation's identity step links to Account.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
-Team remains available for company-invitation acceptance; Account keeps an acceptance
-entry, its Company invitation card, before company access is granted. The sidebar has no More group or Help & Support link;
+Team remains available for company-invitation acceptance. Account's Invitations card always offers
+the Shareholder invitation row, which opens Member invitation, and keeps the Company officer invitation
+row, which opens Team, before company access is granted. The sidebar has no More group or Help & Support link;
 pages without a sidebar item retain their existing audience and permission checks. Team keeps Representative
 authority as a contextual task, with its existing owner and audience checks.
 Each group opens on its routes and marks the active destination. Ledger, Shareholders and Documents
@@ -876,7 +877,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
   personal and company sections, keeping each editor's data and authority separate. Account's
-  Security, Account details and Company invitation cards hold identity status, password, account
+  Security, Account details and Invitations cards hold identity status, password, account
   dates and invitation acceptance; Data and privacy holds export and deletion. Documents and Team
   stay focused pages; Activation keeps its existing company workflow. Signup and mobile
   Settings keep their own navigation.

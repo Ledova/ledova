@@ -113,8 +113,8 @@ in the card. Pulling down refreshes the profile. Account (`Account`) has the web
 shows the identity check status from the profile (the app has no identity check flow, so there is no
 **Review**), **Change** for the password, and the app's biometric sign-in and App lock switches, with
 **Biometric security is not available on this device.** beneath them only where that applies; Account
-details shows member since and last login; and Company invitation's **Accept invitation** opens the
-member Invitation page. Its rows follow the web's: the label on the left, and its status, one action
+details shows member since and last login; and Invitations' **Shareholder invitation** row has
+**Accept**, which opens the Member invitation page. Its rows follow the web's: the label on the left, and its status, one action
 or switch on the right. Data and privacy (`DataPrivacy`) has the same rows: Export data, whose **Export** saves or shares the
 file, and Delete account with **Delete**; a screen reader hears the row and then the action, named
 Export data or Delete account. The theme is the menu's switch. The member pages share one member-records state
