@@ -21,7 +21,7 @@ def check_dimensions(width, height, limits):
         raise InvalidContent()
 
 
-def process_pdf(raw, limits, render):
+def process_pdf(raw, limits):
     import pymupdf
 
     with pymupdf.open(stream=raw, filetype="pdf") as document:
@@ -39,19 +39,10 @@ def process_pdf(raw, limits, render):
                     seen.add(xref)
                 if decoded > limits["decoded_bytes"]:
                     raise InvalidContent()
-        if not render:
-            return "application/pdf"
-        page = document[0]
-        scale = min(2, limits["side"] / max(page.rect.width, page.rect.height))
-        pixmap = page.get_pixmap(
-            matrix=pymupdf.Matrix(scale, scale), colorspace=pymupdf.csRGB, alpha=False, annots=False
-        )
-        if max(pixmap.width, pixmap.height) > limits["side"]:
-            raise InvalidContent()
-        return pixmap.tobytes("png")
+    return "application/pdf"
 
 
-def process_image(raw, limits, render):
+def process_image(raw, limits):
     from PIL import Image
 
     Image.MAX_IMAGE_PIXELS = limits["pixels"]
@@ -64,35 +55,23 @@ def process_image(raw, limits, render):
         image.verify()
     with Image.open(io.BytesIO(raw), formats=("PNG", "JPEG")) as image:
         image.load()
-        if not render:
-            return mime
-        with image.convert("RGB") as converted:
-            converted.thumbnail((limits["side"], limits["side"]), Image.Resampling.LANCZOS)
-            output = io.BytesIO()
-            converted.save(output, format="PNG")
-            return output.getvalue()
+    return mime
 
 
 def main():
-    mode = sys.argv[1]
-    limits = json.loads(sys.argv[2])
-    apply_limits(limits["memory_bytes"], limits["cpu_seconds"], limits["output_bytes"])
+    limits = json.loads(sys.argv[1])
+    apply_limits(limits["memory_bytes"], limits["cpu_seconds"], limits["file_bytes"])
     raw = sys.stdin.buffer.read(limits["input_bytes"] + 1)
     if not raw or len(raw) > limits["input_bytes"]:
         return 2
     try:
         if raw.startswith(b"%PDF-"):
-            value = process_pdf(raw, limits, mode == "render")
+            mime = process_pdf(raw, limits)
         elif raw.startswith((b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff")):
-            value = process_image(raw, limits, mode == "render")
+            mime = process_image(raw, limits)
         else:
             return 2
-        if mode == "render":
-            if len(value) > limits["output_bytes"]:
-                return 2
-            sys.stdout.buffer.write(value)
-        else:
-            print(json.dumps({"mime_type": value}))
+        print(json.dumps({"mime_type": mime}))
         return 0
     except MemoryError:
         return 3

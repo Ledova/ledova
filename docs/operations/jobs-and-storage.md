@@ -134,12 +134,11 @@ enforced, including why a child limit below 1 fails every upload, is in
 | `UPLOAD_MAX_BYTES`            | `10485760`           | Actual bytes per file (10 MiB)                                                          |
 | `UPLOAD_MAX_REQUEST_BYTES`    | file limit + `65536` | Whole upload request before multipart buffering                                         |
 | `UPLOAD_BODY_SECONDS`         | `30`                 | ASGI body arrival deadline                                                              |
-| `UPLOAD_MAX_PDF_PAGES`        | `100`                | Pages inspected before any rendering                                                    |
+| `UPLOAD_MAX_PDF_PAGES`        | `100`                | Pages inspected                                                                         |
 | `UPLOAD_MAX_SOURCE_PIXELS`    | `16000000`           | Image or embedded-image pixels, or PDF page pixels at 2x scale                          |
 | `UPLOAD_MAX_DECODED_BYTES`    | `67108864`           | Four bytes per pixel per image or page, and the sum of unique embedded images on a page |
-| `UPLOAD_RENDER_MAX_SIDE`      | `1600`               | Longest rendered PNG side                                                               |
-| `UPLOAD_RENDER_MAX_BYTES`     | `8388608`            | Rendered PNG bytes                                                                      |
 | `UPLOAD_PROCESS_MEMORY_BYTES` | `536870912`          | Decoder and scanner-client address space                                                |
+| `UPLOAD_PROCESS_FILE_BYTES`   | `8388608`            | Largest file the decoder child may write                                                |
 | `UPLOAD_PROCESS_CPU_SECONDS`  | `5`                  | Child CPU time                                                                          |
 | `UPLOAD_PROCESS_WALL_SECONDS` | `10`                 | Decoder child wall deadline                                                             |
 | `UPLOAD_SCANNER_HOST`         | `clamav`             | Private daemon hostname; Compose sets it explicitly                                     |
