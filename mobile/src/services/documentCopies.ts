@@ -99,8 +99,6 @@ async function writeViewCopy(
   return { uri: copy.uri, type };
 }
 
-// A share sheet that cannot open rejects at once. iOS never settles a cancelled Save to Files,
-// so a sheet that has stayed open this long has the file.
 const SHARE_HANDOVER_MS = 1500;
 
 export async function shareFile(uri: string, options: Sharing.SharingOptions): Promise<void> {
