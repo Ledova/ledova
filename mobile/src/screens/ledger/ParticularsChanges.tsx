@@ -165,7 +165,13 @@ export function ParticularsChanges({
     },
     [client, owner, company, guard],
   );
-  const changes = useRegisterParticulars(owner, company, check, readable && sourceReady, orderSubmissionSession);
+  const changes = useRegisterParticulars(
+    owner,
+    company,
+    check,
+    readable && !appointments.isFetching && sourceReady,
+    orderSubmissionSession,
+  );
   const privateReady =
     sourceReady &&
     readable &&

@@ -275,7 +275,7 @@ function ClassCorrections({
     },
     [client, owner, company, guard],
   );
-  const enabled = readable && sourceReady;
+  const enabled = readable && !appointments.isFetching && sourceReady;
   const history = useRegisterEntries(owner, token, check, enabled, orderSubmissionSession);
   const corrections = useClassCorrections(owner, token, check, enabled, orderSubmissionSession);
   const imports = useRegisterImports(owner, token, check, enabled, orderSubmissionSession);
