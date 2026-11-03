@@ -278,7 +278,11 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(
       page.getByText('Only your own holdings and awards are shown. Other shareholders’ records are private.'),
     ).toBeVisible();
-    await showAllClasses(page);
+    await expect(page.getByRole('link', { name: 'Certificates (Ordinary shares)', exact: true })).toHaveAttribute(
+      'href',
+      '/documents/certificates?class=ordinary&company=company',
+    );
+    await page.getByRole('button', { name: 'Company ownership', exact: true }).click();
     const sidebar = await visibleSidebar(page);
     await expect(sidebar.getByRole('link', { name: 'Documents', exact: true })).toHaveAttribute(
       'href',

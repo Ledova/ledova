@@ -10,7 +10,7 @@ import {
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Page, PageAction, PageLink } from '@components/Page';
-import { LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
+import { LinkRow, LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
 import { ListSearch, Pager } from '@components/List';
 import { CompanyPicker } from '@components/CompanyPicker';
 import { FilterPopover } from '@components/FilterPopover';
@@ -269,10 +269,10 @@ function SignedInOwnership({
                             <h2 ref={details} tabIndex={-1} className="font-display text-xl focus:outline-none">
                               {selectedClass?.name ?? 'Class unavailable'}
                             </h2>
-                            <FilterPopover active={!!ownership.list.search}>
-                              {(close) => (
-                                <>
-                                  {company.canReadRegister && selectedClass?.initialized && (
+                            {company.canReadRegister && selectedClass?.initialized && (
+                              <FilterPopover active={!!ownership.list.search}>
+                                {(close) => (
+                                  <>
                                     <ListSearch
                                       label="Search shareholders"
                                       list={ownership.list}
@@ -283,28 +283,25 @@ function SignedInOwnership({
                                           : undefined
                                       }
                                     />
-                                  )}
-                                  <SelectField
-                                    label="Share class"
-                                    options={[
-                                      { value: '', label: 'All classes' },
-                                      ...(selectedClass
-                                        ? []
-                                        : [{ value: selected, label: 'Class unavailable', disabled: true }]),
-                                      ...view.classes.map((row) => ({
-                                        value: row.uuid,
-                                        label: `${row.name} · ${row.symbol}`,
-                                      })),
-                                    ]}
-                                    value={selected}
-                                    onChange={(value) => {
-                                      close();
-                                      ownership.select(value || null);
-                                    }}
-                                  />
-                                </>
-                              )}
-                            </FilterPopover>
+                                    <SelectField
+                                      label="Share class"
+                                      options={[
+                                        { value: '', label: 'All classes' },
+                                        ...view.classes.map((row) => ({
+                                          value: row.uuid,
+                                          label: `${row.name} · ${row.symbol}`,
+                                        })),
+                                      ]}
+                                      value={selected}
+                                      onChange={(value) => {
+                                        close();
+                                        ownership.select(value || null);
+                                      }}
+                                    />
+                                  </>
+                                )}
+                              </FilterPopover>
+                            )}
                           </div>
                         }
                       >
@@ -396,9 +393,22 @@ function SignedInOwnership({
                                 />
                               </>
                             ) : (
-                              <p className="text-sm text-text-muted">
-                                Only your own holdings and awards are shown. Other shareholders’ records are private.
-                              </p>
+                              <>
+                                <p className="text-sm text-text-muted">
+                                  Only your own holdings and awards are shown. Other shareholders’ records are private.
+                                </p>
+                                {record?.classes.some(({ uuid }) => uuid === selectedClass.uuid) && (
+                                  <LinkRow
+                                    to={
+                                      context?.companyPath(
+                                        `${DESTINATIONS.certificates.path}?class=${selectedClass.uuid}`,
+                                      ) ?? `${DESTINATIONS.certificates.path}?class=${selectedClass.uuid}`
+                                    }
+                                    label="Certificates"
+                                    context={selectedClass.name}
+                                  />
+                                )}
+                              </>
                             )}
                           </>
                         )}

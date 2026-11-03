@@ -138,8 +138,8 @@ already belong to the holding. Its summary shows the promise and nonzero quantit
 breakdown and terms under **Show award details**. This read-only overview is the whole web Dashboard.
 **Settings** → **Profile** shows the person's own Personal information, and Company details for a company
 administrator; it has no card for how a company's register records them. The entries
-that changed their holding in each class are in web **Documents** → **Certificates**. On mobile, **Documents** and a class card's **Certificates** open the same
-Certificates page for the selected company.
+that changed their holding in each class are in **Documents** → **Certificates**. On the web and on mobile, a class card's **Certificates** opens
+the same page for that class.
 
 ### Particulars from Profile
 
