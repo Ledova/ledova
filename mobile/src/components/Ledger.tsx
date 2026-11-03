@@ -63,12 +63,10 @@ export function Rows({ children }: { children: ReactNode }) {
 
 export function Row({
   label,
-  mono = false,
   accessibilityLabel,
   children,
 }: {
   label: string;
-  mono?: boolean;
   accessibilityLabel?: string;
   children: ReactNode;
 }) {
@@ -88,29 +86,37 @@ export function Row({
       color: theme.colors.text.primary,
       textAlign: 'right' as const,
     },
-    mono: { fontFamily: theme.fontFamily.mono },
   }));
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, mono && styles.mono]} accessibilityLabel={accessibilityLabel}>
+      <Text style={styles.value} accessibilityLabel={accessibilityLabel}>
         {children}
       </Text>
     </View>
   );
 }
 
-export function Fact({ label, children }: { label: string; children: string | ReactElement }) {
+export function Fact({
+  label,
+  mono = false,
+  children,
+}: {
+  label: string;
+  mono?: boolean;
+  children: string | ReactElement;
+}) {
   const styles = useThemedStyles((theme) => ({
     fact: { gap: theme.spacing.xs, paddingVertical: theme.spacing.smd },
     label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.muted },
     value: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
+    mono: { fontFamily: theme.fontFamily.mono },
   }));
   const text = typeof children === 'string';
   return (
     <View accessible={text} accessibilityLabel={text ? `${label}: ${children}` : undefined} style={styles.fact}>
       <Text style={styles.label}>{label}</Text>
-      {text ? <Text style={styles.value}>{children}</Text> : children}
+      {text ? <Text style={[styles.value, mono && styles.mono]}>{children}</Text> : children}
     </View>
   );
 }

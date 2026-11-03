@@ -30,7 +30,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Action, LinkRow, LoadError, Loading, Outcome, Row, Rows, Section } from '../../components/Ledger';
+import { Action, Fact, LinkRow, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -216,8 +216,8 @@ function OwnShareholder({
           <Section title="Particulars">
             {privately(data.particulars, 'Their particulars', () => (
               <Rows>
-                <Row label="Name">{recorded?.name || title}</Row>
-                <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
+                <Fact label="Name">{recorded?.name || title}</Fact>
+                <Fact label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Fact>
               </Rows>
             ))}
             {settled(data.particulars) &&
@@ -262,9 +262,9 @@ function OwnShareholder({
                     ['Holder type', HOLDER_TYPE_LABELS[holder.holderType]],
                     ...(holder.name && holder.name !== title ? [['Name for this class', holder.name]] : []),
                   ].map(([label, value]) => (
-                    <Row key={label} label={label}>
+                    <Fact key={label} label={label}>
                       {value}
-                    </Row>
+                    </Fact>
                   ))}
                 </Rows>
                 {holder.holderType === 'ambiguous' && <Text style={look.muted}>{REGISTER_COPY.AMBIGUOUS_NOTE}</Text>}

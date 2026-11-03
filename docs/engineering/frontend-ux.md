@@ -138,8 +138,10 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   lede keep a readable width (`max-w-prose`).
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
   shareholder's holding or an import's supporting records. The web sets values in tabular numerals;
-  mobile's `Row` right-aligns them, and its `Fact` puts the label above the value, as the web's rows
-  do on a phone (Dashboard's class card and Profile). Breakdowns of figures (company ownership, a
+  mobile's `Row` right-aligns them, and its `Fact` puts the label above the value, left-aligned, as
+  the web's rows do on a phone (Dashboard's class card, Profile, a representative authority request,
+  a shareholder's page and former shareholders, the particulars change and an award's records, with
+  `mono` for a recorded wallet). Breakdowns of figures (company ownership, a
   class's totals on the web, register setup's summary) and an award's chart legend keep their own
   layout, without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named

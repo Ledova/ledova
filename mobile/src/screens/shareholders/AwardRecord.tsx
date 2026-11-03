@@ -24,11 +24,11 @@ import {
 import { AwardStatus } from '../../components/AwardStatus';
 import {
   Action,
+  Fact,
   FormActions,
   LoadError,
   Loading,
   MoreToggle,
-  Row,
   Rows,
   Section,
   Status,
@@ -260,10 +260,10 @@ export function AwardRecord({
       {visible && (
         <Section title="Agreement and vesting schedule">
           <Rows>
-            <Row label={COPY.TERMS_ON}>{formatDate(award.termsOn)}</Row>
-            <Row label={COPY.TERMS}>{award.terms}</Row>
-            <Row label={COPY.SCHEDULE}>{award.schedule}</Row>
-            <Row label="Residential address">{award.recipientResidentialAddress}</Row>
+            <Fact label={COPY.TERMS_ON}>{formatDate(award.termsOn)}</Fact>
+            <Fact label={COPY.TERMS}>{award.terms}</Fact>
+            <Fact label={COPY.SCHEDULE}>{award.schedule}</Fact>
+            <Fact label="Residential address">{award.recipientResidentialAddress}</Fact>
           </Rows>
           <Text style={look.muted}>{COPY.NOTE}</Text>
           <FormActions>
@@ -299,8 +299,8 @@ export function AwardRecord({
                     return (
                       <View key={event.uuid} style={look.row}>
                         <Rows>
-                          <Row label={COPY.VESTING_SHARES}>{shareCount(event.shares)}</Row>
-                          <Row label={COPY.VESTED_ON}>{formatDate(event.vestedOn)}</Row>
+                          <Fact label={COPY.VESTING_SHARES}>{shareCount(event.shares)}</Fact>
+                          <Fact label={COPY.VESTED_ON}>{formatDate(event.vestedOn)}</Fact>
                         </Rows>
                         <Recorded at={event.createdAt} by={event.preparedByName} />
                         <FormActions>
@@ -359,10 +359,10 @@ export function AwardRecord({
                   {ends.data.map((event) => (
                     <View key={event.uuid} style={look.row}>
                       <Rows>
-                        <Row label={COPY.ENDED_UNVESTED}>{shareCount(event.unvestedShares)}</Row>
-                        <Row label={COPY.ENDED_VESTED}>{shareCount(event.vestedShares)}</Row>
-                        <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
-                        <Row label={COPY.REASON}>{event.reason}</Row>
+                        <Fact label={COPY.ENDED_UNVESTED}>{shareCount(event.unvestedShares)}</Fact>
+                        <Fact label={COPY.ENDED_VESTED}>{shareCount(event.vestedShares)}</Fact>
+                        <Fact label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Fact>
+                        <Fact label={COPY.REASON}>{event.reason}</Fact>
                       </Rows>
                       <Recorded at={event.createdAt} by={event.preparedByName} />
                       <FormActions>
@@ -378,10 +378,10 @@ export function AwardRecord({
                   {reversals.data.map((event) => (
                     <View key={event.uuid} style={look.row}>
                       <Rows>
-                        <Row label={COPY.REVERSED_SHARES}>{shareCount(event.reversedShares)}</Row>
-                        <Row label="Original vesting">{originalVesting(event.vesting)}</Row>
-                        <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
-                        <Row label={COPY.REASON}>{event.reason}</Row>
+                        <Fact label={COPY.REVERSED_SHARES}>{shareCount(event.reversedShares)}</Fact>
+                        <Fact label="Original vesting">{originalVesting(event.vesting)}</Fact>
+                        <Fact label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Fact>
+                        <Fact label={COPY.REASON}>{event.reason}</Fact>
                       </Rows>
                       <Recorded at={event.createdAt} by={event.preparedByName} />
                       <FormActions>
