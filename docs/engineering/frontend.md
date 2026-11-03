@@ -493,7 +493,7 @@ soon as a recheck starts, because its checks need a settled session, so the revi
 again. A failed
 check or a changed account withholds
 private content, including after an account changes in another tab. Mobile clears its cache whenever
-the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload, extraction or identity
+the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload or identity
 verification, stopping when the operation finishes or its view closes. A status read must never
 repeat a write, upload or share issue.
 
