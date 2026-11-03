@@ -414,8 +414,8 @@ account, payment, application or chain transaction.
 
 1. On the web or in the app, in Ledger choose Transfer shares, the class, then Prepare a non-paid
    transfer, or open **Transfer shares** on a holding on the shareholder page, which chooses the
-   transferor. For a class that uses the chain the task says "Transfers for a class that uses the chain
-   aren’t available in the web app."
+   transferor. For a class that uses the chain, the task says its transfers aren’t available in the
+   web app or in the app.
 2. In **People and shares**, choose the transferor, recipient and shares
    ([choosing a person](#choosing-a-person)), and give the company transfer date. An
    existing company recipient keeps their member ID, including someone holding only another class,

@@ -891,7 +891,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   award, and `registerRecord` focuses a listed non-paid issue. `fromMember` chooses a transfer's
   transferor. The app's Issue shares takes the same choices as route parameters (`member`, `award`,
   `record`), honoured only for the selected company and the named class, and scrolls a focused issue
-  into view; its transfer preparation takes `fromMember` the same way.
+  into view. Its transfer preparation takes `fromMember` as a route parameter for the route's
+  company, honoured when that company's register is readable and the class belongs to it.
 
 - A shareholder's page on the web (`dashboard/src/pages/company/ledger/member`): reads, through the shared
   `useShareholder` (`packages/shared/src/hooks/useShareholder.ts`), the named
