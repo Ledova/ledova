@@ -671,7 +671,7 @@ neither set nor limit the current holding; new paid/unpaid blanks normalize to z
 ([form conventions](frontend-ux.md#forms)).
 
 Every decision uses the preview-first `useRegisterDecision`, in a dialog or the web's main-page
-issue and transfer reviews; the app's Issue shares and Transfer shares replace their records with the same review. It previews the exact decision, its unmet requirements in
+issue and transfer reviews; the app's Issue shares, Transfer shares and Corrections replace their records with the same review. It previews the exact decision, its unmet requirements in
 words and its register effect, takes a rejection reason
 ([how a company decision works](../business/README.md#how-a-company-decision-works)), and confirms
 with a retry key reused only for the same preview while the step's appointment is still the one
@@ -863,7 +863,14 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   (`useRegisterTransfers` with `transfersKey`), its preparation (`useTransferPreparation`, which hands the
   prepared transfer to the page instead of navigating) and its document download
   (`useTransferRecordDownload`) are shared the same way; the app's Transfer shares renders the same
-  records and reviews, with the preparation on its own page. A section whose
+  records and reviews, with the preparation on its own page. Corrections' reads (`useRegisterEntries`,
+  `useClassCorrections` with `correctionsKey`, `useRegisterImports` with `importsKey` and
+  `useRegisterParticulars`), its correction form (`useCorrectionPreparation`, which hands the prepared
+  correction to the page) and entry read (`useCorrectionEntry`), its record downloads
+  (`useCorrectionRecordDownload`, `useImportRecordDownload`, `useParticularsRecordDownload`) and the
+  entry helpers (`entryLabel`, `describeEntry` and their siblings) are shared too; the app's Corrections
+  renders the same rows and records, with the correction form on its own page and the opening records
+  read-only. A section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current

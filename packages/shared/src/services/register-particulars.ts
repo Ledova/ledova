@@ -28,7 +28,12 @@ export const downloadRegisterParticularsChangeFile = (
   uuid: string,
   config: AxiosRequestConfig = {},
 ) =>
-  apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGE_FILE(uuid), {
-    ...config,
-    responseType: 'blob',
-  });
+  config.responseType === 'arraybuffer'
+    ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGE_FILE(uuid), {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGE_FILE(uuid), {
+        ...config,
+        responseType: 'blob',
+      });

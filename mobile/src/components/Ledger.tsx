@@ -103,8 +103,18 @@ export function MoreToggle({ open, onToggle, children }: { open: boolean; onTogg
   );
 }
 
-export function ShowMore({ show, hide, children }: { show: string; hide: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+export function ShowMore({
+  show,
+  hide,
+  defaultOpen = false,
+  children,
+}: {
+  show: string;
+  hide: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   const styles = useThemedStyles((theme) => ({
     content: { gap: theme.spacing.smd },
     hidden: { display: 'none' as const },
@@ -344,4 +354,34 @@ export function LoadError({
 export function FormActions({ children }: { children: ReactNode }) {
   const styles = useActionsStyles();
   return <View style={[styles.actions, styles.ruled]}>{children}</View>;
+}
+
+export function LoadMore({
+  noun,
+  hasMore,
+  failed,
+  loading,
+  disabled = false,
+  onLoad,
+}: {
+  noun: string;
+  hasMore: boolean;
+  failed: boolean;
+  loading: boolean;
+  disabled?: boolean;
+  onLoad: () => unknown;
+}) {
+  if (failed)
+    return (
+      <LoadError retry={onLoad} busy={disabled}>
+        {`More ${noun} could not be loaded. The list is incomplete.`}
+      </LoadError>
+    );
+  return hasMore ? (
+    <Action
+      label={loading ? `Loading ${noun}…` : `Load more ${noun}`}
+      disabled={disabled || loading}
+      onPress={() => void onLoad()}
+    />
+  ) : null;
 }

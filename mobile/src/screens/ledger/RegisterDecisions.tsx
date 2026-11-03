@@ -40,6 +40,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   approveLabel,
   review,
   leadingAction,
+  note,
 }: {
   family: RegisterDecisionFamily<Shown, Previewed>;
   copy: DecisionCopy;
@@ -54,8 +55,14 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   visible: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
   approveLabel: string;
-  review: { onChange: (open: boolean) => void; title: string; labels: Record<RegisterDecisionKind, string> };
+  review: {
+    onChange: (open: boolean) => void;
+    title: string | Record<RegisterDecisionKind, string>;
+    labels: Record<RegisterDecisionKind, string>;
+    confirmations?: Record<RegisterDecisionKind, string>;
+  };
   leadingAction?: ReactNode;
+  note?: (kind: RegisterDecisionKind, preview: Previewed) => ReactNode;
 }) {
   const card = useCardStyles();
   const look = useLedgerStyles();
@@ -139,12 +146,14 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     void (decision.recovery ? decision.recover() : decision.confirm());
   };
   if (!visible) return null;
-  if (active && decision)
+  if (active && decision) {
+    const title = typeof review.title === 'string' ? review.title : review.title[active];
     return (
-      <View accessibilityLabel={review.title} style={look.review}>
+      <View accessibilityLabel={title} style={look.review}>
         <Text accessibilityRole="header" style={card.title}>
-          {review.title}
+          {title}
         </Text>
+        {!!review.confirmations && <Text style={look.text}>{review.confirmations[active]}</Text>}
         {decision.recovery && (
           <>
             <Text style={look.muted}>
@@ -189,6 +198,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
         {decision.busy && !preview && <Loading>Loading the preview…</Loading>}
         {preview && (
           <>
+            {note?.(active, preview)}
             {preview.unmetRequirements.length > 0 && (
               <View style={look.terms}>
                 <Text style={look.muted}>This decision cannot be recorded yet:</Text>
@@ -203,7 +213,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
           </>
         )}
         <FormActions>
-          <Action label="Cancel" accessibilityLabel={`Cancel (${review.title})`} disabled={busy} onPress={close} />
+          <Action label="Cancel" accessibilityLabel={`Cancel (${title})`} disabled={busy} onPress={close} />
           <Action
             primary
             label={
@@ -219,6 +229,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
         </FormActions>
       </View>
     );
+  }
   return (
     <>
       {(available.length > 0 || !!leadingAction) && (

@@ -80,4 +80,10 @@ export const downloadRegisterCorrectionFile = (
   apiClient: AxiosInstance,
   uuid: string,
   config: AxiosRequestConfig = {},
-) => apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTION_FILE(uuid), { ...config, responseType: 'blob' });
+) =>
+  config.responseType === 'arraybuffer'
+    ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTION_FILE(uuid), {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTION_FILE(uuid), { ...config, responseType: 'blob' });

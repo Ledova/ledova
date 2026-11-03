@@ -56,7 +56,22 @@ export const downloadRegisterImportFile = (
   uuid: string,
   copy: 'register' | 'asic',
   config: AxiosRequestConfig = {},
-) =>
-  copy === 'asic'
-    ? apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_ASIC_FILE(uuid), { ...config, responseType: 'blob' })
+) => {
+  const bytes = config.responseType === 'arraybuffer';
+  if (copy === 'asic')
+    return bytes
+      ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_ASIC_FILE(uuid), {
+          ...config,
+          responseType: 'arraybuffer',
+        })
+      : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_ASIC_FILE(uuid), {
+          ...config,
+          responseType: 'blob',
+        });
+  return bytes
+    ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_FILE(uuid), {
+        ...config,
+        responseType: 'arraybuffer',
+      })
     : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_FILE(uuid), { ...config, responseType: 'blob' });
+};

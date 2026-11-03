@@ -3,18 +3,21 @@ import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
   REGISTER_CORRECTION_COPY,
   REGISTER_CORRECTION_DECISIONS,
+  describeEntry,
+  entryLabel,
+  entryName,
   formatDateTime,
   formatDate,
+  type ClassCorrection,
   type RegisterSteps,
+  useCorrectionRecordDownload,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
-import { describeEntry, entryLabel, entryName } from '@pages/company/shared/proposals';
-import type { ClassCorrection } from '@pages/company/ledger/shared/useClassCorrections';
-import { useCorrectionRecordDownload } from './useRegisterRecordDownload';
+import { BROWSER_FILES } from '@utils/saveFile';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 
 const COPY = REGISTER_CORRECTION_COPY;
@@ -39,7 +42,7 @@ export function CorrectionRecord({
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
-  const download = useCorrectionRecordDownload(proposal, check);
+  const download = useCorrectionRecordDownload(proposal, check, BROWSER_FILES);
   const context = `correction of the ${entryLabel(entry)}`;
   const downloadAction = (
     <PageAction

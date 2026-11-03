@@ -216,11 +216,12 @@ The web dashboard reaches the records and workflows described here. The mobile a
 own records and account, and lists the same companies as the web: a company's administrators and
 register readers see its ownership overview and each class's shareholders there, its share classes on
 Ledger with each class's page, class rights and shareholder documents, prepare, approve and record its
-share issues and non-paid transfers under Issue shares and Transfer shares, list its shareholders, open
-each one's page, add a person, change particulars, record employee awards and their vesting and manage
-member access under Shareholders, and prepare its certificates and inspection copies in Documents,
-where its administrators also prepare the company pack; Settings holds Team, Activation and
-representative authority, while register setup and corrections stay on the web
+share issues and non-paid transfers under Issue shares and Transfer shares, prepare, approve and apply
+corrections and read the opening records and particulars changes under Corrections, list its
+shareholders, open each one's page, add a person, change particulars, record employee awards and their
+vesting and manage member access under Shareholders, and prepare its certificates and inspection
+copies in Documents, where its administrators also prepare the company pack; Settings holds Team,
+Activation and representative authority, while register setup stays on the web
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
 retains its existing route checks;
 company actions follow the person's current appointments, and
@@ -281,7 +282,8 @@ on mobile ([member records](member-records.md)).
 The mobile app has the web's phone frame: a top bar with the menu and the notifications bell, and a
 slide-out menu with the Dark theme switch. It opens on **Dashboard**, the selected company's ownership
 overview, as on the web; **Switch company** changes the company. **Ledger** opens that company's share
-classes, each with **Class details**, with **Issue shares** and **Transfer shares** beneath it, and
+classes, each with **Class details**, with **Issue shares**, **Transfer shares** and **Corrections**
+beneath it, and
 **Shareholders** its people list, with **Employee scheme** and
 **Member access** beneath it, for a register reader, as on the web
 ([the register page](register.md#the-register-page)). **Documents** holds that company's

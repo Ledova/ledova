@@ -11,8 +11,9 @@ happens on the web, and the mobile app also has the web's [Team](#team-invitatio
 [Representative authority](#representative-authority-requests) and [Activation](#activation), and
 shows a company's administrators and register readers its ownership overview, its
 [Ledger](register.md#the-register-page) with each [share class's page](register.md#the-share-class-page),
-[Issue shares](issuing-shares.md#ways-to-issue-shares) and
-[Transfer shares](register.md#non-paid-transfers-between-members), its [Shareholders](register.md#the-register-page) with its
+[Issue shares](issuing-shares.md#ways-to-issue-shares),
+[Transfer shares](register.md#non-paid-transfers-between-members) and
+[Corrections](register.md#compensating-corrections), its [Shareholders](register.md#the-register-page) with its
 [Employee share scheme](issuing-shares.md#employee-awards-and-vesting) and
 [Member access](member-records.md#member-access), and its [Documents](member-records.md#outputs-at-a-glance)
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)).

@@ -28,10 +28,10 @@ import {
   utcToday,
   registerKey,
   type RegisterSteps,
+  importsKey,
 } from '@ledova/shared';
 
 import apiClient from '@services/apiClient';
-import { importsKey } from '@pages/company/ledger/shared/useRegisterImports';
 
 import {
   figuresDiffer,

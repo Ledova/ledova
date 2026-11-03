@@ -13,14 +13,15 @@ import {
   allPeopleKey,
   registerSteps,
   entriesKey,
+  correctionsKey,
+  entryLabel,
+  useClassCorrections,
 } from '@ledova/shared';
 import { LoadError, Loading } from '@components/Ledger';
 import { PageLink } from '@components/Page';
 
 import { CorrectionRecord } from './CorrectionRecord';
 import { ClassEntries } from './ClassEntries';
-import { entryLabel } from '@pages/company/shared/proposals';
-import { correctionsKey, useClassCorrections } from '@pages/company/ledger/shared/useClassCorrections';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 
 const COPY = REGISTER_CORRECTION_COPY;

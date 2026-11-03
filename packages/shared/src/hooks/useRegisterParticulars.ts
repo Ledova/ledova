@@ -1,24 +1,29 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  firstOfEach,
-  getRegisterParticularsChanges,
-  particularsKey,
-  readEveryPage,
-  type OrderSubmissionOwner,
-  READ_TIMING,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
+import { READ_TIMING } from '../constants/api';
+import { getRegisterParticularsChanges } from '../services/register-particulars';
+import { firstOfEach, readEveryPage } from '../utils/pagination';
+import { useApiClient } from './useApiClient';
+import { particularsKey } from './useParticularsEdit';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
-export function useRegisterParticulars(owner: OrderSubmissionOwner, company: string, guard: () => void) {
+export function useRegisterParticulars(
+  owner: OrderSubmissionOwner,
+  company: string,
+  guard: () => void,
+  enabled = true,
+  session?: OrderSubmissionSession,
+) {
+  const apiClient = useApiClient();
   return useQuery({
     queryKey: particularsKey(owner, company),
+    enabled,
     queryFn: async () => {
       const changes = await readEveryPage(async (page) => {
         guard();
         const result = await getRegisterParticularsChanges(
           apiClient,
           { company, page },
-          { ledovaSubmissionGuard: guard },
+          { ...session?.requestConfig(), ledovaSubmissionGuard: guard },
         );
         guard();
         return result;

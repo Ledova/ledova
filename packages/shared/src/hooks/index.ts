@@ -113,3 +113,16 @@ export { transfersKey, useRegisterTransfers } from './useRegisterTransfers';
 export { useTransferPreparation } from './useTransferPreparation';
 export type { TransferDocumentKind, TransferPreparationOptions } from './useTransferPreparation';
 export { useTransferRecordDownload } from './useTransferRecordDownload';
+export { useRegisterEntries } from './useRegisterEntries';
+export { correctionsKey, useClassCorrections } from './useClassCorrections';
+export type { ClassCorrection } from './useClassCorrections';
+export { importsKey, useRegisterImports } from './useRegisterImports';
+export { useRegisterParticulars } from './useRegisterParticulars';
+export { useCorrectionPreparation } from './useCorrectionPreparation';
+export type { CorrectionPreparationOptions } from './useCorrectionPreparation';
+export { useCorrectionEntry } from './useCorrectionEntry';
+export {
+  useCorrectionRecordDownload,
+  useImportRecordDownload,
+  useParticularsRecordDownload,
+} from './useRegisterRecordDownload';

@@ -77,11 +77,16 @@ export {
   registerImportTotals,
 } from './register-imports';
 export {
+  describeEntry,
+  entryDate,
+  entryInverse,
+  entryLabel,
+  entryName,
   formatRegisterChanges,
   isPreparedRegisterCorrection,
   isRegisterCorrectionDecisionReceipt,
 } from './register-corrections';
-export { isRegisterParticularsEditReceipt } from './register-particulars';
+export { isRegisterParticularsEditReceipt, registerMembers } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
 export {
   hasValidRegisterAwardTotals,
