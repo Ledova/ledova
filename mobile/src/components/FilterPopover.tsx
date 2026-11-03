@@ -1,12 +1,8 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { FunnelIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
-import { useDialogInsets } from './modal';
-
-const ANCHOR_GAP = 8;
-const EDGE = 16;
-const WIDTH = 320;
+import { AnchoredPanel, useAnchor, type Anchor } from './AnchoredPanel';
 
 export function FilterPopover({
   label = 'Filters',
@@ -18,10 +14,9 @@ export function FilterPopover({
   children: (close: () => void) => ReactNode;
 }) {
   const theme = useAppTheme();
-  const window = useWindowDimensions();
-  const insets = useDialogInsets();
+  const anchorOf = useAnchor();
   const button = useRef<View>(null);
-  const [anchor, setAnchor] = useState<{ top: number; right: number } | null>(null);
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
   const styles = useThemedStyles((theme) => ({
     button: {
       width: 40,
@@ -29,18 +24,6 @@ export function FilterPopover({
       alignItems: 'center' as const,
       justifyContent: 'center' as const,
       borderRadius: 20,
-    },
-    panel: {
-      position: 'absolute' as const,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.raised,
-      shadowColor: theme.colors.utility.black,
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.1,
-      shadowRadius: 15,
-      elevation: 8,
     },
     content: { gap: theme.spacing.md, padding: theme.spacing.md },
   }));
@@ -53,45 +36,16 @@ export function FilterPopover({
         accessibilityLabel={active ? `${label}, active` : label}
         accessibilityState={{ expanded: !!anchor }}
         hitSlop={2}
-        onPress={() =>
-          button.current?.measureInWindow((x, y, width, height) =>
-            setAnchor({
-              top: y + height + ANCHOR_GAP + (Platform.OS === 'android' ? insets.top : 0),
-              right: Math.max(EDGE, window.width - x - width),
-            }),
-          )
-        }
+        onPress={() => anchorOf(button.current, setAnchor)}
         style={styles.button}
       >
         <FunnelIcon size={theme.icon.sizes.md} color={active ? theme.colors.brand.light : theme.colors.text.primary} />
       </Pressable>
-      <Modal visible={!!anchor} transparent animationType="fade" statusBarTranslucent onRequestClose={close}>
-        <View accessibilityViewIsModal onAccessibilityEscape={close} style={StyleSheet.absoluteFill}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Close ${label.toLowerCase()}`}
-            style={StyleSheet.absoluteFill}
-            onPress={close}
-          />
-          {anchor && (
-            <View
-              style={[
-                styles.panel,
-                {
-                  top: anchor.top,
-                  right: anchor.right,
-                  width: Math.min(WIDTH, window.width - 2 * EDGE),
-                  maxHeight: window.height - anchor.top - EDGE,
-                },
-              ]}
-            >
-              <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-                {children(close)}
-              </ScrollView>
-            </View>
-          )}
-        </View>
-      </Modal>
+      <AnchoredPanel anchor={anchor} closeLabel={`Close ${label.toLowerCase()}`} onClose={close}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {children(close)}
+        </ScrollView>
+      </AnchoredPanel>
     </>
   );
 }

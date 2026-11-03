@@ -67,7 +67,11 @@ The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame.
 the web's phone top bar (`TopBar`), never a back button: the menu button, the page's title, its
 action (such as Switch company or Filters) and the notifications bell. Inside the frame `Page` sets
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
-its lede.
+its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
+anchored panel (`AnchoredPanel`) as `FilterPopover`. It has a Notifications header with **Mark all
+as read** while any are unread, and the web's rows with an unread dot and **Dismiss**. It also has
+**Load more notifications** and the web's loading, failure and "No notifications yet." states
+(owner, 3 November 2026).
 The menu (`AppMenu`) slides in from the left like the
 web's phone drawer, 208 points wide: Dashboard, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the

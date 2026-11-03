@@ -176,7 +176,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   panel without moving page content. Filters use `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`), which shares Headless UI's `Popover`,
   `PopoverButton` and `PopoverPanel` pattern with the notification bell and owns only the trigger,
-  panel, focus and viewport bounds. Pages keep their fields, data, drafts and validation.
+  panel, focus and viewport bounds. Pages keep their fields, data, drafts and validation. On
+  mobile, `FilterPopover` and the notifications panel open the same anchored panel
+  (`mobile/src/components/AnchoredPanel.tsx`).
   The [filter rules](#lists-search-filters-and-paging) describe its interaction. Editing records,
   preparation and substantial reviews stay on the main page.
 - `SwitchRow` (mobile): a setting that takes effect at once (biometric sign-in, App lock), as a native

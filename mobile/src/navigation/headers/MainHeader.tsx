@@ -1,19 +1,32 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { BellIcon } from 'phosphor-react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../contexts';
+import { useAnchor, type Anchor } from '../../components/AnchoredPanel';
 import { AppMenu, MenuButton, type MenuRoute, type Section } from '../AppMenu';
 
-function NotificationsButton({ onPress, unreadCount = 0 }: { onPress: () => void; unreadCount?: number }) {
+function NotificationsButton({
+  onOpen,
+  expanded,
+  unreadCount = 0,
+}: {
+  onOpen: (anchor: Anchor) => void;
+  expanded: boolean;
+  unreadCount?: number;
+}) {
   const theme = useAppTheme();
+  const anchorOf = useAnchor();
+  const button = useRef<View>(null);
   const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
   return (
     <TouchableOpacity
+      ref={button}
       accessibilityRole="button"
       accessibilityLabel={unreadCount > 0 ? `Notifications, ${badgeText} unread` : 'Notifications'}
-      onPress={onPress}
+      accessibilityState={{ expanded }}
+      onPress={() => anchorOf(button.current, onOpen)}
       hitSlop={2}
       style={{
         width: 40,
@@ -60,6 +73,7 @@ export function TopBar({
   action,
   current,
   onNotifications,
+  notificationsOpen,
   unreadCount,
 }: {
   navigation: NavigationProp<Record<MenuRoute, undefined>>;
@@ -67,7 +81,8 @@ export function TopBar({
   title: string | undefined;
   action: ReactNode;
   current: Section;
-  onNotifications: () => void;
+  onNotifications: (anchor: Anchor) => void;
+  notificationsOpen: boolean;
   unreadCount: number;
 }) {
   const theme = useAppTheme();
@@ -110,7 +125,7 @@ export function TopBar({
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           {action}
-          <NotificationsButton onPress={onNotifications} unreadCount={unreadCount} />
+          <NotificationsButton onOpen={onNotifications} expanded={notificationsOpen} unreadCount={unreadCount} />
         </View>
       </View>
       <AppMenu
