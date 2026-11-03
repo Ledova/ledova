@@ -52,6 +52,8 @@ export { OWN_APPOINTMENTS_QUERY_KEY, ownAppointmentsKey, useOwnAppointments } fr
 export { companyTeamKey, teamInvitationsKey, useCompanyTeam } from './useCompanyTeam';
 export { useTeamInvitationForm } from './useTeamInvitationForm';
 export { useAcceptInvitationForm } from './useAcceptInvitationForm';
+export { authorityRequestsKey, authorityRequestStatus, useAuthorityRequests } from './useAuthorityRequests';
+export { useAuthorityRequestForm } from './useAuthorityRequestForm';
 export { ownershipCompaniesKey, useOwnershipCompanies } from './useOwnershipCompanies';
 export type { OwnershipCompany } from './useOwnershipCompanies';
 export {

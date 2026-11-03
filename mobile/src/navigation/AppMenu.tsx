@@ -14,15 +14,23 @@ import {
   XIcon,
   type IconProps,
 } from 'phosphor-react-native';
+import {
+  OWN_APPOINTMENTS_QUERY_KEY,
+  hasCurrentAdminAppointment,
+  ownAppointmentsKey,
+  useOwnAppointments,
+  useSubmissionOwner,
+} from '@ledova/shared';
 import { useAppTheme, useMemberRecordsState, useThemeChoice } from '../contexts';
 import { SignOutModal } from '../components/auth/SignOutModal';
 import { LogoMark } from '../components/LogoMark';
 import { useSignOut } from '../hooks/useSignOut';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { orderSubmissionSession } from '../services/orderSubmissions';
 
 export type Section = 'Dashboard' | 'Documents' | 'Settings';
 
-export type MenuRoute = 'Dashboard' | 'Certificates' | 'Settings' | 'Account' | 'DataPrivacy' | 'Team';
+export type MenuRoute = 'Dashboard' | 'Certificates' | 'Settings' | 'Account' | 'DataPrivacy' | 'Team' | 'Activation';
 
 type MenuItem = {
   name: Section;
@@ -36,7 +44,9 @@ const SECTIONS: MenuItem[] = [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
   { name: 'Documents', label: 'Documents', icon: FilesIcon, route: 'Certificates' },
 ];
-const yours = (canManage: boolean): MenuItem[] => [
+const PARENT_ROUTES: Partial<Record<string, MenuRoute>> = { Authority: 'Team', AuthorityRequest: 'Team' };
+
+const yours = (canManage: boolean, activation: boolean): MenuItem[] => [
   {
     name: 'Settings',
     label: 'Settings',
@@ -47,11 +57,29 @@ const yours = (canManage: boolean): MenuItem[] => [
       { route: 'Account', label: 'Account' },
       { route: 'DataPrivacy', label: 'Data and privacy' },
       ...(canManage ? [{ route: 'Team' as const, label: 'Team' }] : []),
+      ...(canManage && activation ? [{ route: 'Activation' as const, label: 'Activation' }] : []),
     ],
   },
 ];
 
 const MENU_WIDTH = 208;
+
+function useActivationListed() {
+  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
+  const appointments = useOwnAppointments(
+    owner!,
+    () => {
+      if (!owner || boundary.get() !== owner) throw new Error('Your signed-in account changed.');
+    },
+    {
+      queryKey: owner ? ownAppointmentsKey(owner) : [...OWN_APPOINTMENTS_QUERY_KEY, null],
+      enabled: !!owner,
+      passive: true,
+      session: orderSubmissionSession,
+    },
+  );
+  return appointments.isSuccess && !appointments.isFetching && hasCurrentAdminAppointment(appointments.data);
+}
 
 function Wordmark() {
   const theme = useAppTheme();
@@ -126,6 +154,7 @@ export function AppMenu({
   const insets = useSafeAreaInsets();
   const { userProfile } = useUserProfile();
   const { company } = useMemberRecordsState();
+  const activation = useActivationListed();
   const { signOut, signingOut } = useSignOut();
   const [progress] = useState(() => new Animated.Value(0));
   const [shown, setShown] = useState(visible);
@@ -158,9 +187,10 @@ export function AppMenu({
     fontSize: theme.fontSize.sm,
     color: active ? theme.colors.brand.light : theme.colors.text.secondary,
   });
+  const marked = PARENT_ROUTES[route] ?? route;
   const item = (section: MenuItem) => {
     const active = section.name === current;
-    const here = active && !section.items?.some((child) => child.route === route);
+    const here = active && !section.items?.some((child) => child.route === marked);
     const expanded = toggled[section.name] ?? active;
     const Icon = section.icon;
     const Caret = expanded ? CaretDownIcon : CaretRightIcon;
@@ -211,11 +241,11 @@ export function AppMenu({
               <TouchableOpacity
                 key={child.route}
                 accessibilityRole="button"
-                accessibilityState={{ selected: child.route === route }}
+                accessibilityState={{ selected: child.route === marked }}
                 onPress={() => onSelect(child.route)}
-                style={row(child.route === route)}
+                style={row(child.route === marked)}
               >
-                <Text style={label(child.route === route)}>{child.label}</Text>
+                <Text style={label(child.route === marked)}>{child.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -282,7 +312,9 @@ export function AppMenu({
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: theme.spacing.md, gap: theme.spacing.lg }}
           >
             <View style={{ gap: 4 }}>{SECTIONS.map(item)}</View>
-            <View style={{ gap: 4 }}>{yours(!!company?.canManage).map(item)}</View>
+            <View style={{ gap: 4 }}>
+              {yours(!!company?.canManage, route === 'Activation' || activation).map(item)}
+            </View>
           </ScrollView>
           <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.border.subtle, padding: 12, gap: 4 }}>
             {person && (

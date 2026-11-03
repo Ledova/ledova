@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { generatePath } from 'react-router-dom';
+import { generatePath, useLocation } from 'react-router-dom';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { LinkRow, Outcome, Section, LoadError, Loading, Status } from '@components/Ledger';
 import { FormActions, Page, PageAction } from '@components/Page';
-import { DESTINATIONS, formatDate, useSubmissionOwner, type OrderSubmissionOwner } from '@ledova/shared';
-import { AUTHORITY_REQUEST_TONES } from '@pages/company/shared/statusTones';
+import {
+  AUTHORITY_REQUEST_TONES,
+  DESTINATIONS,
+  authorityRequestStatus,
+  formatDate,
+  useAuthorityRequests,
+  useSubmissionOwner,
+  type OrderSubmissionOwner,
+} from '@ledova/shared';
 import { AuthorityRequestForm } from './AuthorityRequestForm';
-import { authorityRequestStatus, useAuthorityRequests } from './shared/useAuthorityRequests';
 import { AccountCheck } from '@components/AccountCheck';
 
 export default function CompanyAuthorityPage() {
@@ -34,11 +40,13 @@ function OwnAuthorityRequests({
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
 }) {
+  const context = useCompanyContext();
+  const location = useLocation();
   const { guard, recorded, setRecorded, companies, history, company } = useAuthorityRequests({
     owner,
     currentOwner,
+    company: context ? (context.companyUuid ?? '') : new URLSearchParams(location.search).get('company'),
   });
-  const context = useCompanyContext();
   const requestPath = (uuid: string) => {
     const path = generatePath(DESTINATIONS.companyAuthorityRequest.path, { uuid });
     return context?.companyPath(path) ?? path;

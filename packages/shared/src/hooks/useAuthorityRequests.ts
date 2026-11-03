@@ -1,21 +1,20 @@
+import { useCallback, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { getCompanies } from '../services/companies';
 import {
   admitCompanyAuthorityRequest,
   downloadCompanyAuthorityFile,
-  getCompanies,
   getCompanyAuthorityRequests,
-  readEveryPage,
   revokeCompanyAuthorityAppointment,
   withdrawCompanyAuthorityRequest,
-  type CompanyAuthorityRequest,
-  type OrderSubmissionOwner,
-  ownCompaniesKey,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { saveFile } from '@utils/saveFile';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
-import { useCompanyContext } from '@hooks/useCompanyContext';
-import { useLocation } from 'react-router-dom';
+} from '../services/company-authority';
+import type { CompanyAuthorityRequest } from '../types';
+import { readEveryPage } from '../utils/pagination';
+import { useApiClient } from './useApiClient';
+import { ownCompaniesKey } from './useCompanySelection';
+import { ownAppointmentsKey } from './useOwnAppointments';
+import { ownershipCompaniesKey } from './useOwnershipCompanies';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 export function authorityRequestsKey(owner: OrderSubmissionOwner) {
   return ['company-authority-requests', owner.userUuid, owner.ownerAccountUuid];
@@ -31,17 +30,22 @@ export function authorityRequestStatus(request: CompanyAuthorityRequest) {
 export function useAuthorityRequests({
   owner,
   currentOwner,
+  company: chosen,
   readCompanies = true,
+  session,
+  save,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  company?: string | null;
   readCompanies?: boolean;
+  session?: OrderSubmissionSession;
+  save?: (data: ArrayBuffer, request: CompanyAuthorityRequest) => unknown;
 }) {
+  const apiClient = useApiClient();
   const guard = useCallback(() => {
     if (currentOwner() !== owner) throw new Error('Your signed-in account changed. Reopen representative authority.');
   }, [owner, currentOwner]);
-  const context = useCompanyContext();
-  const location = useLocation();
   const [recorded, setRecorded] = useState<CompanyAuthorityRequest | null>(null);
   const client = useQueryClient();
   const historyKey = authorityRequestsKey(owner);
@@ -51,7 +55,10 @@ export function useAuthorityRequests({
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
-        const result = await getCompanies(apiClient, page, { ledovaSubmissionGuard: guard });
+        const result = await getCompanies(apiClient, page, {
+          ...session?.requestConfig(),
+          ledovaSubmissionGuard: guard,
+        });
         guard();
         return result;
       }),
@@ -61,15 +68,16 @@ export function useAuthorityRequests({
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();
-        const result = await getCompanyAuthorityRequests(apiClient, undefined, page, { ledovaSubmissionGuard: guard });
+        const result = await getCompanyAuthorityRequests(apiClient, undefined, page, {
+          ...session?.requestConfig(),
+          ledovaSubmissionGuard: guard,
+        });
         guard();
         return result;
       }),
   });
   const drafts = companies.isError ? [] : (companies.data ?? []).filter((company) => company.status === 'draft');
-  const selected = context
-    ? (context.companyUuid ?? '')
-    : (new URLSearchParams(location.search).get('company') ?? (drafts.length === 1 ? drafts[0].uuid : ''));
+  const selected = chosen ?? (drafts.length === 1 ? drafts[0]!.uuid : '');
   const company = drafts.find((item) => item.uuid === selected);
   const lifecycle = useMutation({
     mutationFn: async ({
@@ -86,7 +94,10 @@ export function useAuthorityRequests({
           : action === 'revoke'
             ? revokeCompanyAuthorityAppointment
             : withdrawCompanyAuthorityRequest;
-      const { data } = await send(apiClient, request.uuid, { ledovaSubmissionGuard: guard });
+      const { data } = await send(apiClient, request.uuid, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: guard,
+      });
       guard();
       if (
         data.uuid !== request.uuid ||
@@ -98,7 +109,7 @@ export function useAuthorityRequests({
         throw new Error('The request outcome could not be confirmed. Refresh your requests or retry.');
       return data;
     },
-    onSuccess: async (request) => {
+    onSuccess: async (request, { action }) => {
       guard();
       const refused = client.getQueryState(historyKey)?.status === 'error';
       await client.cancelQueries({ queryKey: historyKey, exact: true });
@@ -107,14 +118,21 @@ export function useAuthorityRequests({
         client.setQueryData<CompanyAuthorityRequest[]>(historyKey, (previous) =>
           previous?.map((item) => (item.uuid === request.uuid ? request : item)),
         );
+      if (action !== 'withdraw') {
+        void client.invalidateQueries({ queryKey: ownAppointmentsKey(owner) });
+        void client.invalidateQueries({ queryKey: ownershipCompaniesKey(owner) });
+      }
     },
   });
   const opening = useMutation({
     mutationFn: async (request: CompanyAuthorityRequest) => {
       guard();
-      const { data } = await downloadCompanyAuthorityFile(apiClient, request.uuid, { ledovaSubmissionGuard: guard });
+      const { data } = await downloadCompanyAuthorityFile(apiClient, request.uuid, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: guard,
+      });
       guard();
-      saveFile(new Blob([data], { type: request.mimeType }), request.originalFilename);
+      await save?.(data, request);
     },
   });
   return {

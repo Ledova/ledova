@@ -11,6 +11,9 @@ import { CertificatesScreen } from '../screens/documents/CertificatesScreen';
 import { DashboardScreen } from '../screens/holdings/DashboardScreen';
 import { InvitationScreen } from '../screens/holdings/InvitationScreen';
 import { AccountScreen, DataPrivacyScreen, SettingsScreen } from '../screens/settings';
+import { ActivationScreen } from '../screens/settings/ActivationScreen';
+import { AuthorityRequestScreen } from '../screens/settings/AuthorityRequestScreen';
+import { AuthorityScreen } from '../screens/settings/AuthorityScreen';
 import { TeamScreen } from '../screens/settings/TeamScreen';
 import type { MenuRoute, Section } from './AppMenu';
 import { TopBar } from './headers';
@@ -22,6 +25,9 @@ export type SignedInStackParamList = {
   Account: undefined;
   DataPrivacy: undefined;
   Team: undefined;
+  Activation: undefined;
+  Authority: undefined;
+  AuthorityRequest: { uuid: string };
   Invitation: undefined;
 };
 
@@ -62,6 +68,9 @@ export function SignedInNavigator() {
             <Stack.Screen name="Account" component={AccountScreen} options={topBar('Settings')} />
             <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} options={topBar('Settings')} />
             <Stack.Screen name="Team" component={TeamScreen} options={topBar('Settings')} />
+            <Stack.Screen name="Activation" component={ActivationScreen} options={topBar('Settings')} />
+            <Stack.Screen name="Authority" component={AuthorityScreen} options={topBar('Settings')} />
+            <Stack.Screen name="AuthorityRequest" component={AuthorityRequestScreen} options={topBar('Settings')} />
             <Stack.Screen name="Invitation" component={InvitationScreen} options={topBar('Dashboard')} />
           </Stack.Navigator>
           <NotificationsPanel anchor={notificationsAnchor} onClose={closeNotifications} />

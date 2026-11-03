@@ -8,10 +8,12 @@ export type AcceptCompanySignupTermsRequest = ApiRequest<'api_v1_company_authori
 
 export type CompanyCapability = ApiSchema<'CompanyCapabilityEnum'>;
 
-export type CompanyAuthoritySubmission = ApiRequest<'api_v1_company_authority_requests_create'> &
+export type UploadFile = Blob | { uri: string; name: string; type: string };
+
+export type CompanyAuthoritySubmission = Omit<ApiRequest<'api_v1_company_authority_requests_create'>, 'file'> &
   Required<
     Pick<ApiRequest<'api_v1_company_authority_requests_create'>, 'requestedCapabilities' | 'delegatableCapabilities'>
-  >;
+  > & { file?: UploadFile };
 
 export type CompanyAuthorityQueryParams = ApiQuery<'api_v1_company_authority_requests_list'>;
 

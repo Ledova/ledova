@@ -885,6 +885,21 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   the web from its company context (or the address's `company` without one), and the app from its
   company list, with its session and Expo Crypto's `randomUUID` for invitation keys. The web's date
   fields add `useIncompleteDates`.
+- Representative authority (`dashboard/src/pages/company/authority`, and the app's Representative
+  authority screens, [navigation](mobile.md#navigation)): `packages/shared/src/hooks/useAuthorityRequests.ts`
+  reads the person's requests (`authorityRequestsKey`) and their draft companies, withdraws, admits
+  and revokes, and fetches evidence for a save function each client supplies (the web's `saveFile`,
+  the app's share sheet). `useAuthorityRequestForm` beside it submits a request with any evidence
+  file, a browser `File` or the app's picked file (`UploadFile`). Each client passes the selected
+  company: the web from its company context (or the address's `company` without one), the app from
+  its company list, with its session and Expo Crypto's `randomUUID`. The request page's
+  `requestScopeLabels` (`packages/shared/src/utils/appointments.ts`) lists capabilities in the order
+  the request recorded them, and the status tones (`AUTHORITY_REQUEST_TONES`) are shared too.
+- Activation (`dashboard/src/pages/company/listing`, and the app's Activation screen): both read the
+  selected company through `useCompanySelection` limited to personal administration and confirm
+  through `useCompanyActivation`, with the shared status tones (`COMPANY_STATUS_TONES`). Settings
+  lists Activation for a company that may be managed when `hasCurrentAdminAppointment` finds a
+  current own appointment with `admin`, on the web and in the app.
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
   personal and company sections, keeping each editor's data and authority separate. Account's

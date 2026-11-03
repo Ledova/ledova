@@ -53,7 +53,9 @@ export {
   appointmentReceipt,
   currentAppointment,
   delegationLabel,
+  hasCurrentAdminAppointment,
   invitationOpen,
+  requestScopeLabels,
   sameScope,
   scopeLabels,
 } from './appointments';

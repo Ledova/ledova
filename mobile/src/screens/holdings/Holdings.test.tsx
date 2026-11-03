@@ -4,10 +4,13 @@ import {
   COMPANY_AUTHORITY_DECLARATION,
   COMPANY_AUTHORITY_DECLARATION_VERSION,
   COMPANY_ENDPOINTS,
+  COMPANY_SIGNUP_DECLARATION,
+  COMPANY_SIGNUP_DECLARATION_VERSION,
   COMPANY_TOKEN_ENDPOINTS as URLS,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
   ownershipCompaniesKey,
+  type CompanyAuthorityRequest,
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
   type OwnMemberRecord,
@@ -21,6 +24,8 @@ import { getSessionEpoch } from '../../services/sessionScope';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
 import { destinationOf } from '../../components/notifications/NotificationsPanel';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
+import { AuthorityRequestScreen } from '../settings/AuthorityRequestScreen';
+import { AuthorityScreen } from '../settings/AuthorityScreen';
 import { TeamScreen } from '../settings/TeamScreen';
 import { DashboardScreen } from './DashboardScreen';
 import { InvitationScreen } from './InvitationScreen';
@@ -145,6 +150,54 @@ const READER: CompanyTeamAppointment = {
   source: 'invitation',
 };
 const REVOKED = { status: 'revoked' as const, revokedAt: '2026-11-03T00:00:00Z', isEffective: false };
+const AUTHORITY_REQUESTS = '/api/v1/company-authority/requests/';
+const IDENTITY = { name: ADMINISTERED.name, acn: '992000021', abn: '', companyType: 'pty' as const };
+const PERSON = { userId: 1, profileUuid: 'profile-one', email: PROFILE.email, fullName: PROFILE.fullName };
+const ADMITTED: CompanyAuthorityRequest = {
+  uuid: '30303030-3030-4030-8030-303030303030',
+  company: ADMINISTERED.uuid,
+  requesterProfile: 'profile-one',
+  idempotencyKey: '31313131-3131-4131-8131-313131313131',
+  purpose: 'initial',
+  companyIdentityRaw: IDENTITY,
+  companyIdentity: IDENTITY,
+  personIdentityRaw: PERSON,
+  personIdentity: PERSON,
+  requestedCapabilities: ['admin'],
+  delegatableCapabilities: [],
+  requestedExpiresAt: null,
+  originalFilename: '',
+  fileSize: 0,
+  mimeType: '',
+  fileSha256: '',
+  requestDigest: 'synthetic-digest',
+  createdAt: '2026-10-27T00:00:00Z',
+  fileUrl: null,
+  status: 'admitted',
+  withdrawnAt: null,
+  verificationStatus: 'self_declared',
+  verificationMessage: 'Authorisation declared by the company representative.',
+  appointment: {
+    uuid: '32323232-3232-4232-8232-323232323232',
+    capabilities: ['admin'],
+    delegatableCapabilities: [],
+    expiresAt: null,
+    createdAt: '2026-10-27T00:00:00Z',
+    revokedAt: null,
+    status: 'active',
+    isEffective: true,
+    declarationVersion: COMPANY_SIGNUP_DECLARATION_VERSION,
+    declarationText: COMPANY_SIGNUP_DECLARATION,
+  },
+};
+const PENDING: CompanyAuthorityRequest = {
+  ...ADMITTED,
+  uuid: '33333333-3333-4333-8333-333333333333',
+  companyIdentityRaw: { ...IDENTITY, name: 'Synthetic Draft Company' },
+  status: 'pending',
+  verificationStatus: 'unavailable',
+  appointment: null,
+};
 const SECOND_ENTRY = {
   ...MEMBER_ENTRY,
   uuid: '19191919-1919-4919-8919-191919191919',
@@ -153,7 +206,7 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, lists and opens an administered company’s overview with its paged shareholders, reads its team only with current administration and revokes only the confirmed appointment, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, lists and opens an administered company’s overview with its paged shareholders, reads its team only with current administration and revokes only the confirmed appointment, opens a representative authority request from its list and revokes only that request’s appointment after its confirmation, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
@@ -170,6 +223,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === APPOINTMENTS) return page(appointed ? [ADMINISTRATION] : []);
     if (url === `${APPOINTMENTS}team/`) return { data: [revoked ? { ...READER, ...REVOKED } : READER] };
     if (url === '/api/v1/company-authority/invitations/') return page([]);
+    if (url === AUTHORITY_REQUESTS) return page([PENDING, ADMITTED]);
     if (url === URLS.REGISTER) return page([{ uuid: FOUNDERS.uuid, companyUuid: ADMINISTERED.uuid }]);
     if (url === URLS.OWNERSHIP) {
       const founders = { ...FOUNDERS, tokenType: 'ordinary', initialized: true, recordedAt: '2026-11-01T00:00:00Z' };
@@ -226,6 +280,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
         },
       };
     }
+    if (url === `${AUTHORITY_REQUESTS}${ADMITTED.uuid}/revoke/`)
+      return { data: { ...ADMITTED, appointment: { ...ADMITTED.appointment!, ...REVOKED } } };
     if (url === `${APPOINTMENTS}${READER.uuid}/revoke/`) {
       revoked = true;
       const { name: _name, email: _email, ...appointment } = READER;
@@ -426,6 +482,23 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: /^Revoke appointment \(Synthetic Administered Company/ }));
   expect(screen.getByText(/^Permanently remove your appointment for Synthetic Administered Company\?/)).toBeTruthy();
   expect(revocations()).toHaveLength(1);
+  await view.rerender(<AuthorityScreen />);
+  await fireEvent.press(
+    await screen.findByRole('button', { name: /^Synthetic Administered Company \(authority request .+, admitted\)$/ }),
+  );
+  expect(mockNavigate).toHaveBeenCalledWith('AuthorityRequest', { uuid: ADMITTED.uuid });
+  await view.rerender(
+    <AuthorityRequestScreen route={{ key: 'authority', name: 'AuthorityRequest', params: { uuid: ADMITTED.uuid } }} />,
+  );
+  await fireEvent.press(
+    await screen.findByRole('button', { name: 'Revoke appointment (Synthetic Administered Company)', disabled: false }),
+  );
+  const authorityPosts = () => api.post.mock.calls.filter(([url]) => url.startsWith(AUTHORITY_REQUESTS));
+  expect(authorityPosts()).toHaveLength(0);
+  await fireEvent.press(screen.getByRole('button', { name: 'Permanently revoke appointment' }));
+  expect(authorityPosts()).toEqual([[`${AUTHORITY_REQUESTS}${ADMITTED.uuid}/revoke/`, {}, expect.anything()]]);
+  expect(await screen.findByText('Appointment revoked')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^Revoke appointment/ })).toBeNull();
   await view.rerender(certificatesPage);
   expect(await screen.findByText('Transfer · ORD · entry 2')).toBeTruthy();
   refused = true;

@@ -1,31 +1,22 @@
-import { AUTHORITY_REQUEST_TONES } from '@pages/company/shared/statusTones';
 import { SITE_PATHS } from '@utils/paths';
 import { useId, useRef, useState } from 'react';
 import {
-  COMPANY_AUTHORITY_CAPABILITIES,
+  AUTHORITY_REQUEST_TONES,
   COMPANY_SIGNUP_DECLARATION,
   COMPANY_SIGNUP_DECLARATION_VERSION,
+  authorityRequestStatus,
   formatDateTime,
+  requestScopeLabels,
   type CompanyAuthorityRequest,
-  type CompanyCapability,
   APPOINTMENT_STATUS_LABELS,
 } from '@ledova/shared';
 import { FormActions, PageAction } from '@components/Page';
 import { CheckboxField } from '@components/Field';
-import { authorityRequestStatus } from '@pages/company/authority/shared/useAuthorityRequests';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { MoreToggle, Row, Rows, Section, Status } from '@components/Ledger';
 import { Confirmation, Modal } from '@components/Modal';
 import { SITE_URL } from '@utils/siteUrl';
-
-function scopeLabels(values: CompanyCapability[]) {
-  return (
-    values
-      .map((value) => COMPANY_AUTHORITY_CAPABILITIES.find((item) => item.value === value)?.label ?? value)
-      .join(', ') || 'None'
-  );
-}
 
 export function AuthorityRequestRecord({
   request,
@@ -70,8 +61,8 @@ export function AuthorityRequestRecord({
           <Row label="Requested expiry">
             {request.requestedExpiresAt ? formatDateTime(request.requestedExpiresAt) : 'No requested expiry'}
           </Row>
-          <Row label="Requested actions">{scopeLabels(request.requestedCapabilities)}</Row>
-          <Row label="Requested delegation">{scopeLabels(request.delegatableCapabilities)}</Row>
+          <Row label="Requested actions">{requestScopeLabels(request.requestedCapabilities)}</Row>
+          <Row label="Requested delegation">{requestScopeLabels(request.delegatableCapabilities)}</Row>
           <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
           {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
         </Rows>
@@ -138,8 +129,8 @@ export function AuthorityRequestRecord({
             <Row label="Appointment status">{APPOINTMENT_STATUS_LABELS[appointment.status]}</Row>
             <Row label="Current company authority">{appointment.isEffective ? 'Current' : 'Not current'}</Row>
             <Row label="Admitted">{formatDateTime(appointment.createdAt)}</Row>
-            <Row label="Appointed actions">{scopeLabels(appointment.capabilities)}</Row>
-            <Row label="Appointed delegation">{scopeLabels(appointment.delegatableCapabilities)}</Row>
+            <Row label="Appointed actions">{requestScopeLabels(appointment.capabilities)}</Row>
+            <Row label="Appointed delegation">{requestScopeLabels(appointment.delegatableCapabilities)}</Row>
             <Row label="Appointment expiry">
               {appointment.expiresAt ? formatDateTime(appointment.expiresAt) : 'No expiry'}
             </Row>

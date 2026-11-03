@@ -1,14 +1,29 @@
 import { Platform } from 'react-native';
 import { Directory, File, Paths } from 'expo-file-system';
-import { assertSessionEpoch, subscribeSession } from './sessionScope';
+import { uploadType } from '@ledova/shared';
+import { assertSessionEpoch, getSessionEpoch, subscribeSession } from './sessionScope';
 
 const PICKER_NAME = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9_-]{0,32})?$/i;
+const PICKING_CANCELLED = ['ERR_FILE_PICKING_CANCELLED', 'ERR_PICKER_CANCELLED'];
+const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
+  'application/pdf': '.pdf',
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+};
+const picked = new Set<string>();
 let viewing: number | undefined;
 
 interface DocumentView {
   name: string;
   type: string;
   bytes: Uint8Array;
+}
+
+export interface PickedDocument {
+  uri: string;
+  name: string;
+  type: string;
+  size: number;
 }
 
 function temporaryDirectory(): Directory {
@@ -65,7 +80,12 @@ export function sweepEarlierUploadCopies(): void {
   }
 }
 
+export function discardDocument(uri: string): void {
+  if (picked.delete(uri)) removeCopy(new File(uri));
+}
+
 subscribeSession(() => {
+  [...picked].forEach(discardDocument);
   sweepEarlierUploadCopies();
   sweepViewCopies();
 });
@@ -96,4 +116,30 @@ export async function shareDocumentCopy(
   });
   assertSessionEpoch(sessionEpoch);
   await share(copy.uri, copy.type);
+}
+
+export async function pickDocument(): Promise<PickedDocument | null> {
+  const epoch = getSessionEpoch();
+  let uri: string | undefined;
+  try {
+    const choice = await File.pickFileAsync();
+    uri = (Array.isArray(choice) ? choice[0] : choice)?.uri;
+  } catch (failure) {
+    if (PICKING_CANCELLED.includes((failure as { code?: string } | null)?.code ?? '')) return null;
+    throw failure;
+  }
+  if (!uri) return null;
+  const file = new File(uri);
+  picked.add(file.uri);
+  if (epoch !== getSessionEpoch()) {
+    discardDocument(file.uri);
+    return null;
+  }
+  const type = file.type ?? '';
+  return {
+    uri: file.uri,
+    name: uploadType(file.name) === type ? file.name : `document${EXTENSION_BY_MIME_TYPE[type] ?? ''}`,
+    type,
+    size: file.size ?? 0,
+  };
 }

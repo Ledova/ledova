@@ -40,9 +40,10 @@ Shared register UI (fields and document sharing) lives in `components/register`,
 `hooks/`. The signed-in member records state is a context
 (`mobile/src/contexts/MemberRecordsContext.tsx`), with its notices and pull to refresh in
 `mobile/src/components/MemberRecords.tsx`. Production screens import no other area's internals.
-Profile, operator, member, company list, appointment and company ownership reads, and Team's reads
-and forms, live in `packages/shared`, with native session, result and transport policies kept in the
-client: the app passes its session to each shared read and request.
+Profile, operator, member, company list, appointment and company ownership reads, Team's reads
+and forms, Activation's company read and confirmation, and representative authority's reads, actions
+and request form live in `packages/shared`, with native session, result and transport policies kept
+in the client: the app passes its session to each shared read and request.
 
 ### Shared package resolution
 
@@ -81,11 +82,14 @@ web's phone drawer, 208 points wide: Dashboard, Documents and Settings, and a fo
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Documents for Certificates, Settings for
-Profile, Account, Data and privacy and Team, Dashboard for Invitation. Choosing Dashboard returns to it.
+Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like the web's
+sidebar, it marks Team on Representative authority and its requests. Choosing Dashboard returns to it.
 Documents opens Certificates and Settings opens Profile. Documents is one link, as the web shows a
-member, and like the web's groups Settings' caret shows its pages beneath it, Profile, Account and
-Data and privacy, then Team when the selected company's `canManage` allows it, as on the web, open
-while one of them is shown. On a Settings page the menu doesn't list,
+member, and like the web's groups Settings' caret shows its pages beneath it, open while one of them
+is shown: Profile, Account and Data and privacy, then Team when the selected company's `canManage`
+allows it, and Activation after it when the person also has a current own appointment with `admin`
+(the shared `hasCurrentAdminAppointment`) or Activation is shown, as on the web. On a Settings page
+the menu doesn't list,
 such as Team opened from Account, Settings itself is marked. Every other choice opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
 (`Section`) use the web's phone sizes: 16-point margins and gaps, and cards with 16-point padding and
@@ -126,8 +130,8 @@ button (`FilterPopover`) with Share class and Apply. Each record shows the share
 the entry and its date (and ledger date), with no action. A class the member is not recorded in says
 so, as does a company that has no member record for the person, whose company certificate records
 stay on the web; a failed read offers Try again.
-Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`) and
-Team. Profile, the `Settings` route, is the web's Personal
+Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
+Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form
 in the card. Pulling down refreshes the profile. Account (`Account`) has the web's three cards. Security
 shows the identity check status from the profile (the app has no identity check flow, so there is no
@@ -155,7 +159,29 @@ closed; someone with no appointments who owns no company opens on accepting. The
 checkboxes, the invitation deadline and appointment expiry are typed as `YYYY-MM-DD` (UTC) with the
 web's checks, and the one-time code shows once as selectable text to copy. **Revoke appointment**
 asks first in the web's dialog. Pulling down rereads the page while no form or revocation is open.
-The web's **Representative authority** is not in the app yet.
+Team's **Representative authority**, shown as on the web to a company account that owns a company,
+opens the web's Representative authority page (`AuthorityScreen.tsx`), read and sent through the
+shared `useAuthorityRequests` and `useAuthorityRequestForm`: Authority requests, each a row with the
+company, its ACN and submission date and the request's status, then **Request authority**, which
+replaces the list with the web's New authority request form (`AuthorityRequestForm.tsx`) for the
+selected company when it is a draft the person owns, and otherwise the web's notice to choose a
+company on Dashboard. The capabilities are checkboxes, the expiry is typed as `YYYY-MM-DD` (UTC)
+with the web's check, and **Choose file** picks the supporting document through `expo-file-system`'s
+own picker (`pickDocument` in `mobile/src/services/documentCopies.ts`), checked as on the web. A
+request opens its page (`AuthorityRequestScreen.tsx`, the company's name as its title): the web's
+Request and Appointment cards, the declaration and Terms for an admin request still pending,
+**Show the declaration**, **Download evidence**, which shares the file
+([document view copies](#document-view-copies)), **Withdraw request** and **Establish appointment**
+while pending, and **Revoke appointment**. Withdrawing and revoking ask first in the web's dialogs.
+Pulling down rereads the requests while no request form is open and no action is running.
+The web's title-row way back, Back to Team and Back to Representative authority, is left out, as the
+app has no back buttons; Android's Back and the iOS swipe return to the previous page.
+Activation (`ActivationScreen.tsx`) is the web's page at phone width, through the shared
+`useCompanySelection`, limited to personal administration of the selected company, and
+`useCompanyActivation`: Activation status with the company's status, **Show the historical record**
+and **Review activation**, which replaces the page with the company's declaration, the web's
+checkbox and **Confirm activation**, and Your identity, whose row opens Account, while the company
+awaits activation. Pulling down rereads the company while no review is open.
 A notification, tapped in that list or as a push, opens its screen: vested shares open Dashboard on
 the award's company (with its class, where the overview lists it) and issued shares Certificates for
 that class, each saying so when that company no longer records you. A certificate-ready notice sent
@@ -287,18 +313,27 @@ the next native build drops its module, and a development app built with it stil
 JavaScript. Make release builds from a fresh prebuild
 ([building from a clean checkout](mobile-releases.md#building-from-a-clean-checkout)).
 
+A representative authority request's evidence is picked with `expo-file-system`'s own picker
+(`File.pickFileAsync`), so no picker module returns. On iOS it hands over a copy in the temporary
+folder's `-Inbox` folder, deleted when another file replaces it, the form goes (its request recorded
+or the page left) or the session changes; a closed form keeps it with its draft. On Android it hands
+over the chosen document itself, which the app never deletes, named from its address or, without a
+name there, `document` with its type's extension.
+
 For one release, each app start and session change still delete the copies an earlier build's
 picker and uploads left behind (`sweepEarlierUploadCopies` in
 `mobile/src/services/documentCopies.ts`): the picker's UUID-named files in the cache's
 `DocumentPicker` folder, the old `ledova-upload-copies-v1` copies and, on iOS, the files in the
-temporary folder's `-Inbox` folders. It deletes only files inside the app's own cache or, on iOS,
-temporary folder, and needs only `expo-file-system`. The release after that removes it.
+temporary folder's `-Inbox` folders, which also clears any evidence copy left there. It deletes only
+files inside the app's own cache or, on iOS, temporary folder, and needs only `expo-file-system`. The
+release after that removes it.
 
 ## Document view copies
 
 Viewing a document downloads it into the app-owned `ledova-document-views-v1` cache directory and
 hands the copy to the share sheet (`shareDocumentCopy`). Data and privacy shares the
-[account-data export](records.md#account-data-export) this way, as one JSON copy.
+[account-data export](records.md#account-data-export) this way, as one JSON copy, and a
+representative authority request's page its evidence, under its original file name.
 
 A view is bound to the session current when tapped: its download carries that epoch
 ([session scope](#session-scope)), and a session change before the write stops it without an alert.

@@ -1,0 +1,11 @@
+import { useUserPreferences } from '@ledova/shared';
+import { LoadError, Loading } from '../../components/Ledger';
+
+export function AccountCheck() {
+  const preferences = useUserPreferences();
+  return preferences.isLoading || preferences.isFetching ? (
+    <Loading>Loading your account…</Loading>
+  ) : (
+    <LoadError retry={() => preferences.refetch()}>Your account could not be loaded.</LoadError>
+  );
+}

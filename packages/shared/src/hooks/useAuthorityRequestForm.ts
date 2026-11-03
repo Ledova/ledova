@@ -1,29 +1,31 @@
-import {
-  isCalendarDate,
-  submitCompanyAuthorityRequest,
-  type CompanyAuthorityRequest,
-  type CompanyCapability,
-  type CompanyListItem,
-  utcToday,
-} from '@ledova/shared';
-import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { useIncompleteDates } from '@hooks/useIncompleteDates';
-import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { submitCompanyAuthorityRequest } from '../services/company-authority';
+import type { CompanyAuthorityRequest, CompanyCapability, CompanyListItem, UploadFile } from '../types';
+import { isCalendarDate, utcToday } from '../utils/date';
+import { useApiClient } from './useApiClient';
+import { hasProblems, type Problems } from './useErrorSummary';
+import type { OrderSubmissionSession } from './useSubmissionOwner';
 
 export function useAuthorityRequestForm({
   company,
   disabled,
   guard,
   onSuccess,
+  incomplete = {},
+  session,
+  newKey = () => crypto.randomUUID(),
 }: {
   company: CompanyListItem;
   disabled: boolean;
   guard: () => void;
   onSuccess: (request: CompanyAuthorityRequest) => void;
+  incomplete?: Partial<Record<'expiry', boolean>>;
+  session?: OrderSubmissionSession;
+  newKey?: () => string;
 }) {
-  const [file, setFile] = useState<File | null>(null);
+  const apiClient = useApiClient();
+  const [file, setFile] = useState<UploadFile | null>(null);
   const [requested, setRequested] = useState<CompanyCapability[]>(['admin']);
   const [delegatable, setDelegatable] = useState<CompanyCapability[]>([]);
   const [expiry, setExpiry] = useState('');
@@ -43,7 +45,7 @@ export function useAuthorityRequestForm({
   const submission = useMutation({
     mutationFn: async () => {
       check();
-      key.current ??= crypto.randomUUID();
+      key.current ??= newKey();
       const response = await submitCompanyAuthorityRequest(
         apiClient,
         {
@@ -54,7 +56,7 @@ export function useAuthorityRequestForm({
           delegatableCapabilities: delegatable,
           ...(expiry ? { requestedExpiresAt: `${expiry}T23:59:59Z` } : {}),
         },
-        { ledovaSubmissionGuard: check },
+        { ...session?.requestConfig(), ledovaSubmissionGuard: check },
       );
       check();
       return response;
@@ -68,11 +70,10 @@ export function useAuthorityRequestForm({
   };
   const busy = submission.isPending;
   const available = !disabled && !busy;
-  const dates = useIncompleteDates<'expiry'>();
   const problems: Problems<'actions' | 'expiry'> = {
     actions: !requested.length && !delegatable.length && 'Choose at least one action to request or to delegate.',
     expiry:
-      (dates.incomplete.expiry || (!!expiry && (!isCalendarDate(expiry) || expiry < utcToday()))) &&
+      (incomplete.expiry || (!!expiry && (!isCalendarDate(expiry) || expiry < utcToday()))) &&
       'Enter a requested expiry no earlier than today (UTC), or clear it.',
   };
   const toggle = (values: CompanyCapability[], value: CompanyCapability) =>
@@ -100,7 +101,6 @@ export function useAuthorityRequestForm({
     change,
     busy,
     problems,
-    watchDate: dates.watch,
     toggle,
     send,
   };

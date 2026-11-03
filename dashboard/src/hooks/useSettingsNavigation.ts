@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  appointmentForRegisterStep,
   canAdministerCompany,
   canOpen,
   ownCompaniesKey,
@@ -13,6 +12,7 @@ import {
   CACHE_TIMING,
   ownAppointmentsKey,
   useOwnAppointments,
+  hasCurrentAdminAppointment,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { SETTINGS_VIEWS } from '@utils/destinations';
@@ -50,12 +50,7 @@ export function useSettingsNavigation() {
   const current = !!owner && !!preferences.preferences && !preferences.isError;
   const own = current && appointments.isSuccess && !appointments.isFetching ? appointments.data : [];
   const companyRows = current && companyAudience && companies.isSuccess && !companies.isFetching ? companies.data : [];
-  const canActivate = own.some(
-    (appointment) =>
-      appointment.capabilities.includes('admin') &&
-      !appointment.revokedAt &&
-      !!appointmentForRegisterStep([appointment], appointment.company, 'prepare'),
-  );
+  const canActivate = hasCurrentAdminAppointment(own);
   const hasOwnedCompany = companyRows.some((company) => company.isOwner === true);
   const canManageCompany = canActivate || companyRows.some(canAdministerCompany) || hasOwnedCompany;
   const items = SETTINGS_VIEWS.filter(({ key }) => key !== 'activation' || canActivate);

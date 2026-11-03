@@ -44,7 +44,7 @@ person, actions, any delegation (**May delegate all of these** when it matches t
 or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
 appointment's recorded declaration behind **Show the declaration**; issued invitations show their
 acceptance or deadline and the appointment's expiry. The app's Team has the same cards, rows and
-inline tasks at phone width, without Representative authority.
+inline tasks at phone width, and the same Representative authority.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
 Employee share scheme, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
@@ -121,8 +121,9 @@ section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
-action and the bell; no page has a back button. A tap on a control acts at once, even while the
-keyboard is up.
+action and the bell; no page has a back button, so the app leaves out the web's title-row way back,
+such as Back to Team, and Android's Back and the iOS swipe return to the previous page. A tap on a
+control acts at once, even while the keyboard is up.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
 `PageAction` (`dashboard/src/components/Page.tsx`) each enforce one rule:
@@ -411,7 +412,7 @@ opening the people list. Documents uses the same pattern for **Certificates** (t
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
 **Team** and **Activation** where permitted, without an extra overview page; the app's menu has Team
-where the selected company may be managed, and no Activation yet. A group with only one
+and Activation under the same conditions. A group with only one
 permitted page, such as Documents with only Certificates, is a plain link to that page, marked current
 there. Profile always holds personal information. Team, Activation and
 Company details follow current company access. Personal edits never change company-recorded particulars.
@@ -944,7 +945,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     `useErrorSummary` (`packages/shared/src/hooks/useErrorSummary.ts`)
     reads the form's problems, keyed by field, and forms that share one summary, such as Member
     access's invitation, revocation and certificate instruction, check only the fields their action
-    needs. The app's Team forms use it too, showing each problem under its field without a summary.
+    needs. The app's Team, Activation and representative authority forms use it too, showing each
+    problem under its field without a summary.
     A box that must be ticked is a `CheckboxField`,
     except sign-up pre-screening's four declarations,
     which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking
@@ -975,8 +977,9 @@ This section covers how a form reports a problem: when it is submitted, and when
     as empty, so an optional one would be dropped silently. `useIncompleteDates`
     (`dashboard/src/hooks/useIncompleteDates.ts`) notes the browser's `badInput` on each keystroke,
     input and blur, and the form treats it as a problem: the team invitation's deadline and
-    appointment expiry and a representative authority request's expiry. The app's Team takes the
-    invitation's dates as typed `YYYY-MM-DD` text, which the same checks read as written.
+    appointment expiry and a representative authority request's expiry. The app's Team and
+    representative authority request take these dates as typed `YYYY-MM-DD` text, which the same
+    checks read as written.
 
 - **Request errors.** A failure reads as one `role="alert"` sentence, `Failure`
   (`dashboard/src/components/Ledger.tsx`, which renders nothing without a sentence), from

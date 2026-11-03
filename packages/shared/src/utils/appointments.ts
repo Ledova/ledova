@@ -6,12 +6,22 @@ import {
   COMPANY_SIGNUP_DECLARATION_VERSION,
 } from '../constants/business/company-authority';
 import type { CompanyCapability, CompanyTeamAppointment, OwnCompanyAppointment } from '../types';
+import { appointmentForRegisterStep } from './register-commands';
 
 export function currentAppointment(appointment: OwnCompanyAppointment | CompanyTeamAppointment) {
   return (
     appointment.status === 'active' &&
     appointment.isEffective &&
     (!appointment.expiresAt || Date.parse(appointment.expiresAt) > Date.now())
+  );
+}
+
+export function hasCurrentAdminAppointment(appointments: OwnCompanyAppointment[]) {
+  return appointments.some(
+    (appointment) =>
+      appointment.capabilities.includes('admin') &&
+      !appointment.revokedAt &&
+      !!appointmentForRegisterStep([appointment], appointment.company, 'prepare'),
   );
 }
 
@@ -23,6 +33,14 @@ export function scopeLabels(values: CompanyCapability[]) {
   return (
     COMPANY_AUTHORITY_CAPABILITIES.filter(({ value }) => values.includes(value))
       .map(({ label }) => label)
+      .join(', ') || 'None'
+  );
+}
+
+export function requestScopeLabels(values: CompanyCapability[]) {
+  return (
+    values
+      .map((value) => COMPANY_AUTHORITY_CAPABILITIES.find((item) => item.value === value)?.label ?? value)
       .join(', ') || 'None'
   );
 }
