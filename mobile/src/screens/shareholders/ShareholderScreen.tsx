@@ -279,6 +279,19 @@ function OwnShareholder({
                 {holder.holderType === 'unidentified' && (
                   <Text style={look.muted}>{REGISTER_COPY.UNIDENTIFIED_NOTE}</Text>
                 )}
+                {prepare && !holder.wallets.length && register.initialized && register.token.status === 'draft' && (
+                  <Action
+                    label="Transfer shares"
+                    accessibilityLabel={`Transfer shares (${register.token.name})`}
+                    onPress={() =>
+                      navigation.navigate('TransferPreparation', {
+                        company,
+                        token: register.token.uuid,
+                        fromMember: member,
+                      })
+                    }
+                  />
+                )}
               </View>
             ))}
             {former.map(({ register, row }) => (

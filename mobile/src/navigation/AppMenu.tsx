@@ -36,6 +36,7 @@ export type MenuRoute =
   | 'Dashboard'
   | 'Ledger'
   | 'IssueShares'
+  | 'TransferShares'
   | 'Shareholders'
   | 'EmployeeScheme'
   | 'MemberAccess'
@@ -60,6 +61,7 @@ const PARENT_ROUTES: Partial<Record<string, MenuRoute>> = {
   Authority: 'Team',
   AuthorityRequest: 'Team',
   EmployeeAward: 'EmployeeScheme',
+  TransferPreparation: 'TransferShares',
 };
 
 const sections = (canReadRegister: boolean): MenuItem[] => [
@@ -71,7 +73,10 @@ const sections = (canReadRegister: boolean): MenuItem[] => [
           label: 'Ledger',
           icon: BookOpenIcon,
           route: 'Ledger' as const,
-          items: [{ route: 'IssueShares' as const, label: 'Issue shares' }],
+          items: [
+            { route: 'IssueShares' as const, label: 'Issue shares' },
+            { route: 'TransferShares' as const, label: 'Transfer shares' },
+          ],
         },
         {
           name: 'Shareholders' as const,

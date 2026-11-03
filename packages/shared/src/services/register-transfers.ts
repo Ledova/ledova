@@ -62,8 +62,21 @@ export const downloadRegisterTransferFile = (
   kind: 'authority' | 'instrument',
   config: AxiosRequestConfig = {},
 ) => {
-  const fileConfig = { ...config, responseType: 'blob' as const };
+  const bytes = config.responseType === 'arraybuffer';
   if (kind === 'authority')
-    return apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_FILE(uuid), fileConfig);
-  return apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_INSTRUMENT_FILE(uuid), fileConfig);
+    return bytes
+      ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_FILE(uuid), {
+          ...config,
+          responseType: 'arraybuffer',
+        })
+      : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_FILE(uuid), { ...config, responseType: 'blob' });
+  return bytes
+    ? apiClient.get<ArrayBuffer>(COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_INSTRUMENT_FILE(uuid), {
+        ...config,
+        responseType: 'arraybuffer',
+      })
+    : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFER_INSTRUMENT_FILE(uuid), {
+        ...config,
+        responseType: 'blob',
+      });
 };

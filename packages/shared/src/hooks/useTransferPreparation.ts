@@ -1,29 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
-import {
-  REGISTER_TRANSFER_COPY as COPY,
-  apiErrorSentence,
-  createUserFriendlyError,
-  failureStatus,
-  isPreparedRegisterTransfer,
-  isRegisterEvidenceReceipt,
-  prepareRegisterTransfer,
-  uploadRegisterEvidence,
-  type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
-  type RegisterEvidence,
-  type RegisterTransferPreparation,
-  type Person,
-  REGISTER_TRANSFER_UNMET_COPY,
-  refusalSentence,
-  utcToday,
-} from '@ledova/shared';
-
-import apiClient from '@services/apiClient';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
-import { transfersKey } from '@pages/company/ledger/shared/useRegisterTransfers';
-import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
+import { REGISTER_TRANSFER_COPY as COPY, REGISTER_TRANSFER_UNMET_COPY } from '../constants/business/register-transfers';
+import { uploadRegisterEvidence } from '../services/register-commands';
+import { prepareRegisterTransfer } from '../services/register-transfers';
+import type {
+  OwnCompanyAppointment,
+  RegisterDocumentFile,
+  RegisterEvidence,
+  RegisterTransferPreparation,
+} from '../types';
+import { utcToday } from '../utils/date';
+import { apiErrorSentence, createUserFriendlyError, failureStatus, refusalSentence } from '../utils/errors';
+import type { Person } from '../utils/people';
+import { isRegisterEvidenceReceipt } from '../utils/register-commands';
+import { isPreparedRegisterTransfer } from '../utils/register-transfers';
+import { useApiClient } from './useApiClient';
+import { hasProblems, type Problems } from './useErrorSummary';
+import { transfersKey } from './useRegisterTransfers';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 type Draft = {
   fromMember: string;
@@ -40,13 +34,13 @@ type Draft = {
   reason: string;
 };
 
-type DocumentKind = 'authority' | 'instrument';
+export type TransferDocumentKind = 'authority' | 'instrument';
 
-type Uploaded = { file: File; appointment: string; key: string; receipt: RegisterEvidence | null };
+type Uploaded = { file: RegisterDocumentFile; appointment: string; key: string; receipt: RegisterEvidence | null };
 
 const FAILED = 'The preparation response could not be confirmed. Retry with the same details.';
 
-export type TransferFormProps = {
+export type TransferPreparationOptions = {
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
@@ -55,8 +49,10 @@ export type TransferFormProps = {
   appointment: OwnCompanyAppointment;
   blocked: boolean;
   onRefused: () => void;
+  onPrepared: (uuid: string) => void;
   initialFrom?: string;
-  onCancel?: () => void;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 };
 
 export function useTransferPreparation({
@@ -68,10 +64,13 @@ export function useTransferPreparation({
   appointment,
   blocked,
   onRefused,
+  onPrepared,
   initialFrom = '',
-}: TransferFormProps) {
+  newKey,
+  session,
+}: TransferPreparationOptions) {
+  const apiClient = useApiClient();
   const client = useQueryClient();
-  const navigate = useNavigate();
   const today = utcToday();
   const [draft, setDraft] = useState<Draft>({
     fromMember: people.some(
@@ -95,12 +94,12 @@ export function useTransferPreparation({
     authorityReference: '',
     reason: '',
   });
-  const [files, setFiles] = useState<Partial<Record<DocumentKind, File>>>({});
+  const [files, setFiles] = useState<Partial<Record<TransferDocumentKind, RegisterDocumentFile>>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const mounted = useRef(true);
   const pending = useRef(false);
-  const uploads = useRef<Partial<Record<DocumentKind, Uploaded>>>({});
+  const uploads = useRef<Partial<Record<TransferDocumentKind, Uploaded>>>({});
   const [operation, setOperation] = useState<{ request: RegisterTransferPreparation; newParticulars: boolean } | null>(
     null,
   );
@@ -114,6 +113,7 @@ export function useTransferPreparation({
     guard();
     if (!mounted.current) throw createUserFriendlyError('This transfer form is closed. Reopen it before continuing.');
   };
+  const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: check });
   const change = (key: keyof Draft, value: string) => {
     setOperation(null);
     setError('');
@@ -151,12 +151,12 @@ export function useTransferPreparation({
     authorityDocument: !files.authority && 'Choose the director authority.',
     instrumentDocument: !files.instrument && 'Choose the signed transfer instrument.',
   };
-  const upload = async (kind: DocumentKind) => {
+  const upload = async (kind: TransferDocumentKind) => {
     const file = files[kind]!;
     const previous = uploads.current[kind];
     const same = previous?.file === file && previous.appointment === appointment.uuid;
     if (same && previous.receipt) return previous.receipt;
-    const key = same ? previous.key : crypto.randomUUID();
+    const key = same ? previous.key : newKey();
     uploads.current[kind] = { file, appointment: appointment.uuid, key, receipt: null };
     const request = {
       companyId: company,
@@ -165,11 +165,7 @@ export function useTransferPreparation({
       idempotencyKey: key,
     };
     check();
-    const { data } = await uploadRegisterEvidence(
-      apiClient,
-      { ...request, file },
-      { ledovaSubmissionGuard: check },
-    ).catch((failure) => {
+    const { data } = await uploadRegisterEvidence(apiClient, { ...request, file }, config()).catch((failure) => {
       if (failureStatus(failure) === 409) delete uploads.current[kind];
       throw failure;
     });
@@ -193,7 +189,7 @@ export function useTransferPreparation({
         const authority = await upload('authority');
         const instrument = await upload('instrument');
         const request: RegisterTransferPreparation = {
-          operationId: crypto.randomUUID(),
+          operationId: newKey(),
           appointment: appointment.uuid,
           tokenId: token,
           fromMember: draft.fromMember,
@@ -216,21 +212,14 @@ export function useTransferPreparation({
       }
       const { request: preparation, newParticulars } = retained;
       check();
-      const { data } = await prepareRegisterTransfer(apiClient, preparation, { ledovaSubmissionGuard: check });
+      const { data } = await prepareRegisterTransfer(apiClient, preparation, config());
       check();
       if (!isPreparedRegisterTransfer(data, preparation, newParticulars))
         throw createUserFriendlyError(COPY.PREPARATION_RECEIPT_FAILED);
       setOperation(null);
       await client.invalidateQueries({ queryKey: transfersKey(owner, token) });
       check();
-      const place = registerPlace({
-        company,
-        token,
-        task: 'transfer',
-        record: data.uuid,
-        outcome: 'Non-paid transfer prepared.',
-      });
-      navigate(place.to, { state: place.state });
+      onPrepared(data.uuid);
     } catch (failure) {
       const status = failureStatus(failure);
       if (status && status < 500) setOperation(null);

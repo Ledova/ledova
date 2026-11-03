@@ -3,11 +3,9 @@ import {
   downloadRegisterCorrectionFile,
   downloadRegisterImportFile,
   downloadRegisterParticularsChangeFile,
-  downloadRegisterTransferFile,
   type RegisterCorrection,
   type RegisterImport,
   type RegisterParticularsChange,
-  type RegisterTransfer,
   retainedName,
 } from '@ledova/shared';
 import apiClient from '@services/apiClient';
@@ -53,25 +51,6 @@ export function useParticularsRecordDownload(change: RegisterParticularsChange, 
       });
       check();
       saveFile(data, retainedName(change.evidenceSnapshot, `particulars-change-${change.uuid}`));
-    },
-  });
-}
-
-export function useTransferRecordDownload(transfer: RegisterTransfer, check: () => void) {
-  return useMutation({
-    mutationFn: async (kind: 'authority' | 'instrument') => {
-      check();
-      const { data } = await downloadRegisterTransferFile(apiClient, transfer.uuid, kind, {
-        ledovaSubmissionGuard: check,
-      });
-      check();
-      saveFile(
-        data,
-        retainedName(
-          kind === 'authority' ? transfer.evidenceSnapshot : transfer.instrumentSnapshot,
-          `${kind}-${transfer.uuid}`,
-        ),
-      );
     },
   });
 }

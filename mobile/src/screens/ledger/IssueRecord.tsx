@@ -16,6 +16,24 @@ import { useLedgerStyles } from './useLedgerStyles';
 
 export type IssueStatus = { tone: Tone; label: string; note?: string };
 
+export function SummaryCell({
+  label,
+  values,
+  children,
+}: {
+  label: string;
+  values: (string | undefined)[];
+  children: ReactNode;
+}) {
+  const look = useLedgerStyles();
+  return (
+    <View accessible accessibilityLabel={`${label}: ${values.filter(Boolean).join(', ')}`} style={look.cell}>
+      <Text style={look.muted}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
 export function IssueSummary({
   name,
   kind,
@@ -34,42 +52,26 @@ export function IssueSummary({
   const look = useLedgerStyles();
   const count = shareCount(shares);
   const date = formatDate(companyEventOn, 'Not recorded');
-  const cell = (label: string, values: (string | undefined)[], children: ReactNode) => (
-    <View accessible accessibilityLabel={`${label}: ${values.filter(Boolean).join(', ')}`} style={look.cell}>
-      <Text style={look.muted}>{label}</Text>
-      {children}
-    </View>
-  );
   return (
     <View style={look.cells}>
       <View style={look.pair}>
-        {cell(
-          'Recipient',
-          [name, kind],
-          <>
-            <Text style={look.name}>{name}</Text>
-            <Text style={look.muted}>{kind}</Text>
-          </>,
-        )}
-        {cell(
-          'Shares',
-          [count, amount],
-          <>
-            <Text style={look.title}>{count}</Text>
-            {!!amount && <Text style={look.muted}>{amount}</Text>}
-          </>,
-        )}
+        <SummaryCell label="Recipient" values={[name, kind]}>
+          <Text style={look.name}>{name}</Text>
+          <Text style={look.muted}>{kind}</Text>
+        </SummaryCell>
+        <SummaryCell label="Shares" values={[count, amount]}>
+          <Text style={look.title}>{count}</Text>
+          {!!amount && <Text style={look.muted}>{amount}</Text>}
+        </SummaryCell>
       </View>
       <View style={look.pair}>
-        {cell('Company issue date', [date], <Text style={look.title}>{date}</Text>)}
-        {cell(
-          'Status',
-          [status.label, status.note],
-          <>
-            <Status tone={status.tone}>{status.label}</Status>
-            {!!status.note && <Text style={look.muted}>{status.note}</Text>}
-          </>,
-        )}
+        <SummaryCell label="Company issue date" values={[date]}>
+          <Text style={look.title}>{date}</Text>
+        </SummaryCell>
+        <SummaryCell label="Status" values={[status.label, status.note]}>
+          <Status tone={status.tone}>{status.label}</Status>
+          {!!status.note && <Text style={look.muted}>{status.note}</Text>}
+        </SummaryCell>
       </View>
     </View>
   );

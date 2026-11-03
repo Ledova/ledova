@@ -14,12 +14,13 @@ import {
   allPeopleKey,
   registerSteps,
   entriesKey,
+  transfersKey,
+  useRegisterTransfers,
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
 import { PageLink } from '@components/Page';
 
 import { TransferRecord } from './TransferRecord';
-import { transfersKey, useRegisterTransfers } from '@pages/company/ledger/shared/useRegisterTransfers';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 
 export function ClassTransfers({

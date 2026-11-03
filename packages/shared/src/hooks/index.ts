@@ -109,3 +109,7 @@ export { useGrantPreparation } from './useGrantPreparation';
 export type { GrantDocumentKind, GrantPreparationOptions } from './useGrantPreparation';
 export { useAllotmentRecordDownload } from './useAllotmentRecordDownload';
 export { useGrantRecordDownload } from './useGrantRecordDownload';
+export { transfersKey, useRegisterTransfers } from './useRegisterTransfers';
+export { useTransferPreparation } from './useTransferPreparation';
+export type { TransferDocumentKind, TransferPreparationOptions } from './useTransferPreparation';
+export { useTransferRecordDownload } from './useTransferRecordDownload';

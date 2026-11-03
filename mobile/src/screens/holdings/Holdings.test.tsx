@@ -10,6 +10,7 @@ import {
   REGISTER_ALLOTMENT_COPY,
   REGISTER_AWARD_COPY,
   REGISTER_GRANT_COPY,
+  REGISTER_TRANSFER_COPY,
   USER_PREFERENCES_QUERY_KEY,
   USER_PROFILE_ENDPOINTS,
   formatDate,
@@ -36,6 +37,10 @@ import {
   type RegisterGrant,
   type RegisterGrantPreparation,
   type RegisterMemberDocumentRequest,
+  type RegisterTransfer,
+  type RegisterTransferDecideRequest,
+  type RegisterTransferDecisionRequest,
+  type RegisterTransferPreparation,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
@@ -53,6 +58,7 @@ import {
   allotmentPreview,
 } from '../../../../packages/shared/tests/fixtures/external-allotments';
 import { MEMBER_CODE, MEMBER_ENTRY, MEMBER_RECORD } from '../../../../packages/shared/tests/fixtures/member-access';
+import { TRANSFER } from '../../../../packages/shared/tests/fixtures/register-transfers';
 import { destinationOf } from '../../components/notifications/NotificationsPanel';
 import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { CompanyPackScreen } from '../documents/CompanyPackScreen';
@@ -60,6 +66,8 @@ import { InspectionCopiesScreen } from '../documents/InspectionCopiesScreen';
 import { IssueSharesScreen } from '../ledger/IssueSharesScreen';
 import { LedgerScreen } from '../ledger/LedgerScreen';
 import { ShareClassScreen } from '../ledger/ShareClassScreen';
+import { TransferPreparationScreen } from '../ledger/TransferPreparationScreen';
+import { TransferSharesScreen } from '../ledger/TransferSharesScreen';
 import { AuthorityRequestScreen } from '../settings/AuthorityRequestScreen';
 import { AuthorityScreen } from '../settings/AuthorityScreen';
 import { TeamScreen } from '../settings/TeamScreen';
@@ -75,7 +83,14 @@ const mockNavigate = jest.fn();
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({ navigate: mockNavigate, setOptions: jest.fn(), setParams: jest.fn() }),
+  useNavigation: () => ({
+    navigate: mockNavigate,
+    popTo: mockNavigate,
+    replace: mockNavigate,
+    getState: () => ({ routes: [] }),
+    setOptions: jest.fn(),
+    setParams: jest.fn(),
+  }),
   useIsFocused: () => true,
   useFocusEffect: (effect: () => void) =>
     jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
@@ -347,6 +362,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let thirdHolder = false;
   let allotments: RegisterAllotment[] = [];
   let grants: RegisterGrant[] = [];
+  let transfers: RegisterTransfer[] = [];
   api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') return { data: preferences };
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
@@ -404,6 +420,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.REGISTER_AWARD_ENDS || url === URLS.REGISTER_AWARD_VESTING_REVERSALS) return page([]);
     if (url === URLS.REGISTER_GRANTS) return page(grants);
     if (url === URLS.REGISTER_ALLOTMENTS) return page(allotments);
+    if (url === URLS.REGISTER_TRANSFERS) return page(transfers);
     if (url === URLS.MEMBER_INVITATIONS) return page([]);
     if (url === URLS.REGISTER_ENTRIES(FOUNDERS.uuid)) return { data: { results: [CERTIFIED], next: null, count: 1 } };
     if (url === URLS.DETAIL(FOUNDERS.uuid)) {
@@ -646,6 +663,77 @@ it('associates a member by invitation code, switches to their company on Dashboa
         }));
       return { data: grants[0] };
     }
+    if (url === URLS.REGISTER_TRANSFERS) {
+      const { operationId, tokenId, appointment, ...request } = value as RegisterTransferPreparation;
+      transfers = [
+        {
+          ...TRANSFER,
+          ...request,
+          uuid: operationId,
+          company: ADMINISTERED.uuid,
+          token: tokenId,
+          preparingAppointment: appointment,
+          fromName: HOLDER_A.name,
+          fromResidentialAddress: `${HOLDER_A.name} address`,
+          name: HOLDER_B.name,
+          residentialAddress: `${HOLDER_B.name} address`,
+          createdAt: '2026-11-04T03:00:00Z',
+        },
+      ];
+      return { data: transfers[0] };
+    }
+    if (transfers[0] && url === URLS.REGISTER_TRANSFER_PREVIEW(transfers[0].uuid)) {
+      const request = value as RegisterTransferDecisionRequest;
+      return {
+        data: {
+          ...transfers[0],
+          effectiveOn: transfers[0].companyEventOn,
+          previewDigest: DIGEST,
+          completeTransfer: request.completeTransfer === true,
+          applyAppointment: request.applyAppointment ?? null,
+          canDecide: true,
+          unmetRequirements: [],
+          registerSequence: 1,
+          fromCurrentShares: '5',
+          fromAfterShares: '4',
+          toCurrentShares: '3',
+          toAfterShares: '4',
+          issuedSupply: '8',
+          afterIssuedSupply: '8',
+          authorisedSupply: '1000',
+        },
+      };
+    }
+    if (transfers[0] && url === URLS.REGISTER_TRANSFER_DECIDE(transfers[0].uuid)) {
+      const request = value as RegisterTransferDecideRequest;
+      const decidedAt = '2026-11-04T04:00:00Z';
+      const decision = {
+        uuid: request.idempotencyKey,
+        appointment: request.applyAppointment ?? request.appointment,
+        kind: 'apply' as const,
+        digest: request.previewDigest,
+        idempotencyKey: request.idempotencyKey,
+        reason: '',
+        decidedAt,
+        decidedBy: 1,
+        decidedByName: PROFILE.fullName,
+        completeTransfer: true,
+        approvalAppointment: request.appointment,
+      };
+      transfers = [
+        {
+          ...transfers[0],
+          status: 'applied',
+          stage: 'applied',
+          registerEntry: '47474747-4747-4747-8747-474747474747',
+          effectiveOn: transfers[0].companyEventOn,
+          reviewedAt: decidedAt,
+          reviewedBy: 1,
+          decisions: [decision],
+        },
+      ];
+      return { data: transfers[0] };
+    }
     if (url === URLS.REGISTER_MEMBER_DOCUMENTS) {
       const request = value as RegisterMemberDocumentRequest;
       const snapshot = {
@@ -863,7 +951,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByRole('button', { name: 'Documents', selected: true })).toBeTruthy();
   expect(
     screen.queryByRole('button', {
-      name: /Ledger|Issue shares|Inspection copies|Company pack|Documents navigation|Shareholders|Employee scheme|Member access/,
+      name: /Ledger|Issue shares|Transfer shares|Inspection copies|Company pack|Documents navigation|Shareholders|Employee scheme|Member access/,
     }),
   ).toBeNull();
   const shareholder = { company: ADMINISTERED.uuid, member: HOLDER_A.member };
@@ -891,6 +979,15 @@ it('associates a member by invitation code, switches to their company on Dashboa
     <EmployeeSchemeScreen key="scheme" />,
     <LedgerScreen key="ledger" />,
     <IssueSharesScreen key="issues" route={{ key: 'issues', name: 'IssueShares', params: undefined }} />,
+    <TransferSharesScreen key="transfers" route={{ key: 'transfers', name: 'TransferShares', params: undefined }} />,
+    <TransferPreparationScreen
+      key="transfer"
+      route={{
+        key: 'transfer',
+        name: 'TransferPreparation',
+        params: { company: MEMBER_RECORD.company.uuid, token, fromMember: MEMBER_RECORD.member },
+      }}
+    />,
     <ShareClassScreen
       key="class"
       route={{ key: 'class', name: 'ShareClass', params: { company: MEMBER_RECORD.company.uuid, token } }}
@@ -909,7 +1006,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   }
   const peopleReads = () =>
     api.get.mock.calls.filter(([url]) =>
-      /\/(register-people|register-award[a-z-]*|register-allotments|register-grants|member-invitations|member-associations)\//.test(
+      /\/(register-people|register-award[a-z-]*|register-allotments|register-grants|register-transfers|member-invitations|member-associations)\//.test(
         url,
       ),
     );
@@ -1020,7 +1117,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
     'Member access',
   ]);
   await fireEvent.press(screen.getByRole('button', { name: 'Expand Ledger navigation' }));
-  expect(screen.getByRole('button', { name: 'Issue shares' })).toBeTruthy();
+  expect(screen.getAllByText(/^(Issue shares|Transfer shares)$/).map(({ props }) => props.children)).toEqual([
+    'Issue shares',
+    'Transfer shares',
+  ]);
   await view.rerender(<LedgerScreen />);
   expect(await screen.findByText('Founders · FND')).toBeTruthy();
   expect(screen.getByLabelText('Issued shares: 8')).toBeTruthy();
@@ -1256,6 +1356,86 @@ it('associates a member by invitation code, switches to their company on Dashboa
     [URLS.REGISTER_ALLOTMENT_PREVIEW(allotment.uuid), { ...decision('approve'), ...combined }, expect.anything()],
     [URLS.REGISTER_ALLOTMENT_DECIDE(allotment.uuid), { ...decided('approve'), ...combined }, expect.anything()],
   ]);
+  const transferPosts = () => api.post.mock.calls.filter(([url]) => url.startsWith(URLS.REGISTER_TRANSFERS));
+  await view.rerender(<ShareholderScreen route={{ key: 'transferor', name: 'Shareholder', params: shareholder }} />);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Transfer shares (Founders)' }));
+  const transferFrom = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, fromMember: HOLDER_A.member };
+  expect(mockNavigate).toHaveBeenLastCalledWith('TransferPreparation', transferFrom);
+  await view.rerender(
+    <TransferPreparationScreen route={{ key: 'transfer', name: 'TransferPreparation', params: transferFrom }} />,
+  );
+  expect(await screen.findByRole('button', { name: 'Transferor: Synthetic Holder A' })).toBeTruthy();
+  await settled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Recipient: none chosen' }));
+  await fireEvent.press(screen.getByRole('radio', { name: /^Synthetic Holder B/ }));
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_TRANSFER_COPY.SHARES), '1');
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_TRANSFER_COPY.COMPANY_EVENT_ON), utcToday());
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  await fireEvent.changeText(screen.getByLabelText('Transfer terms'), 'Gift for no consideration');
+  await fireEvent.press(screen.getByRole('button', { name: 'Signed transfer instrument. Choose file' }));
+  await screen.findByRole('button', { name: 'Signed transfer instrument, synthetic.pdf. Choose file' });
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  await fireEvent.changeText(screen.getByLabelText(REGISTER_TRANSFER_COPY.DIRECTOR), 'Synthetic Director');
+  await fireEvent.changeText(screen.getByLabelText('Authority reference'), 'Synthetic transfer minute');
+  await fireEvent.changeText(screen.getByLabelText('Reason'), 'Family gift');
+  await fireEvent.press(screen.getByRole('button', { name: 'Authority document. Choose file' }));
+  await screen.findByRole('button', { name: 'Authority document, synthetic.pdf. Choose file' });
+  expect(transferPosts()).toHaveLength(0);
+  await fireEvent.press(screen.getByRole('button', { name: REGISTER_TRANSFER_COPY.SUBMIT }));
+  await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('TransferShares', expect.anything()));
+  const transfer = transfers[0];
+  const landed = {
+    company: ADMINISTERED.uuid,
+    token: FOUNDERS.uuid,
+    record: transfer.uuid,
+    outcome: REGISTER_TRANSFER_COPY.PREPARED,
+  };
+  expect(mockNavigate).toHaveBeenLastCalledWith('TransferShares', landed);
+  expect(transferPosts()).toEqual([
+    [
+      URLS.REGISTER_TRANSFERS,
+      {
+        operationId: transfer.uuid,
+        appointment: ADMINISTRATION.uuid,
+        tokenId: FOUNDERS.uuid,
+        fromMember: HOLDER_A.member,
+        toMember: HOLDER_B.member,
+        newMember: false,
+        shares: '1',
+        companyEventOn: utcToday(),
+        signedOn: utcToday(),
+        lodgedOn: utcToday(),
+        terms: 'Gift for no consideration',
+        approvingDirector: 'Synthetic Director',
+        authorityReference: 'Synthetic transfer minute',
+        reason: 'Family gift',
+        authorityEvidence: evidence,
+        instrumentEvidence: evidence,
+      },
+      expect.anything(),
+    ],
+  ]);
+  await view.rerender(<TransferSharesScreen route={{ key: 'transfers', name: 'TransferShares', params: landed }} />);
+  expect(await screen.findByText(REGISTER_TRANSFER_COPY.PREPARED)).toBeTruthy();
+  expect(screen.getByLabelText('From: Synthetic Holder A')).toBeTruthy();
+  expect(screen.getByLabelText('To: Synthetic Holder B')).toBeTruthy();
+  expect(screen.getByLabelText('Status: Prepared')).toBeTruthy();
+  await settled();
+  await fireEvent.press(screen.getByRole('button', { name: REGISTER_TRANSFER_COPY.PREPARE }));
+  expect(mockNavigate).toHaveBeenLastCalledWith('TransferPreparation', founders);
+  await fireEvent.press(
+    screen.getByRole('button', {
+      name: /^Review and approve \(transfer from Synthetic Holder A to Synthetic Holder B /,
+    }),
+  );
+  expect(await screen.findByText('Ownership impact')).toBeTruthy();
+  await fireEvent.press(await screen.findByRole('button', { name: 'Approve', disabled: false }));
+  expect(await screen.findByLabelText('Status: Approved')).toBeTruthy();
+  const completed = { completeTransfer: true, applyAppointment: ADMINISTRATION.uuid };
+  expect(transferPosts().slice(1)).toEqual([
+    [URLS.REGISTER_TRANSFER_PREVIEW(transfer.uuid), { ...decision('approve'), ...completed }, expect.anything()],
+    [URLS.REGISTER_TRANSFER_DECIDE(transfer.uuid), { ...decided('approve'), ...completed }, expect.anything()],
+  ]);
   await view.rerender(awardPage);
   await fireEvent.press(
     await screen.findByRole('button', {
@@ -1288,6 +1468,20 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByLabelText('Status: Shares issued')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Prepare issue|Review and approve|Record issue|Reject)/ })).toBeNull();
   expect(issuePosts()).toHaveLength(8);
+  const pending = { ...transfers[0], uuid: '48484848-4848-4848-8848-484848484848', status: 'submitted' as const };
+  transfers = [{ ...pending, stage: 'submitted', registerEntry: null, reviewedAt: null, decisions: [] }, ...transfers];
+  await view.rerender(
+    <TransferSharesScreen route={{ key: 'read-only-transfers', name: 'TransferShares', params: undefined }} />,
+  );
+  expect(await screen.findByText(REGISTER_TRANSFER_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  await act(async () => screen.getByTestId('transfer-shares-scroll').props.refreshControl.props.onRefresh());
+  expect(await screen.findByLabelText('Status: Prepared')).toBeTruthy();
+  expect(screen.getByLabelText('Status: Approved')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Prepare a non-paid transfer|Review and approve|Reject)/ })).toBeNull();
+  await view.rerender(<ShareholderScreen route={{ key: 'read-only', name: 'Shareholder', params: shareholder }} />);
+  expect(await screen.findByText('Founders · FND')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Transfer shares|Issue shares to them)/ })).toBeNull();
+  expect(transferPosts()).toHaveLength(3);
   await view.rerender(<ShareClassScreen route={{ key: 'founders', name: 'ShareClass', params: founders }} />);
   expect(await screen.findByText('No rights recorded.')).toBeTruthy();
   expect(screen.getByText('FND · Ordinary')).toBeTruthy();

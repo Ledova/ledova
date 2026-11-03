@@ -39,6 +39,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   onHeldChange,
   approveLabel,
   review,
+  leadingAction,
 }: {
   family: RegisterDecisionFamily<Shown, Previewed>;
   copy: DecisionCopy;
@@ -54,6 +55,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   onHeldChange?: (uuid: string, held: boolean) => void;
   approveLabel: string;
   review: { onChange: (open: boolean) => void; title: string; labels: Record<RegisterDecisionKind, string> };
+  leadingAction?: ReactNode;
 }) {
   const card = useCardStyles();
   const look = useLedgerStyles();
@@ -219,8 +221,9 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     );
   return (
     <>
-      {available.length > 0 && (
+      {(available.length > 0 || !!leadingAction) && (
         <FormActions>
+          {leadingAction}
           {actionKinds.map((kind) => {
             const label = kind === 'approve' ? approveLabel : copy.DECISIONS[kind];
             return (

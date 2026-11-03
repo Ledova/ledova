@@ -25,7 +25,7 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useLedgerStyles } from './useLedgerStyles';
 
-const DATE = {
+export const DATE = {
   placeholder: 'YYYY-MM-DD',
   keyboardType: 'numbers-and-punctuation',
   autoCapitalize: 'none',
@@ -98,7 +98,7 @@ const GRANT_DOCUMENTS: Record<GrantDocumentKind, string> = {
   acceptance: GRANT_COPY.ACCEPTANCE_DOCUMENT,
 };
 
-function FormNote({ error, note }: { error: string; note?: string }) {
+export function FormNote({ error, note }: { error: string; note?: string }) {
   const styles = useCompanyStyles();
   return (
     <>
@@ -112,7 +112,7 @@ function FormNote({ error, note }: { error: string; note?: string }) {
   );
 }
 
-function FormSteps({
+export function FormSteps({
   label,
   steps,
   current,
