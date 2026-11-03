@@ -196,7 +196,9 @@ form and confirmation dialog send nothing until confirmed, and each invitation's
 and deadline. **Invite a member** replaces them with the web's form, choosing the recipient from a
 searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
 access to the company, each of these pages reads nothing and points to Dashboard. Pulling down rereads
-each of them while no form or action is open.
+each of them while no form or action is open. Unlike the web, which keeps a held save on its page,
+leaving an app page drops that save's retry, so adding the person or sending the invitation again
+could record it twice; an app-wide fix is planned.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
 Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form

@@ -138,6 +138,8 @@ const ADMINISTERED = {
   administrativeAccess: { capabilities: ['admin'], draftSetup: false },
 };
 const FOUNDERS = { uuid: '27272727-2727-4727-8727-272727272727', name: 'Founders', symbol: 'FND' };
+const ELSEWHERE = { uuid: '41414141-4141-4141-8141-414141414141', name: 'Elsewhere', symbol: 'ELS' };
+const ELSEWHERE_COMPANY = '42424242-4242-4242-8242-424242424242';
 const HOLDERS = Array.from({ length: 26 }, (_, index) => ({
   member: `holder-${index + 1}`,
   name: `Synthetic Holder ${index + 1}`,
@@ -299,7 +301,18 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === `${APPOINTMENTS}team/`) return { data: [revoked ? { ...READER, ...REVOKED } : READER] };
     if (url === '/api/v1/company-authority/invitations/') return page([]);
     if (url === AUTHORITY_REQUESTS) return page([PENDING, ADMITTED]);
-    if (url === URLS.REGISTER) return page([{ ...FOUNDERS, companyUuid: ADMINISTERED.uuid }]);
+    if (url === URLS.REGISTER) {
+      const company = (config?.params as { company_uuid?: string } | undefined)?.company_uuid;
+      const classes = [
+        { ...FOUNDERS, companyUuid: ADMINISTERED.uuid },
+        { ...ELSEWHERE, companyUuid: ELSEWHERE_COMPANY },
+      ];
+      return page(classes.filter((item) => !company || item.companyUuid === company));
+    }
+    if (url === URLS.HOLDERS(ELSEWHERE.uuid)) {
+      const holders = [{ ...HOLDER_A, member: 'elsewhere-holder', name: 'Synthetic Elsewhere Holder', balance: '1' }];
+      return { data: { ...REGISTER, token: { ...REGISTER.token, ...ELSEWHERE }, issuedSupply: '1', holders } };
+    }
     if (url === URLS.HOLDERS(FOUNDERS.uuid)) {
       const holders = [HOLDER_A, { ...HOLDER_B, balance: '3', percentage: 37.5 }];
       return {
@@ -562,6 +575,14 @@ it('associates a member by invitation code, switches to their company on Dashboa
       }}
     />,
     <ShareholderScreen key="shareholder" route={{ key: 'shareholder', name: 'Shareholder', params: shareholder }} />,
+    <ShareholderScreen
+      key="member-company"
+      route={{
+        key: 'member-company',
+        name: 'Shareholder',
+        params: { company: MEMBER_RECORD.company.uuid, member: MEMBER_RECORD.member },
+      }}
+    />,
   ]) {
     await view.rerender(page);
     expect(await screen.findByText('Choose company on Dashboard')).toBeTruthy();
@@ -669,6 +690,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(<ShareholdersScreen />);
   expect(await screen.findByText('FND 5 · 62.50%')).toBeTruthy();
   expect(screen.getByText('1–2 of 2 people')).toBeTruthy();
+  expect(screen.queryByText('Synthetic Elsewhere Holder')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Synthetic Holder A' }));
   expect(mockNavigate).toHaveBeenCalledWith('Shareholder', shareholder);
   await view.rerender(<MemberAccessScreen route={{ key: 'access', name: 'MemberAccess', params: undefined }} />);
@@ -691,6 +713,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     ]),
   );
   expect(await screen.findByText('Revoked access')).toBeTruthy();
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.HOLDERS(ELSEWHERE.uuid))).toHaveLength(0);
   expect(
     screen.getByRole('button', { name: 'Revoke access (Synthetic Holder B, holder-b@example.test)' }),
   ).toBeTruthy();

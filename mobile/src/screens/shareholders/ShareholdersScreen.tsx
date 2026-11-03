@@ -205,7 +205,11 @@ function CompanyShareholders({
         />
       }
     >
-      {source.hasError || source.invalid ? (
+      {source.accountError ? (
+        <LoadError retry={source.retryAccount} busy={source.isRefreshing}>
+          Your account could not be loaded.
+        </LoadError>
+      ) : source.hasError || source.invalid ? (
         <LoadError retry={source.retry} busy={source.isRefreshing}>
           The register could not be loaded.
         </LoadError>

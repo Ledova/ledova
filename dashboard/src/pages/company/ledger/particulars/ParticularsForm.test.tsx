@@ -13,8 +13,7 @@ import {
 } from '@ledova/shared';
 import { ParticularsForm } from './ParticularsForm';
 
-const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
-vi.mock('@services/apiClient', () => ({ default: api }));
+const api = { get: vi.fn(), post: vi.fn() };
 
 const owner = { userUuid: 'user', ownerAccountUuid: 'account' } as unknown as OrderSubmissionOwner;
 const appointment = {
