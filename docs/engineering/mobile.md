@@ -182,7 +182,8 @@ which opens the web's form beneath them. Its request date is typed as `YYYY-MM-D
 at today; **Preview inspection copy** shows the request's rows and **Confirm and download inspection
 copy** shares the CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack card, through
 the shared `useCompanyPackAuthority`, `useCompanyPacks` and `useCompanyPack`: for a current
-administrator, its prepared packs in the same rows and **Prepare company pack**, whose form takes the instruction and
+administrator, its prepared packs (each recipient, then who prepared it when and its share-class count,
+then the instruction) and **Prepare company pack**, whose form takes the instruction and
 recipient, keeps the web's included records and limitations behind **Show included records and
 limitations** and shares the ZIP; for any other register reader, the web's notice that administration
 is required. Both pages show the web's loading, failure and empty states, and without register access

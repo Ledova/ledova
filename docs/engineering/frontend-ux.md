@@ -311,9 +311,9 @@ right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when 
 Inspection copy and Company pack open from their preparation actions; privacy and source guidance stays with the opened form
 or download. Inspection copy shows editable request fields before preview and captured summary rows afterwards.
 Both cards list what was prepared straight beneath their title, without a second heading: "For" the
-recipient, then one muted line with the short request date, any late delivery and who prepared it
-when (a pack adds its share-class count), then the instruction. An empty list reads **No inspection
-copies prepared yet.** or **No company packs prepared yet.**
+recipient, then one muted line, then the instruction. A copy's line has the short request date, any
+late delivery and who prepared it when; a pack's has who prepared it when and its share-class count.
+An empty list reads **No inspection copies prepared yet.** or **No company packs prepared yet.**
 Correction and particulars forms use the same
 responsive field grid; their records group document and decision actions in one wrapping footer, left out when no action applies. Keep current source and appointment validation and error retries, without routine
 refresh controls.
