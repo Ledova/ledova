@@ -1,13 +1,11 @@
 import { useId, useState } from 'react';
 import {
   formatDate,
-  formatDateTime,
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
-  APPOINTMENT_SOURCE_LABELS,
-  APPOINTMENT_STATUS_LABELS,
-  currentAppointment,
-  delegationLabel,
+  appointmentDates,
+  appointmentStatus,
+  scopeFacts,
   scopeLabels,
 } from '@ledova/shared';
 import { MoreToggle } from '@components/Ledger';
@@ -34,70 +32,48 @@ export function AppointmentRecord({
     !teamRecord && appointment.source !== 'legacy_owner' && 'declarationText' in appointment
       ? appointment.declarationText
       : '';
+  const revocable = appointment.status !== 'revoked';
   return (
-    <li className="grid min-w-0 gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[minmax(0,1fr)_14rem] xl:grid-cols-[minmax(0,1fr)_14rem_12rem]">
-      <div className="min-w-0 space-y-1 break-words">
-        <p className="font-medium text-text-primary">{title}</p>
-        {person?.name && <p className="text-text-muted">{person.email}</p>}
-        <p className="text-text-muted">{scopeLabels(appointment.capabilities)}</p>
-        {appointment.delegatableCapabilities.length > 0 && (
-          <p className="text-text-muted">
-            {delegationLabel(appointment.capabilities, appointment.delegatableCapabilities)}
-          </p>
-        )}
+    <li className="flex min-w-0 flex-col gap-1 py-3 text-sm">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="min-w-0 break-words font-medium text-text-primary">{title}</p>
+        <p className="shrink-0 text-text-muted">{appointmentStatus(appointment)}</p>
       </div>
-      <div className="min-w-0 space-y-1 break-words text-text-muted">
-        <p>
-          {appointment.revokedAt ? (
-            <>
-              Revoked <span className="whitespace-nowrap">{formatDateTime(appointment.revokedAt)}</span>
-            </>
-          ) : (
-            <>
-              {APPOINTMENT_STATUS_LABELS[appointment.status]}
-              {appointment.status === 'active' && !currentAppointment(appointment) && ' · not current'}
-            </>
+      <p className="break-words text-xs text-text-muted">
+        {[person?.name && person.email, scopeFacts(appointment.capabilities, appointment.delegatableCapabilities)]
+          .filter(Boolean)
+          .join(' · ')}
+      </p>
+      <p className="break-words text-xs text-text-muted">{appointmentDates(appointment)}</p>
+      {(declaration || revocable) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {declaration && (
+            <MoreToggle
+              open={declarationShown}
+              controls={declarationId}
+              onToggle={() => setDeclarationShown((value) => !value)}
+            >
+              {declarationShown ? 'Hide the declaration' : 'Show the declaration'}
+              <span className="sr-only"> for {title}</span>
+            </MoreToggle>
           )}
-        </p>
-        <p>
-          {appointment.expiresAt ? (
-            <>
-              {appointment.status === 'active' ? 'Expires' : 'Expiry'}{' '}
-              <span className="whitespace-nowrap">{formatDateTime(appointment.expiresAt)}</span>
-            </>
-          ) : (
-            'No expiry'
+          {revocable && (
+            <div className="ml-auto">
+              <PageAction
+                compact
+                label="Revoke appointment"
+                context={`${title} · ${scopeLabels(appointment.capabilities)} · appointed ${formatDate(appointment.createdAt)}`}
+                disabled={disabled}
+                onClick={onRevoke}
+              />
+            </div>
           )}
-        </p>
-        <p>
-          {APPOINTMENT_SOURCE_LABELS[appointment.source]} ·{' '}
-          <span className="whitespace-nowrap">{formatDateTime(appointment.createdAt)}</span>
-        </p>
-      </div>
-      {appointment.status !== 'revoked' && (
-        <div className="flex items-start justify-end md:col-span-2 xl:col-span-1">
-          <PageAction
-            label="Revoke appointment"
-            context={`${title} · ${scopeLabels(appointment.capabilities)} · appointed ${formatDate(appointment.createdAt)}`}
-            disabled={disabled}
-            onClick={onRevoke}
-          />
         </div>
       )}
       {declaration && (
-        <div className="space-y-2 md:col-span-2 xl:col-span-3">
-          <MoreToggle
-            open={declarationShown}
-            controls={declarationId}
-            onToggle={() => setDeclarationShown((value) => !value)}
-          >
-            {declarationShown ? 'Hide the declaration' : 'Show the declaration'}
-            <span className="sr-only"> for {title}</span>
-          </MoreToggle>
-          <p id={declarationId} hidden={!declarationShown} className="text-text-muted">
-            {declaration}
-          </p>
-        </div>
+        <p id={declarationId} hidden={!declarationShown} className="text-text-muted">
+          {declaration}
+        </p>
       )}
     </li>
   );

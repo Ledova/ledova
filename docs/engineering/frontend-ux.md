@@ -39,11 +39,14 @@ Company information, authority records and company team use this workspace frame
 Team invitations and acceptance replace their collection with one focused inline task, a card titled
 **Invite a company user** or **Accept a company invitation** that retains its mounted editors and
 drafts; someone with no appointments, other than a company's owner, opens straight on accepting one. The invitation's appointment
-choice starts each option with its appointment date. Team's appointment rows show the company or
-person, actions, any delegation (**May delegate all of these** when it matches the actions), status
-or revocation, expiry and source, with **Revoke appointment** at the row's end and an own
-appointment's recorded declaration behind **Show the declaration**; issued invitations show their
-acceptance or deadline and the appointment's expiry. The app's Team has the same cards, rows and
+choice starts each option with its appointment date. Team's appointment rows are compact at every
+width: the company or person with the status at the right; one muted line with a team member's
+email and the actions (**All actions** when the appointment holds every one) and any delegation
+("may delegate all of these" when it matches, "may delegate all actions" when it covers every
+one); and one with the source and short date, any
+revocation and the expiry. A compact **Revoke appointment** sits at the right edge, on the line
+that holds an own appointment's **Show the declaration**. Issued invitations show the company,
+their actions, and their acceptance or deadline with the appointment's expiry. The app's Team has the same cards, rows and
 inline tasks at phone width, and the same Representative authority.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
@@ -165,11 +168,11 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   the shareholders (N)**. People without shares show their address beneath their name.
   Certificates, Corrections' **Changes**, Member access and Team rows don't expand:
   each shows its facts and any status it needs, with its permitted action right-aligned at the row's
-  end. On wide screens the action has its own fixed-width column (from `xl` for Certificates, Member
-  access and Team); on narrower screens it sits beneath the row's facts, still at the right edge,
-  except Changes' compact **Correct**, which stays at the end of the row's first line. Member
-  access's **Revoke access** and Certificates' **Prepare certificate** are compact text actions,
-  placed like the others.
+  end. On wide screens the action has its own fixed-width column (from `xl` for Certificates and
+  Member access); on narrower screens, and for Team at every width, it sits beneath the row's facts,
+  still at the right edge, except Changes' compact **Correct**, which stays at the end of the row's
+  first line. Member access's **Revoke access**, Certificates' **Prepare certificate** and Team's
+  **Revoke appointment** are compact text actions, placed like the others.
   A shareholder's Holdings and History rows don't expand either: the class, or the
   entry's kind, with the shares at the right, then the facts in muted text, with a holding's compact
   **Transfer shares** beneath them at the right edge. **Change particulars**, **Issue shares to
