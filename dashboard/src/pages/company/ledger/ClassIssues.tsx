@@ -157,26 +157,7 @@ export function ClassIssues({
   return (
     <div role="region" aria-label="Share issue workflow" className="space-y-5">
       <div hidden={!browsing}>
-        <Section
-          title="Share issues"
-          header={
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">Share issues</h2>
-              {investor.prepare && browsing && (
-                <PageAction
-                  ref={prepareAction}
-                  label="Prepare issue"
-                  primary
-                  disabled={held || !sourceReady}
-                  onClick={() => {
-                    setReturnToAction(false);
-                    setPreparing(true);
-                  }}
-                />
-              )}
-            </div>
-          }
-        >
+        <Section title="Share issues">
           {browsing && status}
           {investor.empty && nonPaid.empty && <p className="text-sm text-text-muted">No share issues recorded yet.</p>}
           <ul id={list} hidden={groups.length === 0}>
@@ -216,6 +197,20 @@ export function ClassIssues({
           </ul>
         </Section>
       </div>
+      {investor.prepare && browsing && (
+        <div className="flex flex-wrap justify-end gap-2">
+          <PageAction
+            ref={prepareAction}
+            label="Prepare issue"
+            primary
+            disabled={held || !sourceReady}
+            onClick={() => {
+              setReturnToAction(false);
+              setPreparing(true);
+            }}
+          />
+        </div>
+      )}
       <div hidden={!reviewing} className="space-y-5">
         {reviewing && status}
         <div ref={setReviewTarget} />

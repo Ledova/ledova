@@ -276,7 +276,7 @@ Issue shares (`IssueSharesScreen.tsx`) is the web's Issue shares at phone width 
 of the selected company, read through `useCompanyRegisters.ts`, the shared `useRegisterAllotments` and
 `useRegisterGrants`, and sent through the shared `useAllotmentForm`, `useGrantPreparation` and
 `useRegisterDecision`: the selected class's name, with **Share class** in Filters when there is more
-than one, then the Share issues card with **Prepare issue** beside its title and the web's groups
+than one, then the Share issues card with the web's groups
 (Needs a decision, Issued and Rejected, from the shared `issueGroups`). Each investor and non-paid
 issue is the web's compact row (recipient and shares, then kind, short company issue date and any AUD
 amount), a button that shows or hides the stage, decision trail, particulars, terms and the documents'
@@ -285,7 +285,7 @@ record's actions: **Reject** and **Review and approve**, and **Record issue** fo
 issue, only for the steps the person's appointments hold.
 Reviewing replaces the records with the web's Review share issue: the preview, ownership impact, company
 records and unmet requirements, Cancel and the confirmation, where an investor's **Approve** records the
-approval and the issue together, as on the web. **Prepare issue** asks **What kind of issue?**: Investor
+approval and the issue together, as on the web. **Prepare issue**, beneath the card, asks **What kind of issue?**: Investor
 issue opens the web's three steps (Person and shares, Agreement and receipt, Company authority and
 review) and Non-paid issue the web's non-paid form, with an employee award's recipient, available
 vested shares and retained agreement when it was opened from the award. Each keeps its retry of an

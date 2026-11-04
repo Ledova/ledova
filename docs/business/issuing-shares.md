@@ -154,8 +154,8 @@ A grant on a class with no contract is a register entry only; a chain grant mint
 register records the issue once the mint is final.
 
 On the web and in the mobile app, the first three paths start from Ledger's **Issue shares** task.
-Choose the class to read its issues in the **Share issues** card, with **Prepare issue** beside its
-title. Investor and non-paid issues are listed together in groups, newest company issue date first
+Choose the class to read its issues in the **Share issues** card, with **Prepare issue** beneath it.
+Investor and non-paid issues are listed together in groups, newest company issue date first
 and undated issues last: **Needs a decision** holds each prepared or approved issue with its stage
 and next action, then **Issued** and **Rejected** show five issues each, with **Show all** for the
 rest. Each issue is a compact row: the recipient and shares, then the kind and company issue date,

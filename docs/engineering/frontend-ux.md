@@ -116,8 +116,7 @@ the frame; sign-up keeps its own presentation.
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
 only where it adds to the titles. On web card collections, the primary creation action follows the
 last card in one right-aligned, wrapping row, rather than the title row; keep its content width.
-Ledger's Add share class follows this pattern for both empty and populated collections. Issue shares,
-a single card, puts **Prepare issue** beside the card's title instead. The first
+Ledger's Add share class and Issue shares' **Prepare issue** follow this pattern. The first
 section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
@@ -155,8 +154,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
   on: the title row for the page (including the way back to the parent), a section for that section,
   a row for that row's record alone. A web collection's primary creation action sits beneath its
-  cards, aligned right, apart from Issue shares' **Prepare issue** beside its card's title. Actions
-  do not wait for a row to be selected.
+  cards, aligned right. Actions do not wait for a row to be selected.
 - `MoreToggle` (`dashboard/src/components/Ledger.tsx`): a plain text button with `aria-expanded`
   that shows or hides long optional content in place, such as **Show all 5 share changes**.
   `ShowMore` pairs it with the content it shows: a saved transfer record and an issue or transfer
@@ -235,7 +233,7 @@ grid. Show an award recipient and available vested shares once; its retained agr
 behind **Show award record details**, with read-only validation targets that open on error. Ordinary non-paid terms stay
 editable fields. Keep the required fields and guards, without repeated descriptions or routine
 upload hints, and show recovery guidance only while the original preparation is held.
-Issue shares is one **Share issues** card with **Prepare issue** beside its title. Both kinds of
+Issue shares is one **Share issues** card with **Prepare issue** beneath it. Both kinds of
 issue sit together under small muted headings with counts: **Needs a decision** (prepared and
 approved issues), **Issued** and **Rejected**, each newest company issue date first and undated issues
 last (`issueGroups` in `packages/shared/src/utils/register-issues.ts`). A group without issues isn't

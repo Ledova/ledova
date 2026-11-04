@@ -18,7 +18,16 @@ import {
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, FormActions, LoadError, Loading, MoreToggle, Section, useCardStyles } from '../../components/Ledger';
+import {
+  Action,
+  Actions,
+  FormActions,
+  LoadError,
+  Loading,
+  MoreToggle,
+  Section,
+  useCardStyles,
+} from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { Choices } from '../../components/register/RegisterFields';
 import { SelectField } from '../../components/SelectField';
@@ -323,19 +332,9 @@ function ClassIssues({
     <>
       <View style={preparing ? look.hidden : reviewing ? undefined : card.card}>
         {browsing && (
-          <View style={look.line}>
-            <Text accessibilityRole="header" style={card.title}>
-              Share issues
-            </Text>
-            {investor.prepare && (
-              <Action
-                primary
-                label="Prepare issue"
-                disabled={held || !sourceReady}
-                onPress={() => setPreparing(true)}
-              />
-            )}
-          </View>
+          <Text accessibilityRole="header" style={card.title}>
+            Share issues
+          </Text>
         )}
         {!preparing && status}
         {browsing && investor.empty && nonPaid.empty && <Text style={look.muted}>No share issues recorded yet.</Text>}
@@ -378,6 +377,11 @@ function ClassIssues({
           ]}
         </View>
       </View>
+      {investor.prepare && browsing && (
+        <Actions>
+          <Action primary label="Prepare issue" disabled={held || !sourceReady} onPress={() => setPreparing(true)} />
+        </Actions>
+      )}
       <View style={!preparing && look.hidden}>
         <Section title="Prepare share issue">
           {preparing && status}
