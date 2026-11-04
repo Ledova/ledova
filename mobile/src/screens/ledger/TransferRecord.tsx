@@ -7,6 +7,7 @@ import {
   TRANSFER_GROUPS,
   formatDate,
   formatDateTime,
+  formatShortDate,
   recordGroup,
   shareCount,
   useTransferRecordDownload,
@@ -153,9 +154,8 @@ export function TransferRecord({
           {!!outcome && transfer.stage === 'submitted' && <Outcome>{outcome}</Outcome>}
           <RecordSummary
             name={`${transfer.fromName || 'Name not recorded'} to ${transfer.name || 'Name not recorded'}`}
-            kind="Non-paid transfer"
-            shares={transfer.shares}
-            companyEventOn={transfer.companyEventOn}
+            figure={shareCount(transfer.shares)}
+            facts={`Non-paid transfer · ${formatShortDate(transfer.companyEventOn, 'Date not recorded')}`}
             status={
               recordGroup(TRANSFER_GROUPS, transfer.stage) === 'decide'
                 ? {

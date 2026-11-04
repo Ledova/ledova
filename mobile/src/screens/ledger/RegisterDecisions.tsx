@@ -39,7 +39,6 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   onHeldChange,
   approveLabel,
   review,
-  leadingAction,
   note,
 }: {
   family: RegisterDecisionFamily<Shown, Previewed>;
@@ -61,7 +60,6 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
     labels: Record<RegisterDecisionKind, string>;
     confirmations?: Record<RegisterDecisionKind, string>;
   };
-  leadingAction?: ReactNode;
   note?: (kind: RegisterDecisionKind, preview: Previewed) => ReactNode;
 }) {
   const card = useCardStyles();
@@ -232,9 +230,8 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   }
   return (
     <>
-      {(available.length > 0 || !!leadingAction) && (
+      {available.length > 0 && (
         <FormActions>
-          {leadingAction}
           {actionKinds.map((kind) => {
             const label = kind === 'approve' ? approveLabel : copy.DECISIONS[kind];
             return (

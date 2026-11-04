@@ -1,9 +1,19 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  CORRECTION_GROUPS,
   DESTINATIONS,
   REGISTER_CORRECTION_COPY as COPY,
   REGISTER_IMPORT_COPY,
@@ -24,6 +34,7 @@ import {
   useSubmissionOwner,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  type RecordRow,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
@@ -38,6 +49,7 @@ import type { SignedInStackParamList } from '../../navigation/SignedInNavigator'
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ClassEntries } from './ClassEntries';
 import { CorrectionRecord } from './CorrectionRecord';
+import { GroupedRecords } from './GroupedRecords';
 import { ImportRecord } from './ImportRecord';
 import { ParticularsChanges } from './ParticularsChanges';
 import { useLedgerStyles } from './useLedgerStyles';
@@ -365,6 +377,31 @@ function ClassCorrections({
       ]);
   });
   const records = corrections.data ?? [];
+  const rows: RecordRow<ReactNode>[] = records.map((correction) => ({
+    uuid: correction.proposal.uuid,
+    stage: correction.proposal.stage,
+    companyEventOn: correction.proposal.effectiveOn,
+    createdAt: correction.proposal.createdAt,
+    shown: correctionsReady,
+    held: heldRecords.has(correction.proposal.uuid),
+    render: ({ collapsed, ruled }) => (
+      <CorrectionRecord
+        correction={correction}
+        steps={steps ?? {}}
+        guard={correctionGuard}
+        visible={correctionsReady}
+        collapsed={collapsed}
+        focusKey={landing?.record === correction.proposal.uuid ? correction.proposal.uuid : undefined}
+        onFocus={onFocusRecord}
+        outcome={landing?.record === correction.proposal.uuid ? landing.outcome : undefined}
+        onHeldChange={recordHeld}
+        onSettled={refresh}
+        reviewing={reviewing}
+        onReviewChange={reviewChanged}
+        ruled={ruled}
+      />
+    ),
+  }));
   const browsing = !reviewing;
   const link = importsReady && !held ? openingRecordsLink(register, imports.data) : null;
   return (
@@ -401,6 +438,7 @@ function ClassCorrections({
             renderAction={(entry) =>
               entriesReady && !history.moreFailed && correctionsReady && steps?.prepare && entry.correctable ? (
                 <Action
+                  compact
                   label="Correct"
                   accessibilityLabel={`Correct (${entryLabel(entry)})`}
                   disabled={held}
@@ -443,25 +481,12 @@ function ClassCorrections({
                 Corrections could not be loaded.
               </LoadError>
             ) : null)}
-          <View accessibilityLabel={COPY.TITLE}>
-            {records.map((correction, index) => (
-              <CorrectionRecord
-                key={correction.proposal.uuid}
-                correction={correction}
-                steps={steps ?? {}}
-                guard={correctionGuard}
-                visible={correctionsReady}
-                focusKey={landing?.record === correction.proposal.uuid ? correction.proposal.uuid : undefined}
-                onFocus={onFocusRecord}
-                outcome={landing?.record === correction.proposal.uuid ? landing.outcome : undefined}
-                onHeldChange={recordHeld}
-                onSettled={refresh}
-                reviewing={reviewing}
-                onReviewChange={reviewChanged}
-                ruled={index > 0}
-              />
-            ))}
-          </View>
+          <GroupedRecords
+            grouping={CORRECTION_GROUPS}
+            rows={rows}
+            requested={landing?.record ? { key: landing.record, record: landing.record } : undefined}
+            browsing={browsing}
+          />
         </View>
       </View>
       {readable && (

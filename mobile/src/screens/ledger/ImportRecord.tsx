@@ -10,8 +10,10 @@ import {
   formatDate,
   formatDateTime,
   formatShareCount,
+  formatShortDate,
   importFigures,
   registerImportTotals,
+  shareCount,
   sharePercentage,
   useImportRecordDownload,
   type RegisterDecisionKind,
@@ -24,7 +26,7 @@ import { Action, Fact, Rows, ShowMore, Status } from '../../components/Ledger';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { RecordShell, decisionTrail } from './IssueRecord';
+import { RecordShell, RecordSummary, decisionTrail } from './IssueRecord';
 import { RegisterDecisions } from './RegisterDecisions';
 import { useLedgerStyles } from './useLedgerStyles';
 
@@ -179,38 +181,70 @@ export function ImportRecord({
     <RecordShell hidden={!visible || (!!reviewing && !inReview)} ruled={ruled && !reviewing}>
       {visible && (
         <View style={[look.summary, inReview && look.hidden]}>
-          <Text accessibilityRole="header" style={look.title}>
-            {kind}
-          </Text>
-          <Rows>
-            <Fact label="Stage">
-              <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
-                {COPY.STAGES[proposal.stage] ?? proposal.stage}
-              </Status>
-            </Fact>
-            {proposal.preparedByName !== null && (
-              <Fact label="Prepared by">{proposal.preparedByName || 'Not provided'}</Fact>
+          <RecordSummary
+            name={kind}
+            figure={shareCount(totals.total)}
+            facts={`${formatShortDate(proposal.asAt)} · ${totals.count} ${totals.count === 1 ? 'member' : 'members'}`}
+            status={
+              proposal.stage !== 'applied'
+                ? {
+                    tone: STAGE_TONES[proposal.stage] ?? 'waiting',
+                    label: COPY.STAGES[proposal.stage] ?? proposal.stage,
+                  }
+                : undefined
+            }
+          >
+            <Rows>
+              <Fact label="Stage">
+                <Status tone={STAGE_TONES[proposal.stage] ?? 'waiting'}>
+                  {COPY.STAGES[proposal.stage] ?? proposal.stage}
+                </Status>
+              </Fact>
+              {proposal.preparedByName !== null && (
+                <Fact label="Prepared by">{proposal.preparedByName || 'Not provided'}</Fact>
+              )}
+              <Fact label="Prepared on">{formatDateTime(proposal.createdAt)}</Fact>
+              <Fact label="Record date">{formatDate(proposal.asAt)}</Fact>
+              {!!proposal.sourceReference && <Fact label="Source record">{proposal.sourceReference}</Fact>}
+              <Fact label="Reason">{proposal.reason}</Fact>
+              <Fact label="Evidence">
+                {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
+              </Fact>
+              {decisionTrail(proposal, COPY.TRAIL)}
+            </Rows>
+            {!!stated && <Text style={look.text}>{stated}</Text>}
+            <Text style={look.text}>{COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}</Text>
+            {totals.count > 0 && (
+              <ShowMore
+                show={`Show the shareholders (${totals.count})`}
+                hide="Hide the shareholders"
+                defaultOpen={proposal.status === 'submitted'}
+              >
+                <MemberRecords members={proposal.members} />
+              </ShowMore>
             )}
-            <Fact label="Prepared on">{formatDateTime(proposal.createdAt)}</Fact>
-            <Fact label="Record date">{formatDate(proposal.asAt)}</Fact>
-            {!!proposal.sourceReference && <Fact label="Source record">{proposal.sourceReference}</Fact>}
-            <Fact label="Reason">{proposal.reason}</Fact>
-            <Fact label="Evidence">
-              {proposal.providedBy === 'company' ? COPY.PROVIDED_BY_COMPANY : COPY.STAFF_VERIFIED}
-            </Fact>
-            {decisionTrail(proposal, COPY.TRAIL)}
-          </Rows>
-          {!!stated && <Text style={look.text}>{stated}</Text>}
-          <Text style={look.text}>{COPY.IMPORTED_FIGURES(formatShareCount(totals.total), totals.count)}</Text>
-          {totals.count > 0 && (
-            <ShowMore
-              show={`Show the shareholders (${totals.count})`}
-              hide="Hide the shareholders"
-              defaultOpen={proposal.status === 'submitted'}
-            >
-              <MemberRecords members={proposal.members} />
-            </ShowMore>
-          )}
+            {copies.length > 0 && (
+              <View style={look.wrap}>
+                {copies.map(([copy, label]) => {
+                  const shown = download.isPending && download.variables === copy ? 'Downloading…' : label;
+                  return (
+                    <Action
+                      key={copy}
+                      label={shown}
+                      accessibilityLabel={`${shown} (${context})`}
+                      disabled={download.isPending}
+                      onPress={() => download.mutate(copy)}
+                    />
+                  );
+                })}
+              </View>
+            )}
+            {download.isError && (
+              <Text accessibilityRole="alert" style={styles.error}>
+                {apiErrorSentence(download.error, REGISTER_COPY.DOWNLOAD_FAILED, REGISTER_COPY.DOWNLOAD_FAILED)}
+              </Text>
+            )}
+          </RecordSummary>
         </View>
       )}
       <RegisterDecisions
@@ -225,24 +259,6 @@ export function ImportRecord({
         onRefused={onRefused}
         visible={visible}
         onHeldChange={onHeldChange}
-        leadingAction={
-          copies.length > 0 ? (
-            <>
-              {copies.map(([copy, label]) => {
-                const shown = download.isPending && download.variables === copy ? 'Downloading…' : label;
-                return (
-                  <Action
-                    key={copy}
-                    label={shown}
-                    accessibilityLabel={`${shown} (${context})`}
-                    disabled={download.isPending}
-                    onPress={() => download.mutate(copy)}
-                  />
-                );
-              })}
-            </>
-          ) : undefined
-        }
         note={(decision, preview) =>
           decision === 'apply' && preview.opensRegister && <Text style={look.muted}>{COPY.NOT_ON_CHAIN_NOTE}</Text>
         }
@@ -250,11 +266,6 @@ export function ImportRecord({
       >
         {(preview) => <ImportPreview preview={preview} />}
       </RegisterDecisions>
-      {visible && !inReview && download.isError && (
-        <Text accessibilityRole="alert" style={styles.error}>
-          {apiErrorSentence(download.error, REGISTER_COPY.DOWNLOAD_FAILED, REGISTER_COPY.DOWNLOAD_FAILED)}
-        </Text>
-      )}
     </RecordShell>
   );
 }

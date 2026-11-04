@@ -97,6 +97,7 @@ export {
   type PreparationDraft,
 } from './register-import-drafts';
 export {
+  correctionSummary,
   describeEntry,
   entryDate,
   entryInverse,
@@ -106,7 +107,7 @@ export {
   isPreparedRegisterCorrection,
   isRegisterCorrectionDecisionReceipt,
 } from './register-corrections';
-export { isRegisterParticularsEditReceipt, registerMembers } from './register-particulars';
+export { isRegisterParticularsEditReceipt, particularsChanged, registerMembers } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
 export {
   hasValidRegisterAwardTotals,
@@ -120,7 +121,9 @@ export {
 } from './register-awards';
 export { isPreparedRegisterTransfer } from './register-transfers';
 export {
+  CORRECTION_GROUPS,
   ISSUE_GROUPS,
+  PARTICULARS_GROUPS,
   RECORD_GROUP_CAP,
   TRANSFER_GROUPS,
   recordGroup,

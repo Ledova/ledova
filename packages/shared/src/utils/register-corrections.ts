@@ -1,6 +1,6 @@
 import { REGISTER_CORRECTION_COPY } from '../constants';
-import { formatDate } from './date';
-import { shareChange, shortReference } from './formatting';
+import { formatDate, formatShortDate } from './date';
+import { shareChange, shortReference, signedShares } from './formatting';
 import type {
   RegisterCorrection,
   RegisterCorrectionChange,
@@ -20,9 +20,9 @@ export function entryDate(entry: EntryDates) {
   return (['issue', 'transfer'].includes(entry.kind) && entry.companyEventOn) || entry.effectiveOn;
 }
 
-export function entryName(entry: EntryDates) {
+export function entryName(entry: EntryDates, format: (date: string) => string = formatDate) {
   const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind] ?? 'Register change';
-  return `${kind.toLowerCase()} of ${formatDate(entryDate(entry))}`;
+  return `${kind.toLowerCase()} of ${format(entryDate(entry))}`;
 }
 
 export function entryLabel(entry: EntryDates & Pick<RegisterEntry, 'changes'>) {
@@ -37,6 +37,25 @@ export function describeEntry(entry: EntryDates) {
   return date === entry.effectiveOn
     ? `${kind} · ${formatDate(date)}`
     : `${kind} · ${formatDate(date)} · Ledger date ${formatDate(entry.effectiveOn)}`;
+}
+
+export function correctionSummary({
+  proposal,
+  entry,
+}: {
+  proposal: Pick<RegisterCorrection, 'changes'>;
+  entry: EntryDates & Pick<RegisterEntry, 'changes'>;
+}) {
+  const recipient = ['issue', 'transfer'].includes(entry.kind)
+    ? entry.changes.find((change) => !change.shares.startsWith('-'))?.name
+    : null;
+  const [only, ...others] = proposal.changes;
+  const shares = only && others.length === 0 ? BigInt(only.shares) : null;
+  return {
+    name: `Correction of the ${entryName(entry, formatShortDate)}${recipient ? ` to ${recipient}` : ''}`,
+    figure:
+      shares === null ? undefined : `${signedShares(shares)} ${shares === 1n || shares === -1n ? 'share' : 'shares'}`,
+  };
 }
 
 export function entryInverse(entry: Pick<RegisterEntry, 'changes'>) {

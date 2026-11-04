@@ -7,6 +7,7 @@ import {
   STAGE_TONES,
   formatDate,
   formatDateTime,
+  formatShortDate,
   recordGroup,
   shareCount,
   useGrantRecordDownload,
@@ -76,9 +77,8 @@ export function GrantRecord({
         <View style={[look.summary, inReview && look.hidden]}>
           <RecordSummary
             name={grant.name}
-            kind={grant.award ? 'Employee award' : 'Non-paid issue'}
-            shares={grant.shares}
-            companyEventOn={grant.companyEventOn}
+            figure={shareCount(grant.shares)}
+            facts={`${grant.award ? 'Employee award' : 'Non-paid issue'} · ${formatShortDate(grant.companyEventOn, 'Date not recorded')}`}
             status={
               recordGroup(ISSUE_GROUPS, grant.stage) === 'decide'
                 ? { tone: STAGE_TONES[grant.stage] ?? 'waiting', label: stage }

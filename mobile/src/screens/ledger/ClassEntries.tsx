@@ -6,9 +6,10 @@ import {
   entryName,
   formatDate,
   formatRegisterChanges,
+  formatShortDate,
   type RegisterEntry,
 } from '@ledova/shared';
-import { Actions, MoreToggle, Status } from '../../components/Ledger';
+import { MoreToggle, Status } from '../../components/Ledger';
 import { useLedgerStyles } from './useLedgerStyles';
 
 function Movements({ entry }: { entry: RegisterEntry }) {
@@ -49,32 +50,33 @@ function EntryRow({
   const corrected = entry.corrects ? entries.get(entry.corrects) : undefined;
   const reversal = entry.correctedBy ? entries.get(entry.correctedBy) : undefined;
   const companyDated = ['ISSUE', 'TRANSFER'].includes(entry.kind.toUpperCase());
-  const date = formatDate(companyDated ? entry.companyEventOn : entry.effectiveOn, 'Date not recorded');
-  const ledgerDate =
-    companyDated && entry.effectiveOn !== entry.companyEventOn ? `Ledger date ${formatDate(entry.effectiveOn)}` : '';
+  const kind = COPY.ENTRY_KINDS[entry.kind];
+  const date = formatShortDate(companyDated ? entry.companyEventOn : entry.effectiveOn, 'Date not recorded');
   return (
     <View style={[look.record, ruled && look.ruled]}>
-      <View style={look.line}>
-        <View style={[look.fill, look.terms]}>
-          <Text style={look.title}>{COPY.ENTRY_KINDS[entry.kind]}</Text>
-          {!!entry.correctedBy && (
-            <Status tone="closed" muted>
-              {reversal ? `Reversed on ${formatDate(entryDate(reversal))}` : 'Reversed'}
-            </Status>
-          )}
-          {!!entry.corrects && (
-            <Text style={look.muted}>
-              {corrected ? `Corrects the ${entryName(corrected)}` : 'Corrects an earlier entry'}
-            </Text>
-          )}
+      <View style={look.terms}>
+        <View style={look.split}>
+          <Text accessibilityLabel={`${kind}, Date: ${date}`} style={[look.title, look.fill]}>
+            {kind}
+            <Text style={look.muted}>{` · ${date}`}</Text>
+          </Text>
+          {action}
         </View>
-        <View accessible accessibilityLabel={`Date: ${[date, ledgerDate].filter(Boolean).join(', ')}`}>
-          <Text style={look.muted}>{date}</Text>
-          {!!ledgerDate && <Text style={look.muted}>{ledgerDate}</Text>}
-        </View>
+        {companyDated && entry.effectiveOn !== entry.companyEventOn && (
+          <Text style={look.muted}>{`Ledger date ${formatShortDate(entry.effectiveOn)}`}</Text>
+        )}
+        {!!entry.correctedBy && (
+          <Status tone="closed" muted>
+            {reversal ? `Reversed on ${formatDate(entryDate(reversal))}` : 'Reversed'}
+          </Status>
+        )}
+        {!!entry.corrects && (
+          <Text style={look.muted}>
+            {corrected ? `Corrects the ${entryName(corrected)}` : 'Corrects an earlier entry'}
+          </Text>
+        )}
+        <Movements entry={entry} />
       </View>
-      <Movements entry={entry} />
-      {!!action && <Actions>{action}</Actions>}
     </View>
   );
 }

@@ -1,8 +1,11 @@
+import type { ReactNode } from 'react';
 import {
+  PARTICULARS_GROUPS,
   REGISTER_PARTICULARS_COPY,
   hasCurrentRegisterReadAuthority,
   registerMembers,
   type OrderSubmissionOwner,
+  type RecordRow,
   type TokenHoldersResponse,
   useOwnAppointments,
   usePeople,
@@ -10,6 +13,7 @@ import {
 } from '@ledova/shared';
 import { Section, LoadError, Loading } from '@components/Ledger';
 
+import { GroupedRecords } from './GroupedRecords';
 import { ParticularsRecord } from './ParticularsRecord';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 
@@ -49,6 +53,25 @@ export function RegisterParticulars({
   );
   const nameOf = (member: string) =>
     names.get(member) || people.data?.members.find((row) => row.member === member)?.name || COPY.UNNAMED_MEMBER;
+  const rows: RecordRow<ReactNode>[] = (changes.data ?? []).map((change) => ({
+    uuid: change.uuid,
+    stage: change.stage,
+    companyEventOn: change.asAt,
+    createdAt: change.createdAt,
+    shown: privateReady,
+    held: false,
+    render: ({ collapsed, ruled }) => (
+      <ParticularsRecord
+        landed={landed?.record === change.uuid ? landed : undefined}
+        change={change}
+        visible={privateReady}
+        collapsed={collapsed}
+        ruled={ruled}
+        member={nameOf(change.member)}
+        guard={guard}
+      />
+    ),
+  }));
   if (changes.isSuccess && changes.data.length === 0) return null;
   return (
     <Section title={COPY.TITLE}>
@@ -64,18 +87,7 @@ export function RegisterParticulars({
           Particulars changes could not be loaded.
         </LoadError>
       ) : null}
-      <ul className="divide-y divide-border-subtle">
-        {(changes.data ?? []).map((change) => (
-          <ParticularsRecord
-            key={change.uuid}
-            landed={landed?.record === change.uuid ? landed : undefined}
-            change={change}
-            visible={privateReady}
-            member={nameOf(change.member)}
-            guard={guard}
-          />
-        ))}
-      </ul>
+      <GroupedRecords grouping={PARTICULARS_GROUPS} rows={rows} requested={landed} />
     </Section>
   );
 }

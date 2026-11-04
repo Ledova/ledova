@@ -313,39 +313,43 @@ read-only appointment gets the web's note and no actions, and a class with an un
 deployed contract says so.
 Share class is locked while a review or held decision is open, and pulling down rereads the classes, the
 person's appointments and the transfers while none is.
-Corrections (`CorrectionsScreen.tsx`) is the web's Corrections at phone width for a register reader of
-the selected company, read through `useCompanyRegisters.ts` and the shared `useRegisterEntries`,
+Corrections (`CorrectionsScreen.tsx`) is the web's Corrections at phone width for a register reader
+of the selected company, read through `useCompanyRegisters.ts` and the shared `useRegisterEntries`,
 `useClassCorrections`, `useRegisterImports` and `useRegisterParticulars`, with decisions through
-`useRegisterDecision`: the selected class's name, with **Share class** in Filters as on Transfer shares,
-then Changes, the class's register entries newest first (`ClassEntries.tsx`), each with its kind, any
-reversal or the entry it corrects, its date and ledger date, its first two signed share movements with
-**Show all** for the rest, and **Correct** at the end of a correctable row for someone who can prepare
-the register, with **Load more register entries** for later pages. Its Corrections follow
-(`CorrectionRecord.tsx`), each titled by the entry it reverses with the stage, preparation, effective
-date, the entry and its compensating changes, the authority, reason, evidence and decision trail, and
-**Download the authority document**, which goes to the share sheet, beside **Reject**, **Approve** and
-**Apply** for the steps the person's appointments hold. A decision replaces the records with the web's
-dialog content in place (Approve correction, Apply correction with the web's compensation note, or Reject
-correction with its reason), keeping its retry of an uncertain decision. Opening records
-(`ImportRecord.tsx`) lists the class's copied openings with their details, **Show the shareholders**
-(each shareholder's allotments and documents behind **Show allotments**), the register and ASIC
-downloads and **Reject**, **Review** and **Confirm** for the steps the person's appointments hold; a
-decision replaces the records with the web's Review, Confirm or Reject import, its preview of each
-member against the stored ledger and, when confirming opens the register, the web's note that it
-issues no shares. For someone who can prepare the register it starts with **Bring records**, or
-**Correct copied opening** once an applied opening may be corrected, which opens Set up your ledger
-for the class. Particulars changes (`ParticularsChanges.tsx`) follows for the whole
-company, each change with who made it and when, the particulars before and after, and an earlier
-change's supporting document. **Correct** opens the web's correction form on its own page
-(`CorrectionPreparationScreen.tsx`, through the shared `useCorrectionEntry` and
-`useCorrectionPreparation`): the entry being corrected and its exact inverse, then Authority, Approving
-director for a resolution, Authority reference, the effective date typed as `YYYY-MM-DD` (UTC), the
-authority document and the reason, keeping its retry of an uncertain preparation. Preparing or Cancel
-returns to the class's Corrections, with a prepared correction in view and marked as prepared, and a
-page that cannot show the form still offers Cancel. A read-only appointment gets the web's notes and no
-actions. Share class is locked while a review or held decision is open, and pulling down rereads the
-classes, the person's appointments, the entries, corrections, opening records and particulars changes
-while none is.
+`useRegisterDecision`: the selected class's name, with **Share class** in Filters as on Transfer
+shares, then Changes, the class's register entries newest first (`ClassEntries.tsx`), each the web's
+compact row: its kind and short date, with **Correct**, a compact text `Action`, at the end of a
+correctable row for someone who can prepare the register, then any ledger date, reversal or entry it
+corrects, and its first two signed share movements with **Show all** for the rest, with **Load more
+register entries** for later pages. Its Corrections follow under the web's groups (Needs a decision,
+Corrected and Rejected, from `CORRECTION_GROUPS`), each (`CorrectionRecord.tsx`) the web's summary
+of the entry it reverses, a button that shows or hides the stage, preparation, effective date, the
+entry and its compensating changes, the authority, reason, evidence, decision trail and **Download
+the authority document**, which goes to the share sheet; an unfinished correction adds its status
+and **Reject**, **Approve** and **Apply** for the steps the person's appointments hold. A decision
+replaces the records with the web's dialog content in place (Approve correction, Apply correction
+with the web's compensation note, or Reject correction with its reason), keeping its retry of an
+uncertain decision. Opening records (`ImportRecord.tsx`) lists the class's copied openings as the
+web's summaries (kind and shares, then record date and members), each opening its details, **Show
+the shareholders** (each shareholder's allotments and documents behind **Show allotments**) and the
+register and ASIC downloads; an unfinished one adds its status and **Reject**, **Review** and
+**Confirm** for the steps the person's appointments hold, and a rejected one shows its status; a decision replaces the records with the
+web's Review, Confirm or Reject import, its preview of each member against the stored ledger and,
+when confirming opens the register, the web's note that it issues no shares. For someone who can
+prepare the register it starts with **Bring records**, or **Correct copied opening** once an applied
+opening may be corrected, which opens Set up your ledger for the class. Particulars changes
+(`ParticularsChanges.tsx`) follows for the whole company, five at a time with **Show all N
+changes**, each the web's summary (the member, then what changed and its as-at date) opening who
+made it and when, the particulars before and after, and an earlier change's supporting document.
+**Correct** opens the web's correction form on its own page (`CorrectionPreparationScreen.tsx`,
+through the shared `useCorrectionEntry` and `useCorrectionPreparation`): the entry being corrected
+and its exact inverse, then Authority, Approving director for a resolution, Authority reference, the
+effective date typed as `YYYY-MM-DD` (UTC), the authority document and the reason, keeping its retry
+of an uncertain preparation. Preparing or Cancel returns to the class's Corrections, with a prepared
+correction in view and marked as prepared, and a page that cannot show the form still offers Cancel.
+A read-only appointment gets the web's notes and no actions. Share class is locked while a review or
+held decision is open, and pulling down rereads the classes, the person's appointments, the entries,
+corrections, opening records and particulars changes while none is.
 Set up your ledger (`RegisterSetupScreen.tsx`) is the web's register setup at phone width, through the
 shared `useImportPreparation`, `useNewShareClass`, `useImportRegister` and `useStartedClasses`
 (`ImportForm.tsx`, `ImportShareholders.tsx`). Opened from **Add share class**, it is the web's three

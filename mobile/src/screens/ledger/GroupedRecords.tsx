@@ -41,13 +41,17 @@ export function GroupedRecords({
     <View style={groups.length === 0 && look.hidden}>
       {[
         ...groups.flatMap((group, at) => [
-          <Text
-            key={group.key}
-            accessibilityRole="header"
-            style={[look.groupTitle, at > 0 && look.groupRule, !browsing && look.hidden]}
-          >
-            {group.heading}
-          </Text>,
+          ...(group.heading
+            ? [
+                <Text
+                  key={group.key}
+                  accessibilityRole="header"
+                  style={[look.groupTitle, at > 0 && look.groupRule, !browsing && look.hidden]}
+                >
+                  {group.heading}
+                </Text>,
+              ]
+            : []),
           ...group.entries.map((row, index) => (
             <Fragment key={row.uuid}>
               {row.render({

@@ -108,6 +108,7 @@ interface ActionContent {
   label: string;
   context?: string;
   primary?: boolean;
+  compact?: boolean;
 }
 
 type PageActionProps = ActionContent & {
@@ -130,7 +131,10 @@ const ACTION_LOOKS = {
 const actionClass = (look: string) =>
   `relative inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 ${look}`;
 
-function ActionText({ icon, label, context }: Omit<ActionContent, 'primary'>) {
+const COMPACT_ACTION =
+  'relative inline-flex w-fit items-center gap-2 whitespace-nowrap text-sm font-medium text-brand-light after:absolute after:inset-x-0 after:-inset-y-3 hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline';
+
+function ActionText({ icon, label, context }: Omit<ActionContent, 'primary' | 'compact'>) {
   return (
     <>
       {icon}
@@ -152,6 +156,7 @@ export function PageAction({
   context,
   describedBy,
   primary = false,
+  compact = false,
   destructive = false,
   pressed,
   busy = false,
@@ -177,7 +182,7 @@ export function PageAction({
       disabled={disabled || busy}
       aria-pressed={pressed}
       aria-describedby={describedBy}
-      className={actionClass(look)}
+      className={compact ? COMPACT_ACTION : actionClass(look)}
     >
       <ActionText icon={icon} label={busy && busyLabel ? busyLabel : label} context={context} />
     </button>
@@ -196,6 +201,7 @@ export function PageLink({
   label,
   context,
   primary = false,
+  compact = false,
   to,
   state,
   disabled = false,
@@ -203,14 +209,22 @@ export function PageLink({
 }: PageLinkProps) {
   if (disabled)
     return (
-      <PageAction icon={icon} label={label} context={context} primary={primary} disabled onClick={() => undefined} />
+      <PageAction
+        icon={icon}
+        label={label}
+        context={context}
+        primary={primary}
+        compact={compact}
+        disabled
+        onClick={() => undefined}
+      />
     );
   return (
     <Link
       to={to}
       state={state}
       onClick={onClick}
-      className={actionClass(primary ? ACTION_LOOKS.primary : ACTION_LOOKS.plain)}
+      className={compact ? COMPACT_ACTION : actionClass(primary ? ACTION_LOOKS.primary : ACTION_LOOKS.plain)}
     >
       <ActionText icon={icon} label={label} context={context} />
     </Link>

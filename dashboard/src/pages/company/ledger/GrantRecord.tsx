@@ -8,6 +8,7 @@ import {
   type RegisterGrant,
   shareCount,
   formatDate,
+  formatShortDate,
   ISSUE_GROUPS,
   recordGroup,
   STAGE_TONES,
@@ -105,9 +106,8 @@ export function GrantRecord({
       {visible && (
         <RecordSummary
           name={grant.name}
-          kind={grant.award ? 'Employee award' : 'Non-paid issue'}
-          shares={grant.shares}
-          companyEventOn={grant.companyEventOn}
+          figure={shareCount(grant.shares)}
+          facts={`${grant.award ? 'Employee award' : 'Non-paid issue'} · ${formatShortDate(grant.companyEventOn, 'Date not recorded')}`}
           status={
             recordGroup(ISSUE_GROUPS, grant.stage) === 'decide'
               ? { tone: STAGE_TONES[grant.stage] ?? 'waiting', label: COPY.STAGES[grant.stage] ?? grant.stage }

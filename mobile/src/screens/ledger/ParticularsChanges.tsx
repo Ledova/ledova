@@ -1,15 +1,18 @@
-import { useLayoutEffect, useMemo, useRef, type RefObject } from 'react';
+import { useLayoutEffect, useMemo, useRef, type ReactNode, type RefObject } from 'react';
 import { Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  PARTICULARS_GROUPS,
   REGISTER_COPY,
   REGISTER_PARTICULARS_COPY as COPY,
   STAGE_TONES,
   apiErrorSentence,
   formatDate,
   formatDateTime,
+  formatShortDate,
   hasCurrentRegisterReadAuthority,
   ownAppointmentsKey,
+  particularsChanged,
   particularsKey,
   registerMembers,
   useOwnAppointments,
@@ -18,14 +21,16 @@ import {
   useRegisterParticulars,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  type RecordRow,
   type RegisterParticularsChange,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Action, Fact, FormActions, LoadError, Loading, Rows, Section, Status } from '../../components/Ledger';
+import { Action, Fact, LoadError, Loading, Rows, Section, Status } from '../../components/Ledger';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { RecordShell, decisionTrail } from './IssueRecord';
+import { GroupedRecords } from './GroupedRecords';
+import { RecordShell, RecordSummary, decisionTrail } from './IssueRecord';
 import { useLedgerStyles } from './useLedgerStyles';
 
 type Held = { name: string; residentialAddress: string; asAt: string };
@@ -54,12 +59,14 @@ function ParticularsRecord({
   guard,
   visible,
   ruled,
+  collapsed,
 }: {
   change: RegisterParticularsChange;
   member: string;
   guard: () => void;
   visible: boolean;
   ruled: boolean;
+  collapsed: boolean;
 }) {
   const look = useLedgerStyles();
   const styles = useCompanyStyles();
@@ -67,12 +74,17 @@ function ParticularsRecord({
   const edit = !change.supportingEvidence;
   const downloadLabel = download.isPending ? 'Downloading…' : COPY.DOWNLOAD;
   return (
-    <RecordShell hidden={!visible} ruled={ruled}>
+    <RecordShell hidden={!visible || collapsed} ruled={ruled}>
       {visible && (
-        <>
-          <Text accessibilityRole="header" style={look.title}>
-            {member}
-          </Text>
+        <RecordSummary
+          name={member}
+          facts={`${particularsChanged(change)} · ${formatShortDate(change.asAt)}`}
+          status={
+            change.stage === 'applied'
+              ? undefined
+              : { tone: STAGE_TONES[change.stage] ?? 'waiting', label: COPY.STAGES[change.stage] ?? change.stage }
+          }
+        >
           <Rows>
             <Fact label="Stage">
               <Status tone={STAGE_TONES[change.stage] ?? 'waiting'}>{COPY.STAGES[change.stage] ?? change.stage}</Status>
@@ -106,21 +118,21 @@ function ParticularsRecord({
             </Rows>
           )}
           {!edit && (
-            <FormActions>
+            <View style={look.wrap}>
               <Action
                 label={downloadLabel}
                 accessibilityLabel={`${downloadLabel} (change for ${member} prepared ${formatDateTime(change.createdAt)})`}
                 disabled={download.isPending}
                 onPress={() => download.mutate()}
               />
-            </FormActions>
+            </View>
           )}
           {download.isError && (
             <Text accessibilityRole="alert" style={styles.error}>
               {apiErrorSentence(download.error, REGISTER_COPY.DOWNLOAD_FAILED, REGISTER_COPY.DOWNLOAD_FAILED)}
             </Text>
           )}
-        </>
+        </RecordSummary>
       )}
     </RecordShell>
   );
@@ -202,6 +214,24 @@ export function ParticularsChanges({
   useLayoutEffect(() => {
     refreshRef.current = () => changes.refetch({ cancelRefetch: false });
   });
+  const rows: RecordRow<ReactNode>[] = (changes.data ?? []).map((change) => ({
+    uuid: change.uuid,
+    stage: change.stage,
+    companyEventOn: change.asAt,
+    createdAt: change.createdAt,
+    shown: privateReady,
+    held: false,
+    render: ({ collapsed, ruled }) => (
+      <ParticularsRecord
+        change={change}
+        member={nameOf(change.member)}
+        guard={recordGuard}
+        visible={privateReady}
+        ruled={ruled}
+        collapsed={collapsed}
+      />
+    ),
+  }));
   if (!readable || (changes.isSuccess && changes.data.length === 0)) return null;
   return (
     <View style={hidden && look.hidden}>
@@ -213,18 +243,7 @@ export function ParticularsChanges({
             Particulars changes could not be loaded.
           </LoadError>
         ) : null}
-        <View accessibilityLabel={COPY.TITLE}>
-          {(changes.data ?? []).map((change, index) => (
-            <ParticularsRecord
-              key={change.uuid}
-              change={change}
-              member={nameOf(change.member)}
-              guard={recordGuard}
-              visible={privateReady}
-              ruled={index > 0}
-            />
-          ))}
-        </View>
+        <GroupedRecords grouping={PARTICULARS_GROUPS} rows={rows} browsing />
       </Section>
     </View>
   );

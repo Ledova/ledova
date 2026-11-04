@@ -17,6 +17,7 @@ import {
   USER_PROFILE_ENDPOINTS,
   TECHNICAL_SHARE_LIMIT,
   formatDate,
+  formatShortDate,
   ownAppointmentsKey,
   ownershipCompaniesKey,
   sydneyToday,
@@ -1724,7 +1725,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const correct = await screen.findByRole('button', { name: `Correct (${certified}, Synthetic Holder 1)` });
   expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
   expect(await screen.findByText('Copied opening')).toBeTruthy();
-  expect(await screen.findByText(`${HOLDER_A.name} new address`)).toBeTruthy();
+  expect(screen.getByLabelText('Status: Prepared')).toBeTruthy();
+  const particulars = await screen.findByRole('button', { name: `${HOLDER_A.name}. Show details and documents` });
+  expect(screen.getByText(`Address changed · ${formatShortDate(PARTICULARS_EDIT.asAt)}`)).toBeTruthy();
+  expect(screen.queryByText(`${HOLDER_A.name} new address`)).toBeNull();
+  await fireEvent.press(particulars);
+  expect(screen.getByText(`${HOLDER_A.name} new address`)).toBeTruthy();
   const opening = `copied opening, record date ${formatDate(OPENING.asAt)}`;
   expect(screen.getByRole('button', { name: `Review (${opening})` })).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Bring records (Founders)' }));
@@ -1778,6 +1784,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   expect(await screen.findByText(REGISTER_CORRECTION_COPY.PREPARED)).toBeTruthy();
   await settled();
+  expect(screen.getByText('Needs a decision · 1')).toBeTruthy();
   await fireEvent.press(
     screen.getByRole('button', { name: `Approve (correction of the ${certified}, Synthetic Holder 1)` }),
   );
@@ -1977,7 +1984,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   await act(async () => screen.getByTestId('corrections-scroll').props.refreshControl.props.onRefresh());
   expect(await screen.findByText(REGISTER_CORRECTION_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  await waitFor(() => expect(screen.getAllByText(`Correction of the ${certified}`)).toHaveLength(2));
+  const corrected = `Correction of the issue of ${formatShortDate(CERTIFIED.companyEventOn)} to Synthetic Holder 1`;
+  await waitFor(() => expect(screen.getAllByText(corrected)).toHaveLength(2));
   await settled();
   expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
   expect(screen.getAllByText('Copied opening correction')).toHaveLength(1);

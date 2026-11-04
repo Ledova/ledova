@@ -7,6 +7,17 @@ export function registerMembers(registers: TokenHoldersResponse[]) {
   return members;
 }
 
+export function particularsChanged(
+  change: Pick<RegisterParticularsChange, 'name' | 'residentialAddress' | 'previousParticulars'>,
+) {
+  const before = change.previousParticulars;
+  const name = !!before && before.name !== change.name;
+  const address = !!before && before.residentialAddress !== change.residentialAddress;
+  if (name && address) return 'Name and address changed';
+  if (name) return 'Name changed';
+  return address ? 'Address changed' : 'Particulars recorded';
+}
+
 export function isRegisterParticularsEditReceipt(change: RegisterParticularsChange, request: RegisterParticularsEdit) {
   return (
     change.uuid === request.operationId &&

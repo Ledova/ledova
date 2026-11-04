@@ -6,8 +6,6 @@ import {
   REGISTER_COPY,
   apiErrorSentence,
   formatDateTime,
-  formatShortDate,
-  shareCount,
   type RegisterDecisionKind,
   type RegisterProposal,
 } from '@ledova/shared';
@@ -36,33 +34,29 @@ export function SummaryCell({
 
 export function RecordSummary({
   name,
-  kind,
-  shares,
+  figure,
+  facts,
   amount,
-  companyEventOn,
   status,
   children,
 }: {
   name: string;
-  kind: string;
-  shares: string;
+  figure?: string;
+  facts: string;
   amount?: string;
-  companyEventOn?: string | null;
   status?: { tone: Tone; label: string };
   children: ReactNode;
 }) {
   const theme = useAppTheme();
   const look = useLedgerStyles();
   const [open, setOpen] = useState(false);
-  const count = shareCount(shares);
-  const facts = `${kind} · ${formatShortDate(companyEventOn, 'Date not recorded')}`;
   const Caret = open ? CaretUpIcon : CaretDownIcon;
   return (
     <>
       <View style={look.list}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${name}, ${count}. ${open ? 'Hide' : 'Show'} details and documents`}
+          accessibilityLabel={`${name}${figure ? `, ${figure}` : ''}. ${open ? 'Hide' : 'Show'} details and documents`}
           accessibilityHint={amount ? `${facts}, ${amount}` : facts}
           accessibilityState={{ expanded: open }}
           onPress={() => setOpen((shown) => !shown)}
@@ -71,7 +65,7 @@ export function RecordSummary({
           <View style={[look.fill, look.terms]}>
             <View style={look.split}>
               <Text style={[look.title, look.fill]}>{name}</Text>
-              <Text style={[look.title, look.tabular]}>{count}</Text>
+              {!!figure && <Text style={[look.title, look.tabular]}>{figure}</Text>}
             </View>
             <View style={look.split}>
               <Text style={[look.small, look.fill]}>{facts}</Text>

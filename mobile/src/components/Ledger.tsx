@@ -264,12 +264,14 @@ export function Action({
   onPress,
   disabled = false,
   primary = false,
+  compact = false,
   accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   primary?: boolean;
+  compact?: boolean;
   accessibilityLabel?: string;
 }) {
   const handlePress = () => {
@@ -278,20 +280,24 @@ export function Action({
     }
   };
   const styles = useThemedStyles((theme) => ({
-    button: {
-      alignSelf: 'flex-start' as const,
-      borderWidth: 1,
-      borderColor: primary ? theme.colors.brand.default : theme.colors.border.default,
-      borderRadius: 6,
-      paddingHorizontal: 14,
-      paddingVertical: 11,
-      backgroundColor: primary ? theme.colors.brand.default : theme.colors.utility.transparent,
-      opacity: disabled ? 0.5 : 1,
-    },
+    button: compact
+      ? { alignSelf: 'flex-start' as const, opacity: disabled ? 0.5 : 1 }
+      : {
+          alignSelf: 'flex-start' as const,
+          borderWidth: 1,
+          borderColor: primary ? theme.colors.brand.default : theme.colors.border.default,
+          borderRadius: 6,
+          paddingHorizontal: 14,
+          paddingVertical: 11,
+          backgroundColor: primary ? theme.colors.brand.default : theme.colors.utility.transparent,
+          opacity: disabled ? 0.5 : 1,
+        },
     label: {
       fontFamily: theme.fontFamily.medium,
       fontSize: 14,
-      color: primary ? theme.colors.utility.white : theme.colors.text.primary,
+      ...(compact
+        ? { lineHeight: 20, color: theme.colors.brand.light }
+        : { color: primary ? theme.colors.utility.white : theme.colors.text.primary }),
     },
   }));
   return (
@@ -300,6 +306,7 @@ export function Action({
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled }}
       disabled={disabled}
+      hitSlop={compact ? 12 : undefined}
       onPress={handlePress}
       onAccessibilityTap={handlePress}
       style={styles.button}

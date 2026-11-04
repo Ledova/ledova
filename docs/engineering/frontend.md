@@ -833,7 +833,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
   Member access.
   Corrections shows immutable recorded entries in rows that don't expand, and retained supporting records
-  as titled records with their details and permitted downloads, alongside their capability-guarded append-only maintenance workflows. Register-read
+  as compact summaries that open their details and permitted downloads, alongside their capability-guarded append-only maintenance workflows. Register-read
   access alone grants no mutation. Inspection copies keeps class inspection-copy preparation;
   Company pack stays at company scope. Their forms and prepared lists use the shared
   `useClassInspectionCopy`, `useCompanyPackAuthority`, `useCompanyPack`, `useInspectionCopies` and
@@ -869,8 +869,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   correction to the page) and entry read (`useCorrectionEntry`), its record downloads
   (`useCorrectionRecordDownload`, `useImportRecordDownload`, `useParticularsRecordDownload`) and the
   entry helpers (`entryLabel`, `describeEntry` and their siblings) are shared too; the app's Corrections
-  renders the same rows and records, with the correction form on its own page and the opening records
-  read-only. A section whose
+  renders the same rows and records with their decisions, and the correction form on its own page. A
+  section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
   visible, its reads have settled and `hasCurrentRegisterReadAuthority` confirms a current

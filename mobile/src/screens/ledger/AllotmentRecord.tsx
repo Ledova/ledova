@@ -8,6 +8,7 @@ import {
   formatDate,
   formatDateTime,
   formatMoney,
+  formatShortDate,
   recordGroup,
   shareCount,
   useAllotmentRecordDownload,
@@ -85,10 +86,9 @@ export function AllotmentRecord({
         <View style={[look.summary, inReview && look.hidden]}>
           <RecordSummary
             name={allotment.name}
-            kind="Investor issue"
-            shares={allotment.shares}
+            figure={shareCount(allotment.shares)}
+            facts={`Investor issue · ${formatShortDate(allotment.companyEventOn, 'Date not recorded')}`}
             amount={formatMoney(allotment.consideration, allotment.currency)}
-            companyEventOn={allotment.companyEventOn}
             status={
               recordGroup(ISSUE_GROUPS, allotment.stage) === 'decide'
                 ? {
