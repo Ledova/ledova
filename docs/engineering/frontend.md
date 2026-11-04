@@ -838,8 +838,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   access alone grants no mutation. Inspection copies keeps class inspection-copy preparation;
   Company pack stays at company scope. Their forms and prepared lists use the shared
   `useClassInspectionCopy`, `useCompanyPackAuthority`, `useCompanyPack`, `useInspectionCopies` and
-  `useCompanyPacks` (`inspectionCopiesKey`, `companyPacksKey`), as the app's Inspection copies and
-  Company pack screens do, the app reading the selected class through `useClassRegister`.
+  `useCompanyPacks` (`inspectionCopiesKey`, `companyPacksKey`), with `inspectionCopyFacts` and
+  `companyPackFacts` wording each prepared row, as the app's Inspection copies and Company pack
+  screens do, the app reading the selected class through `useClassRegister`.
   `documentTask` isolates one focused output form in the existing
   frame. Its keyed forms retire previews when their context or source readiness changes; draft
   retention depends on each form's lifetime. Current appointment and exact-source validation still

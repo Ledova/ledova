@@ -3,14 +3,13 @@ import { useThemedStyles } from '../../contexts';
 export function useDocumentStyles() {
   return useThemedStyles((theme) => {
     const text = { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20 };
-    const ruled = {
-      paddingTop: theme.spacing.md,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.border.subtle,
-    };
     return {
-      group: { ...ruled, gap: theme.spacing.smd },
-      form: { ...ruled, gap: theme.spacing.md },
+      form: {
+        gap: theme.spacing.md,
+        paddingTop: theme.spacing.md,
+        borderTopWidth: 1,
+        borderTopColor: theme.colors.border.subtle,
+      },
       heading: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
       row: { gap: theme.spacing.xs, paddingVertical: theme.spacing.smd },
       record: { gap: theme.spacing.sm, paddingVertical: theme.spacing.md },

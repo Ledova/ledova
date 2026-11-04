@@ -1,43 +1,38 @@
 import type { ReactNode } from 'react';
 import {
-  formatDate,
-  formatDateTime,
+  companyPackFacts,
+  inspectionCopyFacts,
   useCompanyPacks,
   useInspectionCopies,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { LoadError, Loading } from '@components/Ledger';
 
-function prepared(at: string, by: string) {
-  return by ? `Prepared ${formatDateTime(at)} by ${by}` : `Prepared ${formatDateTime(at)}`;
-}
-
 function History<Row>({
   title,
   noun,
+  empty,
   query,
   render,
 }: {
   title: string;
   noun: string;
+  empty: string;
   query: { data?: Row[]; isPending: boolean; isError: boolean; isFetching: boolean; refetch: () => unknown };
   render: (row: Row) => ReactNode;
 }) {
-  return (
-    <div className="flex flex-col gap-3 border-t border-border-subtle pt-4">
-      <h3 className="text-sm font-medium text-text-primary">{title}</h3>
-      {query.isPending ? (
-        <Loading>Loading {noun}…</Loading>
-      ) : query.isError ? (
-        <LoadError retry={() => query.refetch()} busy={query.isFetching}>
-          The {noun} could not be loaded.
-        </LoadError>
-      ) : query.data?.length ? (
-        <ul className="divide-y divide-border-subtle">{query.data.map(render)}</ul>
-      ) : (
-        <p className="text-sm text-text-muted">None yet.</p>
-      )}
-    </div>
+  return query.isPending ? (
+    <Loading>Loading {noun}…</Loading>
+  ) : query.isError ? (
+    <LoadError retry={() => query.refetch()} busy={query.isFetching}>
+      The {noun} could not be loaded.
+    </LoadError>
+  ) : query.data?.length ? (
+    <ul aria-label={title} className="divide-y divide-border-subtle">
+      {query.data.map(render)}
+    </ul>
+  ) : (
+    <p className="text-sm text-text-muted">{empty}</p>
   );
 }
 
@@ -57,15 +52,13 @@ export function InspectionCopyHistory({
     <History
       title="Prepared copies"
       noun="prepared copies"
+      empty="No inspection copies prepared yet."
       query={copies}
       render={(copy) => (
         <li key={copy.uuid} className="flex flex-col gap-1 py-3 text-sm">
           <p className="break-words font-medium text-text-primary">For {copy.recipient}</p>
-          <p className="text-text-muted">
-            Requested {formatDate(copy.requestedOn)}
-            {copy.late ? ' · provided late' : ''} · {prepared(copy.preparedAt, copy.preparedByName)}
-          </p>
-          <p className="break-words text-text-muted">Instruction: {copy.instruction}</p>
+          <p className="text-xs text-text-muted">{inspectionCopyFacts(copy)}</p>
+          <p className="break-words text-xs text-text-muted">Instruction: {copy.instruction}</p>
         </li>
       )}
     />
@@ -88,15 +81,13 @@ export function CompanyPackHistory({
     <History
       title="Prepared packs"
       noun="prepared packs"
+      empty="No company packs prepared yet."
       query={packs}
       render={(pack) => (
         <li key={pack.digest} className="flex flex-col gap-1 py-3 text-sm">
           <p className="break-words font-medium text-text-primary">For {pack.recipient}</p>
-          <p className="text-text-muted">
-            {prepared(pack.preparedAt, pack.preparedByName)} · {pack.classes}{' '}
-            {pack.classes === 1 ? 'share class' : 'share classes'}
-          </p>
-          <p className="break-words text-text-muted">Instruction: {pack.instruction}</p>
+          <p className="text-xs text-text-muted">{companyPackFacts(pack)}</p>
+          <p className="break-words text-xs text-text-muted">Instruction: {pack.instruction}</p>
         </li>
       )}
     />

@@ -1,8 +1,8 @@
 import type { ReactElement } from 'react';
 import { Text, View } from 'react-native';
 import {
-  formatDate,
-  formatDateTime,
+  companyPackFacts,
+  inspectionCopyFacts,
   useCompanyPacks,
   useInspectionCopies,
   type OrderSubmissionOwner,
@@ -11,39 +11,32 @@ import { LoadError, Loading, Rows } from '../../components/Ledger';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useDocumentStyles } from './useDocumentStyles';
 
-function prepared(at: string, by: string) {
-  return by ? `Prepared ${formatDateTime(at)} by ${by}` : `Prepared ${formatDateTime(at)}`;
-}
-
 function History<Row>({
   title,
   noun,
+  empty,
   query,
   render,
 }: {
   title: string;
   noun: string;
+  empty: string;
   query: { data?: Row[]; isPending: boolean; isError: boolean; isFetching: boolean; refetch: () => unknown };
   render: (row: Row) => ReactElement;
 }) {
   const look = useDocumentStyles();
-  return (
-    <View style={look.group}>
-      <Text accessibilityRole="header" style={look.heading}>
-        {title}
-      </Text>
-      {query.isPending ? (
-        <Loading>{`Loading ${noun}…`}</Loading>
-      ) : query.isError ? (
-        <LoadError retry={() => query.refetch()} busy={query.isFetching}>
-          {`The ${noun} could not be loaded.`}
-        </LoadError>
-      ) : query.data?.length ? (
-        <Rows>{query.data.map(render)}</Rows>
-      ) : (
-        <Text style={look.muted}>None yet.</Text>
-      )}
+  return query.isPending ? (
+    <Loading>{`Loading ${noun}…`}</Loading>
+  ) : query.isError ? (
+    <LoadError retry={() => query.refetch()} busy={query.isFetching}>
+      {`The ${noun} could not be loaded.`}
+    </LoadError>
+  ) : query.data?.length ? (
+    <View accessibilityLabel={title}>
+      <Rows>{query.data.map(render)}</Rows>
     </View>
+  ) : (
+    <Text style={look.muted}>{empty}</Text>
   );
 }
 
@@ -64,15 +57,13 @@ export function InspectionCopyHistory({
     <History
       title="Prepared copies"
       noun="prepared copies"
+      empty="No inspection copies prepared yet."
       query={copies}
       render={(copy) => (
         <View key={copy.uuid} style={look.row}>
           <Text style={look.title}>For {copy.recipient}</Text>
-          <Text style={look.muted}>
-            Requested {formatDate(copy.requestedOn)}
-            {copy.late ? ' · provided late' : ''} · {prepared(copy.preparedAt, copy.preparedByName)}
-          </Text>
-          <Text style={look.muted}>Instruction: {copy.instruction}</Text>
+          <Text style={look.small}>{inspectionCopyFacts(copy)}</Text>
+          <Text style={look.small}>Instruction: {copy.instruction}</Text>
         </View>
       )}
     />
@@ -96,15 +87,13 @@ export function CompanyPackHistory({
     <History
       title="Prepared packs"
       noun="prepared packs"
+      empty="No company packs prepared yet."
       query={packs}
       render={(pack) => (
         <View key={pack.digest} style={look.row}>
           <Text style={look.title}>For {pack.recipient}</Text>
-          <Text style={look.muted}>
-            {prepared(pack.preparedAt, pack.preparedByName)} · {pack.classes}{' '}
-            {pack.classes === 1 ? 'share class' : 'share classes'}
-          </Text>
-          <Text style={look.muted}>Instruction: {pack.instruction}</Text>
+          <Text style={look.small}>{companyPackFacts(pack)}</Text>
+          <Text style={look.small}>Instruction: {pack.instruction}</Text>
         </View>
       )}
     />

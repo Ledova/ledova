@@ -175,13 +175,15 @@ record for the person; a failed read offers Try again.
 Inspection copies (`InspectionCopiesScreen.tsx`) is the web's page for a register reader of the
 selected company: the selected class's name, with **Share class** in Filters when there is more than
 one, then the Inspection copy card read through the shared `useClassRegister`,
-`useInspectionCopies` and `useClassInspectionCopy`: Prepared copies (each recipient, request date,
-any late delivery, who prepared it and when, and the instruction), then **Prepare inspection copy**,
+`useInspectionCopies` and `useClassInspectionCopy`: its prepared copies straight beneath the title
+(each recipient, then one muted line with the short request date, any late delivery and who prepared
+it when, then the instruction), then **Prepare inspection copy**,
 which opens the web's form beneath them. Its request date is typed as `YYYY-MM-DD` (Sydney), starting
 at today; **Preview inspection copy** shows the request's rows and **Confirm and download inspection
 copy** shares the CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack card, through
 the shared `useCompanyPackAuthority`, `useCompanyPacks` and `useCompanyPack`: for a current
-administrator, Prepared packs and **Prepare company pack**, whose form takes the instruction and
+administrator, its prepared packs (each recipient, then who prepared it when and its share-class count,
+then the instruction) and **Prepare company pack**, whose form takes the instruction and
 recipient, keeps the web's included records and limitations behind **Show included records and
 limitations** and shares the ZIP; for any other register reader, the web's notice that administration
 is required. Both pages show the web's loading, failure and empty states, and without register access
