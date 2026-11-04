@@ -5,15 +5,15 @@ import {
   DESTINATIONS,
   failureSentence,
   readApiError,
-  formatDate,
   formatDateTime,
+  formatShortDate,
   getUserVerificationStatus,
   VERIFICATION_TONES,
 } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { PageAction, PageLink } from '@components/Page';
-import { Outcome, Row, Rows, Section, Status, Failure } from '@components/Ledger';
+import { Outcome, Section, Status, Failure } from '@components/Ledger';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
@@ -121,6 +121,7 @@ export function AccountSettings() {
                 <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-sm text-text-muted">
                   <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
                   <PageAction
+                    compact
                     label="Review"
                     context="identity check"
                     disabled={profile.isFetching}
@@ -134,6 +135,7 @@ export function AccountSettings() {
             label="Password"
             action={
               <PageAction
+                compact
                 label="Change"
                 context="password"
                 onClick={() => {
@@ -148,10 +150,20 @@ export function AccountSettings() {
       </Section>
       {profile.userProfile && (
         <Section title="Account details">
-          <Rows>
-            <Row label="Member since">{formatDate(profile.userProfile.dateJoined, 'Not available')}</Row>
-            <Row label="Last login">{formatDateTime(profile.userProfile.lastLogin)}</Row>
-          </Rows>
+          <div className="divide-y divide-border-subtle">
+            <SettingRow
+              label="Member since"
+              action={
+                <span className="text-sm text-text-muted">
+                  {formatShortDate(profile.userProfile.dateJoined, 'Not available')}
+                </span>
+              }
+            />
+            <SettingRow
+              label="Last login"
+              action={<span className="text-sm text-text-muted">{formatDateTime(profile.userProfile.lastLogin)}</span>}
+            />
+          </div>
         </Section>
       )}
       <Section title="Invitations">
@@ -159,7 +171,7 @@ export function AccountSettings() {
           <SettingRow
             label="Shareholder invitation"
             detail="Use the link or code from your company’s email."
-            action={<PageLink to={MEMBER_INVITATION_PATH} label="Accept" context="shareholder invitation" />}
+            action={<PageLink compact to={MEMBER_INVITATION_PATH} label="Accept" context="shareholder invitation" />}
           />
           {!context?.company?.canManage && (
             <SettingRow
@@ -167,6 +179,7 @@ export function AccountSettings() {
               detail="Use the code the company gave you."
               action={
                 <PageLink
+                  compact
                   to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
                   label="Accept"
                   context="company officer invitation"
