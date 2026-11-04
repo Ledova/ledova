@@ -485,7 +485,9 @@ of the first three has its label on the left
 and its status, value, one compact text action or switch on the right, vertically centred at every
 width; Account details' **Member since** (a short date) and **Last login** use the same rows. Keep
 export and deletion on Data and privacy, in the same rows (Export data with **Export**, Delete
-account with **Delete**), with their existing confirmations. The
+account with **Delete**), with their existing confirmations. Activation's status card shows
+**Status** on one line, its label on the left and the company's status on the right, and its
+historical record gives each event a short date. The
 theme switch sits beside Sign out in the sidebar's footer, not in Settings. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation.
@@ -1080,8 +1082,8 @@ by a local helper or a browser `toLocale…` call:
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
   the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
   page, Employee share scheme and Certificates at phone width, Member access, prepared inspection
-  copies, appointments and issued invitations, and Account details' Member since use
-  `formatShortDate`, "20 Oct 2026", read the same way.
+  copies, appointments and issued invitations, Account details' Member since and Activation's
+  historical record use `formatShortDate`, "20 Oct 2026", read the same way.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter
   month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.

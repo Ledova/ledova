@@ -2,7 +2,7 @@ import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
 import { DESTINATIONS, awaitsActivation, useCompanyActivation, useCompanySelection } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
-import { ShowMore, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent, Failure } from '@components/Ledger';
+import { ShowMore, LinkRow, Section, Timeline, type TimelineEvent, Failure } from '@components/Ledger';
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -66,11 +66,12 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
                 Company information is provided by the company. Activation records your declaration and, where your
                 instance requires it, your verified identity. It does not issue shares or approve a wallet.
               </p>
-              <Rows>
-                <Row label="Status">
+              <dl className="flex items-center justify-between gap-4 text-sm">
+                <dt className="text-text-muted">Status</dt>
+                <dd className="text-text-primary">
                   <CompanyStatusMark status={company.status} label={company.statusDisplay} />
-                </Row>
-              </Rows>
+                </dd>
+              </dl>
               {events.length > 0 && (
                 <ShowMore show="Show the historical record" hide="Hide the historical record">
                   <Timeline events={events} />

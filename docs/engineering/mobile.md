@@ -419,8 +419,8 @@ The web's title-row way back, Back to Account and Back to Representative authori
 app has no back buttons; Android's Back and the iOS swipe return to the previous page.
 Activation (`ActivationScreen.tsx`) is the web's page at phone width, through the shared
 `useCompanySelection`, limited to personal administration of the selected company, and
-`useCompanyActivation`: Activation status with the company's status, **Show the historical record**
-and **Review activation**, which replaces the page with the company's declaration, the web's
+`useCompanyActivation`: Activation status with the company's status on one line, **Show the
+historical record** with short dates, and **Review activation**, which replaces the page with the company's declaration, the web's
 checkbox and **Confirm activation**, and Your identity, whose row opens Account, while the company
 awaits activation. Pulling down rereads the company while no review is open.
 A notification, tapped in that list or as a push, opens its screen: vested shares open Dashboard on
