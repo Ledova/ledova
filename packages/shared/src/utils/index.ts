@@ -52,13 +52,16 @@ export {
 export type { SignInErrorReading, ApiErrorReading, ReadApiErrorOptions } from './errors';
 export { readIdentityVerification } from './identity-verification';
 export {
+  appointmentDates,
   appointmentReceipt,
+  appointmentStatus,
   currentAppointment,
-  delegationLabel,
   hasCurrentAdminAppointment,
   invitationOpen,
+  issuedInvitationDates,
   requestScopeLabels,
   sameScope,
+  scopeFacts,
   scopeLabels,
 } from './appointments';
 export {

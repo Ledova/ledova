@@ -3,13 +3,12 @@ import { Keyboard, Pressable, RefreshControl, Text, View, type ScrollView } from
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
-  APPOINTMENT_SOURCE_LABELS,
-  APPOINTMENT_STATUS_LABELS,
-  currentAppointment,
-  delegationLabel,
+  appointmentDates,
+  appointmentStatus,
   formatDate,
   formatDateTime,
-  invitationOpen,
+  issuedInvitationDates,
+  scopeFacts,
   scopeLabels,
   useCompanyTeam,
   useSubmissionOwner,
@@ -40,9 +39,25 @@ function useTeamStyles() {
       stack: { gap: theme.spacing.md },
       hidden: { display: 'none' as const },
       row: { gap: theme.spacing.sm, paddingVertical: theme.spacing.md },
-      lines: { gap: theme.spacing.xs },
+      line: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: theme.spacing.md },
+      fill: { flex: 1, minWidth: 0 },
       title: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
       muted: { ...text, color: theme.colors.text.muted },
+      status: {
+        ...text,
+        flexShrink: 0,
+        maxWidth: '45%' as const,
+        textAlign: 'right' as const,
+        color: theme.colors.text.muted,
+      },
+      small: { fontFamily: theme.fontFamily.regular, fontSize: 12, lineHeight: 16, color: theme.colors.text.muted },
+      footer: {
+        flexDirection: 'row' as const,
+        flexWrap: 'wrap' as const,
+        alignItems: 'center' as const,
+        columnGap: theme.spacing.md,
+      },
+      end: { marginLeft: 'auto' as const },
       toggle: {
         paddingVertical: 6,
         fontFamily: theme.fontFamily.medium,
@@ -264,29 +279,9 @@ function OwnTeam({
             <Rows>
               {(invitations.data ?? []).map((item) => (
                 <View key={item.uuid} style={look.row}>
-                  <View style={look.lines}>
-                    <Text style={look.title}>{item.companyName}</Text>
-                    <Text style={look.muted}>{scopeLabels(item.capabilities)}</Text>
-                    {item.delegatableCapabilities.length > 0 && (
-                      <Text style={look.muted}>{delegationLabel(item.capabilities, item.delegatableCapabilities)}</Text>
-                    )}
-                  </View>
-                  <View style={look.lines}>
-                    <Text style={look.muted}>
-                      {item.acceptedAt ? `Accepted ${formatDateTime(item.acceptedAt)}` : 'Not accepted'}
-                    </Text>
-                    {!item.acceptedAt && (
-                      <Text style={look.muted}>
-                        {invitationOpen(item) ? 'Accept before' : 'Deadline passed'}{' '}
-                        {formatDateTime(item.acceptanceDeadline)}
-                      </Text>
-                    )}
-                    <Text style={look.muted}>
-                      {item.appointmentExpiresAt
-                        ? `Appointment expires ${formatDateTime(item.appointmentExpiresAt)}`
-                        : 'No appointment expiry'}
-                    </Text>
-                  </View>
+                  <Text style={look.title}>{item.companyName}</Text>
+                  <Text style={look.small}>{scopeFacts(item.capabilities, item.delegatableCapabilities)}</Text>
+                  <Text style={look.small}>{issuedInvitationDates(item)}</Text>
                 </View>
               ))}
             </Rows>
@@ -419,57 +414,46 @@ function AppointmentRecord({
       ? appointment.declarationText
       : '';
   const scope = scopeLabels(appointment.capabilities);
+  const revocable = appointment.status !== 'revoked';
   return (
     <View style={look.row}>
-      <View style={look.lines}>
-        <Text style={look.title}>{title}</Text>
-        {!!person?.name && <Text style={look.muted}>{person.email}</Text>}
-        <Text style={look.muted}>{scope}</Text>
-        {appointment.delegatableCapabilities.length > 0 && (
-          <Text style={look.muted}>
-            {delegationLabel(appointment.capabilities, appointment.delegatableCapabilities)}
-          </Text>
-        )}
+      <View style={look.line}>
+        <Text style={[look.title, look.fill]}>{title}</Text>
+        <Text style={look.status}>{appointmentStatus(appointment)}</Text>
       </View>
-      <View style={look.lines}>
-        <Text style={look.muted}>
-          {appointment.revokedAt
-            ? `Revoked ${formatDateTime(appointment.revokedAt)}`
-            : `${APPOINTMENT_STATUS_LABELS[appointment.status]}${appointment.status === 'active' && !currentAppointment(appointment) ? ' · not current' : ''}`}
-        </Text>
-        <Text style={look.muted}>
-          {appointment.expiresAt
-            ? `${appointment.status === 'active' ? 'Expires' : 'Expiry'} ${formatDateTime(appointment.expiresAt)}`
-            : 'No expiry'}
-        </Text>
-        <Text style={look.muted}>
-          {APPOINTMENT_SOURCE_LABELS[appointment.source]} · {formatDateTime(appointment.createdAt)}
-        </Text>
-      </View>
-      {appointment.status !== 'revoked' && (
-        <Actions>
-          <Action
-            label="Revoke appointment"
-            accessibilityLabel={`Revoke appointment (${title} · ${scope} · appointed ${formatDate(appointment.createdAt)})`}
-            disabled={disabled}
-            onPress={onRevoke}
-          />
-        </Actions>
-      )}
-      {!!declaration && (
-        <View style={look.lines}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${declarationShown ? 'Hide' : 'Show'} the declaration for ${title}`}
-            accessibilityState={{ expanded: declarationShown }}
-            onPress={() => setDeclarationShown((shown) => !shown)}
-            style={{ alignSelf: 'flex-start' }}
-          >
-            <Text style={look.toggle}>{declarationShown ? 'Hide the declaration' : 'Show the declaration'}</Text>
-          </Pressable>
-          {declarationShown && <Text style={look.muted}>{declaration}</Text>}
+      <Text style={look.small}>
+        {[person?.name && person.email, scopeFacts(appointment.capabilities, appointment.delegatableCapabilities)]
+          .filter(Boolean)
+          .join(' · ')}
+      </Text>
+      <Text style={look.small}>{appointmentDates(appointment)}</Text>
+      {(!!declaration || revocable) && (
+        <View style={look.footer}>
+          {!!declaration && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${declarationShown ? 'Hide' : 'Show'} the declaration for ${title}`}
+              accessibilityState={{ expanded: declarationShown }}
+              onPress={() => setDeclarationShown((shown) => !shown)}
+              style={{ alignSelf: 'flex-start' }}
+            >
+              <Text style={look.toggle}>{declarationShown ? 'Hide the declaration' : 'Show the declaration'}</Text>
+            </Pressable>
+          )}
+          {revocable && (
+            <View style={look.end}>
+              <Action
+                compact
+                label="Revoke appointment"
+                accessibilityLabel={`Revoke appointment (${title} · ${scope} · appointed ${formatDate(appointment.createdAt)})`}
+                disabled={disabled}
+                onPress={onRevoke}
+              />
+            </View>
+          )}
         </View>
       )}
+      {!!declaration && declarationShown && <Text style={look.muted}>{declaration}</Text>}
     </View>
   );
 }

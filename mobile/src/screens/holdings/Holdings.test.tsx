@@ -1342,7 +1342,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(
     await screen.findByRole('button', { name: /^Revoke appointment \(Synthetic Administered Company/ }),
   ).toBeTruthy();
-  expect(await screen.findByText(/^Revoked /)).toBeTruthy();
+  expect(await screen.findByText('Revoked')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/ })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: /^Revoke appointment \(Synthetic Administered Company/ }));
   expect(screen.getByText(/^Permanently remove your appointment for Synthetic Administered Company\?/)).toBeTruthy();

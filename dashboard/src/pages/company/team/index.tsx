@@ -15,9 +15,9 @@ import {
   type OwnCompanyAppointment,
   formatDateTime,
   DESTINATIONS,
-  delegationLabel,
+  issuedInvitationDates,
+  scopeFacts,
   scopeLabels,
-  invitationOpen,
   useCompanyTeam,
 } from '@ledova/shared';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
@@ -227,46 +227,12 @@ function OwnTeam({
           ) : (
             <ul className="divide-y divide-border-subtle">
               {(invitations.data ?? []).map((item) => (
-                <li
-                  key={item.uuid}
-                  className="grid min-w-0 gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[minmax(0,1fr)_14rem] xl:grid-cols-[minmax(0,1fr)_14rem_12rem]"
-                >
-                  <div className="min-w-0 space-y-1 break-words">
-                    <p className="font-medium text-text-primary">{item.companyName}</p>
-                    <p className="text-text-muted">{scopeLabels(item.capabilities)}</p>
-                    {item.delegatableCapabilities.length > 0 && (
-                      <p className="text-text-muted">
-                        {delegationLabel(item.capabilities, item.delegatableCapabilities)}
-                      </p>
-                    )}
-                  </div>
-                  <div className="min-w-0 space-y-1 break-words text-text-muted">
-                    <p>
-                      {item.acceptedAt ? (
-                        <>
-                          Accepted <span className="whitespace-nowrap">{formatDateTime(item.acceptedAt)}</span>
-                        </>
-                      ) : (
-                        'Not accepted'
-                      )}
-                    </p>
-                    {!item.acceptedAt && (
-                      <p>
-                        {invitationOpen(item) ? 'Accept before' : 'Deadline passed'}{' '}
-                        <span className="whitespace-nowrap">{formatDateTime(item.acceptanceDeadline)}</span>
-                      </p>
-                    )}
-                    <p>
-                      {item.appointmentExpiresAt ? (
-                        <>
-                          Appointment expires{' '}
-                          <span className="whitespace-nowrap">{formatDateTime(item.appointmentExpiresAt)}</span>
-                        </>
-                      ) : (
-                        'No appointment expiry'
-                      )}
-                    </p>
-                  </div>
+                <li key={item.uuid} className="flex min-w-0 flex-col gap-1 py-3 text-sm">
+                  <p className="break-words font-medium text-text-primary">{item.companyName}</p>
+                  <p className="break-words text-xs text-text-muted">
+                    {scopeFacts(item.capabilities, item.delegatableCapabilities)}
+                  </p>
+                  <p className="break-words text-xs text-text-muted">{issuedInvitationDates(item)}</p>
                 </li>
               ))}
             </ul>
