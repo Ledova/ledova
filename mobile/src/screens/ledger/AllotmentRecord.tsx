@@ -7,6 +7,7 @@ import {
   formatDate,
   formatDateTime,
   formatMoney,
+  issueGroup,
   shareCount,
   useAllotmentRecordDownload,
   type RegisterAllotment,
@@ -14,7 +15,7 @@ import {
   type RegisterDecisionKind,
   type RegisterSteps,
 } from '@ledova/shared';
-import { Fact, Rows, ShowMore, Status } from '../../components/Ledger';
+import { Fact, Rows, Status } from '../../components/Ledger';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { DocumentActions, IssueSummary, RecordShell, decisionTrail } from './IssueRecord';
@@ -38,6 +39,7 @@ export function AllotmentRecord({
   reviewing,
   onReviewChange,
   ruled,
+  collapsed,
 }: {
   allotment: RegisterAllotment;
   steps: RegisterSteps;
@@ -51,6 +53,7 @@ export function AllotmentRecord({
   reviewing: string | null;
   onReviewChange: (uuid: string, open: boolean) => void;
   ruled: boolean;
+  collapsed: boolean;
 }) {
   const look = useLedgerStyles();
   const download = useAllotmentRecordDownload(allotment, guard, SHARE_SHEET_FILES, orderSubmissionSession);
@@ -72,7 +75,7 @@ export function AllotmentRecord({
   const documentsView = <DocumentActions kinds={DOCUMENTS} context={context} download={download} />;
   return (
     <RecordShell
-      hidden={!visible || (!!reviewing && !inReview)}
+      hidden={!visible || (reviewing ? !inReview : collapsed)}
       ruled={ruled && !reviewing}
       focusKey={focusKey}
       onFocus={onFocus}
@@ -85,18 +88,15 @@ export function AllotmentRecord({
             shares={allotment.shares}
             amount={formatMoney(allotment.consideration, allotment.currency)}
             companyEventOn={allotment.companyEventOn}
-            status={{
-              tone: STAGE_TONES[allotment.stage] ?? 'waiting',
-              label:
-                allotment.stage === 'applied'
-                  ? 'Approved'
-                  : allotment.stage === 'approved'
-                    ? 'Ready to complete'
-                    : stage,
-              note: allotment.stage === 'applied' ? 'Shares issued' : 'No shares issued',
-            }}
-          />
-          <ShowMore show="Show details and documents" hide="Hide details and documents">
+            status={
+              issueGroup(allotment.stage) === 'decide'
+                ? {
+                    tone: STAGE_TONES[allotment.stage] ?? 'waiting',
+                    label: allotment.stage === 'approved' ? 'Ready to complete' : stage,
+                  }
+                : undefined
+            }
+          >
             <Text style={look.muted}>
               {allotment.stage === 'applied'
                 ? `${allotment.companyEventOn ? `Shares issued on ${formatDate(allotment.companyEventOn)}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
@@ -139,7 +139,7 @@ export function AllotmentRecord({
             </Rows>
             <Text style={look.muted}>{COPY.RECEIPT_NOTE}</Text>
             {documentsView}
-          </ShowMore>
+          </IssueSummary>
         </View>
       )}
       <RegisterDecisions

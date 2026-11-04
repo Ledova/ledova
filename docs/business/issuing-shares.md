@@ -154,19 +154,24 @@ A grant on a class with no contract is a register entry only; a chain grant mint
 register records the issue once the mint is final.
 
 On the web and in the mobile app, the first three paths start from Ledger's **Issue shares** task.
-Choose the class to read its issues, each with its recipient, stage, key figures and next action, and **Show details
-and documents** for the rest. **Prepare issue**, beneath the records, asks **What kind of issue?**:
+Choose the class to read its issues in the **Share issues** card, with **Prepare issue** beneath it.
+Investor and non-paid issues are listed together in groups, newest company issue date first
+and undated issues last: **Needs a decision** holds each prepared or approved issue with its stage
+and next action, then **Issued** and **Rejected** show five issues each, with **Show all** for the
+rest. Each issue is a compact row: the recipient and shares, then the kind and company issue date,
+with the AUD amount for an investor issue. Selecting the row shows or hides its details and
+documents. **Prepare issue** asks **What kind of issue?**:
 
 - **Investor issue** opens the external allotment form.
 - **Non-paid issue** opens the non-paid grant form, in place.
 
 Preparation replaces the record list with the chosen form. Switching between the two keeps what
-was entered in each form until it is closed or an issue is prepared, when the records return.
-A sibling group is hidden only after a current successful read proves it empty; loading and failed
-reads remain visible. For a class that uses the chain the task says "Issues for a class that uses the chain aren’t available in the web app." Chain grants go through the API.
+was entered in each form until it is closed or an issue is prepared, when the records return with
+the new issue under Needs a decision. A group without issues isn't shown; while either kind of
+issue is loading or could not be read, the card says so. For a class that uses the chain the task says "Issues for a class that uses the chain aren’t available in the web app." Chain grants go through the API.
 
-The mobile app's Issue shares has the same records, forms, reviews and decisions at phone width, for a
-register reader of the selected company. **Share class** is in Filters and stays locked while a
+The mobile app's Issue shares has the same card, groups, rows, forms, reviews and decisions at phone
+width, for a register reader of the selected company. **Share class** is in Filters and stays locked while a
 preparation or review is open, each issue's documents go to the phone's share sheet, and a chain class
 says its issues aren’t available in the app. A class whose register is not yet opened needs register
 setup on the web first.

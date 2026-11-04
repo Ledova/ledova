@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   hasCurrentRegisterReadAuthority,
   appointmentForRegisterStep,
   peopleFrom,
+  type IssueRow,
   type RegisterDecisionKind,
   type OwnCompanyAppointment,
   REGISTER_GRANT_COPY as COPY,
@@ -236,26 +237,32 @@ export function useNonPaidIssues({
       ) : null}
     </>
   );
-  const records = (
-    <ul className="divide-y divide-border-subtle">
-      {grants.data?.map((grant) => (
-        <GrantRecord
-          key={grant.uuid}
-          grant={grant}
-          steps={steps}
-          guard={privateGuard}
-          newEffectGuard={newEffectGuard}
-          visible={visible && privateReady && !kept}
-          focusKey={focusRecord?.uuid === grant.uuid ? focusRecord.key : prepared === grant.uuid ? prepared : undefined}
-          onHeldChange={recordHeld}
-          onSettled={refresh}
-          classLabel={`${register.token.name} (${register.token.symbol})`}
-          reviewTarget={reviewTarget}
-          onReviewChange={onReviewChange}
-        />
-      ))}
-    </ul>
-  );
+  const listed = visible && privateReady && !kept;
+  const records: IssueRow<ReactNode>[] = (grants.data ?? []).map((grant) => ({
+    uuid: grant.uuid,
+    stage: grant.stage,
+    companyEventOn: grant.companyEventOn,
+    createdAt: grant.createdAt,
+    shown: listed,
+    held: heldRecords.has(grant.uuid),
+    render: ({ collapsed, ruled }) => (
+      <GrantRecord
+        grant={grant}
+        steps={steps}
+        guard={privateGuard}
+        newEffectGuard={newEffectGuard}
+        visible={listed}
+        collapsed={collapsed}
+        ruled={ruled}
+        focusKey={focusRecord?.uuid === grant.uuid ? focusRecord.key : prepared === grant.uuid ? prepared : undefined}
+        onHeldChange={recordHeld}
+        onSettled={refresh}
+        classLabel={`${register.token.name} (${register.token.symbol})`}
+        reviewTarget={reviewTarget}
+        onReviewChange={onReviewChange}
+      />
+    ),
+  }));
   return {
     form,
     status,

@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { Keyboard, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
+  ISSUE_GROUP_CAP,
   hasCurrentRegisterReadAuthority,
+  issueGroups,
   ownAppointmentsKey,
   useSubmissionOwner,
+  type IssueGroupKey,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
@@ -15,7 +18,16 @@ import {
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, Actions, FormActions, LoadError, Loading, Section, useCardStyles } from '../../components/Ledger';
+import {
+  Action,
+  Actions,
+  FormActions,
+  LoadError,
+  Loading,
+  MoreToggle,
+  Section,
+  useCardStyles,
+} from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { Choices } from '../../components/register/RegisterFields';
 import { SelectField } from '../../components/SelectField';
@@ -222,6 +234,8 @@ function ClassIssues({
   const [award, setAward] = useState<string | undefined>();
   const [member, setMember] = useState<string | undefined>();
   const [answered, setAnswered] = useState('');
+  const [expanded, setExpanded] = useState<Partial<Record<IssueGroupKey, boolean>>>({});
+  const [revealed, setRevealed] = useState('');
   const [allotmentHeld, setAllotmentHeld] = useState(false);
   const [grantHeld, setGrantHeld] = useState(false);
   const close = () => {
@@ -292,7 +306,20 @@ function ClassIssues({
       setMember(request.member);
     }
   }
-  const grouped = !investor.empty && !nonPaid.empty;
+  const records = [...investor.records, ...nonPaid.records];
+  const groups = issueGroups(records.filter((record) => record.shown));
+  const requested = request?.record && revealed !== request.key ? request : undefined;
+  if (requested && groups.some((group) => group.entries.some((record) => record.uuid === requested.record)))
+    setRevealed(requested.key);
+  const opening = groups.find(
+    (group) =>
+      group.more &&
+      !expanded[group.key] &&
+      group.entries.some(
+        (record, index) => index >= ISSUE_GROUP_CAP && (record.held || record.uuid === requested?.record),
+      ),
+  );
+  if (opening) setExpanded((current) => ({ ...current, [opening.key]: true }));
   const status = (
     <>
       {investor.setup}
@@ -311,8 +338,44 @@ function ClassIssues({
         )}
         {!preparing && status}
         {browsing && investor.empty && nonPaid.empty && <Text style={look.muted}>No share issues recorded yet.</Text>}
-        <View style={investor.empty && look.hidden}>{investor.records}</View>
-        <View style={[nonPaid.empty && look.hidden, grouped && browsing && look.ruled]}>{nonPaid.records}</View>
+        <View style={groups.length === 0 && look.hidden}>
+          {[
+            ...groups.flatMap((group, at) => [
+              <Text
+                key={group.key}
+                accessibilityRole="header"
+                style={[look.groupTitle, at > 0 && look.groupRule, !browsing && look.hidden]}
+              >
+                {group.heading}
+              </Text>,
+              ...group.entries.map((record, index) => (
+                <Fragment key={record.uuid}>
+                  {record.render({
+                    collapsed: !!group.more && !expanded[group.key] && index >= ISSUE_GROUP_CAP,
+                    ruled: index > 0,
+                  })}
+                </Fragment>
+              )),
+              ...(group.more
+                ? [
+                    <View key={`${group.key}/more`} style={[look.more, !browsing && look.hidden]}>
+                      <MoreToggle
+                        open={!!expanded[group.key]}
+                        onToggle={() => setExpanded((current) => ({ ...current, [group.key]: !current[group.key] }))}
+                      >
+                        {expanded[group.key] ? group.more.hide : group.more.show}
+                      </MoreToggle>
+                    </View>,
+                  ]
+                : []),
+            ]),
+            ...records
+              .filter((record) => !record.shown)
+              .map((record) => (
+                <Fragment key={record.uuid}>{record.render({ collapsed: false, ruled: false })}</Fragment>
+              )),
+          ]}
+        </View>
       </View>
       {investor.prepare && browsing && (
         <Actions>

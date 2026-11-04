@@ -1516,9 +1516,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await screen.findByRole('button', { name: 'Authority document, synthetic.pdf. Choose file' });
   expect(issuePosts()).toHaveLength(0);
   await fireEvent.press(screen.getByRole('button', { name: 'Prepare vested share issue' }));
-  expect(await screen.findByLabelText('Recipient: Synthetic Holder B, Employee award')).toBeTruthy();
+  const grantSummary = 'Synthetic Holder B, 10 shares. Show details and documents';
+  expect(await screen.findByRole('button', { name: grantSummary })).toBeTruthy();
   await settled();
-  expect(screen.getByLabelText('Status: Prepared, No shares issued')).toBeTruthy();
+  expect(screen.getByText('Needs a decision · 1')).toBeTruthy();
+  expect(screen.getByLabelText('Status: Prepared')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Record issue/ })).toBeNull();
   const grant = grants[0];
   expect(issuePosts()).toEqual([
@@ -1549,11 +1551,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: /^Review and approve \(grant for Synthetic Holder B / }));
   expect(await screen.findByText('Approval alone does not issue shares.')).toBeTruthy();
   await fireEvent.press(await screen.findByRole('button', { name: 'Approve', disabled: false }));
-  expect(await screen.findByLabelText('Status: Approved, No shares issued')).toBeTruthy();
+  expect(await screen.findByLabelText('Status: Approved')).toBeTruthy();
   await settled();
   await fireEvent.press(screen.getByRole('button', { name: /^Record issue \(grant for Synthetic Holder B / }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Record issue', disabled: false }));
-  expect(await screen.findByLabelText('Status: Shares issued')).toBeTruthy();
+  expect(await screen.findByText('Issued · 1')).toBeTruthy();
   const decision = (kind: string) => ({ appointment: ADMINISTRATION.uuid, kind, reason: '' });
   const decided = (kind: string) => ({
     ...decision(kind),
@@ -1592,7 +1594,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: 'Authority document. Choose file' }));
   await screen.findByRole('button', { name: 'Authority document, synthetic.pdf. Choose file' });
   await fireEvent.press(screen.getByRole('button', { name: REGISTER_ALLOTMENT_COPY.SUBMIT }));
-  expect(await screen.findByLabelText('Recipient: Synthetic Holder A, Investor issue')).toBeTruthy();
+  const allotmentSummary = 'Synthetic Holder A, 2 shares. Show details and documents';
+  expect(await screen.findByRole('button', { name: allotmentSummary })).toBeTruthy();
   await settled();
   const allotment = allotments[0];
   expect(issuePosts().slice(5)).toEqual([
@@ -1628,7 +1631,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   expect(await screen.findByText('Ownership impact')).toBeTruthy();
   await fireEvent.press(await screen.findByRole('button', { name: 'Approve', disabled: false }));
-  expect(await screen.findByLabelText('Status: Approved, Shares issued')).toBeTruthy();
+  expect(await screen.findByText('Issued · 2')).toBeTruthy();
   const combined = { completeIssue: true, applyAppointment: ADMINISTRATION.uuid };
   expect(issuePosts().slice(6)).toEqual([
     [URLS.REGISTER_ALLOTMENT_PREVIEW(allotment.uuid), { ...decision('approve'), ...combined }, expect.anything()],
@@ -1943,8 +1946,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(<IssueSharesScreen route={{ key: 'read-only', name: 'IssueShares', params: undefined }} />);
   expect(await screen.findByText(REGISTER_ALLOTMENT_COPY.READ_ONLY_NOTE)).toBeTruthy();
   expect(screen.getByText(REGISTER_GRANT_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  expect(await screen.findByLabelText('Status: Approved, Shares issued')).toBeTruthy();
-  expect(screen.getByLabelText('Status: Shares issued')).toBeTruthy();
+  expect(await screen.findByText('Issued · 2')).toBeTruthy();
+  expect(screen.getByRole('button', { name: allotmentSummary })).toBeTruthy();
+  expect(screen.getByRole('button', { name: grantSummary })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Prepare issue|Review and approve|Record issue|Reject)/ })).toBeNull();
   expect(issuePosts()).toHaveLength(8);
   const pending = { ...transfers[0], uuid: '48484848-4848-4848-8848-484848484848', status: 'submitted' as const };

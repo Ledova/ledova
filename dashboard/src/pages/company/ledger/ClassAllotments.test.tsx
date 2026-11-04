@@ -398,8 +398,16 @@ it('preserves original preparation and combined approval recovery through refres
   fireEvent.click(allotments.getByRole('button', { name: COPY.SUBMIT }));
   await allotments.findByRole('button', { name: /^Review and approve [(]allotment/ });
   expect(allotments.queryByRole('radio', { name: 'Investor issue' })).toBeNull();
-  const preparedIssue = allotments.getByRole('heading', { name: preparedAllotment.name, level: 3 }).closest('li')!;
-  expect(within(preparedIssue.querySelector('dl')!).getByText('Investor issue')).toBeTruthy();
+  const issueSummary = `${preparedAllotment.name}, 100 shares. Show details and documents`;
+  const preparedIssue = allotments.getByRole('button', { name: issueSummary }).closest('li')!;
+  expect(within(preparedIssue).getByText('Investor issue · 11 Oct 2026')).toBeTruthy();
+  expect(preparedIssue.previousElementSibling?.textContent).toBe('Needs a decision · 1');
+  expect(
+    within(preparedIssue)
+      .getAllByText('Prepared')
+      .filter((node) => !node.closest('[hidden]')),
+  ).toHaveLength(1);
+  expect(within(preparedIssue).getByRole('button', { name: /^Review and approve [(]allotment/ })).toBeTruthy();
   await waitFor(() => expect(document.activeElement).toBe(preparedIssue));
   await waitFor(() => expect(taskClass().disabled).toBe(false));
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -522,7 +530,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(recover).toBeTruthy();
   fireEvent.click(await allotments.findByRole('button', { name: /^Recover approve receipt/ }));
   await waitFor(() => expect(screen.queryByRole('region', { name: 'Review share issue' })).toBeNull());
-  await allotments.findByText('Approved');
+  await allotments.findByRole('heading', { name: 'Issued · 1' });
   expect(allotments.queryByText(COPY.OWNERSHIP_TITLE)).toBeNull();
   const originalIssues = api.post.mock.calls.filter(
     ([url, body]) =>
@@ -538,7 +546,7 @@ it('preserves original preparation and combined approval recovery through refres
   });
   expect(previewCount()).toBe(previewsBeforeConfirmation + 1);
   expect(rows[0].decisions).toHaveLength(2);
-  fireEvent.click(allotments.getByRole('button', { name: 'Show details and documents' }));
+  fireEvent.click(allotments.getByRole('button', { name: issueSummary }));
   await allotments.findByText(ALLOTMENT_REQUEST.agreementReference);
   expect(rows[0].registerEntry).toBe('entry-a');
   fireEvent.click(allotments.getByRole('button', { name: /^Download receipt/ }));
@@ -553,7 +561,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(save).not.toHaveBeenCalled();
   failedRead = false;
   fireEvent.click(allotments.getByRole('button', { name: 'Try again' }));
-  await allotments.findByText('Approved');
+  await allotments.findByRole('heading', { name: 'Issued · 1' });
   expect(allotments.getByText(ALLOTMENT_REQUEST.agreementReference)).toBeTruthy();
   appointments = [{ ...APPOINTMENT, capabilities: ['finance'] }];
   await refreshAllotments();
@@ -607,7 +615,7 @@ it('preserves original preparation and combined approval recovery through refres
   ).toBeTruthy();
   fireEvent.change(taskClass(), { target: { value: REGISTER.token.uuid } });
   fireEvent.click(investorTask());
-  await allotments.findByText('Approved');
+  await allotments.findByRole('heading', { name: 'Issued · 1' });
   expect(rows[0].registerEntry).toBe('entry-a');
   expect(rows[0].decisions).toHaveLength(2);
   cleanup();

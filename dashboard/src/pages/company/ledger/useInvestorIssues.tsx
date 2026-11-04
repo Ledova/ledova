@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { generatePath } from 'react-router-dom';
 import { pageTitle } from '@utils/destinations';
 import {
@@ -6,6 +6,7 @@ import {
   REGISTER_ALLOTMENT_COPY as COPY,
   appointmentForRegisterStep,
   hasCurrentRegisterReadAuthority,
+  type IssueRow,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
@@ -241,36 +242,42 @@ export function useInvestorIssues({
       ) : null}
     </>
   );
-  const records = (
-    <ul className="divide-y divide-border-subtle">
-      {allotments.data?.map((allotment) => (
-        <AllotmentRecord
-          key={allotment.uuid}
-          allotment={allotment}
-          steps={registerSteps(appointments.isSuccess ? appointments.data : [], company)}
-          guard={financialGuard}
-          visible={visible && privateReady && !kept}
-          focusKey={prepared === allotment.uuid ? prepared : undefined}
-          reviewTarget={reviewTarget}
-          onReviewChange={onReviewChange}
-          onHeldChange={recordHeld}
-          newEffectGuard={(kind) => {
-            check();
-            if (
-              !writeReady.current ||
-              !appointmentForRegisterStep(
-                client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
-                company,
-                kind,
-              )
+  const listed = visible && privateReady && !kept;
+  const records: IssueRow<ReactNode>[] = (allotments.data ?? []).map((allotment) => ({
+    uuid: allotment.uuid,
+    stage: allotment.stage,
+    companyEventOn: allotment.companyEventOn,
+    createdAt: allotment.createdAt,
+    shown: listed,
+    held: !!decisionHolds[allotment.uuid],
+    render: ({ collapsed, ruled }) => (
+      <AllotmentRecord
+        allotment={allotment}
+        steps={registerSteps(appointments.isSuccess ? appointments.data : [], company)}
+        guard={financialGuard}
+        visible={listed}
+        collapsed={collapsed}
+        ruled={ruled}
+        focusKey={prepared === allotment.uuid ? prepared : undefined}
+        reviewTarget={reviewTarget}
+        onReviewChange={onReviewChange}
+        onHeldChange={recordHeld}
+        newEffectGuard={(kind) => {
+          check();
+          if (
+            !writeReady.current ||
+            !appointmentForRegisterStep(
+              client.getQueryData<OwnCompanyAppointment[]>(ownAppointmentsKey(owner)) ?? [],
+              company,
+              kind,
             )
-              throw new Error('Refresh the register and your appointment before a new decision.');
-          }}
-          onSettled={() => refresh(true)}
-        />
-      ))}
-    </ul>
-  );
+          )
+            throw new Error('Refresh the register and your appointment before a new decision.');
+        }}
+        onSettled={() => refresh(true)}
+      />
+    ),
+  }));
   return {
     setup,
     form,

@@ -663,9 +663,14 @@ it('retains original award, vesting and linked issue preparations through interr
   retainedGrant = retainedReceipt;
   slowReads = true;
   fireEvent.click(recover);
-  await issues.findByRole('heading', { name: AWARD_REQUEST.name!, level: 3 });
-  const awardIssueRecord = () => issues.getByRole('heading', { name: AWARD_REQUEST.name!, level: 3 }).closest('li')!;
-  expect(within(awardIssueRecord().querySelector('dl')!).getByText('No shares issued')).toBeTruthy();
+  const awardIssue = `${AWARD_REQUEST.name}, 10 shares. Show details and documents`;
+  await issues.findByRole('button', { name: awardIssue });
+  const awardIssueRecord = () => issues.getByRole('button', { name: awardIssue }).closest('li')!;
+  const shownStatus = (label: string) =>
+    within(awardIssueRecord())
+      .getAllByText(label)
+      .filter((node) => !node.closest('[hidden]'));
+  expect(shownStatus('Prepared')).toHaveLength(1);
   await waitFor(() => expect(issues.queryByRole('button', { name: 'Recover original grant preparation' })).toBeNull());
   slowReads = false;
   expect(submissions(URLS.REGISTER_GRANTS)).toEqual([original]);
@@ -708,7 +713,7 @@ it('retains original award, vesting and linked issue preparations through interr
     await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(confirm);
     if (label === 'Approve') {
-      await waitFor(() => expect(within(awardIssueRecord().querySelector('dl')!).getByText('Approved')).toBeTruthy());
+      await waitFor(() => expect(shownStatus('Approved')).toHaveLength(1));
       expect(effectCount).toBe(0);
       expect(awards[0].issuedShares).toBe('0');
     }
@@ -760,7 +765,7 @@ it('retains original award, vesting and linked issue preparations through interr
   await waitFor(() => expect(client.isFetching()).toBe(0));
   slowReads = true;
   fireEvent.click(await screen.findByRole('button', { name: /^Recover record issue receipt/ }));
-  await issues.findByText('Shares issued');
+  await issues.findByRole('heading', { name: 'Issued · 1' });
   await waitFor(() => expect(screen.queryByRole('button', { name: /^Recover record issue receipt/ })).toBeNull());
   await waitFor(() => expect(scopeClass().disabled).toBe(false));
   slowReads = false;
@@ -794,13 +799,7 @@ it('retains original award, vesting and linked issue preparations through interr
     );
     await client.invalidateQueries({ queryKey: registerHoldersKey(OWNER) });
   });
-  await waitFor(() =>
-    expect(
-      within(
-        within(awardIssueRecord().querySelector('dl')!).getByText(GRANT.COMPANY_EVENT_ON).parentElement!,
-      ).getByText('Not recorded'),
-    ).toBeTruthy(),
-  );
+  await waitFor(() => expect(within(awardIssueRecord()).getByText('Employee award · Date not recorded')).toBeTruthy());
   await issues.findByText('External allotments could not be loaded.');
   await waitFor(() =>
     expect(api.get.mock.calls.filter(([url]) => url === URLS.HOLDERS(REGISTER.token.uuid)).length).toBeGreaterThan(
@@ -840,12 +839,12 @@ it('retains original award, vesting and linked issue preparations through interr
     await client.invalidateQueries({ queryKey: registerHoldersKey(OWNER) });
   });
   await issues.findByText('Non-paid issues could not be loaded.');
-  expect(issues.queryByText('Shares issued')).toBeNull();
+  expect(issues.queryByRole('heading', { name: 'Issued · 1' })).toBeNull();
   grantsFailed = false;
   fireEvent.click(
     issues.getByRole('button', { name: 'Try again', description: 'Non-paid issues could not be loaded.' }),
   );
-  await issues.findByText('Shares issued');
+  await issues.findByRole('heading', { name: 'Issued · 1' });
   expect(effectCount).toBe(1);
   expect(within(screen.getByText('Ledger date').parentElement!).getByText(formatDate('2026-10-06'))).toBeTruthy();
   fireEvent.click(screen.getByRole('link', { name: 'Return to ESS' }));

@@ -1,20 +1,22 @@
-import { useEffect, useRef, type ReactElement, type ReactNode } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { CaretDownIcon, CaretUpIcon } from 'phosphor-react-native';
 import type { UseMutationResult } from '@tanstack/react-query';
 import {
   REGISTER_COPY,
   apiErrorSentence,
-  formatDate,
   formatDateTime,
+  formatShortDate,
   shareCount,
   type RegisterDecisionKind,
   type RegisterProposal,
 } from '@ledova/shared';
 import { Action, Fact, Status, type Tone } from '../../components/Ledger';
+import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useLedgerStyles } from './useLedgerStyles';
 
-export type IssueStatus = { tone: Tone; label: string; note?: string };
+export type IssueStatus = { tone: Tone; label: string };
 
 export function SummaryCell({
   label,
@@ -41,39 +43,53 @@ export function IssueSummary({
   amount,
   companyEventOn,
   status,
+  children,
 }: {
   name: string;
   kind: string;
   shares: string;
   amount?: string;
   companyEventOn?: string | null;
-  status: IssueStatus;
+  status?: IssueStatus;
+  children: ReactNode;
 }) {
+  const theme = useAppTheme();
   const look = useLedgerStyles();
+  const [open, setOpen] = useState(false);
   const count = shareCount(shares);
-  const date = formatDate(companyEventOn, 'Not recorded');
+  const facts = `${kind} · ${formatShortDate(companyEventOn, 'Date not recorded')}`;
+  const Caret = open ? CaretUpIcon : CaretDownIcon;
   return (
-    <View style={look.cells}>
-      <View style={look.pair}>
-        <SummaryCell label="Recipient" values={[name, kind]}>
-          <Text style={look.name}>{name}</Text>
-          <Text style={look.muted}>{kind}</Text>
-        </SummaryCell>
-        <SummaryCell label="Shares" values={[count, amount]}>
-          <Text style={look.title}>{count}</Text>
-          {!!amount && <Text style={look.muted}>{amount}</Text>}
-        </SummaryCell>
+    <>
+      <View style={look.list}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${name}, ${count}. ${open ? 'Hide' : 'Show'} details and documents`}
+          accessibilityHint={amount ? `${facts}, ${amount}` : facts}
+          accessibilityState={{ expanded: open }}
+          onPress={() => setOpen((shown) => !shown)}
+          style={look.disclosure}
+        >
+          <View style={[look.fill, look.terms]}>
+            <View style={look.split}>
+              <Text style={[look.title, look.fill]}>{name}</Text>
+              <Text style={[look.title, look.tabular]}>{count}</Text>
+            </View>
+            <View style={look.split}>
+              <Text style={[look.small, look.fill]}>{facts}</Text>
+              {!!amount && <Text style={[look.small, look.tabular]}>{amount}</Text>}
+            </View>
+          </View>
+          <Caret size={theme.icon.sizes.sm} color={theme.colors.text.muted} />
+        </Pressable>
+        {!!status && (
+          <View accessible accessibilityLabel={`Status: ${status.label}`}>
+            <Status tone={status.tone}>{status.label}</Status>
+          </View>
+        )}
       </View>
-      <View style={look.pair}>
-        <SummaryCell label="Company issue date" values={[date]}>
-          <Text style={look.title}>{date}</Text>
-        </SummaryCell>
-        <SummaryCell label="Status" values={[status.label, status.note]}>
-          <Status tone={status.tone}>{status.label}</Status>
-          {!!status.note && <Text style={look.muted}>{status.note}</Text>}
-        </SummaryCell>
-      </View>
-    </View>
+      <View style={[look.summary, !open && look.hidden]}>{children}</View>
+    </>
   );
 }
 

@@ -213,8 +213,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   kebab-case (`member-records/`, `not-found/`). A file is named after its main export, or after what
   small siblings share (`fieldClass.ts`): `PascalCase.tsx` for a component, `use<Thing>.ts` for a
   hook without JSX (`use<Thing>.tsx` for the two Ledger issue hooks, `useInvestorIssues` and
-  `useNonPaidIssues`, which return the rendered parts their class page interleaves, and for the
-  shared `useApiClient.tsx`, which also holds `ApiClientProvider`),
+  `useNonPaidIssues`, which return the rendered parts and the record rows their class page groups,
+  and for the shared `useApiClient.tsx`, which also holds `ApiClientProvider`),
   `<Thing>Provider.tsx` for a provider, `PascalCase.ts` for a React context,
   camelCase `.ts` for a module without React. Components and hooks are function declarations. A page
   entry default-exports its page and nothing else; other exports are named, and only when another
