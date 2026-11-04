@@ -154,7 +154,7 @@ export function ClassCorrections({
             Corrections could not be loaded.
           </LoadError>
         ) : null}
-        <GroupedRecords grouping={CORRECTION_GROUPS} rows={rows} requested={landed} />
+        <GroupedRecords grouping={CORRECTION_GROUPS} rows={rows} requested={landed} heading="h4" />
       </div>
     </>
   );

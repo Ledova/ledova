@@ -12,10 +12,12 @@ export function GroupedRecords({
   grouping,
   rows,
   requested,
+  heading: Heading = 'h3',
 }: {
   grouping: RecordGrouping;
   rows: RecordRow<ReactNode>[];
   requested?: { key: string; record: string };
+  heading?: 'h3' | 'h4';
 }) {
   const [expanded, setExpanded] = useState<Partial<Record<RecordGroupKey, boolean>>>({});
   const [revealed, setRevealed] = useState('');
@@ -40,7 +42,7 @@ export function GroupedRecords({
           ...(group.heading
             ? [
                 <li key={group.key} className={at > 0 ? 'border-t border-border pt-4' : undefined}>
-                  <h3 className="text-xs font-semibold text-text-muted">{group.heading}</h3>
+                  <Heading className="text-xs font-semibold text-text-muted">{group.heading}</Heading>
                 </li>,
               ]
             : []),
