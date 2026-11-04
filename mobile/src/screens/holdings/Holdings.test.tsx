@@ -83,6 +83,7 @@ import { TransferPreparationScreen } from '../ledger/TransferPreparationScreen';
 import { TransferSharesScreen } from '../ledger/TransferSharesScreen';
 import { AuthorityRequestScreen } from '../settings/AuthorityRequestScreen';
 import { AuthorityScreen } from '../settings/AuthorityScreen';
+import { YourAppointments } from '../settings/Appointments';
 import { TeamScreen } from '../settings/TeamScreen';
 import { EmployeeAwardScreen } from '../shareholders/EmployeeAwardScreen';
 import { EmployeeSchemeScreen } from '../shareholders/EmployeeSchemeScreen';
@@ -1339,12 +1340,13 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(revocations()).toHaveLength(0);
   await fireEvent.press(screen.getByRole('button', { name: 'Permanently revoke appointment' }));
   expect(revocations()).toEqual([[`${APPOINTMENTS}${READER.uuid}/revoke/`, {}, expect.anything()]]);
-  expect(
-    await screen.findByRole('button', { name: /^Revoke appointment \(Synthetic Administered Company/ }),
-  ).toBeTruthy();
   expect(await screen.findByText('Revoked')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/ })).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: /^Revoke appointment \(Synthetic Administered Company/ }));
+  expect(screen.queryByRole('button', { name: /^Revoke appointment \(Synthetic Administered Company/ })).toBeNull();
+  await view.rerender(<YourAppointments />);
+  await fireEvent.press(
+    await screen.findByRole('button', { name: /^Revoke appointment \(Synthetic Administered Company/ }),
+  );
   expect(screen.getByText(/^Permanently remove your appointment for Synthetic Administered Company\?/)).toBeTruthy();
   expect(revocations()).toHaveLength(1);
   await view.rerender(<AuthorityScreen />);

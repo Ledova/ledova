@@ -94,7 +94,7 @@ Resuming an unfinished signup:
 ## Representative authority requests
 
 An owner of a draft company can also request initial authority outside signup, from
-**Settings → Team → Representative authority** on web and in the mobile app. The page lists your
+**Settings → Account → Your appointments → Representative authority** on web and in the mobile app. The page lists your
 requests by company, ACN, submission date and status; each opens its own page with a **Request** card
 and, once admitted, an **Appointment** card with the recorded declaration behind **Show the
 declaration**, and the request's actions at the foot. In the app you type the expiry as `YYYY-MM-DD`,
@@ -119,15 +119,16 @@ choose the file with the device's file picker, and **Download evidence** opens t
 
 ## Team invitations and appointments
 
-Open the team from **Settings → Team** for the selected company. Before company access is granted,
-open **Settings → Account → Invitations → Company officer invitation → Accept**. Investor-only accounts
-can open it too: accepting an invitation or reading your appointments needs no company appointment. The web page starts with
-appointments, the selected company's team and issued invitations; **Invite a company user** and
-**Accept a company invitation** open focused inline forms. Someone with no appointments, other than
-a company's owner, lands straight on accepting an invitation. It also keeps the owner's contextual Representative authority
-task. The mobile app has the same Team, with Representative authority, in its Settings menu where
-the selected company can be managed and from the same Account row; there you type the invitation's
-dates as `YYYY-MM-DD` and copy the one-time code by selecting it.
+Team (**Settings → Team**) is the selected company's page: its team, **Invite a company user** and
+the invitations you issued (owner, 5 November 2026). To accept a company invitation, open
+**Settings → Account → Invitations → Company officer invitation → Accept**, which opens Team's
+focused accept form. Investor-only accounts can accept too: accepting an invitation or reading your
+appointments needs no company appointment. Team opens straight on accepting an invitation for
+someone with no appointments, other than a company's owner. Your appointments, across companies, are
+on **Settings → Account → Your appointments**, which keeps the owner's contextual Representative
+authority task. The mobile app has the same Team in its Settings menu where the selected company can
+be managed, and the same Account rows and card; there you type the invitation's dates as
+`YYYY-MM-DD` and copy the one-time code by selecting it.
 
 1. To invite someone, choose one of your current appointments that can delegate for the selected
    company. Choose the personal capabilities and, separately, any onward delegation for the invitee. Set an
@@ -139,12 +140,12 @@ dates as `YYYY-MM-DD` and copy the one-time code by selecting it.
 3. To accept, enter the code and agree to the displayed authorisation and company responsibility
    declaration. Your own account, verified email and the identity requirement apply. Editing the
    code clears your agreement; a failed acceptance keeps the input for a deliberate retry.
-4. Read your appointment's source, capabilities, expiry and status, and the invitations you issued
-   with their acceptance outcome. Expired and revoked records stay in these histories. Current
+4. Read your appointments' source, capabilities, expiry and status on Account, and the invitations
+   you issued, with their acceptance outcome, on Team. Expired and revoked records stay in these histories. Current
    company administrators can also read the selected company's team: name, email, capabilities and
    status.
-5. Revoke your own appointment or, as a current company administrator, any appointment in that
-   company. Confirm the permanent action in the dialog. A cancelled, reused or stale confirmation
+5. Revoke your own appointment on Account or, as a current company administrator, any appointment
+   in that company on Team. Confirm the permanent action in the dialog. A cancelled, reused or stale confirmation
    cannot take effect, and a failed or unconfirmed result needs a fresh confirmation.
 
 Invitation rules:
@@ -309,7 +310,7 @@ and address, and whether the ownership overview is shared with members. Administ
 
 On web, select the company in Dashboard. Settings opens Profile, combining personal and permitted
 company sections with separate editors and permissions, beside Account and Data and privacy. Team and
-Activation have their own Settings items, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Team.
+Activation have their own Settings items, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Account's Your appointments.
 
 Share classes are listed and added only in [Ledger](register.md#bringing-in-existing-records).
 

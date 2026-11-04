@@ -252,19 +252,22 @@ available records and actions; choosing a company grants neither.
 
 Settings opens Profile, with **Account** and **Data and privacy** beside it for everyone. Team and
 Activation appear where company access permits. Team remains reachable for accepting
-a company invitation. Before company access is granted, **Settings → Account → Invitations →
-Company officer invitation** provides **Accept**, opening the same guarded workflow. Member access stays
+a company invitation: **Settings → Account → Invitations → Company officer invitation** provides
+**Accept**, opening Team's guarded accept form. Member access stays
 under company [Shareholders](register.md#the-register-page), on the web and in the app.
 
 **Profile** combines Personal information with permitted Company details. Each editor retains its own
 permissions; changing personal details does not update a company's records. **Activation** retains the
 [company activation workflow](companies.md#activation).
 
-**Account** has three cards: **Security** (the identity check's status with **Review**, and the
+**Account** has four cards: **Security** (the identity check's status with **Review**, and the
 password with **Change**), **Account details** (**Member since**, such as "21 Oct 2026", and **Last
-login**, such as "2 Nov 2026, 1:38 pm") and **Invitations**. Invitations has a **Shareholder invitation** row whose **Accept** opens
-Member invitation, and, for anyone who can't manage the company, a **Company officer invitation** row whose
-**Accept** opens Team (owner, 3 November 2026). Existing company and
+login**, such as "2 Nov 2026, 1:38 pm"), **Invitations** and **Your appointments**. Invitations has a
+**Shareholder invitation** row whose **Accept** opens Member invitation, and a **Company officer
+invitation** row whose **Accept** opens Team's accept form (owner, 3 and 5 November 2026). Your
+appointments lists your company appointments, each with **Show the declaration** and **Revoke
+appointment**, and, for a company's owner, **Representative authority**
+([appointments](companies.md#team-invitations-and-appointments)). Existing company and
 investor verification requirements stay unchanged. The theme is the **Dark theme** switch beside Sign
 out (remembered in this browser with Paper as the default); the web app no longer offers transaction
 alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).
@@ -281,13 +284,13 @@ action and what it does on the left, with **Export** or **Delete** on the right.
 
 On mobile, Settings has the same three pages for the selected company, then
 [Team](companies.md#team-invitations-and-appointments) where that company can be managed and
-[Activation](companies.md#activation) where the web shows it, and Account the web's three cards.
+[Activation](companies.md#activation) where the web shows it, and Account the web's four cards.
 Security shows the identity status but no **Review**, since the app
 has no identity check flow, then **Change** for the password and the biometric sign-in (such as
 **Face ID sign-in**) and **App lock** switches, App lock asking for biometrics when you come back to
 the app. Invitations' **Shareholder invitation** row opens the app's member
-[invitation](member-records.md#accepting-an-invitation), and its **Company officer invitation** row,
-for anyone who can't manage the company, opens Team, as on the web. On
+[invitation](member-records.md#accepting-an-invitation), and its **Company officer invitation** row
+opens Team's accept form, as on the web. On
 Data and privacy, **Export** saves or shares a private JSON file. **Sign out** and the **Dark
 theme** switch, saved on the device, are in the menu.
 

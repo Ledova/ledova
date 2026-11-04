@@ -1,8 +1,7 @@
 import { SelectField } from '@components/SelectField';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { Section, LoadError, Loading, Failure } from '@components/Ledger';
-import { Modal } from '@components/Modal';
-import { FormActions, Page, PageAction, PageLink } from '@components/Page';
+import { FormActions, Page, PageAction } from '@components/Page';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
@@ -14,7 +13,6 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   formatDateTime,
-  DESTINATIONS,
   issuedInvitationDates,
   scopeFacts,
   scopeLabels,
@@ -22,6 +20,7 @@ import {
 } from '@ledova/shared';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
 import { AppointmentRecord } from './AppointmentRecord';
+import { RevokeAppointmentDialog } from './RevokeAppointmentDialog';
 import { TeamInvitationForm } from './TeamInvitationForm';
 import { AccountCheck } from '@components/AccountCheck';
 
@@ -52,8 +51,14 @@ function OwnTeam({
   const [draftSource, setDraftSource] = useState<OwnCompanyAppointment | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const collection = useRef<HTMLDivElement>(null);
-  const acceptOpener = useRef<HTMLButtonElement>(null);
   const inviteOpener = useRef<HTMLButtonElement>(null);
+  const teamState = useCompanyTeam({
+    owner,
+    currentOwner,
+    editing: task !== null,
+    company: context ? (context.companyUuid ?? '') : new URLSearchParams(location.search).get('company'),
+    companyName: context?.company?.name,
+  });
   const {
     guard,
     company,
@@ -61,8 +66,6 @@ function OwnTeam({
     setSourceId,
     setFormBusy,
     error,
-    confirmation,
-    ticket,
     own,
     invitations,
     appointments,
@@ -71,31 +74,21 @@ function OwnTeam({
     canAdmin,
     team,
     disabled,
-    revoking,
-    close,
-    canRevoke,
     confirm,
-    revoke,
     issueGuard,
     companyName,
-  } = useCompanyTeam({
-    owner,
-    currentOwner,
-    editing: task !== null,
-    company: context ? (context.companyUuid ?? '') : new URLSearchParams(location.search).get('company'),
-    companyName: context?.company?.name,
-  });
+  } = teamState;
   const [started, setStarted] = useState(false);
   if (!started && own.isSuccess && !own.isFetching && !settings.isLoading) {
     setStarted(true);
-    if (appointments.length === 0 && !settings.hasOwnedCompany) setTask('accept');
+    if (location.hash === '#accept' || (appointments.length === 0 && !settings.hasOwnedCompany)) setTask('accept');
   }
   useEffect(() => {
     if (task) heading.current?.focus();
   }, [task]);
   useEffect(() => {
     if (task || !returnFocus || disabled || own.isFetching) return;
-    const opener = returnFocus === 'accept' ? acceptOpener.current : inviteOpener.current;
+    const opener = returnFocus === 'invite' ? inviteOpener.current : null;
     const destination = opener && !opener.disabled ? opener : collection.current;
     if (destination) {
       destination.focus();
@@ -129,43 +122,11 @@ function OwnTeam({
   return (
     <Page lede="Manage company appointments and invitations.">
       <div ref={collection} tabIndex={-1} hidden={!!task} className="space-y-6 focus:outline-none">
-        <Section title="Your appointments">
-          {accountStatus}
-          {own.isSuccess &&
-            !own.isFetching &&
-            (appointments.length === 0 ? (
-              <p className="text-sm text-text-muted">No company appointments yet.</p>
-            ) : (
-              <ul className="divide-y divide-border-subtle">
-                {appointments.map((item) => (
-                  <AppointmentRecord
-                    key={item.uuid}
-                    appointment={item}
-                    companyName={item.companyName}
-                    disabled={disabled}
-                    onRevoke={() => confirm(item, item.companyName)}
-                  />
-                ))}
-              </ul>
-            ))}
-        </Section>
-        <div className="flex flex-wrap justify-end gap-2">
-          {settings.hasOwnedCompany && (
-            <PageLink
-              to={context?.companyPath(DESTINATIONS.companyAuthority.path) ?? DESTINATIONS.companyAuthority.path}
-              label="Representative authority"
-            />
-          )}
-          <PageAction
-            ref={acceptOpener}
-            label="Accept a company invitation"
-            disabled={disabled}
-            onClick={() => {
-              setStarted(true);
-              setTask('accept');
-            }}
-          />
-        </div>
+        {own.isError && (
+          <LoadError retry={() => own.refetch()} busy={own.isFetching}>
+            Your appointments could not be loaded.
+          </LoadError>
+        )}
         <Section title="Team">
           {!companyName && !own.isPending && !own.isFetching && !own.isError && <CompanyContextNotice />}
           {company &&
@@ -300,37 +261,7 @@ function OwnTeam({
         </div>
       </div>
       <Failure>{error}</Failure>
-      <Modal
-        isOpen={!!confirmation}
-        onClose={close}
-        title="Revoke appointment permanently?"
-        showFooter
-        confirmLabel="Permanently revoke appointment"
-        destructive
-        busy={revoking}
-        busyLabel="Revoking…"
-        confirmDisabled={!confirmation || disabled || !canRevoke(confirmation.appointment)}
-        onConfirm={() => {
-          if (
-            !confirmation ||
-            ticket.current !== confirmation.ticket ||
-            disabled ||
-            !canRevoke(confirmation.appointment)
-          )
-            return;
-          void revoke(confirmation.appointment).finally(close);
-        }}
-      >
-        <p className="text-sm text-text-primary">
-          Permanently remove{' '}
-          {confirmation && 'name' in confirmation.appointment
-            ? `${confirmation.appointment.name || confirmation.appointment.email}'s appointment`
-            : 'your appointment'}{' '}
-          for {confirmation?.companyName}? This appointment loses its company authority. Its history remains retained.
-          {confirmation?.appointment.source !== 'invitation' &&
-            ' Another initial self-declaration cannot restore it; revoking an initial or legacy-owner appointment does not reopen admission.'}
-        </p>
-      </Modal>
+      <RevokeAppointmentDialog team={teamState} />
     </Page>
   );
 }

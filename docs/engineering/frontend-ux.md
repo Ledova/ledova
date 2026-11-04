@@ -36,18 +36,20 @@ A stepped preparation (register setup, an investor issue, a transfer) is one car
 the task, `FormSteps` sits at its top, each step has a small heading, and one primary action ends the step.
 Register setup's card is titled with the class being set up, and a recorded ledger shows its state as a `Status`.
 Company information, authority records and company team use this workspace frame too.
-Team invitations and acceptance replace their collection with one focused inline task, a card titled
-**Invite a company user** or **Accept a company invitation** that retains its mounted editors and
-drafts; someone with no appointments, other than a company's owner, opens straight on accepting one. The invitation's appointment
-choice starts each option with its appointment date. Team's appointment rows are compact at every
-width: the company or person with the status at the right; one muted line with a team member's
-email and the actions (**All actions** when the appointment holds every one) and any delegation
-("may delegate all of these" when it matches, "may delegate all actions" when it covers every
-one); and one with the source and short date, any
-revocation and the expiry. A compact **Revoke appointment** sits at the right edge, on the line
-that holds an own appointment's **Show the declaration**. Issued invitations show the company,
-their actions, and their acceptance or deadline with the appointment's expiry. The app's Team has the same cards, rows and
-inline tasks at phone width, and the same Representative authority.
+Team is the selected company's page: its team, **Invite a company user** and the invitations you
+issued (owner, 5 November 2026). Inviting replaces the collection with one focused inline task, a
+card titled **Invite a company user** that retains its mounted editors and drafts. Accepting a
+company invitation is the same kind of task, **Accept a company invitation**, opened from Account's
+**Company officer invitation** (Team's address with `#accept`), or straight away for someone with
+no appointments who owns no company. The invitation's appointment choice starts each option with
+its appointment date. Appointment rows are compact at every width: the company or person with the
+status at the right; one muted line with a team member's email and the actions (**All actions**
+when the appointment holds every one) and any delegation ("may delegate all of these" when it
+matches, "may delegate all actions" when it covers every one); and one with the source and short
+date, any revocation and the expiry. A compact **Revoke appointment** sits at the right edge, on the
+line that holds an own appointment's **Show the declaration**. Issued invitations show the company,
+their actions, and their acceptance or deadline with the appointment's expiry. The app's Team has
+the same cards, rows and inline tasks at phone width.
 Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
 and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
 Employee share scheme, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
@@ -126,7 +128,7 @@ is one flex column with a single gap; add no margin under the title). On mobile 
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
 action and the bell; no page has a back button, so the app leaves out the web's title-row way back,
-such as Back to Team, and Android's Back and the iOS swipe return to the previous page. A tap on a
+such as Back to Account, and Android's Back and the iOS swipe return to the previous page. A tap on a
 control acts at once, even while the keyboard is up.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
@@ -472,11 +474,13 @@ Ledger, without the tasks it doesn't have yet, Shareholders with Employee scheme
 Documents' pages, Team and Activation under the same conditions. A group with only one permitted page, such as Documents with only Certificates, is a
 plain link to that page, marked current there. Profile always holds personal information. Team, Activation and
 Company details follow current company access. Personal edits never change company-recorded particulars.
-Account has three cards: **Security** (the identity check's status with **Review**, which the app
+Account has four cards: **Security** (the identity check's status with **Review**, which the app
 leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
-switches), **Account details** (**Member since** and **Last login**) and **Invitations**: a
-**Shareholder invitation** row with **Accept**, and a **Company officer invitation** row with
-**Accept**, opening Team, for anyone who can't manage the company. Each row has its label on the left
+switches), **Account details** (**Member since** and **Last login**), **Invitations** (a
+**Shareholder invitation** row and a **Company officer invitation** row, each with **Accept**; the
+second opens Team's accept task) and **Your appointments**: your appointments across companies in
+Team's rows, with a compact **Representative authority** at its foot for a company's owner. Each row
+of the first three has its label on the left
 and its status, value, one compact text action or switch on the right, vertically centred at every
 width; Account details' **Member since** (a short date) and **Last login** use the same rows. Keep
 export and deletion on Data and privacy, in the same rows (Export data with **Export**, Delete
@@ -509,7 +513,7 @@ Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme s
 scheme, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
-link in the title row for a contextual task: Back to Team on Representative authority, Back to
+link in the title row for a contextual task: Back to Account on Representative authority, Back to
 Representative authority on an authority request's page, Back to Shareholders on a shareholder's
 page, Back to Employee share scheme on an award's page, and Back to Corrections for ledger
 maintenance.
@@ -1075,7 +1079,8 @@ by a local helper or a browser `toLocale…` call:
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
   the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
   page, Employee share scheme and Certificates at phone width, Member access, prepared inspection
-  copies and Account details' Member since use `formatShortDate`, "20 Oct 2026", read the same way.
+  copies, appointments and issued invitations, and Account details' Member since use
+  `formatShortDate`, "20 Oct 2026", read the same way.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter
   month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.

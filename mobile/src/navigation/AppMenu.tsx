@@ -59,8 +59,8 @@ type MenuItem = {
 };
 
 const PARENT_ROUTES: Partial<Record<string, MenuRoute>> = {
-  Authority: 'Team',
-  AuthorityRequest: 'Team',
+  Authority: 'Account',
+  AuthorityRequest: 'Account',
   EmployeeAward: 'EmployeeScheme',
   TransferPreparation: 'TransferShares',
   CorrectionPreparation: 'Corrections',

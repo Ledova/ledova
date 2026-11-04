@@ -372,14 +372,16 @@ to the page that opened it, and a page that cannot show the form still offers it
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
 Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form
-in the card. Pulling down refreshes the profile. Account (`Account`) has the web's three cards. Security
+in the card. Pulling down refreshes the profile. Account (`Account`) has the web's four cards. Security
 shows the identity check status from the profile (the app has no identity check flow, so there is no
 **Review**), **Change** for the password, and the app's biometric sign-in and App lock switches, with
 **Biometric security is not available on this device.** beneath them only where that applies; Account
 details shows member since and last login in the same one-line rows; and Invitations' **Shareholder invitation** row has
-**Accept**, which opens the Member invitation page, and, as on the web, a **Company officer
-invitation** row for anyone who can't manage the selected company has **Accept**, which opens Team.
-Its rows follow the web's: the label on the left, and its status, value, one compact action
+**Accept**, which opens the Member invitation page, and, as on the web, the **Company officer
+invitation** row has **Accept**, which opens Team on its accept form. Your appointments
+(`mobile/src/screens/settings/Appointments.tsx`) lists the person's appointments across companies in
+Team's rows, with **Show the declaration** and **Revoke appointment**, which asks first in the web's
+dialog. The first three cards' rows follow the web's: the label on the left, and its status, value, one compact action
 or switch on the right. Data and privacy (`DataPrivacy`) has the same rows and compact actions: Export data, whose **Export**
 saves or shares the file, and Delete account with **Delete**; a screen reader hears the row and then the action, named
 Export data or Delete account. The theme is the menu's switch. The pages share one state
@@ -389,16 +391,16 @@ with its original code, after leaving the page, and the pages show a loading lin
 empty one while the list rereads. Only the focused page selects its record and class.
 Team (`mobile/src/screens/settings/TeamScreen.tsx`, its forms in `TeamForms.tsx`) is the web's Team
 page at phone width, read and sent through the shared `useCompanyTeam`, `useAcceptInvitationForm`
-and `useTeamInvitationForm` with the selected company: Your appointments, **Accept a company
-invitation**, the company's Team, **Invite a company user** and Invitations you issued, with the
-web's rows, wording, loading, empty and failure states. The Team list is read only with a current
+and `useTeamInvitationForm` with the selected company: the company's Team, **Invite a company user** and Invitations you
+issued, with the web's rows, wording, loading, empty and failure states. The Team list is read only with a current
 own administration appointment for that company; otherwise it says that authority is required.
 Accepting and inviting replace the page with the web's inline form, which keeps its draft when
-closed; someone with no appointments who owns no company opens on accepting. The capabilities are
+closed; Team opens on accepting from Account's **Company officer invitation**, and for someone with
+no appointments who owns no company. The capabilities are
 checkboxes, the invitation deadline and appointment expiry are typed as `YYYY-MM-DD` (UTC) with the
 web's checks, and the one-time code shows once as selectable text to copy. **Revoke appointment**
 asks first in the web's dialog. Pulling down rereads the page while no form or revocation is open.
-Team's **Representative authority**, shown as on the web to a company account that owns a company,
+Your appointments' **Representative authority**, shown as on the web to a company account that owns a company,
 opens the web's Representative authority page (`AuthorityScreen.tsx`), read and sent through the
 shared `useAuthorityRequests` and `useAuthorityRequestForm`: Authority requests, each a row with the
 company, its ACN and submission date and the request's status, then **Request authority**, which
@@ -413,7 +415,7 @@ Request and Appointment cards, the declaration and Terms for an admin request st
 ([document view copies](#document-view-copies)), **Withdraw request** and **Establish appointment**
 while pending, and **Revoke appointment**. Withdrawing and revoking ask first in the web's dialogs.
 Pulling down rereads the requests while no request form is open and no action is running.
-The web's title-row way back, Back to Team and Back to Representative authority, is left out, as the
+The web's title-row way back, Back to Account and Back to Representative authority, is left out, as the
 app has no back buttons; Android's Back and the iOS swipe return to the previous page.
 Activation (`ActivationScreen.tsx`) is the web's page at phone width, through the shared
 `useCompanySelection`, limited to personal administration of the selected company, and

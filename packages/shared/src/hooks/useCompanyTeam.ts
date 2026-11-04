@@ -24,6 +24,7 @@ export function useCompanyTeam({
   company: selected,
   companyName: selectedName,
   editing = false,
+  ownOnly = false,
   session,
 }: {
   owner: OrderSubmissionOwner;
@@ -31,6 +32,7 @@ export function useCompanyTeam({
   company: string | null;
   companyName?: string;
   editing?: boolean;
+  ownOnly?: boolean;
   session?: OrderSubmissionSession;
 }) {
   const apiClient = useApiClient();
@@ -69,7 +71,7 @@ export function useCompanyTeam({
   const own = useOwnAppointments(owner, guard, { queryKey: ownKey, timing: {}, enabled: refreshReady, session });
   const invitations = useQuery({
     queryKey: invitationKey,
-    enabled: refreshReady,
+    enabled: refreshReady && !ownOnly,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     queryFn: () =>
@@ -99,7 +101,7 @@ export function useCompanyTeam({
   const teamKey = companyTeamKey(owner, company);
   const team = useQuery({
     queryKey: teamKey,
-    enabled: !!company && canAdmin && refreshReady,
+    enabled: !!company && canAdmin && refreshReady && !ownOnly,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     queryFn: async () => {

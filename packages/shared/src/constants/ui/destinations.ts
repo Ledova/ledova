@@ -77,7 +77,6 @@ export const DESTINATION_PARENTS: Partial<Record<DestinationKey, DestinationPare
   companyShareholder: { destination: 'companyRegister', view: 'shareholders' },
   companyRegisterAward: { destination: 'companyRegister', view: 'awards' },
   company: { destination: 'settings' },
-  companyAuthority: { destination: 'company' },
   companyTeam: { destination: 'settings' },
   companyListing: { destination: 'settings' },
   userProfile: { destination: 'settings' },

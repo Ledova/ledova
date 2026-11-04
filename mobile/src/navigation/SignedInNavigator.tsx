@@ -61,7 +61,7 @@ export type SignedInStackParamList = {
   Settings: undefined;
   Account: undefined;
   DataPrivacy: undefined;
-  Team: undefined;
+  Team: { accept?: boolean } | undefined;
   Activation: undefined;
   Authority: undefined;
   AuthorityRequest: { uuid: string };

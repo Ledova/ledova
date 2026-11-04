@@ -4,10 +4,11 @@ import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import { VERIFICATION_TONES, formatDateTime, formatShortDate, getUserVerificationStatus } from '@ledova/shared';
 import { Action, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
-import { useAppLock, useMemberRecordsState, useThemedStyles } from '../../contexts';
+import { useAppLock, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
+import { YourAppointments } from './Appointments';
 import { useSettings } from './useSettings';
 
 function useAccountStyles() {
@@ -60,7 +61,6 @@ export function AccountSettings() {
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   const lock = useAppLock();
   const { userProfile } = useUserProfile();
-  const { company } = useMemberRecordsState();
   const verification = getUserVerificationStatus(userProfile);
   const settings = useSettings();
   const [changing, setChanging] = useState(false);
@@ -205,22 +205,21 @@ export function AccountSettings() {
               />
             }
           />
-          {!company?.canManage && (
-            <SettingRow
-              label="Company officer invitation"
-              detail={<Text style={styles.muted}>Use the code the company gave you.</Text>}
-              action={
-                <Action
-                  compact
-                  label="Accept"
-                  accessibilityLabel="Accept company officer invitation"
-                  onPress={() => navigation.navigate('Team')}
-                />
-              }
-            />
-          )}
+          <SettingRow
+            label="Company officer invitation"
+            detail={<Text style={styles.muted}>Use the code the company gave you.</Text>}
+            action={
+              <Action
+                compact
+                label="Accept"
+                accessibilityLabel="Accept company officer invitation"
+                onPress={() => navigation.navigate('Team', { accept: true })}
+              />
+            }
+          />
         </Rows>
       </Section>
+      <YourAppointments />
       <CustomModal
         visible={changing}
         title="Change password"
