@@ -266,7 +266,7 @@ login**, such as "2 Nov 2026, 1:38 pm"), **Invitations** and **Your appointments
 **Shareholder invitation** row whose **Accept** opens Member invitation, and a **Company officer
 invitation** row whose **Accept** opens Team's accept form (owner, 3 and 5 November 2026). Your
 appointments lists your company appointments, with **Show the declaration** where one was recorded
-and **Revoke appointment** while one stands, and, for a company's owner, **Representative authority**
+and **Revoke appointment** until it is revoked, and, for a company's owner, **Representative authority**
 ([appointments](companies.md#team-invitations-and-appointments)). Existing company and
 investor verification requirements stay unchanged. The theme is the **Dark theme** switch beside Sign
 out (remembered in this browser with Paper as the default); the web app no longer offers transaction
