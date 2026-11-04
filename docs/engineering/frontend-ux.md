@@ -168,7 +168,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access and Team); on narrower screens it sits beneath the row's
   facts, still at the right edge, except Changes' compact **Correct**, which stays at the end of the
-  row's first line. Member access's **Revoke access** is a compact text action in the same place.
+  row's first line. Member access's **Revoke access** and Certificates' **Prepare certificate** are
+  compact text actions, placed like the others.
   A shareholder's Holdings and History rows don't expand either: the class, or the
   entry's kind, with the shares at the right, then the facts in muted text, with a holding's compact
   **Transfer shares** beneath them at the right edge. **Change particulars**, **Issue shares to
@@ -314,11 +315,16 @@ responsive field grid; their records group document and decision actions in one 
 refresh controls.
 
 Certificates uses one list for the selected company and class. Register readers see the company's
-issue and transfer entries; a member who is not one sees only their own history. Each aligned row shows the shareholder or change, shares, kind, class and entry
-number, and the date (with the ledger date beneath when it differs). A register reader's row adds
-the certificate's status, **Can prepare** or **None due, the entry was reversed**, labelled
-**Certificate:** at phone width, and **Prepare certificate** at the row's end. A member's empty
-class reads **No register entries for this class yet.** Rows don't expand.
+issue and transfer entries; a member who is not one sees only their own history. On wider screens
+each aligned row shows the shareholder or change, shares, kind, class and entry number, and the
+date (with the ledger date beneath when it differs); a register reader's row adds the certificate's
+status, **Can prepare** or **None due, the entry was reversed**, and **Prepare certificate** at the
+row's end. At phone width each entry takes two lines: the shareholder, or each party to a transfer,
+with the signed shares at the right, then the kind, class, entry number and short date in muted
+text, with the ledger date when it differs. A reversed entry adds **Certificate: None due, the entry
+was reversed**; an entry that can be prepared shows **Prepare certificate** beneath instead of
+repeating **Can prepare**. A member's empty class reads **No register entries for this class yet.**
+Rows don't expand.
 
 The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
 Its **Member access** submenu uses **People** and **Invitations** `Section` cards, in that order.
@@ -1059,7 +1065,8 @@ by a local helper or a browser `toLocale…` call:
 
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
   the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
-  page, Employee share scheme at phone width and Member access use `formatShortDate`, "20 Oct 2026",
+  page, Employee share scheme and Certificates at phone width, and Member access use
+  `formatShortDate`, "20 Oct 2026",
   read the same way.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter

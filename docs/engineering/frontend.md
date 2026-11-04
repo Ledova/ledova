@@ -786,8 +786,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   never reads the full company register, and a register reader's view uses no member record.
   `CertificateRecords.tsx` renders aligned rows with the shareholder or change, shares, entry and
   date, and for a register reader the certificate's status (**Can prepare** or **None due, the
-  entry was reversed**, labelled **Certificate:** below `md`) and **Prepare certificate** at the
-  row's end; rows don't expand. Each record keeps its class visible;
+  entry was reversed**) and a compact **Prepare certificate** at the row's end. Below `md` each row
+  takes two lines, using the shared `certificateFacts` as the app does, and only a reversed entry's
+  status shows, labelled **Certificate:**; rows don't expand. Each record keeps its class visible;
   the page heading's top-right icon button with the accessible name and tooltip Filters opens
   `FilterPopover`. A register reader's panel holds draft class, shareholder search and certificate
   status; a member's holds only the class, and appears only when they have more than one. The

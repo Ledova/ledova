@@ -42,6 +42,7 @@ function CertificateRequest({ onEditingChange, ...source }: ClassCertificateSour
   ) : (
     <Actions>
       <Action
+        compact
         label="Prepare certificate"
         accessibilityLabel={`Prepare certificate (entry ${source.entry.sequence})`}
         disabled={!source.sourceReady || !source.register.initialized}

@@ -1,4 +1,6 @@
-import type { RegisterEntry } from '../types';
+import { REGISTER_CORRECTION_COPY } from '../constants';
+import type { RegisterEntry, RegisterEntryKind } from '../types';
+import { formatShortDate } from './date';
 
 export const CERTIFICATE_STATUSES = [
   ['all', 'All'],
@@ -23,4 +25,22 @@ export function isCertificateEntry(entry: Pick<RegisterEntry, 'kind' | 'sequence
 
 export function canPrepareCertificate(entry: Pick<RegisterEntry, 'kind' | 'sequence' | 'correctedBy'>) {
   return isCertificateEntry(entry) && !entry.correctedBy;
+}
+
+export function certificateFacts(
+  entry: { kind: string; sequence: number; companyEventOn?: string | null; effectiveOn: string },
+  symbol: string | undefined,
+) {
+  const kind = entry.kind.toLowerCase();
+  const companyDated = ['issue', 'transfer'].includes(kind);
+  const date = companyDated
+    ? formatShortDate(entry.companyEventOn, 'date not recorded')
+    : formatShortDate(entry.effectiveOn);
+  return {
+    entry: `${REGISTER_CORRECTION_COPY.ENTRY_KINDS[kind as RegisterEntryKind] ?? 'Register change'} · ${symbol ?? ''} · entry ${entry.sequence}`,
+    date:
+      companyDated && entry.effectiveOn !== entry.companyEventOn
+        ? `${date} · ledger date ${formatShortDate(entry.effectiveOn)}`
+        : date,
+  };
 }

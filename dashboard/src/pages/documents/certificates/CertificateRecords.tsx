@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
   CERTIFICATE_STATES,
-  REGISTER_CORRECTION_COPY,
+  certificateFacts,
   certificateStatus,
   formatDate,
   isCertificateEntry,
@@ -11,7 +11,6 @@ import {
   type OwnMemberEntry,
   type OwnMemberRecord,
   type RegisterEntry,
-  type RegisterEntryKind,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { LoadMore, TABLE_SCROLL_CLASS, TABLE_HEADER_CLASS } from '@components/List';
@@ -98,8 +97,7 @@ export function CertificateRecords({
         <ul aria-label="Certificate records" className="divide-y divide-border-subtle">
           {ordered.map((row) => {
             const entry = row.company ?? row.own!;
-            const kind =
-              REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind.toLowerCase() as RegisterEntryKind] ?? 'Register change';
+            const facts = certificateFacts(entry, selectedClass?.symbol);
             const changes = row.company?.changes ?? [{ member: own!.member, name: own!.name, shares: row.own!.delta }];
             const focused = editing === row.uuid;
             const companyDated = ['issue', 'transfer'].includes(entry.kind.toLowerCase());
@@ -107,7 +105,7 @@ export function CertificateRecords({
               <li
                 key={`${selectedClass?.uuid}/${row.uuid}`}
                 hidden={!!editing && !focused}
-                className={`grid gap-3 py-4 text-sm md:gap-4 ${columns}`}
+                className={`grid gap-1 py-3 text-sm md:gap-4 md:py-4 ${columns}`}
               >
                 <span className="min-w-0 space-y-1 md:col-span-2">
                   {changes.map((change) => (
@@ -118,11 +116,12 @@ export function CertificateRecords({
                       </span>
                     </span>
                   ))}
-                  <span className="block text-text-muted">
-                    {kind} · {selectedClass?.symbol} · entry {entry.sequence}
+                  <span className="block text-xs text-text-muted md:text-sm">
+                    {facts.entry}
+                    <span className="md:hidden"> · {facts.date}</span>
                   </span>
                 </span>
-                <span className="text-text-muted">
+                <span className="hidden text-text-muted md:block">
                   {companyDated ? formatDate(entry.companyEventOn, 'Not recorded') : formatDate(entry.effectiveOn)}
                   {companyDated && entry.effectiveOn !== entry.companyEventOn && (
                     <span className="block">
@@ -132,7 +131,13 @@ export function CertificateRecords({
                 </span>
                 {company && row.company && (
                   <>
-                    <span className="text-text-muted">
+                    <span
+                      className={
+                        certificateStatus(row.company) === 'can_prepare'
+                          ? 'hidden text-text-muted md:block'
+                          : 'text-xs text-text-muted md:text-sm'
+                      }
+                    >
                       <span className="md:sr-only">Certificate: </span>
                       {CERTIFICATE_STATES[certificateStatus(row.company)]}
                     </span>

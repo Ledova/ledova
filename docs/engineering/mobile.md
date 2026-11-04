@@ -156,9 +156,10 @@ member-records state, reporting acceptance only once the server does. Documents,
 (`mobile/src/screens/documents/CertificatesScreen.tsx`), the web's. For a company whose register the
 person may read (`canReadRegister`) it is the web's company view (`CompanyCertificates.tsx`), read
 through the shared `useCompanyCertificates` with the app's session and no member record: Certificate
-records for one share class, each issue or transfer newest first with its shareholders and changes,
-kind, class and entry, date (and ledger date) and **Certificate:** Can prepare or None due, the entry
-was reversed, and **Prepare certificate** at the row's end. Filters holds the web's drafts, Share class
+records for one share class, each issue or transfer newest first in the web's two-line rows: its
+shareholders and changes, then the kind, class, entry and short date (and ledger date), with
+**Certificate:** None due, the entry was reversed on a reversed entry and a compact **Prepare
+certificate** beneath one that can be prepared. Filters holds the web's drafts, Share class
 when there is more than one, Shareholder and Certificate status, with **Clear**, which keeps the class,
 and **Apply**; the server filters the whole history before paging, and **Load more register entries**
 reads the next page, a failed one leaving the list marked incomplete. **Prepare certificate** opens the

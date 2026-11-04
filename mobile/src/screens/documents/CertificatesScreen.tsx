@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useNavigation, type NavigationProp, type RouteProp } from '@react-navigation/native';
-import {
-  REGISTER_CORRECTION_COPY,
-  formatDate,
-  shareChange,
-  useSubmissionOwner,
-  type OwnMemberRecord,
-  type RegisterEntryKind,
-  type useMemberRecords,
-} from '@ledova/shared';
+import { certificateFacts, shareChange, useSubmissionOwner, type OwnMemberRecord } from '@ledova/shared';
 import { SelectField } from '../../components/SelectField';
 import { FilterPopover } from '../../components/FilterPopover';
 import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
@@ -22,10 +14,7 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { CompanyCertificates } from './CompanyCertificates';
 import { useDocumentStyles } from './useDocumentStyles';
 
-type Entry = ReturnType<typeof useMemberRecords>['entries'][number];
 type Route = RouteProp<SignedInStackParamList, 'Certificates'>;
-
-const companyDated = (entry: Entry) => ['issue', 'transfer'].includes(entry.kind.toLowerCase());
 
 export function CertificatesScreen({ route }: { route: Route }) {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
@@ -142,9 +131,7 @@ function MemberCertificates({
             ) : (
               <Rows>
                 {rows.map((entry) => {
-                  const kind =
-                    REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind.toLowerCase() as RegisterEntryKind] ??
-                    'Register change';
+                  const facts = certificateFacts(entry, item?.symbol);
                   return (
                     <View key={`${token}/${entry.uuid}`} style={look.record}>
                       <View style={look.change}>
@@ -154,19 +141,7 @@ function MemberCertificates({
                             {shareChange(entry.delta)} {item?.symbol} shares
                           </Text>
                         </View>
-                        <Text style={look.muted}>
-                          {kind} · {item?.symbol} · entry {entry.sequence}
-                        </Text>
-                      </View>
-                      <View>
-                        <Text style={look.muted}>
-                          {companyDated(entry)
-                            ? formatDate(entry.companyEventOn, 'Not recorded')
-                            : formatDate(entry.effectiveOn)}
-                        </Text>
-                        {companyDated(entry) && entry.effectiveOn !== entry.companyEventOn && (
-                          <Text style={look.muted}>Ledger date {formatDate(entry.effectiveOn)}</Text>
-                        )}
+                        <Text style={look.small}>{`${facts.entry} · ${facts.date}`}</Text>
                       </View>
                     </View>
                   );
