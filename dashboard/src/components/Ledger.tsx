@@ -1,7 +1,7 @@
 import { useContext, useId, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretRightIcon } from '@phosphor-icons/react';
-import { formatDate } from '@ledova/shared';
+import { formatShortDate } from '@ledova/shared';
 import { InSignedInFrame } from './InSignedInFrame';
 import { PageAction } from './Page';
 
@@ -250,7 +250,7 @@ export function Timeline({ events }: { events: TimelineEvent[] }) {
           <span aria-hidden="true" className="h-2 w-2 flex-shrink-0 translate-y-[-1px] rounded-full bg-brand-mid" />
           <span className="flex-1 text-sm text-text-primary">{event.label}</span>
           <time dateTime={event.at} className="text-sm tabular-nums text-text-muted">
-            {formatDate(event.at)}
+            {formatShortDate(event.at)}
           </time>
         </li>
       ))}

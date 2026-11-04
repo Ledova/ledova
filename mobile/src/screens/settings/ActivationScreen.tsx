@@ -6,19 +6,17 @@ import { randomUUID } from 'expo-crypto';
 import {
   COMPANY_STATUS_TONES,
   awaitsActivation,
-  formatDate,
+  formatShortDate,
   useCompanyActivation,
   useCompanySelection,
   useErrorSummary,
 } from '@ledova/shared';
 import {
   Action,
-  Fact,
   FormActions,
   LinkRow,
   LoadError,
   Loading,
-  Rows,
   Section,
   ShowMore,
   Status,
@@ -42,6 +40,13 @@ function useActivationStyles() {
       stack: { gap: theme.spacing.md },
       hidden: { display: 'none' as const },
       loading: { alignItems: 'center' as const, justifyContent: 'center' as const, paddingVertical: 80 },
+      status: {
+        flexDirection: 'row' as const,
+        alignItems: 'center' as const,
+        justifyContent: 'space-between' as const,
+        gap: theme.spacing.md,
+      },
+      value: { flexShrink: 1 },
       event: {
         flexDirection: 'row' as const,
         alignItems: 'center' as const,
@@ -135,11 +140,12 @@ function CompanyActivation({ read, choosing }: { read: Read; choosing: boolean }
                   Company information is provided by the company. Activation records your declaration and, where your
                   instance requires it, your verified identity. It does not issue shares or approve a wallet.
                 </Text>
-                <Rows>
-                  <Fact label="Status">
+                <View accessible accessibilityLabel={`Status: ${company.statusDisplay}`} style={look.status}>
+                  <Text style={styles.muted}>Status</Text>
+                  <View style={look.value}>
                     <Status tone={COMPANY_STATUS_TONES.get(company.status) ?? 'closed'}>{company.statusDisplay}</Status>
-                  </Fact>
-                </Rows>
+                  </View>
+                </View>
                 {events.length > 0 && (
                   <ShowMore show="Show the historical record" hide="Hide the historical record">
                     <View>
@@ -147,7 +153,7 @@ function CompanyActivation({ read, choosing }: { read: Read; choosing: boolean }
                         <View key={`${event.label}-${event.at}`} style={look.event}>
                           <View style={look.dot} />
                           <Text style={look.label}>{event.label}</Text>
-                          <Text style={look.date}>{formatDate(event.at)}</Text>
+                          <Text style={look.date}>{formatShortDate(event.at)}</Text>
                         </View>
                       ))}
                     </View>
