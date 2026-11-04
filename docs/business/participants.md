@@ -261,8 +261,8 @@ permissions; changing personal details does not update a company's records. **Ac
 [company activation workflow](companies.md#activation).
 
 **Account** has three cards: **Security** (the identity check's status with **Review**, and the
-password with **Change**), **Account details** (**Member since** and **Last login**, such as
-"2 Nov 2026, 1:38 pm") and **Invitations**. Invitations has a **Shareholder invitation** row whose **Accept** opens
+password with **Change**), **Account details** (**Member since**, such as "21 Oct 2026", and **Last
+login**, such as "2 Nov 2026, 1:38 pm") and **Invitations**. Invitations has a **Shareholder invitation** row whose **Accept** opens
 Member invitation, and, for anyone who can't manage the company, a **Company officer invitation** row whose
 **Accept** opens Team (owner, 3 November 2026). Existing company and
 investor verification requirements stay unchanged. The theme is the **Dark theme** switch beside Sign
