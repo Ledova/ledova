@@ -20,6 +20,7 @@ import { IdentityVerificationModal } from '@components/IdentityVerificationModal
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { MEMBER_INVITATION_PATH } from '@utils/paths';
+import { YourAppointments } from './YourAppointments';
 
 function SettingRow({ label, detail, action }: { label?: string; detail?: ReactNode; action: ReactNode }) {
   return (
@@ -173,22 +174,21 @@ export function AccountSettings() {
             detail="Use the link or code from your company’s email."
             action={<PageLink compact to={MEMBER_INVITATION_PATH} label="Accept" context="shareholder invitation" />}
           />
-          {!context?.company?.canManage && (
-            <SettingRow
-              label="Company officer invitation"
-              detail="Use the code the company gave you."
-              action={
-                <PageLink
-                  compact
-                  to={context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}
-                  label="Accept"
-                  context="company officer invitation"
-                />
-              }
-            />
-          )}
+          <SettingRow
+            label="Company officer invitation"
+            detail="Use the code the company gave you."
+            action={
+              <PageLink
+                compact
+                to={`${context?.companyPath(DESTINATIONS.companyTeam.path) ?? DESTINATIONS.companyTeam.path}#accept`}
+                label="Accept"
+                context="company officer invitation"
+              />
+            }
+          />
         </div>
       </Section>
+      <YourAppointments />
       {verificationOpen && profile.userProfile && (
         <IdentityVerificationModal
           isOpen={verificationOpen}

@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, Pressable, RefreshControl, Text, View, type ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Keyboard, RefreshControl, Text, View, type ScrollView } from 'react-native';
+import type { RouteProp } from '@react-navigation/native';
 import {
-  appointmentDates,
-  appointmentStatus,
   formatDate,
   formatDateTime,
   issuedInvitationDates,
@@ -13,62 +10,24 @@ import {
   useCompanyTeam,
   useSubmissionOwner,
   useUserPreferences,
-  type CompanyTeamAppointment,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
-import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
 import { SelectField } from '../../components/SelectField';
-import { useAppTheme, useMemberRecordsState, useThemedStyles } from '../../contexts';
+import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { useRole } from '../../hooks/useRole';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { AppointmentRecord, RevokeAppointmentModal, useTeamStyles } from './Appointments';
 import { AcceptInvitationForm, TeamInvitationForm } from './TeamForms';
 
 const LEDE = 'Manage company appointments and invitations.';
 
-function useTeamStyles() {
-  return useThemedStyles((theme) => {
-    const text = { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20 };
-    return {
-      stack: { gap: theme.spacing.md },
-      hidden: { display: 'none' as const },
-      row: { gap: theme.spacing.sm, paddingVertical: theme.spacing.md },
-      line: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: theme.spacing.md },
-      fill: { flex: 1, minWidth: 0 },
-      title: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
-      muted: { ...text, color: theme.colors.text.muted },
-      status: {
-        ...text,
-        flexShrink: 0,
-        maxWidth: '45%' as const,
-        textAlign: 'right' as const,
-        color: theme.colors.text.muted,
-      },
-      small: { fontFamily: theme.fontFamily.regular, fontSize: 12, lineHeight: 16, color: theme.colors.text.muted },
-      footer: {
-        flexDirection: 'row' as const,
-        flexWrap: 'wrap' as const,
-        alignItems: 'center' as const,
-        columnGap: theme.spacing.md,
-      },
-      end: { marginLeft: 'auto' as const },
-      toggle: {
-        paddingVertical: 6,
-        fontFamily: theme.fontFamily.medium,
-        fontSize: 14,
-        color: theme.colors.brand.light,
-      },
-    };
-  });
-}
-
-export function TeamScreen() {
+export function TeamScreen({ route }: { route?: RouteProp<SignedInStackParamList, 'Team'> }) {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
   const preferences = useUserPreferences();
   if (!owner || preferences.isError)
@@ -82,6 +41,7 @@ export function TeamScreen() {
       key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}`}
       owner={owner}
       currentOwner={boundary.get}
+      accept={!!route?.params?.accept}
     />
   );
 }
@@ -89,20 +49,28 @@ export function TeamScreen() {
 function OwnTeam({
   owner,
   currentOwner,
+  accept,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  accept: boolean;
 }) {
   const theme = useAppTheme();
   const styles = useCompanyStyles();
   const look = useTeamStyles();
-  const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const { directory, companies, company: selected } = useMemberRecordsState();
-  const { isCompany } = useRole();
   const scroll = useRef<ScrollView>(null);
-  const [task, setTask] = useState<'accept' | 'invite' | null>(null);
+  const [task, setTask] = useState<'accept' | 'invite' | null>(accept ? 'accept' : null);
   const [draftSource, setDraftSource] = useState<OwnCompanyAppointment | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const teamState = useCompanyTeam({
+    owner,
+    currentOwner,
+    editing: task !== null,
+    company: selected?.uuid ?? '',
+    companyName: selected?.name,
+    session: orderSubmissionSession,
+  });
   const {
     guard,
     company,
@@ -111,7 +79,6 @@ function OwnTeam({
     setFormBusy,
     error,
     confirmation,
-    ticket,
     own,
     invitations,
     appointments,
@@ -120,21 +87,10 @@ function OwnTeam({
     canAdmin,
     team,
     disabled,
-    revoking,
-    close,
-    canRevoke,
     confirm,
-    revoke,
     issueGuard,
     companyName,
-  } = useCompanyTeam({
-    owner,
-    currentOwner,
-    editing: task !== null,
-    company: selected?.uuid ?? '',
-    companyName: selected?.name,
-    session: orderSubmissionSession,
-  });
+  } = teamState;
   const [started, setStarted] = useState(false);
   if (!started && own.isSuccess && !own.isFetching && !directory.isLoading && !directory.isRefreshing) {
     setStarted(true);
@@ -181,39 +137,11 @@ function OwnTeam({
       }
     >
       <View style={[look.stack, !!task && look.hidden]}>
-        <Section title="Your appointments">
-          {accountStatus}
-          {own.isSuccess &&
-            !own.isFetching &&
-            (appointments.length === 0 ? (
-              <Text style={styles.muted}>No company appointments yet.</Text>
-            ) : (
-              <Rows>
-                {appointments.map((item) => (
-                  <AppointmentRecord
-                    key={item.uuid}
-                    appointment={item}
-                    companyName={item.companyName}
-                    disabled={disabled}
-                    onRevoke={() => confirm(item, item.companyName)}
-                  />
-                ))}
-              </Rows>
-            ))}
-        </Section>
-        <Actions>
-          {isCompany && companies.some((row) => row.isOwner) && (
-            <Action label="Representative authority" onPress={() => navigation.navigate('Authority')} />
-          )}
-          <Action
-            label="Accept a company invitation"
-            disabled={disabled}
-            onPress={() => {
-              setStarted(true);
-              setTask('accept');
-            }}
-          />
-        </Actions>
+        {own.isError && (
+          <LoadError retry={() => own.refetch()} busy={own.isFetching}>
+            Your appointments could not be loaded.
+          </LoadError>
+        )}
         <Section title="Team">
           {!companyName &&
             !own.isPending &&
@@ -289,7 +217,7 @@ function OwnTeam({
         </Section>
       </View>
       <View style={[look.stack, !task && look.hidden]}>
-        {accountStatus}
+        {task === 'invite' && accountStatus}
         <View style={task !== 'accept' && look.hidden}>
           <Section title="Accept a company invitation">
             <AcceptInvitationForm
@@ -353,107 +281,7 @@ function OwnTeam({
           {error}
         </Text>
       )}
-      <CustomModal
-        visible={!!confirmation}
-        title="Revoke appointment permanently?"
-        busy={revoking}
-        onClose={close}
-        actions={
-          <Action
-            label={revoking ? 'Revoking…' : 'Permanently revoke appointment'}
-            primary
-            disabled={!confirmation || disabled || !canRevoke(confirmation.appointment)}
-            onPress={() => {
-              if (
-                !confirmation ||
-                ticket.current !== confirmation.ticket ||
-                disabled ||
-                !canRevoke(confirmation.appointment)
-              )
-                return;
-              void revoke(confirmation.appointment).finally(close);
-            }}
-          />
-        }
-      >
-        {confirmation && (
-          <Text style={styles.text}>
-            Permanently remove{' '}
-            {'name' in confirmation.appointment
-              ? `${confirmation.appointment.name || confirmation.appointment.email}'s appointment`
-              : 'your appointment'}{' '}
-            for {confirmation.companyName}? This appointment loses its company authority. Its history remains retained.
-            {confirmation.appointment.source !== 'invitation' &&
-              ' Another initial self-declaration cannot restore it; revoking an initial or legacy-owner appointment does not reopen admission.'}
-          </Text>
-        )}
-      </CustomModal>
+      <RevokeAppointmentModal team={teamState} />
     </Page>
-  );
-}
-
-function AppointmentRecord({
-  appointment,
-  companyName,
-  disabled,
-  onRevoke,
-  teamRecord = false,
-}: {
-  appointment: OwnCompanyAppointment | CompanyTeamAppointment;
-  companyName: string;
-  disabled: boolean;
-  onRevoke: () => void;
-  teamRecord?: boolean;
-}) {
-  const look = useTeamStyles();
-  const [declarationShown, setDeclarationShown] = useState(false);
-  const person = teamRecord && 'email' in appointment ? appointment : null;
-  const title = person ? person.name || person.email : companyName;
-  const declaration =
-    !teamRecord && appointment.source !== 'legacy_owner' && 'declarationText' in appointment
-      ? appointment.declarationText
-      : '';
-  const scope = scopeLabels(appointment.capabilities);
-  const revocable = appointment.status !== 'revoked';
-  return (
-    <View style={look.row}>
-      <View style={look.line}>
-        <Text style={[look.title, look.fill]}>{title}</Text>
-        <Text style={look.status}>{appointmentStatus(appointment)}</Text>
-      </View>
-      <Text style={look.small}>
-        {[person?.name && person.email, scopeFacts(appointment.capabilities, appointment.delegatableCapabilities)]
-          .filter(Boolean)
-          .join(' · ')}
-      </Text>
-      <Text style={look.small}>{appointmentDates(appointment)}</Text>
-      {(!!declaration || revocable) && (
-        <View style={look.footer}>
-          {!!declaration && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${declarationShown ? 'Hide' : 'Show'} the declaration for ${title}`}
-              accessibilityState={{ expanded: declarationShown }}
-              onPress={() => setDeclarationShown((shown) => !shown)}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              <Text style={look.toggle}>{declarationShown ? 'Hide the declaration' : 'Show the declaration'}</Text>
-            </Pressable>
-          )}
-          {revocable && (
-            <View style={look.end}>
-              <Action
-                compact
-                label="Revoke appointment"
-                accessibilityLabel={`Revoke appointment (${title} · ${scope} · appointed ${formatDate(appointment.createdAt)})`}
-                disabled={disabled}
-                onPress={onRevoke}
-              />
-            </View>
-          )}
-        </View>
-      )}
-      {!!declaration && declarationShown && <Text style={look.muted}>{declaration}</Text>}
-    </View>
   );
 }

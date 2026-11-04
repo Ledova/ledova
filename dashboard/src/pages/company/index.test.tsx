@@ -128,15 +128,8 @@ it('shows focused company details without share classes, and keeps team drafts a
   expect((screen.getByLabelText('Invitation deadline (UTC)') as HTMLInputElement).value).toBe(deadline);
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  const acceptOpener = screen.getByRole('button', { name: 'Accept a company invitation' });
-  fireEvent.click(acceptOpener);
-  fireEvent.change(screen.getByLabelText('Invitation code'), { target: { value: 'synthetic-draft-code' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  await waitFor(() => expect(document.activeElement).toBe(acceptOpener));
-  fireEvent.click(acceptOpener);
-  expect((screen.getByLabelText('Invitation code') as HTMLInputElement).value).toBe('synthetic-draft-code');
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.queryByRole('button', { name: 'Accept a company invitation' })).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Your appointments' })).toBeNull();
   failed = appointmentsUrl;
   const beforeIdleTeamRead = ownReads();
   await act(async () => {
@@ -151,4 +144,15 @@ it('shows focused company details without share classes, and keeps team drafts a
   expect(screen.queryAllByText('Private team administrator')).toHaveLength(0);
   expect((screen.getByRole('button', { name: 'Invite a company user' }) as HTMLButtonElement).disabled).toBe(true);
   expect(api.post).not.toHaveBeenCalled();
+
+  cleanup();
+  client.clear();
+  failed = null;
+  renderCompanyPage(client, <CompanyTeamPage />, 'Company team', {
+    entry: `/company/team?company=${company.uuid}#accept`,
+    path: '/company/team',
+  });
+  const acceptHeading = await screen.findByRole('heading', { name: 'Accept a company invitation' });
+  await waitFor(() => expect(document.activeElement).toBe(acceptHeading));
+  expect(screen.getByLabelText('Invitation code')).toBeTruthy();
 });

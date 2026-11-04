@@ -69,12 +69,9 @@ export function settingsPage(hash: string) {
 
 export function settingsView(pathname: string, hash: string): SettingsView | undefined {
   if (pathname === DESTINATIONS.company.path) return 'profile';
-  if (
-    pathname === DESTINATIONS.companyTeam.path ||
-    pathname === DESTINATIONS.companyAuthority.path ||
-    matchPath(DESTINATIONS.companyAuthorityRequest.path, pathname)
-  )
-    return 'company-team';
+  if (pathname === DESTINATIONS.companyTeam.path) return 'company-team';
+  if (pathname === DESTINATIONS.companyAuthority.path || matchPath(DESTINATIONS.companyAuthorityRequest.path, pathname))
+    return 'account';
   if (pathname === DESTINATIONS.companyListing.path) return 'activation';
   if (pathname === DESTINATIONS.userProfile.path) return 'profile';
   if (pathname === DESTINATIONS.settings.path) return settingsPage(hash)?.key;
@@ -87,7 +84,7 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   companyTeam: { destination: 'settings', back: false },
   companyListing: { destination: 'settings', back: false },
   userProfile: { destination: 'settings', back: false },
-  companyAuthority: { destination: 'companyTeam' },
+  companyAuthority: { destination: 'settings', view: 'account' },
   companyAuthorityRequest: { destination: 'companyAuthority' },
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
   companyRegisterParticulars: { destination: 'companyRegister', view: 'corrections' },

@@ -2207,7 +2207,7 @@ The card is now **Invitations**, with two rows:
 
 - a **Shareholder invitation** row, whose page takes a pasted link or code, on both web and app;
 - on the web, a **Company officer invitation** row opening Team, for anyone who can't manage the
-  company.
+  company (for everyone, opening Team's accept form, since 5 November 2026, below).
 
 The app's invitation page sits in the web's **Access to your shares** card. Since the app gained
 Team later on 3 November 2026, its Invitations card has the same Company officer invitation row.
@@ -2219,6 +2219,18 @@ Dashboard lists every company the person administers, is appointed to or holds s
 does, and shows a company's administrators and register readers the web's officer view: the ownership
 overview and each class's ranked, paged shareholders. Later sections bring the remaining company
 pages, such as the Ledger's class page.
+
+**Team and Account, decided on 5 November 2026.** Reviewing the compact Team page, the owner found its
+**Representative authority** and **Accept a company invitation** buttons sitting outside any card and
+asked for a better approach. The owner chose "Split Team and Account"
+([#1464](https://github.com/Ledova/ledova/issues/1464)), the same on web and app:
+
+- Team is the selected company's page: its team, **Invite a company user** and the invitations you
+  issued.
+- Account gains a **Your appointments** card: your appointments across companies, with **Show the
+  declaration** and **Revoke appointment**, and **Representative authority** at its foot for a
+  company's owner.
+- Account's **Company officer invitation** row shows for everyone and opens Team's accept form.
 
 ## The signed-in app
 
