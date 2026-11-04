@@ -146,6 +146,7 @@ export {
   type CertificateStatus,
 } from './certificateRecords';
 export { retainedName } from './downloads';
+export { companyPackFacts, inspectionCopyFacts } from './output-history';
 export type { FileDelivery } from './downloads';
 export { parseTheme } from './theme';
 

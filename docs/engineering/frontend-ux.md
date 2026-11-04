@@ -164,12 +164,12 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   long lists sit behind **Show other shareholders (N)**, **Show former shareholders (N)** or **Show
   the shareholders (N)**. People without shares show their address beneath their name.
   Certificates, Corrections' **Changes**, Member access and Team rows don't expand:
-  each shows its facts and status, with its permitted action right-aligned at the row's end. On wide
-  screens the action has its own fixed-width column (from `xl` for
-  Certificates, Member access and Team); on narrower screens it sits beneath the row's
-  facts, still at the right edge, except Changes' compact **Correct**, which stays at the end of the
-  row's first line. Member access's **Revoke access** and Certificates' **Prepare certificate** are
-  compact text actions, placed like the others.
+  each shows its facts and any status it needs, with its permitted action right-aligned at the row's
+  end. On wide screens the action has its own fixed-width column (from `xl` for Certificates, Member
+  access and Team); on narrower screens it sits beneath the row's facts, still at the right edge,
+  except Changes' compact **Correct**, which stays at the end of the row's first line. Member
+  access's **Revoke access** and Certificates' **Prepare certificate** are compact text actions,
+  placed like the others.
   A shareholder's Holdings and History rows don't expand either: the class, or the
   entry's kind, with the shares at the right, then the facts in muted text, with a holding's compact
   **Transfer shares** beneath them at the right edge. **Change particulars**, **Issue shares to
@@ -310,6 +310,10 @@ needed: the server records the exact-entry request when the file is generated. K
 right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when nothing is editable.
 Inspection copy and Company pack open from their preparation actions; privacy and source guidance stays with the opened form
 or download. Inspection copy shows editable request fields before preview and captured summary rows afterwards.
+Both cards list what was prepared straight beneath their title, without a second heading: "For" the
+recipient, then one muted line with the short request date, any late delivery and who prepared it
+when (a pack adds its share-class count), then the instruction. An empty list reads **No inspection
+copies prepared yet.** or **No company packs prepared yet.**
 Correction and particulars forms use the same
 responsive field grid; their records group document and decision actions in one wrapping footer, left out when no action applies. Keep current source and appointment validation and error retries, without routine
 refresh controls.
@@ -1065,9 +1069,8 @@ by a local helper or a browser `toLocale…` call:
 
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
   the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
-  page, Employee share scheme and Certificates at phone width, and Member access use
-  `formatShortDate`, "20 Oct 2026",
-  read the same way.
+  page, Employee share scheme and Certificates at phone width, Member access and prepared inspection
+  copies use `formatShortDate`, "20 Oct 2026", read the same way.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter
   month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.
