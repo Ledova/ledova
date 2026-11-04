@@ -19,8 +19,8 @@ import {
   useCompanyTeam,
 } from '@ledova/shared';
 import { AcceptInvitationForm } from './AcceptInvitationForm';
-import { AppointmentRecord } from './AppointmentRecord';
-import { RevokeAppointmentDialog } from './RevokeAppointmentDialog';
+import { AppointmentRecord } from '@components/AppointmentRecord';
+import { RevokeAppointmentDialog } from '@components/RevokeAppointmentDialog';
 import { TeamInvitationForm } from './TeamInvitationForm';
 import { AccountCheck } from '@components/AccountCheck';
 

@@ -3,8 +3,8 @@ import { Failure, LoadError, Loading, Section } from '@components/Ledger';
 import { PageLink } from '@components/Page';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
-import { AppointmentRecord } from '@pages/company/team/AppointmentRecord';
-import { RevokeAppointmentDialog } from '@pages/company/team/RevokeAppointmentDialog';
+import { AppointmentRecord } from '@components/AppointmentRecord';
+import { RevokeAppointmentDialog } from '@components/RevokeAppointmentDialog';
 
 export function YourAppointments() {
   const { owner, boundary } = useSubmissionOwner();
