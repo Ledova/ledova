@@ -184,7 +184,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   its own follow the same edge on web and in the app: Try again after a failed read, **Retry
   original member action**, and in the app the Invitation page's and empty Dashboard's actions. Load
   more keeps its place.
-  Representative authority requests are `LinkRow`s that open each request's own page.
+  Representative authority requests are compact `LinkRow`s that open each request's own page: the
+  company with the request's status at the right (the app's `LinkRow` takes a status element as its
+  `figure`, capped at 45% of the line), then its ACN and short submission date.
 - Optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished input
   survives. The sidebar's group caret is a separate navigation
   button. Substantial record reviews use the main page; brief confirmations can use dialogs.
@@ -1082,8 +1084,8 @@ by a local helper or a browser `toLocale…` call:
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
   the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
   page, Employee share scheme and Certificates at phone width, Member access, prepared inspection
-  copies, appointments and issued invitations, Account details' Member since and Activation's
-  historical record use `formatShortDate`, "20 Oct 2026", read the same way.
+  copies, appointments and issued invitations, Account details' Member since, Activation's
+  historical record and authority requests use `formatShortDate`, "20 Oct 2026", read the same way.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter
   month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.

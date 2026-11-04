@@ -6,6 +6,7 @@ import {
   AUTHORITY_REQUEST_TONES,
   authorityRequestStatus,
   formatDate,
+  formatShortDate,
   useAuthorityRequests,
   useSubmissionOwner,
   type OrderSubmissionOwner,
@@ -121,11 +122,11 @@ function OwnAuthorityRequests({
                     key={request.uuid}
                     label={name}
                     accessibilityLabel={`${name} (authority request submitted ${formatDate(request.createdAt)}, ${status.toLowerCase()})`}
-                    aside={<Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>{status}</Status>}
+                    figure={<Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>{status}</Status>}
                     onPress={() => navigation.navigate('AuthorityRequest', { uuid: request.uuid })}
                   >
                     <Text style={look.detail}>
-                      ACN {request.companyIdentityRaw.acn} · submitted {formatDate(request.createdAt)}
+                      ACN {request.companyIdentityRaw.acn} · submitted {formatShortDate(request.createdAt)}
                     </Text>
                   </LinkRow>
                 );
