@@ -37,12 +37,12 @@ the entries that changed their own holding.
 **Inspection copies** and **Company pack** remain alongside Certificates where company access permits
 them. Certificates and Inspection copies use one selected share class. Certificates keeps the class
 visible in each record, and a register reader's rows offer **Prepare certificate** where a
-certificate can be prepared and say **None due, the entry was reversed** where none is due. For a register reader the **Filters** icon opens a compact
-panel with **Share class** when there is more than one, shareholder search and certificate status (**All**,
-**Can prepare** or **Reversed**); **Apply** filters the full permitted history and **Clear** removes
-search and status while keeping the class. A member's Filters hold only **Share class**, when they
-have more than one. Company pack covers the company. Supporting attachments stay
-with the person, share class or company Settings.
+certificate can be prepared and say **None due, the entry was reversed** where none is due. For a
+register reader the **Filters** icon opens a compact panel with **Share class** when there is more
+than one, shareholder search and certificate status (**All**, **Can prepare** or **Reversed**);
+**Apply** filters the full permitted history and **Clear** removes search and status while keeping
+the class. A member's Filters hold only **Share class**, when they have more than one. Company pack
+covers the company. Supporting attachments stay with the person, share class or company Settings.
 
 | Output               | Who prepares it                        | Where                                 | What Ledova keeps                                        |
 | -------------------- | -------------------------------------- | ------------------------------------- | -------------------------------------------------------- |
