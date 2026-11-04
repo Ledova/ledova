@@ -46,6 +46,7 @@ function useActivationStyles() {
         justifyContent: 'space-between' as const,
         gap: theme.spacing.md,
       },
+      value: { flexShrink: 1 },
       event: {
         flexDirection: 'row' as const,
         alignItems: 'center' as const,
@@ -141,7 +142,9 @@ function CompanyActivation({ read, choosing }: { read: Read; choosing: boolean }
                 </Text>
                 <View accessible accessibilityLabel={`Status: ${company.statusDisplay}`} style={look.status}>
                   <Text style={styles.muted}>Status</Text>
-                  <Status tone={COMPANY_STATUS_TONES.get(company.status) ?? 'closed'}>{company.statusDisplay}</Status>
+                  <View style={look.value}>
+                    <Status tone={COMPANY_STATUS_TONES.get(company.status) ?? 'closed'}>{company.statusDisplay}</Status>
+                  </View>
                 </View>
                 {events.length > 0 && (
                   <ShowMore show="Show the historical record" hide="Hide the historical record">
