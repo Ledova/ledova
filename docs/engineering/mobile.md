@@ -229,7 +229,8 @@ Employee share scheme (`EmployeeSchemeScreen.tsx`) is the web's view at phone wi
 reader of the selected company, read through `useCompanyRegisters.ts` and the shared
 `useRegisterAwards`: one share class's card, titled with the class (oldest first by default, and **Share
 class** in Filters when there is more than one, locked while a preparation is open or held), listing
-each award as a row with the recipient, Agreement date and its promised, vested and issued shares, or
+each award as the web's two-line row (the recipient with its promised shares at the right, then the
+agreement date and its vested and issued shares), or
 the web's empty, read-only, loading and failure lines. **Record an employee award**, below the card for
 someone who can prepare the register of an opened draft class, replaces the list with the web's form
 (`AwardForms.tsx`, through the shared `useAwardForm`): the recipient from a searchable list of the

@@ -22,6 +22,7 @@ export function LinkRow({
   state,
   label,
   context,
+  figure,
   aside,
   disabled = false,
   children,
@@ -30,35 +31,46 @@ export function LinkRow({
   state?: Record<string, string>;
   label: string;
   context?: string;
+  figure?: ReactNode;
   aside?: ReactNode;
   disabled?: boolean;
   children?: ReactNode;
 }) {
+  const link = (
+    <Link
+      to={to}
+      state={state}
+      onClick={(event) => {
+        if (disabled) event.preventDefault();
+      }}
+      onAuxClick={(event) => {
+        if (disabled) event.preventDefault();
+      }}
+      aria-disabled={disabled || undefined}
+      className={`min-w-0 break-words font-medium text-text-primary after:absolute after:inset-0 ${disabled ? 'cursor-not-allowed' : 'group-hover:text-brand-light'}`}
+    >
+      {label}
+      {context && (
+        <>
+          {' '}
+          <span className="sr-only">({context})</span>
+        </>
+      )}
+    </Link>
+  );
   return (
     <div
       className={`group relative flex items-center justify-between gap-4 py-3 text-sm ${disabled ? 'opacity-50' : ''}`}
     >
       <div className="min-w-0 flex-1">
-        <Link
-          to={to}
-          state={state}
-          onClick={(event) => {
-            if (disabled) event.preventDefault();
-          }}
-          onAuxClick={(event) => {
-            if (disabled) event.preventDefault();
-          }}
-          aria-disabled={disabled || undefined}
-          className={`break-words font-medium text-text-primary after:absolute after:inset-0 ${disabled ? 'cursor-not-allowed' : 'group-hover:text-brand-light'}`}
-        >
-          {label}
-          {context && (
-            <>
-              {' '}
-              <span className="sr-only">({context})</span>
-            </>
-          )}
-        </Link>
+        {figure ? (
+          <div className="flex items-baseline justify-between gap-3">
+            {link}
+            {figure}
+          </div>
+        ) : (
+          link
+        )}
         {children}
       </div>
       {aside}

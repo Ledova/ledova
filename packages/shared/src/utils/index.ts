@@ -110,6 +110,7 @@ export {
 export { isRegisterParticularsEditReceipt, particularsChanged, registerMembers } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
 export {
+  awardSummary,
   hasValidRegisterAwardTotals,
   isRecordedRegisterAward,
   isRecordedRegisterAwardVesting,

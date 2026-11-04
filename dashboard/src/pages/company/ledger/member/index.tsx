@@ -12,7 +12,7 @@ import {
   appointmentForRegisterStep,
   formatDate,
   formatDateTime,
-  formatShareCount,
+  awardSummary,
   formatShortDate,
   hasCurrentRegisterReadAuthority,
   holdingFacts,
@@ -356,12 +356,13 @@ function OwnShareholder({
                       state={{ registerCompany: company, registerToken: award.token }}
                       label={className(award.token)}
                       context={`employee award, agreement ${formatDate(award.termsOn)}`}
+                      figure={
+                        <span className="shrink-0 whitespace-nowrap font-medium tabular-nums text-text-primary">
+                          {awardSummary(award).figure}
+                        </span>
+                      }
                     >
-                      <span className="block text-xs text-text-muted">Agreement {formatDate(award.termsOn)}</span>
-                      <span className="block text-xs text-text-muted">
-                        {formatShareCount(award.shares)} promised · {formatShareCount(award.vestedShares)} vested ·{' '}
-                        {formatShareCount(award.issuedShares)} issued
-                      </span>
+                      <span className="block text-xs text-text-muted">{awardSummary(award).facts}</span>
                     </LinkRow>
                   </li>
                 ))}

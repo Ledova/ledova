@@ -709,8 +709,9 @@ reached from Recipient details on their award's page. It shows:
   returned or the cessation was corrected;
 - History: every register entry naming them across classes, newest first, with its kind and their
   change in shares, and beneath it its date and class;
-- Employee awards, when they have any: one row per award with its class, agreement date and the
-  shares promised, vested and issued, opening the award's page, then a link to Employee share scheme;
+- Employee awards, when they have any: one row per award with its class and the shares promised,
+  and beneath it the agreement date and the shares vested and issued, opening the award's page, then
+  a link to Employee share scheme;
 - Documents: the shareholder's retained supporting files, with their category and share class;
   someone who can prepare the register can add more for a recorded holding;
 - for an administrator, whether they can see their own records, with **Invite to their records**
