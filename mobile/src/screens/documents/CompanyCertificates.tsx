@@ -3,9 +3,8 @@ import { Keyboard, RefreshControl, Text, View } from 'react-native';
 import {
   CERTIFICATE_STATES,
   CERTIFICATE_STATUSES,
-  REGISTER_CORRECTION_COPY,
+  certificateFacts,
   certificateStatus,
-  formatDate,
   isCertificateEntry,
   shareChange,
   useCompanyCertificates,
@@ -13,7 +12,6 @@ import {
   type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
   type RegisterEntry,
-  type RegisterEntryKind,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { FilterPopover } from '../../components/FilterPopover';
@@ -170,47 +168,42 @@ function CertificateRecords({
       )}
       {source && records.length > 0 && (
         <View>
-          {records.map((entry, index) => (
-            <View
-              key={`${selectedClass?.uuid}/${entry.uuid}`}
-              style={[
-                look.record,
-                index > 0 && !editing && look.divided,
-                !!editing && editing !== entry.uuid && look.hidden,
-              ]}
-            >
-              <View style={look.change}>
-                {entry.changes.map((change) => (
-                  <View key={change.member} style={look.line}>
-                    <Text style={look.name}>{change.name ?? 'Shareholder'}</Text>
-                    <Text style={look.shares}>
-                      {shareChange(change.shares)} {selectedClass?.symbol} shares
-                    </Text>
-                  </View>
-                ))}
-                <Text style={look.muted}>
-                  {REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind.toLowerCase() as RegisterEntryKind] ??
-                    'Register change'}{' '}
-                  · {selectedClass?.symbol} · entry {entry.sequence}
-                </Text>
-              </View>
-              <View>
-                <Text style={look.muted}>{formatDate(entry.companyEventOn, 'Not recorded')}</Text>
-                {entry.effectiveOn !== entry.companyEventOn && (
-                  <Text style={look.muted}>Ledger date {formatDate(entry.effectiveOn)}</Text>
+          {records.map((entry, index) => {
+            const facts = certificateFacts(entry, selectedClass?.symbol);
+            return (
+              <View
+                key={`${selectedClass?.uuid}/${entry.uuid}`}
+                style={[
+                  look.record,
+                  index > 0 && !editing && look.divided,
+                  !!editing && editing !== entry.uuid && look.hidden,
+                ]}
+              >
+                <View style={look.change}>
+                  {entry.changes.map((change) => (
+                    <View key={change.member} style={look.line}>
+                      <Text style={look.name}>{change.name ?? 'Shareholder'}</Text>
+                      <Text style={look.shares}>
+                        {shareChange(change.shares)} {selectedClass?.symbol} shares
+                      </Text>
+                    </View>
+                  ))}
+                  <Text style={look.small}>{`${facts.entry} · ${facts.date}`}</Text>
+                </View>
+                {certificateStatus(entry) === 'reversed' && (
+                  <Text style={look.small}>Certificate: {CERTIFICATE_STATES.reversed}</Text>
                 )}
+                <ClassCertificate
+                  sourceKey={`${source.owner.userUuid}/${source.owner.ownerAccountUuid}`}
+                  register={source.register}
+                  entry={entry}
+                  guard={source.guard}
+                  sourceReady={source.sourceReady}
+                  onEditingChange={editingChange}
+                />
               </View>
-              <Text style={look.muted}>Certificate: {CERTIFICATE_STATES[certificateStatus(entry)]}</Text>
-              <ClassCertificate
-                sourceKey={`${source.owner.userUuid}/${source.owner.ownerAccountUuid}`}
-                register={source.register}
-                entry={entry}
-                guard={source.guard}
-                sourceReady={source.sourceReady}
-                onEditingChange={editingChange}
-              />
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
       {source && !editing && <LoadMore noun="register entries" {...source.more} disabled={!source.readReady} />}

@@ -227,7 +227,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(mailCommands).toHaveLength(2);
   expect(mailCommands[0][1]).toEqual(mailCommands[1][1]);
   expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
-  expect(await screen.findAllByText(/member@example.test/)).toBeTruthy();
+  expect(await screen.findAllByText(/member@example.test/)).toHaveLength(2);
   preferencesRefused = true;
   await act(async () => {
     await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });

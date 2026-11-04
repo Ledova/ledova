@@ -13,7 +13,7 @@ export function useDocumentStyles() {
       form: { ...ruled, gap: theme.spacing.md },
       heading: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
       row: { gap: theme.spacing.xs, paddingVertical: theme.spacing.smd },
-      record: { gap: 12, paddingVertical: theme.spacing.md },
+      record: { gap: theme.spacing.sm, paddingVertical: theme.spacing.md },
       divided: { borderTopWidth: 1, borderTopColor: theme.colors.border.subtle },
       change: { gap: theme.spacing.xs },
       line: { flexDirection: 'row' as const, gap: theme.spacing.md },
@@ -21,6 +21,7 @@ export function useDocumentStyles() {
       shares: { ...text, flexShrink: 0, textAlign: 'right' as const, color: theme.colors.text.primary },
       title: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
       muted: { ...text, color: theme.colors.text.muted },
+      small: { fontFamily: theme.fontFamily.regular, fontSize: 12, lineHeight: 16, color: theme.colors.text.muted },
       hidden: { display: 'none' as const },
     };
   });

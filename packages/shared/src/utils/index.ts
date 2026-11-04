@@ -140,6 +140,7 @@ export {
   CERTIFICATE_STATES,
   CERTIFICATE_STATUSES,
   canPrepareCertificate,
+  certificateFacts,
   certificateStatus,
   isCertificateEntry,
   type CertificateStatus,

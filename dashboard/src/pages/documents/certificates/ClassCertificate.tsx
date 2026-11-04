@@ -53,6 +53,7 @@ function CertificateRequest({ onEditingChange, ...source }: ClassCertificateSour
   ) : (
     <PageAction
       ref={opener}
+      compact
       label="Prepare certificate"
       context={`entry ${source.entry.sequence}`}
       disabled={!source.sourceReady || !source.register.initialized}
