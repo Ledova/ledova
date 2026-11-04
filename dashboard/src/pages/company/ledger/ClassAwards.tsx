@@ -4,6 +4,7 @@ import {
   REGISTER_AWARD_COPY as COPY,
   appointmentForRegisterStep,
   formatDate,
+  awardSummary,
   formatShareCount,
   hasCurrentRegisterReadAuthority,
   type OrderSubmissionOwner,
@@ -236,6 +237,11 @@ export function ClassAwards({
                     state={{ registerCompany: company, registerToken: token }}
                     label={award.recipientName}
                     context={`employee award, agreement ${formatDate(award.termsOn)}`}
+                    figure={
+                      <span className="shrink-0 whitespace-nowrap font-medium tabular-nums text-text-primary md:hidden">
+                        {awardSummary(award).figure}
+                      </span>
+                    }
                     aside={
                       <span className="hidden w-[22.5rem] grid-cols-3 gap-6 text-right tabular-nums text-text-primary md:grid">
                         <span>
@@ -253,11 +259,10 @@ export function ClassAwards({
                       </span>
                     }
                   >
-                    <span className="block text-xs text-text-muted">Agreement {formatDate(award.termsOn)}</span>
-                    <span className="block text-xs text-text-muted md:hidden">
-                      {formatShareCount(award.shares)} promised · {formatShareCount(award.vestedShares)} vested ·{' '}
-                      {formatShareCount(award.issuedShares)} issued
+                    <span className="hidden text-xs text-text-muted md:block">
+                      Agreement {formatDate(award.termsOn)}
                     </span>
+                    <span className="block text-xs text-text-muted md:hidden">{awardSummary(award).facts}</span>
                   </LinkRow>
                 </li>
               ))}

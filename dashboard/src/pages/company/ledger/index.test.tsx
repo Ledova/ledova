@@ -998,11 +998,13 @@ it('reads every class page and groups exact holdings by member identity with sea
     [/^Ordinary shares ·/, '2026-09-01'],
     [/^Preference shares ·/, '2026-09-03'],
   ] as const) {
-    const holding = screen.getByRole('heading', { name }).closest('section')!;
-    expect(within(holding).getByText(formatDate(date))).toBeTruthy();
-    expect(within(holding).getByText(HOLDER_TYPE_LABELS.member)).toBeTruthy();
+    const holding = screen.getByRole('heading', { name }).closest('li')!;
+    expect(within(holding).getByText('9,007,199,254,740,993 shares')).toBeTruthy();
+    expect(
+      within(holding).getByText(`100.00% of class · ${HOLDER_TYPE_LABELS.member} · added ${formatShortDate(date)}`),
+    ).toBeTruthy();
   }
-  expect(screen.getByText('Preference Member Name')).toBeTruthy();
+  expect(screen.getByText('Name for this class: Preference Member Name')).toBeTruthy();
   expect(await screen.findByText('+9,007,199,254,740,993 shares')).toBeTruthy();
   for (const token of ['ordinary', 'preference'])
     expect(api.get).toHaveBeenCalledWith(

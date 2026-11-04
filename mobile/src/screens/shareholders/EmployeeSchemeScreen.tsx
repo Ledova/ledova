@@ -10,7 +10,7 @@ import {
   appointmentForRegisterStep,
   awardsKey,
   formatDate,
-  formatShareCount,
+  awardSummary,
   hasCurrentRegisterReadAuthority,
   ownAppointmentsKey,
   peopleFrom,
@@ -292,13 +292,10 @@ function ClassAwards({
                   key={award.uuid}
                   label={award.recipientName}
                   accessibilityLabel={`${award.recipientName} (employee award, agreement ${formatDate(award.termsOn)})`}
+                  figure={awardSummary(award).figure}
                   onPress={() => navigation.navigate('EmployeeAward', { company, token, award: award.uuid })}
                 >
-                  <Text style={look.small}>Agreement {formatDate(award.termsOn)}</Text>
-                  <Text style={look.small}>
-                    {formatShareCount(award.shares)} promised · {formatShareCount(award.vestedShares)} vested ·{' '}
-                    {formatShareCount(award.issuedShares)} issued
-                  </Text>
+                  <Text style={look.small}>{awardSummary(award).facts}</Text>
                 </LinkRow>
               ))}
             </Rows>

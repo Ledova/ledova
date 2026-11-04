@@ -1,6 +1,8 @@
 import { PAGE_SIZE } from '../constants/api';
 import { HOLDER_TYPE_LABELS } from '../constants/business/register';
 import type { TokenHoldersResponse } from '../types';
+import { formatShortDate } from './date';
+import { sharePercentage } from './formatting';
 import type { Person } from './people';
 import { searchRows } from './search';
 
@@ -10,6 +12,15 @@ export type Shareholder = { member: string; name: string; holdings: ShareholderH
 
 export function needsIdentityReview({ holder }: Pick<ShareholderHolding, 'holder'>) {
   return holder.holderType === 'ambiguous' || holder.holderType === 'unidentified';
+}
+
+export function holdingFacts({ register, holder }: ShareholderHolding) {
+  const share = sharePercentage(holder.balance, register.issuedSupply);
+  return [
+    share === 'Not recorded' ? '% of class not recorded' : `${share} of class`,
+    HOLDER_TYPE_LABELS[holder.holderType],
+    holder.enteredOn ? `added ${formatShortDate(holder.enteredOn)}` : 'date added not recorded',
+  ].join(' · ');
 }
 
 export function shareholderList(

@@ -9,11 +9,20 @@ import type {
   RegisterAwardVestingReversalPreparation,
   OwnMemberRecord,
 } from '../types';
+import { formatShortDate } from './date';
+import { formatShareCount } from './formatting';
 
 function awardQuantity(value: string) {
   if (typeof value !== 'string' || !/^(0|[1-9]\d{0,77})$/.test(value)) return null;
   const quantity = BigInt(value);
   return quantity < 2n ** 256n ? quantity : null;
+}
+
+export function awardSummary(award: Pick<RegisterAward, 'shares' | 'vestedShares' | 'issuedShares' | 'termsOn'>) {
+  return {
+    figure: `${formatShareCount(award.shares)} promised`,
+    facts: `${formatShortDate(award.termsOn)} · ${formatShareCount(award.vestedShares)} vested · ${formatShareCount(award.issuedShares)} issued`,
+  };
 }
 
 export function hasValidRegisterAwardTotals(
