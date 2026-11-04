@@ -378,8 +378,8 @@ details shows member since and last login in the same one-line rows; and Invitat
 **Accept**, which opens the Member invitation page, and, as on the web, a **Company officer
 invitation** row for anyone who can't manage the selected company has **Accept**, which opens Team.
 Its rows follow the web's: the label on the left, and its status, value, one compact action
-or switch on the right. Data and privacy (`DataPrivacy`) has the same rows: Export data, whose **Export** saves or shares the
-file, and Delete account with **Delete**; a screen reader hears the row and then the action, named
+or switch on the right. Data and privacy (`DataPrivacy`) has the same rows and compact actions: Export data, whose **Export**
+saves or shares the file, and Delete account with **Delete**; a screen reader hears the row and then the action, named
 Export data or Delete account. The theme is the menu's switch. The pages share one state
 (`MemberRecordsProvider`, in `contexts/`) holding the company list, the selected company and the member records, so an
 invitation acceptance whose outcome is uncertain stays recoverable,

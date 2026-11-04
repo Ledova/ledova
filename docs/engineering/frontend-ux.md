@@ -472,8 +472,8 @@ switches), **Account details** (**Member since** and **Last login**) and **Invit
 **Accept**, opening Team, for anyone who can't manage the company. Each row has its label on the left
 and its status, value, one compact text action or switch on the right, vertically centred at every
 width; Account details' **Member since** (a short date) and **Last login** use the same rows. Keep
-export and deletion on Data and privacy, in the same row layout with full **Export** and **Delete**
-buttons (Export data and Delete account), with their existing confirmations. The
+export and deletion on Data and privacy, in the same rows (Export data with **Export**, Delete
+account with **Delete**), with their existing confirmations. The
 theme switch sits beside Sign out in the sidebar's footer, not in Settings. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation.

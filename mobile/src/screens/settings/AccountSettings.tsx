@@ -308,7 +308,7 @@ export function AccountData() {
           <SettingRow
             label="Export data"
             detail={<Text style={styles.muted}>Save or share a copy of your account data.</Text>}
-            action={<Action label="Export" accessibilityLabel="Export data" onPress={() => open('export')} />}
+            action={<Action compact label="Export" accessibilityLabel="Export data" onPress={() => open('export')} />}
           />
           <SettingRow
             label="Delete account"
@@ -317,7 +317,9 @@ export function AccountData() {
                 Deactivates your account and removes personal details. Some records are retained.
               </Text>
             }
-            action={<Action label="Delete" accessibilityLabel="Delete account" onPress={() => open('delete')} />}
+            action={
+              <Action compact label="Delete" accessibilityLabel="Delete account" onPress={() => open('delete')} />
+            }
           />
         </Rows>
       </Section>

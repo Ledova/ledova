@@ -269,6 +269,7 @@ export function AccountData() {
             detail="Download a copy of your account data."
             action={
               <PageAction
+                compact
                 label="Export"
                 context="account data"
                 onClick={() => {
@@ -283,6 +284,7 @@ export function AccountData() {
             detail="Deactivates your account and removes personal details. Some records are retained."
             action={
               <PageAction
+                compact
                 label="Delete"
                 context="account"
                 onClick={() => {
