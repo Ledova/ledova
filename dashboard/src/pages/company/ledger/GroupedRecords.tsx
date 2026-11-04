@@ -37,9 +37,13 @@ export function GroupedRecords({
     <ul id={list} hidden={groups.length === 0}>
       {[
         ...groups.flatMap((group, at) => [
-          <li key={group.key} className={at > 0 ? 'border-t border-border pt-4' : undefined}>
-            <h3 className="text-xs font-semibold text-text-muted">{group.heading}</h3>
-          </li>,
+          ...(group.heading
+            ? [
+                <li key={group.key} className={at > 0 ? 'border-t border-border pt-4' : undefined}>
+                  <h3 className="text-xs font-semibold text-text-muted">{group.heading}</h3>
+                </li>,
+              ]
+            : []),
           ...group.entries.map((row, index) => (
             <Fragment key={row.uuid}>
               {row.render({

@@ -5,6 +5,7 @@ import {
   entryLabel,
   entryName,
   formatDate,
+  formatShortDate,
   hasCurrentRegisterReadAuthority,
   type OrderSubmissionOwner,
   type RegisterEntry,
@@ -85,43 +86,48 @@ export function ClassEntries({
             <li
               key={entry.uuid}
               hidden={!privateReady}
-              className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[12rem_10rem_minmax(0,1fr)_6rem] md:gap-6"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-4 gap-y-1 py-4 text-sm md:grid-cols-[12rem_10rem_minmax(0,1fr)_6rem] md:grid-rows-[auto_1fr] md:gap-x-6 md:gap-y-0"
             >
               {privateReady && (
                 <>
-                  <div className="min-w-0 space-y-1 break-words">
-                    <p className="font-medium text-text-primary">{COPY.ENTRY_KINDS[entry.kind]}</p>
-                    {entry.correctedBy && (
-                      <p className="text-text-muted">
-                        <Status tone="closed">
-                          {reversal ? `Reversed on ${formatDate(entryDate(reversal))}` : 'Reversed'}
-                        </Status>
-                      </p>
-                    )}
-                    {entry.corrects && (
-                      <p className="text-text-muted">
-                        {corrected ? `Corrects the ${entryName(corrected)}` : 'Corrects an earlier entry'}
-                      </p>
-                    )}
-                  </div>
-                  <p className="tabular-nums text-text-muted">
-                    <span className="sr-only">Date: </span>
-                    {formatDate(companyDated ? entry.companyEventOn : entry.effectiveOn, 'Date not recorded')}
-                    {companyDated && entry.effectiveOn !== entry.companyEventOn && (
-                      <span className="block">
-                        Ledger date <span className="whitespace-nowrap">{formatDate(entry.effectiveOn)}</span>
+                  <p className="min-w-0 break-words md:contents">
+                    <span className="font-medium text-text-primary md:col-start-1 md:row-start-1">
+                      {COPY.ENTRY_KINDS[entry.kind]}
+                    </span>{' '}
+                    <span className="tabular-nums text-text-muted md:col-start-2 md:row-start-1">
+                      <span aria-hidden="true" className="md:hidden">
+                        ·{' '}
                       </span>
-                    )}
+                      <span className="sr-only">Date: </span>
+                      <span className="whitespace-nowrap">
+                        {formatShortDate(companyDated ? entry.companyEventOn : entry.effectiveOn, 'Date not recorded')}
+                      </span>
+                    </span>
                   </p>
-                  <div className="col-span-2 min-w-0 tabular-nums text-text-primary md:col-span-1">
+                  {companyDated && entry.effectiveOn !== entry.companyEventOn && (
+                    <p className="col-span-2 tabular-nums text-text-muted md:col-span-1 md:col-start-2 md:row-start-2">
+                      Ledger date <span className="whitespace-nowrap">{formatShortDate(entry.effectiveOn)}</span>
+                    </p>
+                  )}
+                  {(entry.correctedBy || entry.corrects) && (
+                    <div className="col-span-2 min-w-0 space-y-1 break-words text-text-muted md:col-span-1 md:col-start-1 md:row-start-2 md:mt-1">
+                      {entry.correctedBy && (
+                        <p>
+                          <Status tone="closed">
+                            {reversal ? `Reversed on ${formatDate(entryDate(reversal))}` : 'Reversed'}
+                          </Status>
+                        </p>
+                      )}
+                      {entry.corrects && (
+                        <p>{corrected ? `Corrects the ${entryName(corrected)}` : 'Corrects an earlier entry'}</p>
+                      )}
+                    </div>
+                  )}
+                  <div className="col-span-2 min-w-0 tabular-nums text-text-primary md:col-span-1 md:col-start-3 md:row-span-2 md:row-start-1">
                     <span className="sr-only">Share movements: </span>
                     <Movements entry={entry} />
                   </div>
-                  {action && (
-                    <div className="col-span-2 flex flex-wrap items-start justify-end gap-2 md:col-span-1 md:col-start-4 md:row-start-1">
-                      {action}
-                    </div>
-                  )}
+                  {action && <div className="col-start-2 row-start-1 flex justify-end md:col-start-4">{action}</div>}
                 </>
               )}
             </li>

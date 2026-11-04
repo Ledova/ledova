@@ -161,13 +161,13 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   `ShowMore` pairs it with the content it shows: an issue or transfer review starts with **Show
   details and documents** closed, and
   long lists sit behind **Show other shareholders (N)**, **Show former shareholders (N)** or **Show
-  the shareholders (N)**. Corrections' corrections and particulars changes are titled records with
-  their details shown, and people without shares show their address beneath their name.
+  the shareholders (N)**. People without shares show their address beneath their name.
   Certificates, Corrections' **Changes**, Member access and Team rows don't expand:
   each shows its facts and status, with its permitted action right-aligned at the row's end. On wide
   screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access and Team); on narrower screens it sits beneath the row's
-  facts, still at the right edge. The Account and Data and privacy rows and an action that stands on
+  facts, still at the right edge, except Changes' compact **Correct**, which stays at the end of the
+  row's first line. The Account and Data and privacy rows and an action that stands on
   its own follow the same edge on web and in the app: Try again after a failed read, **Retry
   original member action**, and in the app the Invitation page's and empty Dashboard's actions. Load
   more keeps its place.
@@ -196,8 +196,8 @@ On workflow collections, show the saved records first, with class context once w
 The sidebar footer identifies the current company. Keep each recipient, status and key facts
 together, its details on demand, and its next action in a right-aligned footer after secondary
 actions.
-A particulars change from before the one-step edit keeps its supporting-document download in a
-right-aligned footer, with download errors beside it; a one-step change has no actions.
+A particulars change from before the one-step edit keeps its supporting-document download in its
+details, with download errors beside it; a one-step change has no actions.
 Name a preview-opening action for that review, such as **Review and approve**; opening it is not approval.
 The collection's creation action opens
 a focused preparation form in place of the list. Closing the form or successful preparation returns
@@ -259,12 +259,25 @@ unfinished transfer shows its status, followed by its decision actions. Emphasis
 current stage. The app's Transfer shares has the same card, groups and rows, and the same review in
 place of the records.
 
-Web Corrections starts with one full-width `Section` titled **Changes**, with compact ruled rows aligned under
-**Change**, **Date** and **Share movements**, and **Correct** at the end of a row the account may correct.
-Rows don't expand; on smaller screens, kind and date sit above the movements. Each row shows the kind
-and any correction or reversal, named by kind and date; the company date for an issue or transfer
-(ledger effective date for other kinds), with the ledger date beneath when it differs; and the first
-two signed movements, with **Show all N share changes** for the rest. Entries stay immutable; current register readers can
+Web Corrections starts with one full-width `Section` titled **Changes**. Below `md` each entry is
+two lines: the kind, then " · " and the short date in muted text (the company date for an issue or
+transfer, the ledger effective date for other kinds), with **Correct** at the end of a row the
+account may correct; then the first two signed movements, with **Show all N share changes** for the
+rest. **Correct** is a compact text action in the brand colour with a 44 px target (`compact` on
+`PageLink`, and on the app's `Action`). A ledger date that differs and any correction or reversal,
+named by kind and date, sit in muted text beneath the first line. From `md` the rows keep their grid
+under **Change**, **Date** and **Share movements**, with **Correct** in its own column. Rows don't
+expand. The records below use Issue shares' summary: corrections under **Needs a decision**,
+**Corrected** and **Rejected** (`CORRECTION_GROUPS`), newest effective date first, with **Show all N
+corrections** or **Show all N rejected corrections** after five, each reading "Correction of the
+issue of 26 Oct 2026 to …" (`correctionSummary`, with a single compensating movement's shares on the
+right), then "Correction" and the short effective date; opening records, newest first, with the kind
+and shares, then the short record date and member count; and particulars changes under one untitled
+group (`PARTICULARS_GROUPS`), newest as-at date first, five then **Show all N changes**, with the
+member's name, then what changed (`particularsChanged`) and the short as-at date. Only an unfinished
+record shows its status beneath its summary (a particulars change unless it was applied), followed
+by its decision actions; its details hold the rest, its downloads included.
+Entries stay immutable; current register readers can
 inspect retained supporting records and permitted downloads. The same view holds capability-guarded
 correction, copied-opening and particulars workflows. Certificate
 preparation belongs in Documents. Keep maintenance controllers mounted so unfinished work and original-request recovery
@@ -342,8 +355,8 @@ distinct retained facts, with atomic failure and same-request recovery that cann
 effect. Non-paid and employee-award issues use the same page review, with award quantities, ownership
 impact and company authority grouped, and terms and documents on demand. Their approval remains separate from
 **Record issue**; approval alone changes no holding. Rejection also uses page review.
-A web particulars change has no review: it applies in one step, and its record shows the name,
-address and as-at date before and after in equal columns on wide screens, stacked on smaller
+A web particulars change has no review: it applies in one step, and its record's details show the
+name, address and as-at date before and after in equal columns on wide screens, stacked on smaller
 screens, with any reason beneath. A change a linked member made in their Profile reads **Changed
 by** The member, in their Ledova profile. For a member who follows their profile, the shareholder's
 page and the particulars page show one muted line, "They keep their name and address up to date in
@@ -1035,8 +1048,8 @@ Figures, amounts and dates are formatted only by the shared formatters in `packa
 by a local helper or a browser `toLocale…` call:
 
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
-  the server recorded. Issue and Transfer shares' compact rows use `formatShortDate`, "20 Oct 2026",
-  read the same way.
+  the server recorded. The compact rows of Issue shares, Transfer shares and Corrections use
+  `formatShortDate`, "20 Oct 2026", read the same way.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter
   month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.

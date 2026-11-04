@@ -1,13 +1,17 @@
 import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
+  CORRECTION_GROUPS,
   REGISTER_CORRECTION_COPY,
   REGISTER_CORRECTION_DECISIONS,
+  STAGE_TONES,
+  correctionSummary,
   describeEntry,
   entryLabel,
-  entryName,
   formatDateTime,
   formatDate,
+  formatShortDate,
+  recordGroup,
   type ClassCorrection,
   type RegisterSteps,
   useCorrectionRecordDownload,
@@ -15,6 +19,7 @@ import {
 import { Row, Rows } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
+import { RecordSummary } from './RecordSummary';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { BROWSER_FILES } from '@utils/saveFile';
@@ -30,6 +35,8 @@ export function CorrectionRecord({
   onDecided,
   onRefused,
   visible = true,
+  collapsed = false,
+  ruled = false,
   onHeldChange,
 }: {
   landed?: Landed;
@@ -39,25 +46,27 @@ export function CorrectionRecord({
   onDecided: () => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   visible?: boolean;
+  collapsed?: boolean;
+  ruled?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
   const download = useCorrectionRecordDownload(proposal, check, BROWSER_FILES);
   const context = `correction of the ${entryLabel(entry)}`;
-  const downloadAction = (
-    <PageAction
-      label={COPY.DOWNLOAD}
-      context={context}
-      busy={download.isPending}
-      busyLabel="Downloading…"
-      onClick={() => download.mutate()}
-    />
-  );
+  const summary = correctionSummary({ proposal, entry });
   return (
-    <RecordShell hidden={!visible} landed={landed}>
+    <RecordShell hidden={!visible || collapsed} ruled={ruled} landed={landed}>
       {visible && (
-        <>
-          <h4 className="text-sm font-medium text-text-primary">Correction of the {entryName(entry)}</h4>
+        <RecordSummary
+          name={summary.name}
+          figure={summary.figure}
+          facts={`Correction · ${formatShortDate(proposal.effectiveOn)}`}
+          status={
+            recordGroup(CORRECTION_GROUPS, proposal.stage) === 'decide'
+              ? { tone: STAGE_TONES[proposal.stage] ?? 'waiting', label: COPY.STAGES[proposal.stage] ?? proposal.stage }
+              : undefined
+          }
+        >
           <Rows>
             <RecordStage stage={proposal.stage}>{COPY.STAGES[proposal.stage] ?? proposal.stage}</RecordStage>
             {proposal.preparedByName !== null && (
@@ -81,10 +90,19 @@ export function CorrectionRecord({
             </Row>
             <DecisionTrail proposal={proposal} labels={COPY.DECISIONS} />
           </Rows>
-        </>
+          <div className="flex flex-wrap gap-2">
+            <PageAction
+              label={COPY.DOWNLOAD}
+              context={context}
+              busy={download.isPending}
+              busyLabel="Downloading…"
+              onClick={() => download.mutate()}
+            />
+          </div>
+          {download.isError && <RecordDownloadFailure error={download.error} />}
+        </RecordSummary>
       )}
       <FormActions>
-        {downloadAction}
         <RegisterDecisions
           family={REGISTER_CORRECTION_DECISIONS}
           copy={COPY}
@@ -113,7 +131,6 @@ export function CorrectionRecord({
           )}
         </RegisterDecisions>
       </FormActions>
-      {download.isError && <RecordDownloadFailure error={download.error} />}
     </RecordShell>
   );
 }

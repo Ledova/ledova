@@ -18,6 +18,7 @@ import {
   HOLDER_TYPE_LABELS,
   TECHNICAL_SHARE_LIMIT,
   formatDate,
+  formatShortDate,
   USER_PREFERENCES_QUERY_KEY,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_ENDPOINTS,
@@ -2084,20 +2085,21 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(transferEntry).getByText('Transfer')).toBeTruthy();
   expect(within(transferEntry).getByText('Example Shareholder: -100')).toBeTruthy();
   expect(within(transferEntry).getByText('Taylor Demo: +100')).toBeTruthy();
-  expect(within(transferEntry).getByText(formatDate('2026-10-20'))).toBeTruthy();
+  expect(within(transferEntry).getByText(formatShortDate('2026-10-20'))).toBeTruthy();
   expect(within(transferEntry).getByText('Ledger date', { exact: false }).textContent).toBe(
-    `Ledger date ${formatDate('2026-10-21')}`,
+    `Ledger date ${formatShortDate('2026-10-21')}`,
   );
   expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
   expect(screen.queryByRole('link', { name: /^Correct \(/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Acknowledge/ })).toBeNull();
-  expect(
-    await screen.findByRole('heading', { name: `Correction of the transfer of ${formatDate('2026-10-20')}` }),
-  ).toBeTruthy();
+  const correctionSummary = `Correction of the transfer of ${formatShortDate('2026-10-20')} to Taylor Demo. Show details and documents`;
+  const retainedCorrection = (await screen.findByRole('button', { name: correctionSummary })).closest('li')!;
+  expect(retainedCorrection.previousElementSibling?.textContent).toBe('Needs a decision · 1');
+  expect(within(retainedCorrection).getByText(`Correction · ${formatShortDate('2026-10-22')}`)).toBeTruthy();
   expect(screen.getByText('Retained correction reason')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
-  expect(screen.getByRole('button', { name: /^Download the supporting document/ })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /^Download the supporting document/, hidden: true })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
   appointment = decisionAppointment;
   await act(async () => {
@@ -2105,12 +2107,23 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   });
   fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
   const edited = (await screen.findByText('Changed by')).closest('li')!;
+  expect(within(edited).getByText(`Address changed · ${formatShortDate('2026-10-23')}`)).toBeTruthy();
   expect(within(edited).getByText(REGISTER_PARTICULARS_COPY.BEFORE)).toBeTruthy();
   expect(within(edited).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
   expect(within(edited).getByText('3 Example Street, Sydney NSW 2000')).toBeTruthy();
-  expect(within(edited).queryByRole('button')).toBeNull();
-  const retained = screen.getByText(REGISTER_PARTICULARS_COPY.STAGES.submitted).closest('li')!;
+  expect(within(edited).queryByRole('button', { name: /^Download/, hidden: true })).toBeNull();
+  const retainedSummary = screen.getByRole('button', {
+    name: 'Example Shareholder. Show details and documents',
+    description: `Particulars recorded · ${formatShortDate('2026-10-22')}`,
+  });
+  const retained = retainedSummary.closest('li')!;
+  expect(
+    within(retained)
+      .getAllByText(REGISTER_PARTICULARS_COPY.STAGES.submitted)
+      .filter((node) => !node.closest('[hidden]')),
+  ).toHaveLength(1);
   expect(within(retained).getByText('2 Example Street, Sydney NSW 2000')).toBeTruthy();
+  fireEvent.click(retainedSummary);
   expect(within(retained).getByRole('button', { name: /^Download the supporting document/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Approve|Apply|Reject) \(change for/ })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));
@@ -2168,15 +2181,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   ).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
-  expect(
-    screen.getByRole('button', {
-      name: `Approve (correction of the transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
-    }),
-  ).toBeTruthy();
+  const approveCorrection = screen.getByRole('button', {
+    name: `Approve (correction of the transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
+  });
+  expect(approveCorrection.closest('li')!.previousElementSibling?.textContent).toBe('Needs a decision · 1');
   fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));
   expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Copied opening, 600 shares. Show details and documents' }),
+  );
   const copiedSummary = await screen.findByRole('button', { name: /^Show the shareholders/ });
   expect(copiedSummary.getAttribute('aria-expanded')).toBe('false');
   fireEvent.click(copiedSummary);

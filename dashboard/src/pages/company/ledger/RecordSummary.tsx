@@ -1,30 +1,26 @@
 import { useId, useState, type ReactNode } from 'react';
 import { CaretDownIcon, CaretUpIcon } from '@phosphor-icons/react';
-import { formatShortDate, shareCount } from '@ledova/shared';
 import { ICON_SM } from '@components/iconSizes';
 import { Status, type Tone } from '@components/Ledger';
 
 export function RecordSummary({
   name,
-  kind,
-  shares,
+  figure,
+  facts,
   amount,
-  companyEventOn,
   status,
   children,
 }: {
   name: string;
-  kind: string;
-  shares: string;
+  figure?: string;
+  facts: string;
   amount?: string;
-  companyEventOn?: string | null;
   status?: { tone: Tone; label: string };
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const details = useId();
-  const facts = useId();
-  const count = shareCount(shares);
+  const described = useId();
   const Caret = open ? CaretUpIcon : CaretDownIcon;
   return (
     <>
@@ -33,18 +29,18 @@ export function RecordSummary({
           type="button"
           aria-expanded={open}
           aria-controls={details}
-          aria-label={`${name}, ${count}. ${open ? 'Hide' : 'Show'} details and documents`}
-          aria-describedby={facts}
+          aria-label={`${name}${figure ? `, ${figure}` : ''}. ${open ? 'Hide' : 'Show'} details and documents`}
+          aria-describedby={described}
           onClick={() => setOpen((shown) => !shown)}
           className="group flex min-h-11 w-full items-center gap-3 text-left text-sm"
         >
           <span className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="flex items-baseline justify-between gap-3 font-medium text-text-primary">
               <span className="min-w-0 break-words group-hover:text-brand-light">{name}</span>
-              <span className="shrink-0 whitespace-nowrap tabular-nums">{count}</span>
+              {figure && <span className="shrink-0 whitespace-nowrap tabular-nums">{figure}</span>}
             </span>
-            <span id={facts} className="flex items-baseline justify-between gap-3 text-xs text-text-muted">
-              <span className="min-w-0 break-words">{`${kind} · ${formatShortDate(companyEventOn, 'Date not recorded')}`}</span>
+            <span id={described} className="flex items-baseline justify-between gap-3 text-xs text-text-muted">
+              <span className="min-w-0 break-words">{facts}</span>
               {amount && <span className="shrink-0 whitespace-nowrap tabular-nums">{amount}</span>}
             </span>
           </span>

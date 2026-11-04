@@ -4,11 +4,14 @@ import {
   REGISTER_COPY,
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_DECISIONS,
+  STAGE_TONES,
   formatDate,
   formatDateTime,
   formatShareCount,
+  formatShortDate,
   importFigures,
   registerImportTotals,
+  shareCount,
   type RegisterImport,
   type RegisterImportDecisionPreview,
   type RegisterSteps,
@@ -17,6 +20,7 @@ import {
 import { Row, Rows, ShowMore } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
+import { RecordSummary } from './RecordSummary';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { MemberRecords } from '@pages/company/ledger/shared/MemberRecords';
 import { BROWSER_FILES } from '@utils/saveFile';
@@ -82,7 +86,7 @@ export function ImportRecord({
   const download = useImportRecordDownload(proposal, check, BROWSER_FILES);
   const totals = registerImportTotals(proposal.members);
   const downloadActions = (
-    <>
+    <div className="flex flex-wrap gap-2 empty:hidden">
       {(proposal.registerEvidence || proposal.sourceDocument) && (
         <PageAction
           label={REGISTER_IMPORT_COPY.DOWNLOAD_REGISTER}
@@ -101,15 +105,24 @@ export function ImportRecord({
           onClick={() => download.mutate('asic')}
         />
       )}
-    </>
+    </div>
   );
   return (
     <RecordShell hidden={!visible}>
       {visible && (
-        <>
-          <h3 className="text-sm font-medium text-text-primary">
-            {proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'}
-          </h3>
+        <RecordSummary
+          name={proposal.correctionOf ? 'Copied opening correction' : 'Copied opening'}
+          figure={shareCount(totals.total)}
+          facts={`${formatShortDate(proposal.asAt)} · ${totals.count} ${totals.count === 1 ? 'member' : 'members'}`}
+          status={
+            proposal.stage === 'submitted' || proposal.stage === 'approved'
+              ? {
+                  tone: STAGE_TONES[proposal.stage] ?? 'waiting',
+                  label: REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage,
+                }
+              : undefined
+          }
+        >
           <Rows>
             <RecordStage stage={proposal.stage}>
               {REGISTER_IMPORT_COPY.STAGES[proposal.stage] ?? proposal.stage}
@@ -145,10 +158,11 @@ export function ImportRecord({
               <MemberRecords members={proposal.members} />
             </ShowMore>
           )}
-        </>
+          {downloadActions}
+          {download.isError && <RecordDownloadFailure error={download.error} />}
+        </RecordSummary>
       )}
       <FormActions>
-        {downloadActions}
         <RegisterDecisions
           family={REGISTER_IMPORT_DECISIONS}
           copy={REGISTER_IMPORT_COPY}
@@ -169,7 +183,6 @@ export function ImportRecord({
           {(preview) => <ImportPreview preview={preview} />}
         </RegisterDecisions>
       </FormActions>
-      {download.isError && <RecordDownloadFailure error={download.error} />}
     </RecordShell>
   );
 }

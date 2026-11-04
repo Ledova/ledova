@@ -2,14 +2,18 @@ import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
   REGISTER_PARTICULARS_COPY,
+  STAGE_TONES,
   formatDateTime,
   type RegisterParticularsChange,
   formatDate,
+  formatShortDate,
+  particularsChanged,
   useParticularsRecordDownload,
 } from '@ledova/shared';
 import { Row, Rows } from '@components/Ledger';
-import { FormActions, PageAction } from '@components/Page';
+import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
+import { RecordSummary } from './RecordSummary';
 import { BROWSER_FILES } from '@utils/saveFile';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 
@@ -40,21 +44,32 @@ export function ParticularsRecord({
   member,
   guard,
   visible = true,
+  collapsed = false,
+  ruled = false,
 }: {
   landed?: Landed;
   change: RegisterParticularsChange;
   member: string;
   guard: () => void;
   visible?: boolean;
+  collapsed?: boolean;
+  ruled?: boolean;
 }) {
   const check = useRegisterTaskGuard(visible, guard);
   const download = useParticularsRecordDownload(change, check, BROWSER_FILES);
   const edit = !change.supportingEvidence;
   return (
-    <RecordShell hidden={!visible} landed={landed}>
+    <RecordShell hidden={!visible || collapsed} ruled={ruled} landed={landed}>
       {visible && (
-        <>
-          <h3 className="font-medium text-text-primary">{member}</h3>
+        <RecordSummary
+          name={member}
+          facts={`${particularsChanged(change)} · ${formatShortDate(change.asAt)}`}
+          status={
+            change.stage === 'applied'
+              ? undefined
+              : { tone: STAGE_TONES[change.stage] ?? 'waiting', label: COPY.STAGES[change.stage] ?? change.stage }
+          }
+        >
           <Rows>
             <RecordStage stage={change.stage}>{COPY.STAGES[change.stage] ?? change.stage}</RecordStage>
             {change.providedBy === 'member' ? (
@@ -86,7 +101,7 @@ export function ParticularsRecord({
             </Rows>
           )}
           {!edit && (
-            <FormActions>
+            <div className="flex flex-wrap gap-2">
               <PageAction
                 label={COPY.DOWNLOAD}
                 context={`change for ${member} prepared ${formatDateTime(change.createdAt)}`}
@@ -94,10 +109,10 @@ export function ParticularsRecord({
                 busyLabel="Downloading…"
                 onClick={() => download.mutate()}
               />
-            </FormActions>
+            </div>
           )}
           {download.isError && <RecordDownloadFailure error={download.error} />}
-        </>
+        </RecordSummary>
       )}
     </RecordShell>
   );

@@ -1,4 +1,4 @@
-export type RecordGroupKey = 'decide' | 'done' | 'rejected';
+export type RecordGroupKey = 'decide' | 'done' | 'rejected' | 'all';
 
 type RecordEntry = { uuid: string; stage: string; companyEventOn: string | null; createdAt: string };
 
@@ -10,54 +10,50 @@ export type RecordRow<Node> = RecordEntry & {
 
 export type RecordGrouping = readonly {
   key: RecordGroupKey;
-  title: string;
-  stages: readonly string[];
+  title?: string;
+  stages?: readonly string[];
   more?: { show: (count: number) => string; hide: string };
 }[];
 
 type RecordGroup<Entry extends RecordEntry> = {
   key: RecordGroupKey;
-  heading: string;
+  heading?: string;
   entries: Entry[];
   more?: { show: string; hide: string };
 };
 
 export const RECORD_GROUP_CAP = 5;
 
-export const ISSUE_GROUPS: RecordGrouping = [
-  { key: 'decide', title: 'Needs a decision', stages: ['submitted', 'approved'] },
-  {
-    key: 'done',
-    title: 'Issued',
-    stages: ['applied'],
-    more: { show: (count) => `Show all ${count} issues`, hide: 'Show fewer issues' },
-  },
-  {
-    key: 'rejected',
-    title: 'Rejected',
-    stages: ['rejected'],
-    more: { show: (count) => `Show all ${count} rejected issues`, hide: 'Show fewer rejected issues' },
-  },
-];
+function decisionGroups(done: string, records: string): RecordGrouping {
+  return [
+    { key: 'decide', title: 'Needs a decision', stages: ['submitted', 'approved'] },
+    {
+      key: 'done',
+      title: done,
+      stages: ['applied'],
+      more: { show: (count) => `Show all ${count} ${records}`, hide: `Show fewer ${records}` },
+    },
+    {
+      key: 'rejected',
+      title: 'Rejected',
+      stages: ['rejected'],
+      more: { show: (count) => `Show all ${count} rejected ${records}`, hide: `Show fewer rejected ${records}` },
+    },
+  ];
+}
 
-export const TRANSFER_GROUPS: RecordGrouping = [
-  { key: 'decide', title: 'Needs a decision', stages: ['submitted', 'approved'] },
-  {
-    key: 'done',
-    title: 'Transferred',
-    stages: ['applied'],
-    more: { show: (count) => `Show all ${count} transfers`, hide: 'Show fewer transfers' },
-  },
-  {
-    key: 'rejected',
-    title: 'Rejected',
-    stages: ['rejected'],
-    more: { show: (count) => `Show all ${count} rejected transfers`, hide: 'Show fewer rejected transfers' },
-  },
+export const ISSUE_GROUPS = decisionGroups('Issued', 'issues');
+
+export const TRANSFER_GROUPS = decisionGroups('Transferred', 'transfers');
+
+export const CORRECTION_GROUPS = decisionGroups('Corrected', 'corrections');
+
+export const PARTICULARS_GROUPS: RecordGrouping = [
+  { key: 'all', more: { show: (count) => `Show all ${count} changes`, hide: 'Show fewer changes' } },
 ];
 
 export function recordGroup(grouping: RecordGrouping, stage: string): RecordGroupKey {
-  return grouping.find(({ stages }) => stages.includes(stage))?.key ?? 'decide';
+  return grouping.find(({ stages }) => !stages || stages.includes(stage))?.key ?? 'decide';
 }
 
 function newestFirst(left: RecordEntry, right: RecordEntry) {
@@ -81,7 +77,7 @@ export function recordGroups<Entry extends RecordEntry>(
     return [
       {
         key,
-        heading: `${title} · ${rows.length}`,
+        ...(title ? { heading: `${title} · ${rows.length}` } : {}),
         entries: rows,
         ...(capped ? { more: { show: more.show(rows.length), hide: more.hide } } : {}),
       },

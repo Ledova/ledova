@@ -342,7 +342,8 @@ not built.
 2. Upload the authority document and give the authority, approving director, reference, reason and
    an effective date of today (UTC) or earlier; a later date would hold back later issues and
    transfers.
-3. Approve, then Apply.
+3. Approve, then Apply. The correction waits under **Needs a decision**, then moves under
+   **Corrected**, or **Rejected** if it is rejected.
 
 A correction is refused for an entry with no changes or already corrected, or an inverse taking a
 holding below zero; if a newer entry was recorded after preparation, reject it and prepare another.
@@ -364,8 +365,9 @@ page shows "They keep their name and address up to date in their Ledova profile.
    starts the form with them. Change the name or residential address, optionally give a reason, and
    choose **Save change**.
 3. The change applies at once, dated today (UTC), and opens on its record in **Ledger** →
-   **Corrections**, which shows the particulars before and after. In the app it returns to the
-   shareholder's page, which says Particulars changed., and the change is listed under Corrections.
+   **Corrections**, which reads Name changed, Address changed or Name and address changed, with the
+   particulars before and after in its details. In the app it returns to the shareholder's page,
+   which says Particulars changed., and the change is listed under Corrections.
 
 **Change particulars** is offered to an administrator, or to an appointment holding prepare, approve
 and apply: whoever could already finish a change alone
@@ -622,44 +624,51 @@ selector and without the overview cards: Issue shares
 ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
 ([non-paid transfers](#non-paid-transfers-between-members)) and Corrections.
 
-Corrections starts with a full-width Changes card, newest entries first, with compact rows aligned under
-Change, Date and Share movements. On smaller screens, the kind and date sit above the movements.
-Each entry shows its kind and any correction or reversal, named by kind and date; its company date
-for an issue or transfer (ledger effective date for other kinds), with the ledger date beneath when it
-differs; and its first two signed shareholder movements, with Show all for the rest. Rows don't
-expand, and Correct sits at the end of a row that may be corrected. An older issue or transfer with
-no company date says Date not recorded. Retained source imports, corrections and particulars records
-stay listed with their details and permitted evidence downloads; chain openings, reconciliations and
-wallet links are read through the API since [#1452](https://github.com/Ledova/ledova/issues/1452).
-Entries remain immutable. Current register readers can inspect the records; preparation, approval
-and application controls still require their respective company appointments.
+Corrections starts with a full-width Changes card, newest entries first. Each entry is a compact
+row: its kind and short date ("Issue · 26 Oct 2026"), with Correct at the end of a row that may be
+corrected, then its first two signed shareholder movements, with Show all for the rest. The date is
+the company date for an issue or transfer (ledger effective date for other kinds), with the ledger
+date beneath when it differs, and any correction or reversal is named beneath by kind and date. On
+wide screens the rows align under Change, Date and Share movements. Rows don't expand. An older
+issue or transfer with no company date says Date not recorded. Retained source imports, corrections
+and particulars records stay listed with their details and permitted evidence downloads; chain
+openings, reconciliations and wallet links are read through the API since
+[#1452](https://github.com/Ledova/ledova/issues/1452). Entries remain immutable. Current register
+readers can inspect the records; preparation, approval and application controls still require their
+respective company appointments.
 The former web History address opens Corrections with the same company and class. Certificates are
 prepared in [Documents](member-records.md#preparing-a-certificate).
 
-The same view holds the existing append-only correction and maintenance workflows: source opening
-corrections and particulars changes. Each is a titled record showing its snapshot, documents and
-decision trail; a copied opening's shareholders sit behind **Show the shareholders**, open while it
-awaits a decision, and a particulars change shows who changed the particulars and when, with the
-particulars before and after; one a linked member made reads Changed by: The member, in their Ledova
-profile. Stages read Prepared, Approved, Applied or Rejected (for an import,
-Reviewed and Confirmed; for a particulars change from before the one-step edit that was never
-applied, Prepared, not applied or Approved, not applied), and an import, a correction or such an
-earlier particulars change has an Evidence row reading Provided by the company or, before the work
-became company-run, "Verified by Ledova staff". A section that read
-successfully with nothing to show is left out. An unfinished request keeps its class and exact
-request, and while one is held the company, task and class cannot be changed; its sidebar link lets
-the person return from another view to resume the same request. A failed read withholds the class
-cards and the shareholder list rather than implying holdings are zero.
+The same view holds the existing append-only correction and maintenance workflows: corrections,
+source opening records and particulars changes. Each record is a compact summary, as on Issue
+shares; selecting it shows or hides its snapshot, documents and decision trail. Only an unfinished
+record, or a particulars change that was not applied, shows its status beneath it, with any
+decisions. Corrections sit under **Needs a
+decision**, **Corrected** and **Rejected**, the last two showing five with **Show all** for the
+rest; each reads like "Correction of the issue of 26 Oct 2026 to …", with the shares when it has one
+compensating change, then its effective date. An opening record shows its kind and shares, then its
+record date and member count; its shareholders sit behind **Show the shareholders**, open while it
+awaits a decision. A particulars change shows the member, then what changed and its as-at date, five
+at a time; its details show who changed the particulars and when, with the particulars before and
+after; one a linked member made reads Changed by: The member, in their Ledova profile. Stages read
+Prepared, Approved, Applied or Rejected (for an import, Reviewed and Confirmed; for a particulars
+change from before the one-step edit that was never applied, Prepared, not applied or Approved, not
+applied), and an import, a correction or such an earlier particulars change has an Evidence row
+reading Provided by the company or, before the work became company-run, "Verified by Ledova staff".
+A section that read successfully with nothing to show is left out. An unfinished request keeps its
+class and exact request, and while one is held the company, task and class cannot be changed; its
+sidebar link lets the person return from another view to resume the same request. A failed read
+withholds the class cards and the shareholder list rather than implying holdings are zero.
 
 The focused views reuse the existing controllers, authority checks and original-request recovery.
 The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
 
-The mobile app's Corrections has the same Changes, corrections with their decisions, Opening records
-and Particulars changes at phone width, for a register reader of the selected company. **Share class**
-is in Filters and stays locked while a review or an uncertain decision is open, Correct opens the
-preparation on its own page, a decision's review replaces the records, and documents go to the
-phone's share sheet. Opening records have Bring records or Correct copied opening and the reviewing
-and confirming of copied openings, as on the web.
+The mobile app's Corrections has the same compact Changes rows, corrections with their decisions,
+Opening records and Particulars changes at phone width, for a register reader of the selected
+company. **Share class** is in Filters and stays locked while a review or an uncertain decision is
+open, Correct opens the preparation on its own page, a decision's review replaces the records, and
+documents go to the phone's share sheet. Opening records have Bring records or Correct copied
+opening and the reviewing and confirming of copied openings, as on the web.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
 name search, a Share class filter and 25 rows per page, giving each class's shares and percentage
