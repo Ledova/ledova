@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { VERIFICATION_TONES, formatDate, formatDateTime, getUserVerificationStatus } from '@ledova/shared';
-import { Action, Fact, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
+import { VERIFICATION_TONES, formatDateTime, formatShortDate, getUserVerificationStatus } from '@ledova/shared';
+import { Action, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useAppLock, useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -20,27 +20,36 @@ function useAccountStyles() {
     },
     text: { flex: 1, gap: theme.spacing.xs },
     label: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
+    value: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
   }));
 }
 
 function SettingRow({
   label,
   detail,
+  value,
   action,
   accessibilityLabel,
 }: {
   label?: string;
   detail?: ReactNode;
+  value?: string;
   action?: ReactNode;
   accessibilityLabel?: string;
 }) {
   const look = useAccountStyles();
+  const spoken = accessibilityLabel ?? (value ? `${label}: ${value}` : undefined);
   return (
     <View style={look.setting}>
-      <View accessible={!!accessibilityLabel} accessibilityLabel={accessibilityLabel} style={look.text}>
+      <View accessible={!!spoken} accessibilityLabel={spoken} style={look.text}>
         {!!label && <Text style={look.label}>{label}</Text>}
         {detail}
       </View>
+      {!!value && (
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Text style={look.value}>{value}</Text>
+        </View>
+      )}
       {!!action && <View>{action}</View>}
     </View>
   );
@@ -140,6 +149,7 @@ export function AccountSettings() {
             label="Password"
             action={
               <Action
+                compact
                 label="Change"
                 accessibilityLabel="Change password"
                 onPress={() => {
@@ -176,8 +186,8 @@ export function AccountSettings() {
       {userProfile && (
         <Section title="Account details">
           <Rows>
-            <Fact label="Member since">{formatDate(userProfile.dateJoined, 'Not available')}</Fact>
-            <Fact label="Last login">{formatDateTime(userProfile.lastLogin)}</Fact>
+            <SettingRow label="Member since" value={formatShortDate(userProfile.dateJoined, 'Not available')} />
+            <SettingRow label="Last login" value={formatDateTime(userProfile.lastLogin)} />
           </Rows>
         </Section>
       )}
@@ -188,6 +198,7 @@ export function AccountSettings() {
             detail={<Text style={styles.muted}>Use the link or code from your company’s email.</Text>}
             action={
               <Action
+                compact
                 label="Accept"
                 accessibilityLabel="Accept shareholder invitation"
                 onPress={() => navigation.navigate('Invitation')}
@@ -200,6 +211,7 @@ export function AccountSettings() {
               detail={<Text style={styles.muted}>Use the code the company gave you.</Text>}
               action={
                 <Action
+                  compact
                   label="Accept"
                   accessibilityLabel="Accept company officer invitation"
                   onPress={() => navigation.navigate('Team')}
@@ -296,7 +308,7 @@ export function AccountData() {
           <SettingRow
             label="Export data"
             detail={<Text style={styles.muted}>Save or share a copy of your account data.</Text>}
-            action={<Action label="Export" accessibilityLabel="Export data" onPress={() => open('export')} />}
+            action={<Action compact label="Export" accessibilityLabel="Export data" onPress={() => open('export')} />}
           />
           <SettingRow
             label="Delete account"
@@ -305,7 +317,9 @@ export function AccountData() {
                 Deactivates your account and removes personal details. Some records are retained.
               </Text>
             }
-            action={<Action label="Delete" accessibilityLabel="Delete account" onPress={() => open('delete')} />}
+            action={
+              <Action compact label="Delete" accessibilityLabel="Delete account" onPress={() => open('delete')} />
+            }
           />
         </Rows>
       </Section>
