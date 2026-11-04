@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -6,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   REGISTER_TRANSFER_COPY as COPY,
+  TRANSFER_GROUPS,
   allPeopleKey,
   entriesKey,
   hasCurrentRegisterReadAuthority,
@@ -18,6 +28,7 @@ import {
   useSubmissionOwner,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  type RecordRow,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
@@ -30,6 +41,7 @@ import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { GroupedRecords } from './GroupedRecords';
 import { TransferRecord } from './TransferRecord';
 import { useLedgerStyles } from './useLedgerStyles';
 
@@ -311,75 +323,88 @@ function ClassTransfers({
   });
   const supported = register.initialized && register.token.status === 'draft';
   const records = transfers.data ?? [];
+  const rows: RecordRow<ReactNode>[] = records.map((transfer) => ({
+    uuid: transfer.uuid,
+    stage: transfer.stage,
+    companyEventOn: transfer.companyEventOn,
+    createdAt: transfer.createdAt,
+    shown: privateReady,
+    held: heldRecords.has(transfer.uuid),
+    render: ({ collapsed, ruled }) => (
+      <TransferRecord
+        transfer={transfer}
+        steps={steps ?? {}}
+        guard={privateGuard}
+        visible={privateReady}
+        collapsed={collapsed}
+        focusKey={landing?.record === transfer.uuid ? transfer.uuid : undefined}
+        onFocus={onFocusRecord}
+        outcome={landing?.record === transfer.uuid ? landing.outcome : undefined}
+        onHeldChange={recordHeld}
+        onSettled={refresh}
+        reviewing={reviewing}
+        onReviewChange={reviewChanged}
+        ruled={ruled}
+      />
+    ),
+  }));
   const browsing = !reviewing;
   const prepareAction =
     privateReady && steps?.prepare && supported ? (
       <Action label={COPY.PREPARE} disabled={held} onPress={onPrepare} />
     ) : null;
   return (
-    <View style={reviewing ? undefined : card.card}>
-      {browsing && (
-        <Text accessibilityRole="header" style={card.title}>
-          Share transfers
-        </Text>
-      )}
-      {!supported && sourceReady && (
-        <Text style={look.muted}>
-          {register.token.status === 'draft'
-            ? 'Set up this share register before recording a transfer.'
-            : 'Transfers for a class that uses the chain aren’t available in the app.'}
-        </Text>
-      )}
-      {!supported && privateReady && steps?.prepare && register.token.status === 'draft' && (
-        <Rows>
-          <LinkRow
-            label={DESTINATIONS.companyRegisterImport.title}
-            accessibilityLabel={`${DESTINATIONS.companyRegisterImport.title} (${register.token.name})`}
-            onPress={onSetup}
-          />
-        </Rows>
-      )}
-      {appointments.isError && (
-        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
-          Your appointments could not be loaded.
-        </LoadError>
-      )}
-      {steps && !Object.values(steps).some(Boolean) && <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>}
-      {appointments.isError ? null : !appointments.isSuccess ||
-        appointments.isFetching ||
-        !sourceReady ||
-        (readable && (transfers.isPending || transfers.isFetching)) ? (
-        <Loading>Loading non-paid transfers…</Loading>
-      ) : !readable ? (
-        <Text style={look.muted}>A current company register appointment is required to read share transfers.</Text>
-      ) : transfers.isError ? (
-        <LoadError retry={() => refresh().catch(() => {})} busy={transfers.isFetching || appointments.isFetching}>
-          Transfers could not be loaded.
-        </LoadError>
-      ) : privateReady && records.length === 0 ? (
-        <Text style={look.muted}>{COPY.EMPTY}</Text>
-      ) : null}
-      <View accessibilityLabel="Share transfers">
-        {records.map((transfer, index) => (
-          <TransferRecord
-            key={transfer.uuid}
-            transfer={transfer}
-            steps={steps ?? {}}
-            guard={privateGuard}
-            visible={privateReady}
-            focusKey={landing?.record === transfer.uuid ? transfer.uuid : undefined}
-            onFocus={onFocusRecord}
-            outcome={landing?.record === transfer.uuid ? landing.outcome : undefined}
-            prepareAction={index === records.length - 1 ? prepareAction : undefined}
-            onHeldChange={recordHeld}
-            onSettled={refresh}
-            reviewing={reviewing}
-            onReviewChange={reviewChanged}
-            ruled={index > 0}
-          />
-        ))}
+    <>
+      <View style={reviewing ? undefined : card.card}>
+        {browsing && (
+          <Text accessibilityRole="header" style={card.title}>
+            Share transfers
+          </Text>
+        )}
+        {!supported && sourceReady && (
+          <Text style={look.muted}>
+            {register.token.status === 'draft'
+              ? 'Set up this share register before recording a transfer.'
+              : 'Transfers for a class that uses the chain aren’t available in the app.'}
+          </Text>
+        )}
+        {!supported && privateReady && steps?.prepare && register.token.status === 'draft' && (
+          <Rows>
+            <LinkRow
+              label={DESTINATIONS.companyRegisterImport.title}
+              accessibilityLabel={`${DESTINATIONS.companyRegisterImport.title} (${register.token.name})`}
+              onPress={onSetup}
+            />
+          </Rows>
+        )}
+        {appointments.isError && (
+          <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+            Your appointments could not be loaded.
+          </LoadError>
+        )}
+        {steps && !Object.values(steps).some(Boolean) && <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>}
+        {appointments.isError ? null : !appointments.isSuccess ||
+          appointments.isFetching ||
+          !sourceReady ||
+          (readable && (transfers.isPending || transfers.isFetching)) ? (
+          <Loading>Loading non-paid transfers…</Loading>
+        ) : !readable ? (
+          <Text style={look.muted}>A current company register appointment is required to read share transfers.</Text>
+        ) : transfers.isError ? (
+          <LoadError retry={() => refresh().catch(() => {})} busy={transfers.isFetching || appointments.isFetching}>
+            Transfers could not be loaded.
+          </LoadError>
+        ) : privateReady && records.length === 0 ? (
+          <Text style={look.muted}>{COPY.EMPTY}</Text>
+        ) : null}
+        <GroupedRecords
+          grouping={TRANSFER_GROUPS}
+          rows={rows}
+          requested={landing?.record ? { key: landing.record, record: landing.record } : undefined}
+          browsing={browsing}
+        />
       </View>
-      {records.length === 0 && prepareAction && <Actions>{prepareAction}</Actions>}
-    </View>
+      {prepareAction && browsing && <Actions>{prepareAction}</Actions>}
+    </>
   );
 }

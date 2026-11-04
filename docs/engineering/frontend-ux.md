@@ -116,7 +116,8 @@ the frame; sign-up keeps its own presentation.
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
 only where it adds to the titles. On web card collections, the primary creation action follows the
 last card in one right-aligned, wrapping row, rather than the title row; keep its content width.
-Ledger's Add share class and Issue shares' **Prepare issue** follow this pattern. The first
+Ledger's Add share class, Issue shares' **Prepare issue** and Transfer shares' **Prepare a non-paid
+transfer** follow this pattern. The first
 section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
@@ -157,8 +158,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   cards, aligned right. Actions do not wait for a row to be selected.
 - `MoreToggle` (`dashboard/src/components/Ledger.tsx`): a plain text button with `aria-expanded`
   that shows or hides long optional content in place, such as **Show all 5 share changes**.
-  `ShowMore` pairs it with the content it shows: a saved transfer record and an issue or transfer
-  review start with **Show details and documents** closed, and
+  `ShowMore` pairs it with the content it shows: an issue or transfer review starts with **Show
+  details and documents** closed, and
   long lists sit behind **Show other shareholders (N)**, **Show former shareholders (N)** or **Show
   the shareholders (N)**. Corrections' corrections and particulars changes are titled records with
   their details shown, and people without shares show their address beneath their name.
@@ -236,7 +237,8 @@ upload hints, and show recovery guidance only while the original preparation is 
 Issue shares is one **Share issues** card with **Prepare issue** beneath it. Both kinds of
 issue sit together under small muted headings with counts: **Needs a decision** (prepared and
 approved issues), **Issued** and **Rejected**, each newest company issue date first and undated issues
-last (`issueGroups` in `packages/shared/src/utils/register-issues.ts`). A group without issues isn't
+last (`recordGroups` with `ISSUE_GROUPS` in `packages/shared/src/utils/record-groups.ts`, listed by
+`GroupedRecords`). A group without issues isn't
 shown, one empty state stands for both kinds only once both are confirmed empty, and loading or
 failure is never an empty state. Issued and Rejected show five rows, then **Show all N issues** or
 **Show all N rejected issues**; a group opens by itself when a record beyond its first five was asked
@@ -247,13 +249,15 @@ for the longer state explanations, compliance responsibilities, terms, history a
 prepared or approved issue shows its status beneath it, followed by its decision actions. The app's
 Issue shares has the same card, groups and rows at phone width, the details' rows stacked as `Fact`s,
 the same forms with their fields stacked, and the same review in place of the records.
-Transfer records align From, To, Shares,
-Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
-subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
-**Show details and documents**. Emphasise the review for the current stage. Keep transfer preparation beside
-the final record's decision actions in one right-aligned row, wrapping only when needed; an empty
-collection keeps its own preparation row. The app's Transfer shares has the same records, two facts to a
-row, the same row of actions and the same review in place of the records.
+Transfer shares is built the same way: one **Share transfers** card with **Prepare a non-paid
+transfer** beneath it, and the transfers under **Needs a decision** (prepared and approved),
+**Transferred** and **Rejected** (`TRANSFER_GROUPS`), newest company transfer date first, with **Show
+all N transfers** or **Show all N rejected transfers** after five. A row has no labels: the parties
+as "transferor to recipient" and the share count, then "Non-paid transfer" and the short company
+transfer date; the whole summary opens the particulars, terms, history and downloads. Only an
+unfinished transfer shows its status, followed by its decision actions. Emphasise the review for the
+current stage. The app's Transfer shares has the same card, groups and rows, and the same review in
+place of the records.
 
 Web Corrections starts with one full-width `Section` titled **Changes**, with compact ruled rows aligned under
 **Change**, **Date** and **Share movements**, and **Correct** at the end of a row the account may correct.
@@ -1031,8 +1035,8 @@ Figures, amounts and dates are formatted only by the shared formatters in `packa
 by a local helper or a browser `toLocale…` call:
 
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
-  the server recorded. Issue shares' compact rows use `formatShortDate`, "20 Oct 2026", read the same
-  way.
+  the server recorded. Issue and Transfer shares' compact rows use `formatShortDate`, "20 Oct 2026",
+  read the same way.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter
   month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.

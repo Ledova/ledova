@@ -4,8 +4,10 @@ import {
   REGISTER_TRANSFER_COPY as COPY,
   REGISTER_TRANSFER_DECISIONS,
   STAGE_TONES,
+  TRANSFER_GROUPS,
   formatDate,
   formatDateTime,
+  recordGroup,
   shareCount,
   useTransferRecordDownload,
   type RegisterSteps,
@@ -13,55 +15,16 @@ import {
   type RegisterTransferDecisionPreview,
   type RegisterTransferDecisionRequest,
 } from '@ledova/shared';
-import { Fact, Outcome, Rows, Section, ShowMore, Status } from '../../components/Ledger';
+import { Fact, Outcome, Rows, Section, Status } from '../../components/Ledger';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { DocumentActions, RecordShell, SummaryCell, decisionTrail } from './IssueRecord';
+import { DocumentActions, RecordShell, RecordSummary, decisionTrail } from './IssueRecord';
 import { Details, Group } from './IssueReviews';
 import { RegisterDecisions } from './RegisterDecisions';
 import { useLedgerStyles } from './useLedgerStyles';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, approve: 'Approve', apply: 'Transfer recorded' } };
 const DOCUMENTS = ['authority', 'instrument'] as const;
-
-function TransferSummary({ transfer }: { transfer: RegisterTransfer }) {
-  const look = useLedgerStyles();
-  const from = transfer.fromName || 'Name not recorded';
-  const to = transfer.name || 'Name not recorded';
-  const count = shareCount(transfer.shares);
-  const date = formatDate(transfer.companyEventOn, 'Not recorded');
-  const status =
-    transfer.stage === 'applied'
-      ? 'Approved'
-      : transfer.stage === 'approved'
-        ? 'Ready to complete'
-        : (COPY.STAGES[transfer.stage] ?? transfer.stage);
-  return (
-    <View style={look.cells}>
-      <View style={look.pair}>
-        <SummaryCell label="From" values={[from]}>
-          <Text style={look.title}>{from}</Text>
-        </SummaryCell>
-        <SummaryCell label="To" values={[to]}>
-          <Text style={look.title}>{to}</Text>
-        </SummaryCell>
-      </View>
-      <View style={look.pair}>
-        <SummaryCell label="Shares" values={[count]}>
-          <Text style={look.title}>{count}</Text>
-        </SummaryCell>
-        <SummaryCell label="Transfer date" values={[date]}>
-          <Text style={look.title}>{date}</Text>
-        </SummaryCell>
-      </View>
-      <View style={look.pair}>
-        <SummaryCell label="Status" values={[status]}>
-          <Status tone={STAGE_TONES[transfer.stage] ?? 'waiting'}>{status}</Status>
-        </SummaryCell>
-      </View>
-    </View>
-  );
-}
 
 function TransferReview({
   preview,
@@ -142,10 +105,10 @@ export function TransferRecord({
   focusKey,
   onFocus,
   outcome,
-  prepareAction,
   reviewing,
   onReviewChange,
   ruled,
+  collapsed,
 }: {
   transfer: RegisterTransfer;
   steps: RegisterSteps;
@@ -156,10 +119,10 @@ export function TransferRecord({
   focusKey?: string;
   onFocus?: (record: View) => void;
   outcome?: string;
-  prepareAction?: ReactNode;
   reviewing: string | null;
   onReviewChange: (uuid: string, open: boolean) => void;
   ruled: boolean;
+  collapsed: boolean;
 }) {
   const look = useLedgerStyles();
   const download = useTransferRecordDownload(transfer, guard, SHARE_SHEET_FILES, orderSubmissionSession);
@@ -180,7 +143,7 @@ export function TransferRecord({
   const documentsView = <DocumentActions kinds={DOCUMENTS} context={context} download={download} />;
   return (
     <RecordShell
-      hidden={!visible || (!!reviewing && !inReview)}
+      hidden={!visible || (reviewing ? !inReview : collapsed)}
       ruled={ruled && !reviewing}
       focusKey={focusKey}
       onFocus={onFocus}
@@ -188,8 +151,23 @@ export function TransferRecord({
       {visible && (
         <View style={[look.summary, inReview && look.hidden]}>
           {!!outcome && transfer.stage === 'submitted' && <Outcome>{outcome}</Outcome>}
-          <TransferSummary transfer={transfer} />
-          <ShowMore show="Show details and documents" hide="Hide details and documents">
+          <RecordSummary
+            name={`${transfer.fromName || 'Name not recorded'} to ${transfer.name || 'Name not recorded'}`}
+            kind="Non-paid transfer"
+            shares={transfer.shares}
+            companyEventOn={transfer.companyEventOn}
+            status={
+              recordGroup(TRANSFER_GROUPS, transfer.stage) === 'decide'
+                ? {
+                    tone: STAGE_TONES[transfer.stage] ?? 'waiting',
+                    label:
+                      transfer.stage === 'approved'
+                        ? 'Ready to complete'
+                        : (COPY.STAGES[transfer.stage] ?? transfer.stage),
+                  }
+                : undefined
+            }
+          >
             <Rows>
               <Fact label="Stage">
                 <Status tone={STAGE_TONES[transfer.stage] ?? 'waiting'}>
@@ -224,7 +202,7 @@ export function TransferRecord({
             </Rows>
             <Text style={look.muted}>{COPY.PROVIDED_BY_COMPANY}</Text>
             {documentsView}
-          </ShowMore>
+          </RecordSummary>
         </View>
       )}
       <RegisterDecisions
@@ -244,7 +222,6 @@ export function TransferRecord({
         onRefused={onSettled}
         visible={visible}
         onHeldChange={onHeldChange}
-        leadingAction={prepareAction}
         review={{
           onChange: reviewChanged,
           title: 'Review share transfer',

@@ -16,9 +16,9 @@ import {
   useOwnAppointments,
   usePeople,
   useRegisterAllotments,
-  type IssueRow,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  type RecordRow,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading, Rows } from '../../components/Ledger';
@@ -262,7 +262,7 @@ export function useInvestorIssues({
   );
   const steps = registerSteps(appointments.isSuccess ? appointments.data : [], company);
   const listed = privateReady && !kept;
-  const records: IssueRow<ReactNode>[] = (allotments.data ?? []).map((allotment) => ({
+  const records: RecordRow<ReactNode>[] = (allotments.data ?? []).map((allotment) => ({
     uuid: allotment.uuid,
     stage: allotment.stage,
     companyEventOn: allotment.companyEventOn,

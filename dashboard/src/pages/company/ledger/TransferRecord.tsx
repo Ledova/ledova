@@ -1,10 +1,12 @@
-import { useCallback, type ReactNode } from 'react';
+import { useCallback } from 'react';
 import { RecordShell, RecordDownloadFailure, RecordStage } from '@pages/company/ledger/shared/RecordShell';
 import { useRegisterTaskGuard } from './useRegisterTaskGuard';
 import {
   REGISTER_TRANSFER_COPY as COPY,
   REGISTER_TRANSFER_DECISIONS,
+  TRANSFER_GROUPS,
   formatDateTime,
+  recordGroup,
   type RegisterTransfer,
   type RegisterTransferDecisionRequest,
   shareCount,
@@ -13,12 +15,13 @@ import {
   type RegisterSteps,
   useTransferRecordDownload,
 } from '@ledova/shared';
-import { Row, Rows, Status, ShowMore, Fact } from '@components/Ledger';
+import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { BROWSER_FILES } from '@utils/saveFile';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
+import { RecordSummary } from './RecordSummary';
 import { TransferReview } from './TransferReview';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, approve: 'Approve', apply: 'Transfer recorded' } };
@@ -56,8 +59,9 @@ export function TransferRecord({
   guard,
   onSettled,
   visible = true,
+  collapsed = false,
+  ruled = false,
   onHeldChange,
-  prepareAction,
   reviewTarget,
   onReviewChange,
 }: {
@@ -67,8 +71,9 @@ export function TransferRecord({
   guard: () => void;
   onSettled: () => Promise<unknown>;
   visible?: boolean;
+  collapsed?: boolean;
+  ruled?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
-  prepareAction?: ReactNode;
   reviewTarget: HTMLElement | null;
   onReviewChange: (uuid: string, open: boolean) => void;
 }) {
@@ -106,52 +111,45 @@ export function TransferRecord({
     </>
   );
   return (
-    <RecordShell hidden={!visible} focusKey={landed?.key} landed={transfer.stage === 'submitted' ? landed : undefined}>
+    <RecordShell
+      hidden={!visible || collapsed}
+      ruled={ruled}
+      focusKey={landed?.key}
+      landed={transfer.stage === 'submitted' ? landed : undefined}
+    >
       {visible && (
-        <>
-          <h3 className="sr-only">
-            Transfer from {transfer.fromName || 'Name not recorded'} to {transfer.name || 'Name not recorded'}
-          </h3>
-          <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 lg:grid-cols-5">
-            <Fact label="From">{transfer.fromName || 'Name not recorded'}</Fact>
-            <Fact label="To">{transfer.name || 'Name not recorded'}</Fact>
-            <Fact label="Shares" numeric>
-              {shareCount(transfer.shares)}
-            </Fact>
-            <Fact label="Transfer date" numeric>
-              {formatDate(transfer.companyEventOn, 'Not recorded')}
-            </Fact>
-            <div className="min-w-0 space-y-1">
-              <dt className="text-text-muted">Status</dt>
-              <dd>
-                <Status tone={STAGE_TONES[transfer.stage] ?? 'waiting'}>
-                  {transfer.stage === 'applied'
-                    ? 'Approved'
-                    : transfer.stage === 'approved'
+        <RecordSummary
+          name={`${transfer.fromName || 'Name not recorded'} to ${transfer.name || 'Name not recorded'}`}
+          kind="Non-paid transfer"
+          shares={transfer.shares}
+          companyEventOn={transfer.companyEventOn}
+          status={
+            recordGroup(TRANSFER_GROUPS, transfer.stage) === 'decide'
+              ? {
+                  tone: STAGE_TONES[transfer.stage] ?? 'waiting',
+                  label:
+                    transfer.stage === 'approved'
                       ? 'Ready to complete'
-                      : (COPY.STAGES[transfer.stage] ?? transfer.stage)}
-                </Status>
-              </dd>
-            </div>
-          </dl>
-          <ShowMore show="Show details and documents" hide="Hide details and documents">
-            <Rows>
-              <RecordStage stage={transfer.stage}>{COPY.STAGES[transfer.stage] ?? transfer.stage}</RecordStage>
-              <Row label="Prepared by">{transfer.preparedByName || 'Name not recorded'}</Row>
-              <Row label="Prepared on">{formatDateTime(transfer.createdAt)}</Row>
-              <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
-              <Row label={COPY.REASON}>{transfer.reason}</Row>
-              <DecisionTrail proposal={transfer} labels={DECISION_COPY.DECISIONS} />
-            </Rows>
-            <TransferRows transfer={transfer} />
-            <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-            {documents}
-          </ShowMore>
-        </>
+                      : (COPY.STAGES[transfer.stage] ?? transfer.stage),
+                }
+              : undefined
+          }
+        >
+          <Rows>
+            <RecordStage stage={transfer.stage}>{COPY.STAGES[transfer.stage] ?? transfer.stage}</RecordStage>
+            <Row label="Prepared by">{transfer.preparedByName || 'Name not recorded'}</Row>
+            <Row label="Prepared on">{formatDateTime(transfer.createdAt)}</Row>
+            <Row label={COPY.AUTHORITY_REFERENCE}>{transfer.authorityReference}</Row>
+            <Row label={COPY.REASON}>{transfer.reason}</Row>
+            <DecisionTrail proposal={transfer} labels={DECISION_COPY.DECISIONS} />
+          </Rows>
+          <TransferRows transfer={transfer} />
+          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
+          {documents}
+        </RecordSummary>
       )}
       <RegisterDecisions
         recordActions
-        leadingAction={prepareAction}
         approveLabel="Review and approve"
         family={family}
         copy={DECISION_COPY}

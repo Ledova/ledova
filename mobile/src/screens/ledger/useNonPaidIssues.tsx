@@ -17,9 +17,9 @@ import {
   usePeople,
   useRegisterAward,
   useRegisterGrants,
-  type IssueRow,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  type RecordRow,
   type RegisterDecisionKind,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -242,7 +242,7 @@ export function useNonPaidIssues({
     </>
   );
   const listed = privateReady && !kept;
-  const records: IssueRow<ReactNode>[] = (grants.data ?? []).map((grant) => ({
+  const records: RecordRow<ReactNode>[] = (grants.data ?? []).map((grant) => ({
     uuid: grant.uuid,
     stage: grant.stage,
     companyEventOn: grant.companyEventOn,

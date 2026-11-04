@@ -1,14 +1,9 @@
-import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react';
-import {
-  ISSUE_GROUP_CAP,
-  issueGroups,
-  type IssueGroupKey,
-  type OrderSubmissionOwner,
-  type TokenHoldersResponse,
-} from '@ledova/shared';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ISSUE_GROUPS, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
 import { Choices } from '@components/Choices';
-import { MoreToggle, Section } from '@components/Ledger';
+import { Section } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
+import { GroupedRecords } from './GroupedRecords';
 import { useInvestorIssues } from './useInvestorIssues';
 import { useNonPaidIssues } from './useNonPaidIssues';
 import { useIssueEntryRead } from './useIssueEntryRead';
@@ -61,9 +56,6 @@ export function ClassIssues({
   const [award, setAward] = useState<string | undefined>();
   const [member, setMember] = useState<string | undefined>();
   const [answered, setAnswered] = useState('');
-  const [expanded, setExpanded] = useState<Partial<Record<IssueGroupKey, boolean>>>({});
-  const [revealed, setRevealed] = useState('');
-  const list = useId();
   const close = (recorded = false) => {
     setPreparing(false);
     setReturnToAction(!recorded);
@@ -132,20 +124,6 @@ export function ClassIssues({
       setMember(request.member);
     }
   }
-  const records = [...investor.records, ...nonPaid.records];
-  const groups = issueGroups(records.filter((record) => record.shown));
-  const requested = request?.record && revealed !== request.key ? request : undefined;
-  if (requested && groups.some((group) => group.entries.some((record) => record.uuid === requested.record)))
-    setRevealed(requested.key);
-  const opening = groups.find(
-    (group) =>
-      group.more &&
-      !expanded[group.key] &&
-      group.entries.some(
-        (record, index) => index >= ISSUE_GROUP_CAP && (record.held || record.uuid === requested?.record),
-      ),
-  );
-  if (opening) setExpanded((current) => ({ ...current, [opening.key]: true }));
   const status = (
     <>
       {investor.setup}
@@ -160,41 +138,11 @@ export function ClassIssues({
         <Section title="Share issues">
           {browsing && status}
           {investor.empty && nonPaid.empty && <p className="text-sm text-text-muted">No share issues recorded yet.</p>}
-          <ul id={list} hidden={groups.length === 0}>
-            {[
-              ...groups.flatMap((group, at) => [
-                <li key={group.key} className={at > 0 ? 'border-t border-border pt-4' : undefined}>
-                  <h3 className="text-xs font-semibold text-text-muted">{group.heading}</h3>
-                </li>,
-                ...group.entries.map((record, index) => (
-                  <Fragment key={record.uuid}>
-                    {record.render({
-                      collapsed: !!group.more && !expanded[group.key] && index >= ISSUE_GROUP_CAP,
-                      ruled: index > 0,
-                    })}
-                  </Fragment>
-                )),
-                ...(group.more
-                  ? [
-                      <li key={`${group.key}/more`} className="pb-4">
-                        <MoreToggle
-                          open={!!expanded[group.key]}
-                          controls={list}
-                          onToggle={() => setExpanded((current) => ({ ...current, [group.key]: !current[group.key] }))}
-                        >
-                          {expanded[group.key] ? group.more.hide : group.more.show}
-                        </MoreToggle>
-                      </li>,
-                    ]
-                  : []),
-              ]),
-              ...records
-                .filter((record) => !record.shown)
-                .map((record) => (
-                  <Fragment key={record.uuid}>{record.render({ collapsed: false, ruled: false })}</Fragment>
-                )),
-            ]}
-          </ul>
+          <GroupedRecords
+            grouping={ISSUE_GROUPS}
+            rows={[...investor.records, ...nonPaid.records]}
+            requested={request?.record ? { key: request.key, record: request.record } : undefined}
+          />
         </Section>
       </div>
       {investor.prepare && browsing && (

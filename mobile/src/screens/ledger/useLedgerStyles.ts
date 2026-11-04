@@ -46,7 +46,6 @@ export function useLedgerStyles() {
       record: { gap: theme.spacing.smd, paddingVertical: theme.spacing.md },
       heading: { fontFamily: theme.fontFamily.medium, fontSize: 16, lineHeight: 24, color: theme.colors.text.primary },
       name: { fontFamily: theme.fontFamily.medium, fontSize: 16, lineHeight: 24, color: theme.colors.text.primary },
-      cells: { gap: theme.spacing.md },
       pair: { flexDirection: 'row' as const, gap: theme.spacing.md },
       cell: { flex: 1, minWidth: 0, gap: theme.spacing.xs },
       wrap: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: theme.spacing.sm },

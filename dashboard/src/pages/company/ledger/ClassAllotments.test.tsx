@@ -863,6 +863,11 @@ it('preserves original preparation and combined approval recovery through refres
   expect(screen.queryByRole('link', { name: 'History' })).toBeNull();
   const openTransfer = () => screen.getByRole('button', { name: /^Review and approve [(]transfer/ });
   await screen.findByRole('button', { name: /^Review and approve [(]transfer/ });
+  const transferSummary = 'Synthetic Transferor to Synthetic Recipient, 10 shares. Show details and documents';
+  const pendingTransfer = screen.getByRole('button', { name: transferSummary }).closest('li')!;
+  expect(pendingTransfer.previousElementSibling?.textContent).toBe('Needs a decision · 1');
+  expect(within(pendingTransfer).getByText('Non-paid transfer · 3 Oct 2026')).toBeTruthy();
+  expect(within(pendingTransfer).getByRole('button', { name: /^Review and approve [(]transfer/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Apply [(]transfer/ })).toBeNull();
   const transferDecisionUrl = URLS.REGISTER_TRANSFER_DECIDE(transfer.uuid);
   const transferDecisionCalls = () => api.post.mock.calls.filter(([url]) => url === transferDecisionUrl);

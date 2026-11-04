@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
 import { Text, View } from 'react-native';
 import {
+  ISSUE_GROUPS,
   REGISTER_GRANT_COPY as COPY,
   REGISTER_GRANT_DECISIONS,
   STAGE_TONES,
   formatDate,
   formatDateTime,
-  issueGroup,
+  recordGroup,
   shareCount,
   useGrantRecordDownload,
   type RegisterDecisionKind,
@@ -16,7 +17,7 @@ import {
 import { Fact, Rows, Status } from '../../components/Ledger';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { DocumentActions, IssueSummary, RecordShell, decisionTrail } from './IssueRecord';
+import { DocumentActions, RecordShell, RecordSummary, decisionTrail } from './IssueRecord';
 import { GrantReview } from './IssueReviews';
 import { RegisterDecisions } from './RegisterDecisions';
 import { useLedgerStyles } from './useLedgerStyles';
@@ -73,13 +74,13 @@ export function GrantRecord({
     >
       {visible && (
         <View style={[look.summary, inReview && look.hidden]}>
-          <IssueSummary
+          <RecordSummary
             name={grant.name}
             kind={grant.award ? 'Employee award' : 'Non-paid issue'}
             shares={grant.shares}
             companyEventOn={grant.companyEventOn}
             status={
-              issueGroup(grant.stage) === 'decide'
+              recordGroup(ISSUE_GROUPS, grant.stage) === 'decide'
                 ? { tone: STAGE_TONES[grant.stage] ?? 'waiting', label: stage }
                 : undefined
             }
@@ -122,7 +123,7 @@ export function GrantRecord({
             </Rows>
             <Text style={look.muted}>{COPY.PROVIDED_BY_COMPANY}</Text>
             {documentsView}
-          </IssueSummary>
+          </RecordSummary>
         </View>
       )}
       <RegisterDecisions

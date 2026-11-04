@@ -277,7 +277,7 @@ of the selected company, read through `useCompanyRegisters.ts`, the shared `useR
 `useRegisterGrants`, and sent through the shared `useAllotmentForm`, `useGrantPreparation` and
 `useRegisterDecision`: the selected class's name, with **Share class** in Filters when there is more
 than one, then the Share issues card with the web's groups
-(Needs a decision, Issued and Rejected, from the shared `issueGroups`). Each investor and non-paid
+(Needs a decision, Issued and Rejected, from the shared `recordGroups`). Each investor and non-paid
 issue is the web's compact row (recipient and shares, then kind, short company issue date and any AUD
 amount), a button that shows or hides the stage, decision trail, particulars, terms and the documents'
 downloads, which go to the share sheet; a prepared or approved issue adds its status and the
@@ -298,12 +298,14 @@ the issues while none is open.
 Transfer shares (`TransferSharesScreen.tsx`) is the web's Transfer shares at phone width for a register
 reader of the selected company, read through `useCompanyRegisters.ts` and the shared
 `useRegisterTransfers` and decided through `useRegisterDecision`: the selected class's name, with
-**Share class** in Filters as on Issue shares, then Share transfers, each with the web's From, To,
-Shares, Transfer date and Status, two to a row, **Show details and documents** with the documents'
-downloads to the share sheet, and **Reject** and **Review and approve** only for the steps the person's
-appointments hold. Review share transfer replaces the records, and **Approve** records the approval and
+**Share class** in Filters as on Issue shares, then the Share transfers card with the web's groups
+(Needs a decision, Transferred and Rejected). Each transfer is the web's compact row (transferor to
+recipient and shares, then "Non-paid transfer" and the short company transfer date), a button that shows
+or hides the details and the documents' downloads to the share sheet; an unfinished transfer adds its
+status and **Reject** and **Review and approve**, only for the steps the person's appointments hold.
+Review share transfer replaces the records, and **Approve** records the approval and
 the transfer together, as on the web. An unopened draft class offers **Set up your ledger**, as on Issue
-shares. **Prepare a non-paid transfer**, beside the last record's actions,
+shares. **Prepare a non-paid transfer**, beneath the card,
 opens the web's three-step form on its own page (`TransferPreparationScreen.tsx`, through the shared
 `useTransferPreparation`, keeping its retry of an uncertain preparation). Preparing or Cancel returns to
 the class's transfers, with a prepared transfer in view and marked as prepared, as on the web. A

@@ -4,7 +4,7 @@ import { formatShortDate, shareCount } from '@ledova/shared';
 import { ICON_SM } from '@components/iconSizes';
 import { Status, type Tone } from '@components/Ledger';
 
-export function IssueSummary({
+export function RecordSummary({
   name,
   kind,
   shares,

@@ -8,7 +8,8 @@ import {
   type RegisterGrant,
   shareCount,
   formatDate,
-  issueGroup,
+  ISSUE_GROUPS,
+  recordGroup,
   STAGE_TONES,
   type RegisterSteps,
   useGrantRecordDownload,
@@ -18,7 +19,7 @@ import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { BROWSER_FILES } from '@utils/saveFile';
-import { IssueSummary } from './IssueSummary';
+import { RecordSummary } from './RecordSummary';
 import { GrantReview } from './GrantReview';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, apply: 'Record issue' } };
@@ -102,13 +103,13 @@ export function GrantRecord({
   return (
     <RecordShell hidden={!visible || collapsed} ruled={ruled} focusKey={focusKey}>
       {visible && (
-        <IssueSummary
+        <RecordSummary
           name={grant.name}
           kind={grant.award ? 'Employee award' : 'Non-paid issue'}
           shares={grant.shares}
           companyEventOn={grant.companyEventOn}
           status={
-            issueGroup(grant.stage) === 'decide'
+            recordGroup(ISSUE_GROUPS, grant.stage) === 'decide'
               ? { tone: STAGE_TONES[grant.stage] ?? 'waiting', label: COPY.STAGES[grant.stage] ?? grant.stage }
               : undefined
           }
@@ -133,7 +134,7 @@ export function GrantRecord({
           <GrantRows grant={grant} />
           <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
           {documentsView}
-        </IssueSummary>
+        </RecordSummary>
       )}
       <RegisterDecisions
         recordActions
