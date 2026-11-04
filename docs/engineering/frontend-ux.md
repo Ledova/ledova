@@ -116,7 +116,8 @@ the frame; sign-up keeps its own presentation.
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
 only where it adds to the titles. On web card collections, the primary creation action follows the
 last card in one right-aligned, wrapping row, rather than the title row; keep its content width.
-Ledger's Add share class follows this pattern for both empty and populated collections. The first
+Ledger's Add share class follows this pattern for both empty and populated collections. Issue shares,
+a single card, puts **Prepare issue** beside the card's title instead. The first
 section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
@@ -154,11 +155,12 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
   on: the title row for the page (including the way back to the parent), a section for that section,
   a row for that row's record alone. A web collection's primary creation action sits beneath its
-  cards, aligned right. Actions do not wait for a row to be selected.
+  cards, aligned right, apart from Issue shares' **Prepare issue** beside its card's title. Actions
+  do not wait for a row to be selected.
 - `MoreToggle` (`dashboard/src/components/Ledger.tsx`): a plain text button with `aria-expanded`
   that shows or hides long optional content in place, such as **Show all 5 share changes**.
-  `ShowMore` pairs it with the content it shows: a saved
-  issue or transfer record and its review start with **Show details and documents** closed, and
+  `ShowMore` pairs it with the content it shows: a saved transfer record and an issue or transfer
+  review start with **Show details and documents** closed, and
   long lists sit behind **Show other shareholders (N)**, **Show former shareholders (N)** or **Show
   the shareholders (N)**. Corrections' corrections and particulars changes are titled records with
   their details shown, and people without shares show their address beneath their name.
@@ -233,14 +235,20 @@ grid. Show an award recipient and available vested shares once; its retained agr
 behind **Show award record details**, with read-only validation targets that open on error. Ordinary non-paid terms stay
 editable fields. Keep the required fields and guards, without repeated descriptions or routine
 upload hints, and show recovery guidance only while the original preparation is held.
-Issue records align the recipient and issue type, shares, company issue date and status in the
-same labelled summary grid (`Fact` in `dashboard/src/components/Ledger.tsx` for each plain label
-and value), with the investor amount where relevant. Keep the issued or not-issued fact beside the
-status and use the recipient as the record heading, without separate family headings.
-Longer state explanations, compliance responsibilities, terms, history and downloads open under
-**Show details and documents**. The app's Issue shares has the same records, with the summary grid two
-facts to a row as on the web at phone width and the details' rows stacked as `Fact`s, the same forms
-with their fields stacked, and the same review in place of the records.
+Issue shares is one **Share issues** card with **Prepare issue** beside its title. Both kinds of
+issue sit together under small muted headings with counts: **Needs a decision** (prepared and
+approved issues), **Issued** and **Rejected**, each newest company issue date first and undated issues
+last (`issueGroups` in `packages/shared/src/utils/register-issues.ts`). A group without issues isn't
+shown, one empty state stands for both kinds only once both are confirmed empty, and loading or
+failure is never an empty state. Issued and Rejected show five rows, then **Show all N issues** or
+**Show all N rejected issues**; a group opens by itself when a record beyond its first five was asked
+for, such as from an award's page, or has a decision in progress. A row has no labels: the recipient
+and share count, then the kind and short company issue date (`formatShortDate`, "26 Oct 2026"), with
+an investor issue's amount on the right. The whole summary is the disclosure button, with a caret,
+for the longer state explanations, compliance responsibilities, terms, history and downloads; only a
+prepared or approved issue shows its status beneath it, followed by its decision actions. The app's
+Issue shares has the same card, groups and rows at phone width, the details' rows stacked as `Fact`s,
+the same forms with their fields stacked, and the same review in place of the records.
 Transfer records align From, To, Shares,
 Transfer date and Status in a labelled summary grid that wraps on smaller screens, without another
 subheading or a sentence repeating the stage. Full particulars, terms, history and downloads open under
@@ -248,8 +256,6 @@ subheading or a sentence repeating the stage. Full particulars, terms, history a
 the final record's decision actions in one right-aligned row, wrapping only when needed; an empty
 collection keeps its own preparation row. The app's Transfer shares has the same records, two facts to a
 row, the same row of actions and the same review in place of the records.
-Hide a successfully read empty family when another has records,
-and use one empty state when both are confirmed empty; loading or failure is never an empty state.
 
 Web Corrections starts with one full-width `Section` titled **Changes**, with compact ruled rows aligned under
 **Change**, **Date** and **Share movements**, and **Correct** at the end of a row the account may correct.
@@ -1027,7 +1033,8 @@ Figures, amounts and dates are formatted only by the shared formatters in `packa
 by a local helper or a browser `toLocale…` call:
 
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
-  the server recorded.
+  the server recorded. Issue shares' compact rows use `formatShortDate`, "20 Oct 2026", read the same
+  way.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter
   month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.

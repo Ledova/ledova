@@ -51,6 +51,27 @@ export function useLedgerStyles() {
       cell: { flex: 1, minWidth: 0, gap: theme.spacing.xs },
       wrap: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: theme.spacing.sm },
       review: { gap: 20 },
+      disclosure: {
+        flexDirection: 'row' as const,
+        alignItems: 'center' as const,
+        gap: theme.spacing.smd,
+        minHeight: 44,
+      },
+      split: {
+        flexDirection: 'row' as const,
+        alignItems: 'baseline' as const,
+        justifyContent: 'space-between' as const,
+        gap: theme.spacing.smd,
+      },
+      tabular: { fontVariant: ['tabular-nums' as const] },
+      groupTitle: {
+        fontFamily: theme.fontFamily.semibold,
+        fontSize: 12,
+        lineHeight: 16,
+        color: theme.colors.text.muted,
+      },
+      groupRule: { paddingTop: theme.spacing.md, borderTopWidth: 1, borderTopColor: theme.colors.border.default },
+      more: { paddingBottom: theme.spacing.md },
     };
   });
 }

@@ -6,13 +6,14 @@ import {
   STAGE_TONES,
   formatDate,
   formatDateTime,
+  issueGroup,
   shareCount,
   useGrantRecordDownload,
   type RegisterDecisionKind,
   type RegisterGrant,
   type RegisterSteps,
 } from '@ledova/shared';
-import { Fact, Rows, ShowMore, Status } from '../../components/Ledger';
+import { Fact, Rows, Status } from '../../components/Ledger';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { DocumentActions, IssueSummary, RecordShell, decisionTrail } from './IssueRecord';
@@ -36,6 +37,7 @@ export function GrantRecord({
   reviewing,
   onReviewChange,
   ruled,
+  collapsed,
 }: {
   grant: RegisterGrant;
   steps: RegisterSteps;
@@ -50,6 +52,7 @@ export function GrantRecord({
   reviewing: string | null;
   onReviewChange: (uuid: string, open: boolean) => void;
   ruled: boolean;
+  collapsed: boolean;
 }) {
   const look = useLedgerStyles();
   const download = useGrantRecordDownload(grant, guard, SHARE_SHEET_FILES, orderSubmissionSession);
@@ -63,7 +66,7 @@ export function GrantRecord({
   const documentsView = <DocumentActions kinds={documents} context={context} download={download} />;
   return (
     <RecordShell
-      hidden={!visible || (!!reviewing && !inReview)}
+      hidden={!visible || (reviewing ? !inReview : collapsed)}
       ruled={ruled && !reviewing}
       focusKey={focusKey}
       onFocus={onFocus}
@@ -75,13 +78,12 @@ export function GrantRecord({
             kind={grant.award ? 'Employee award' : 'Non-paid issue'}
             shares={grant.shares}
             companyEventOn={grant.companyEventOn}
-            status={{
-              tone: STAGE_TONES[grant.stage] ?? 'waiting',
-              label: grant.stage === 'applied' ? 'Shares issued' : stage,
-              note: grant.stage === 'applied' ? undefined : 'No shares issued',
-            }}
-          />
-          <ShowMore show="Show details and documents" hide="Hide details and documents">
+            status={
+              issueGroup(grant.stage) === 'decide'
+                ? { tone: STAGE_TONES[grant.stage] ?? 'waiting', label: stage }
+                : undefined
+            }
+          >
             <Text style={look.muted}>
               {grant.stage === 'applied'
                 ? 'These shares are issued ownership. An employee award and its vesting records remain separate.'
@@ -120,7 +122,7 @@ export function GrantRecord({
             </Rows>
             <Text style={look.muted}>{COPY.PROVIDED_BY_COMPANY}</Text>
             {documentsView}
-          </ShowMore>
+          </IssueSummary>
         </View>
       )}
       <RegisterDecisions

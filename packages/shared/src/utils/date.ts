@@ -49,15 +49,23 @@ export function formatDate(
   }
 }
 
+export function formatShortDate(dateString: string | null | undefined, fallback: string = 'Never'): string {
+  if (!dateString) return fallback;
+  const at = new Date(dateString);
+  if (Number.isNaN(at.getTime())) return dateString;
+  return CALENDAR_DATE.test(dateString)
+    ? `${at.getUTCDate()} ${SHORT_MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}`
+    : `${at.getDate()} ${SHORT_MONTHS[at.getMonth()]} ${at.getFullYear()}`;
+}
+
 export function formatDateTime(dateString: string | null | undefined, fallback: string = 'Never'): string {
   if (!dateString) return fallback;
   if (CALENDAR_DATE.test(dateString)) return formatDate(dateString, fallback);
   const at = new Date(dateString);
   if (Number.isNaN(at.getTime())) return dateString;
-  const day = `${at.getDate()} ${SHORT_MONTHS[at.getMonth()]} ${at.getFullYear()}`;
   const hours = at.getHours();
   const time = `${hours % 12 || 12}:${String(at.getMinutes()).padStart(2, '0')} ${hours < 12 ? 'am' : 'pm'}`;
-  return `${day}, ${time}`;
+  return `${formatShortDate(dateString)}, ${time}`;
 }
 
 export function parseDateString(dateString: string): Date | undefined {

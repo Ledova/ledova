@@ -6,11 +6,13 @@ import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 export function RecordShell({
   children,
   hidden,
+  ruled = false,
   focusKey,
   landed,
 }: {
   children: ReactNode;
   hidden?: boolean;
+  ruled?: boolean;
   focusKey?: string;
   landed?: Landed;
 }) {
@@ -24,7 +26,12 @@ export function RecordShell({
     item.current?.scrollIntoView?.({ block: 'start' });
   }, [key, hidden]);
   return (
-    <li ref={item} hidden={hidden} tabIndex={key ? -1 : undefined} className="flex flex-col gap-3 py-4">
+    <li
+      ref={item}
+      hidden={hidden}
+      tabIndex={key ? -1 : undefined}
+      className={`flex flex-col gap-3 py-4${ruled ? ' border-t border-border-subtle' : ''}`}
+    >
       {landed?.outcome && <Outcome>{landed.outcome}</Outcome>}
       {children}
     </li>

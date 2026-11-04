@@ -8,11 +8,12 @@ import {
   type RegisterGrant,
   shareCount,
   formatDate,
+  issueGroup,
   STAGE_TONES,
   type RegisterSteps,
   useGrantRecordDownload,
 } from '@ledova/shared';
-import { Row, Rows, Status, ShowMore } from '@components/Ledger';
+import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -51,6 +52,8 @@ export function GrantRecord({
   guard,
   onSettled,
   visible = true,
+  collapsed = false,
+  ruled = false,
   onHeldChange,
   newEffectGuard,
   focusKey,
@@ -63,6 +66,8 @@ export function GrantRecord({
   guard: () => void;
   onSettled: () => Promise<unknown>;
   visible?: boolean;
+  collapsed?: boolean;
+  ruled?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
   newEffectGuard?: (kind: RegisterDecisionKind) => void;
   focusKey?: string;
@@ -95,46 +100,40 @@ export function GrantRecord({
     </>
   );
   return (
-    <RecordShell hidden={!visible} focusKey={focusKey}>
+    <RecordShell hidden={!visible || collapsed} ruled={ruled} focusKey={focusKey}>
       {visible && (
-        <>
-          <IssueSummary
-            name={grant.name}
-            kind={grant.award ? 'Employee award' : 'Non-paid issue'}
-            shares={grant.shares}
-            companyEventOn={grant.companyEventOn}
-            status={
-              <>
-                <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>
-                  {grant.stage === 'applied' ? 'Shares issued' : (COPY.STAGES[grant.stage] ?? grant.stage)}
-                </Status>
-                {grant.stage !== 'applied' && <p className="text-text-muted">No shares issued</p>}
-              </>
-            }
-          />
-          <ShowMore show="Show details and documents" hide="Hide details and documents">
-            <p className="text-sm text-text-muted">
-              {grant.stage === 'applied'
-                ? 'These shares are issued ownership. An employee award and its vesting records remain separate.'
-                : grant.stage === 'approved'
-                  ? 'Next: record the approved issue. Approval has not changed ownership.'
-                  : grant.stage === 'rejected'
-                    ? 'This rejected instruction issued no shares.'
-                    : 'Ready for approval. No shares issued.'}
-            </p>
-            <Rows>
-              <RecordStage stage={grant.stage}>{COPY.STAGES[grant.stage] ?? grant.stage}</RecordStage>
-              <Row label="Prepared by">{grant.preparedByName || 'Name not recorded'}</Row>
-              <Row label="Prepared on">{formatDateTime(grant.createdAt)}</Row>
-              <Row label={COPY.AUTHORITY_REFERENCE}>{grant.authorityReference}</Row>
-              <Row label={COPY.REASON}>{grant.reason}</Row>
-              <DecisionTrail proposal={grant} labels={DECISION_COPY.DECISIONS} />
-            </Rows>
-            <GrantRows grant={grant} />
-            <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
-            {documentsView}
-          </ShowMore>
-        </>
+        <IssueSummary
+          name={grant.name}
+          kind={grant.award ? 'Employee award' : 'Non-paid issue'}
+          shares={grant.shares}
+          companyEventOn={grant.companyEventOn}
+          status={
+            issueGroup(grant.stage) === 'decide'
+              ? { tone: STAGE_TONES[grant.stage] ?? 'waiting', label: COPY.STAGES[grant.stage] ?? grant.stage }
+              : undefined
+          }
+        >
+          <p className="text-sm text-text-muted">
+            {grant.stage === 'applied'
+              ? 'These shares are issued ownership. An employee award and its vesting records remain separate.'
+              : grant.stage === 'approved'
+                ? 'Next: record the approved issue. Approval has not changed ownership.'
+                : grant.stage === 'rejected'
+                  ? 'This rejected instruction issued no shares.'
+                  : 'Ready for approval. No shares issued.'}
+          </p>
+          <Rows>
+            <RecordStage stage={grant.stage}>{COPY.STAGES[grant.stage] ?? grant.stage}</RecordStage>
+            <Row label="Prepared by">{grant.preparedByName || 'Name not recorded'}</Row>
+            <Row label="Prepared on">{formatDateTime(grant.createdAt)}</Row>
+            <Row label={COPY.AUTHORITY_REFERENCE}>{grant.authorityReference}</Row>
+            <Row label={COPY.REASON}>{grant.reason}</Row>
+            <DecisionTrail proposal={grant} labels={DECISION_COPY.DECISIONS} />
+          </Rows>
+          <GrantRows grant={grant} />
+          <p className="text-sm text-text-muted">{COPY.PROVIDED_BY_COMPANY}</p>
+          {documentsView}
+        </IssueSummary>
       )}
       <RegisterDecisions
         recordActions

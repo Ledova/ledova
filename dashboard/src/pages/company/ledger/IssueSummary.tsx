@@ -1,6 +1,8 @@
-import type { ReactNode } from 'react';
-import { formatDate, shareCount } from '@ledova/shared';
-import { Fact } from '@components/Ledger';
+import { useId, useState, type ReactNode } from 'react';
+import { CaretDownIcon, CaretUpIcon } from '@phosphor-icons/react';
+import { formatShortDate, shareCount } from '@ledova/shared';
+import { ICON_SM } from '@components/iconSizes';
+import { Status, type Tone } from '@components/Ledger';
 
 export function IssueSummary({
   name,
@@ -9,37 +11,55 @@ export function IssueSummary({
   amount,
   companyEventOn,
   status,
+  children,
 }: {
   name: string;
   kind: string;
   shares: string;
   amount?: string;
   companyEventOn?: string | null;
-  status: ReactNode;
+  status?: { tone: Tone; label: string };
+  children: ReactNode;
 }) {
+  const [open, setOpen] = useState(false);
+  const details = useId();
+  const facts = useId();
+  const count = shareCount(shares);
+  const Caret = open ? CaretUpIcon : CaretDownIcon;
   return (
-    <dl className="grid grid-cols-2 gap-4 text-sm lg:grid-cols-4">
-      <div className="min-w-0 space-y-1">
-        <dt className="text-text-muted">Recipient</dt>
-        <dd className="space-y-1 break-words">
-          <h3 className="text-base font-medium">{name}</h3>
-          <p className="text-text-muted">{kind}</p>
-        </dd>
+    <>
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={details}
+          aria-label={`${name}, ${count}. ${open ? 'Hide' : 'Show'} details and documents`}
+          aria-describedby={facts}
+          onClick={() => setOpen((shown) => !shown)}
+          className="group flex min-h-11 w-full items-center gap-3 text-left text-sm"
+        >
+          <span className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="flex items-baseline justify-between gap-3 font-medium text-text-primary">
+              <span className="min-w-0 break-words group-hover:text-brand-light">{name}</span>
+              <span className="shrink-0 whitespace-nowrap tabular-nums">{count}</span>
+            </span>
+            <span id={facts} className="flex items-baseline justify-between gap-3 text-xs text-text-muted">
+              <span className="min-w-0 break-words">{`${kind} · ${formatShortDate(companyEventOn, 'Date not recorded')}`}</span>
+              {amount && <span className="shrink-0 whitespace-nowrap tabular-nums">{amount}</span>}
+            </span>
+          </span>
+          <Caret size={ICON_SM} aria-hidden="true" className="shrink-0 text-text-muted group-hover:text-brand-light" />
+        </button>
+        {status && (
+          <p className="text-sm text-text-primary">
+            <span className="sr-only">Status: </span>
+            <Status tone={status.tone}>{status.label}</Status>
+          </p>
+        )}
       </div>
-      <div className="min-w-0 space-y-1">
-        <dt className="text-text-muted">Shares</dt>
-        <dd className="space-y-1 break-words tabular-nums">
-          <p className="font-medium">{shareCount(shares)}</p>
-          {amount && <p className="text-text-muted">{amount}</p>}
-        </dd>
+      <div id={details} hidden={!open} className="flex flex-col gap-3">
+        {children}
       </div>
-      <Fact label="Company issue date" numeric>
-        {formatDate(companyEventOn, 'Not recorded')}
-      </Fact>
-      <div className="min-w-0 space-y-1">
-        <dt className="text-text-muted">Status</dt>
-        <dd className="space-y-1">{status}</dd>
-      </div>
-    </dl>
+    </>
   );
 }

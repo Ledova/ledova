@@ -10,11 +10,12 @@ import {
   shareCount,
   formatMoney,
   formatDate,
+  issueGroup,
   STAGE_TONES,
   type RegisterSteps,
   useAllotmentRecordDownload,
 } from '@ledova/shared';
-import { Row, Rows, Status, ShowMore } from '@components/Ledger';
+import { Row, Rows } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
@@ -58,6 +59,8 @@ export function AllotmentRecord({
   onSettled,
   newEffectGuard,
   visible = true,
+  collapsed = false,
+  ruled = false,
   onHeldChange,
   focusKey,
   reviewTarget,
@@ -69,6 +72,8 @@ export function AllotmentRecord({
   onSettled: () => Promise<unknown>;
   newEffectGuard: (kind: RegisterDecisionKind) => void;
   visible?: boolean;
+  collapsed?: boolean;
+  ruled?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
   focusKey?: string;
   reviewTarget: HTMLElement | null;
@@ -108,53 +113,47 @@ export function AllotmentRecord({
     </>
   );
   return (
-    <RecordShell hidden={!visible} focusKey={focusKey}>
+    <RecordShell hidden={!visible || collapsed} ruled={ruled} focusKey={focusKey}>
       {visible && (
-        <>
-          <IssueSummary
-            name={allotment.name}
-            kind="Investor issue"
-            shares={allotment.shares}
-            amount={formatMoney(allotment.consideration, allotment.currency)}
-            companyEventOn={allotment.companyEventOn}
-            status={
-              <>
-                <Status tone={STAGE_TONES[allotment.stage] ?? 'waiting'}>
-                  {allotment.stage === 'applied'
-                    ? 'Approved'
-                    : allotment.stage === 'approved'
+        <IssueSummary
+          name={allotment.name}
+          kind="Investor issue"
+          shares={allotment.shares}
+          amount={formatMoney(allotment.consideration, allotment.currency)}
+          companyEventOn={allotment.companyEventOn}
+          status={
+            issueGroup(allotment.stage) === 'decide'
+              ? {
+                  tone: STAGE_TONES[allotment.stage] ?? 'waiting',
+                  label:
+                    allotment.stage === 'approved'
                       ? 'Ready to complete'
-                      : (COPY.STAGES[allotment.stage] ?? allotment.stage)}
-                </Status>
-                <p className="text-text-muted">
-                  {allotment.stage === 'applied' ? 'Shares issued' : 'No shares issued'}
-                </p>
-              </>
-            }
-          />
-          <ShowMore show="Show details and documents" hide="Hide details and documents">
-            <p className="text-sm text-text-muted">
-              {allotment.stage === 'applied'
-                ? `${allotment.companyEventOn ? `Shares issued on ${formatDate(allotment.companyEventOn)}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
-                : allotment.stage === 'approved'
-                  ? 'Approval is on file; the share issue has not been recorded.'
-                  : allotment.stage === 'rejected'
-                    ? 'No shares were issued by this rejected allotment. The agreement and company receipt remain recorded.'
-                    : 'Ready for approval. No shares issued.'}
-            </p>
-            <Rows>
-              <RecordStage stage={allotment.stage}>{COPY.STAGES[allotment.stage] ?? allotment.stage}</RecordStage>
-              <Row label="Prepared by">{allotment.preparedByName || 'Name not recorded'}</Row>
-              <Row label="Prepared on">{formatDateTime(allotment.createdAt)}</Row>
-              <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
-              <Row label={COPY.REASON}>{allotment.reason}</Row>
-              <DecisionTrail proposal={allotment} labels={DECISION_COPY.DECISIONS} />
-            </Rows>
-            <AllotmentRows allotment={allotment} />
-            <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
-            {documentsView}
-          </ShowMore>
-        </>
+                      : (COPY.STAGES[allotment.stage] ?? allotment.stage),
+                }
+              : undefined
+          }
+        >
+          <p className="text-sm text-text-muted">
+            {allotment.stage === 'applied'
+              ? `${allotment.companyEventOn ? `Shares issued on ${formatDate(allotment.companyEventOn)}` : 'Shares issued; company issue date not recorded'}. The company remains responsible for any required ASIC notification and certificate execution and delivery. Generated certificates remain unsigned.`
+              : allotment.stage === 'approved'
+                ? 'Approval is on file; the share issue has not been recorded.'
+                : allotment.stage === 'rejected'
+                  ? 'No shares were issued by this rejected allotment. The agreement and company receipt remain recorded.'
+                  : 'Ready for approval. No shares issued.'}
+          </p>
+          <Rows>
+            <RecordStage stage={allotment.stage}>{COPY.STAGES[allotment.stage] ?? allotment.stage}</RecordStage>
+            <Row label="Prepared by">{allotment.preparedByName || 'Name not recorded'}</Row>
+            <Row label="Prepared on">{formatDateTime(allotment.createdAt)}</Row>
+            <Row label={COPY.AUTHORITY_REFERENCE}>{allotment.authorityReference}</Row>
+            <Row label={COPY.REASON}>{allotment.reason}</Row>
+            <DecisionTrail proposal={allotment} labels={DECISION_COPY.DECISIONS} />
+          </Rows>
+          <AllotmentRows allotment={allotment} />
+          <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
+          {documentsView}
+        </IssueSummary>
       )}
       <RegisterDecisions
         recordActions

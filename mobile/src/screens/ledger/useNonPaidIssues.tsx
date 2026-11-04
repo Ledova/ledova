@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -17,6 +17,7 @@ import {
   usePeople,
   useRegisterAward,
   useRegisterGrants,
+  type IssueRow,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type RegisterDecisionKind,
@@ -240,28 +241,33 @@ export function useNonPaidIssues({
       ) : null}
     </>
   );
-  const records = (
-    <View accessibilityLabel="Non-paid issues">
-      {grants.data?.map((grant, index) => (
-        <GrantRecord
-          key={grant.uuid}
-          grant={grant}
-          steps={steps}
-          guard={privateGuard}
-          newEffectGuard={newEffectGuard}
-          visible={privateReady && !kept}
-          focusKey={focusRecord?.uuid === grant.uuid ? focusRecord.key : prepared === grant.uuid ? prepared : undefined}
-          onFocus={onFocusRecord}
-          onHeldChange={recordHeld}
-          onSettled={refresh}
-          classLabel={`${register.token.name} (${register.token.symbol})`}
-          reviewing={reviewing}
-          onReviewChange={onReviewChange}
-          ruled={index > 0}
-        />
-      ))}
-    </View>
-  );
+  const listed = privateReady && !kept;
+  const records: IssueRow<ReactNode>[] = (grants.data ?? []).map((grant) => ({
+    uuid: grant.uuid,
+    stage: grant.stage,
+    companyEventOn: grant.companyEventOn,
+    createdAt: grant.createdAt,
+    shown: listed,
+    held: heldRecords.has(grant.uuid),
+    render: ({ collapsed, ruled }) => (
+      <GrantRecord
+        grant={grant}
+        steps={steps}
+        guard={privateGuard}
+        newEffectGuard={newEffectGuard}
+        visible={listed}
+        collapsed={collapsed}
+        focusKey={focusRecord?.uuid === grant.uuid ? focusRecord.key : prepared === grant.uuid ? prepared : undefined}
+        onFocus={onFocusRecord}
+        onHeldChange={recordHeld}
+        onSettled={refresh}
+        classLabel={`${register.token.name} (${register.token.symbol})`}
+        reviewing={reviewing}
+        onReviewChange={onReviewChange}
+        ruled={ruled}
+      />
+    ),
+  }));
   return {
     form,
     status,

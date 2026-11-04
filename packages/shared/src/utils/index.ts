@@ -3,6 +3,7 @@ export {
   addCalendarYears,
   formatDate,
   formatDateTime,
+  formatShortDate,
   isCalendarDate,
   parseDateString,
   formatDateToString,
@@ -118,6 +119,15 @@ export {
   remainingRegisterAwardVesting,
 } from './register-awards';
 export { isPreparedRegisterTransfer } from './register-transfers';
+export {
+  ISSUE_GROUP_CAP,
+  issueGroup,
+  issueGroups,
+  type IssueEntry,
+  type IssueGroup,
+  type IssueGroupKey,
+  type IssueRow,
+} from './register-issues';
 export { ownershipSummary } from './register-ownership';
 export { hasWholeShares, wholeShares } from './share-quantities';
 export { ownershipColorIndex, ownershipView, rankOwnershipClasses, type OwnershipClass } from './memberOwnership';
