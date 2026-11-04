@@ -700,15 +700,15 @@ appointments allow none sees the history with a read-only note.
 Each shareholder has a page, reached from Details on Shareholders, and so does each award recipient,
 reached from Recipient details on their award's page. It shows:
 
-- Particulars: the name and residential address the company has recorded, with **Change
-  particulars** for an administrator or an appointment holding prepare, approve and apply, or, for a
-  member linked to a Ledova account, "They keep their name and address up to date in their Ledova
-  profile." instead;
-- Holdings: per class, Shares held, % of class, Date added and Holder type, then
-  any former holding with the shares held when it ended, its date, and whether they returned or the
-  cessation was corrected;
-- History: every register entry naming them across classes, newest first, with its date, class, kind
-  and their change in shares;
+- Particulars: the name and, beneath it, the residential address the company has recorded, with
+  **Change particulars** for an administrator or an appointment holding prepare, approve and apply,
+  or, for a member linked to a Ledova account, "They keep their name and address up to date in their
+  Ledova profile." instead;
+- Holdings: a row per class with the shares held, and beneath it the % of class, holder type and
+  date added, then any former holding with the shares held when it ended, its date, and whether they
+  returned or the cessation was corrected;
+- History: every register entry naming them across classes, newest first, with its kind and their
+  change in shares, and beneath it its date and class;
 - Employee awards, when they have any: one row per award with its class, agreement date and the
   shares promised, vested and issued, opening the award's page, then a link to Employee share scheme;
 - Documents: the shareholder's retained supporting files, with their category and share class;

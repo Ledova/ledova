@@ -167,7 +167,10 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access and Team); on narrower screens it sits beneath the row's
   facts, still at the right edge, except Changes' compact **Correct**, which stays at the end of the
-  row's first line. The Account and Data and privacy rows and an action that stands on
+  row's first line. A shareholder's Holdings and History rows don't expand either: the class, or the
+  entry's kind, with the shares at the right, then the facts in muted text, with a holding's compact
+  **Transfer shares** beneath them at the right edge, where the page's other actions also sit as
+  compact text actions. The Account and Data and privacy rows and an action that stands on
   its own follow the same edge on web and in the app: Try again after a failed read, **Retry
   original member action**, and in the app the Invitation page's and empty Dashboard's actions. Load
   more keeps its place.

@@ -13,13 +13,14 @@ import {
   formatDate,
   formatDateTime,
   formatShareCount,
+  formatShortDate,
   hasCurrentRegisterReadAuthority,
+  holdingFacts,
   useCompanyMemberAccess,
   useSubmissionOwner,
   useUserPreferences,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
-  sharePercentage,
   shareCount,
   signedShares,
   registerClassesKey,
@@ -28,7 +29,7 @@ import {
   useOwnAppointments,
   useShareholder,
 } from '@ledova/shared';
-import { LinkRow, Row, Rows, Section, LoadError, Loading, Failure } from '@components/Ledger';
+import { LinkRow, Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
@@ -207,10 +208,19 @@ function OwnShareholder({
         <>
           <Section title="Particulars">
             {privately(data.particulars, 'Their particulars', () => (
-              <Rows>
-                <Row label="Name">{recorded?.name || title}</Row>
-                <Row label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Row>
-              </Rows>
+              <div className="flex flex-col gap-1 text-sm">
+                <p className="break-words text-text-primary">{recorded?.name || title}</p>
+                <p className="whitespace-pre-line break-words text-text-muted">
+                  {recorded?.residentialAddress ? (
+                    <>
+                      <span className="sr-only">Residential address: </span>
+                      {recorded.residentialAddress}
+                    </>
+                  ) : (
+                    'Residential address not recorded'
+                  )}
+                </p>
+              </div>
             ))}
             {settled(data.particulars) &&
               (recorded?.followsProfile ? (
@@ -218,19 +228,22 @@ function OwnShareholder({
               ) : (
                 edit &&
                 (holdings.length > 0 || recorded?.onRegister === false) && (
-                  <PageLink
-                    to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
-                    label={REGISTER_PARTICULARS_COPY.PREPARE}
-                    onClick={(event) => {
-                      try {
-                        guardEdit();
-                        setNavigationError(false);
-                      } catch {
-                        event.preventDefault();
-                        setNavigationError(true);
-                      }
-                    }}
-                  />
+                  <div className="flex justify-end">
+                    <PageLink
+                      compact
+                      to={generatePath(DESTINATIONS.companyRegisterParticulars.path, { member })}
+                      label={REGISTER_PARTICULARS_COPY.PREPARE}
+                      onClick={(event) => {
+                        try {
+                          guardEdit();
+                          setNavigationError(false);
+                        } catch {
+                          event.preventDefault();
+                          setNavigationError(true);
+                        }
+                      }}
+                    />
+                  </div>
                 )
               ))}
             {navigationError && (
@@ -239,56 +252,58 @@ function OwnShareholder({
           </Section>
           <Section title="Holdings">
             {!holdings.length && <p className="text-sm text-text-muted">No current holding.</p>}
-            {holdings.map(({ register, holder }) => (
-              <section
-                key={register.token.uuid}
-                className="space-y-3 border-t border-border-subtle pt-4 first-of-type:border-t-0 first-of-type:pt-0"
-              >
-                <h3 className="break-words text-base font-medium text-text-primary">
-                  {register.token.name} · {register.token.symbol}
-                </h3>
-                <Rows>
-                  {[
-                    ['Shares held', formatShareCount(holder.balance)],
-                    ['% of class', sharePercentage(holder.balance, register.issuedSupply)],
-                    ['Date added', formatDate(holder.enteredOn, 'Not recorded')],
-                    ['Holder type', HOLDER_TYPE_LABELS[holder.holderType]],
-                    ...(holder.name && holder.name !== title ? [['Name for this class', holder.name]] : []),
-                  ].map(([label, value]) => (
-                    <Row key={label} label={label}>
-                      {value}
-                    </Row>
-                  ))}
-                </Rows>
-                {holder.holderType === 'ambiguous' && (
-                  <p className="text-sm text-text-muted">{REGISTER_COPY.AMBIGUOUS_NOTE}</p>
-                )}
-                {holder.holderType === 'unidentified' && (
-                  <p className="text-sm text-text-muted">{REGISTER_COPY.UNIDENTIFIED_NOTE}</p>
-                )}
-                {prepare && !holder.wallets.length && register.initialized && register.token.status === 'draft' && (
-                  <PageLink
-                    to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: register.token.uuid })}
-                    state={{ fromMember: member }}
-                    label="Transfer shares"
-                  />
-                )}
-              </section>
-            ))}
+            {holdings.length > 0 && (
+              <ul aria-label="Current holdings" className="divide-y divide-border-subtle">
+                {holdings.map(({ register, holder }) => (
+                  <li key={register.token.uuid} className="flex flex-col gap-1 py-3 text-sm">
+                    <div className="flex items-baseline justify-between gap-3 font-medium text-text-primary">
+                      <h3 className="min-w-0 break-words">
+                        {register.token.name} · {register.token.symbol}
+                      </h3>
+                      <span className="shrink-0 whitespace-nowrap tabular-nums">{shareCount(holder.balance)}</span>
+                    </div>
+                    <p className="break-words text-xs text-text-muted">{holdingFacts({ register, holder })}</p>
+                    {holder.name && holder.name !== title && (
+                      <p className="break-words text-xs text-text-muted">Name for this class: {holder.name}</p>
+                    )}
+                    {holder.holderType === 'ambiguous' && (
+                      <p className="text-sm text-text-muted">{REGISTER_COPY.AMBIGUOUS_NOTE}</p>
+                    )}
+                    {holder.holderType === 'unidentified' && (
+                      <p className="text-sm text-text-muted">{REGISTER_COPY.UNIDENTIFIED_NOTE}</p>
+                    )}
+                    {prepare && !holder.wallets.length && register.initialized && register.token.status === 'draft' && (
+                      <div className="flex justify-end">
+                        <PageLink
+                          compact
+                          to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: register.token.uuid })}
+                          state={{ fromMember: member }}
+                          label="Transfer shares"
+                          context={register.token.name}
+                        />
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
             {former.map(({ register, row }) => (
               <p key={`${register.token.uuid}/${row.uuid}`} className="text-sm text-text-muted">
                 {register.token.name} · {shareCount(row.sharesAtCessation)}, ceased{' '}
-                {formatDate(row.ceasedOn, 'Not recorded')}
-                {row.returnedOn ? ` · returned ${formatDate(row.returnedOn)}` : ''}
+                {formatShortDate(row.ceasedOn, 'Not recorded')}
+                {row.returnedOn ? ` · returned ${formatShortDate(row.returnedOn)}` : ''}
                 {row.correctedBy ? ' · cessation corrected' : ''}
               </p>
             ))}
             {prepare && issueClass && recorded?.walletless && recorded.particularsRetained && (
-              <PageLink
-                to={`${DESTINATIONS.companyRegister.path}?company=${company}#issue`}
-                state={{ registerCompany: company, registerToken: issueClass, issueMember: member }}
-                label="Issue shares to them"
-              />
+              <div className="flex justify-end">
+                <PageLink
+                  compact
+                  to={`${DESTINATIONS.companyRegister.path}?company=${company}#issue`}
+                  state={{ registerCompany: company, registerToken: issueClass, issueMember: member }}
+                  label="Issue shares to them"
+                />
+              </div>
             )}
             {former.some(({ register }) => register.formerMembersStale) && (
               <p role="status" className="text-sm text-text-muted">
@@ -301,19 +316,21 @@ function OwnShareholder({
               data.entries.data?.length ? (
                 <ul className="divide-y divide-border-subtle">
                   {data.entries.data.map(({ token, entry }) => (
-                    <li key={entry.uuid} className="flex flex-wrap justify-between gap-x-4 gap-y-1 py-3 text-sm">
-                      <span className="text-text-primary">
-                        {formatDate(entry.effectiveOn)} · {className(token)} ·{' '}
-                        {REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]}
-                      </span>
-                      <span className="tabular-nums text-text-primary">
-                        {signedShares(
-                          entry.changes
-                            .filter((change) => change.member === member)
-                            .reduce((sum, change) => sum + BigInt(change.shares), 0n),
-                        )}{' '}
-                        shares
-                      </span>
+                    <li key={entry.uuid} className="flex flex-col gap-1 py-3 text-sm">
+                      <p className="flex items-baseline justify-between gap-3 font-medium text-text-primary">
+                        <span className="min-w-0 break-words">{REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]}</span>
+                        <span className="shrink-0 whitespace-nowrap tabular-nums">
+                          {signedShares(
+                            entry.changes
+                              .filter((change) => change.member === member)
+                              .reduce((sum, change) => sum + BigInt(change.shares), 0n),
+                          )}{' '}
+                          shares
+                        </span>
+                      </p>
+                      <p className="break-words text-xs text-text-muted">
+                        {formatShortDate(entry.effectiveOn)} · {className(token)}
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -349,11 +366,14 @@ function OwnShareholder({
                   </li>
                 ))}
               </ul>
-              <PageLink
-                to={`${DESTINATIONS.companyRegister.path}?company=${company}#awards`}
-                state={{ registerCompany: company }}
-                label="Open Employee share scheme"
-              />
+              <div className="flex justify-end">
+                <PageLink
+                  compact
+                  to={`${DESTINATIONS.companyRegister.path}?company=${company}#awards`}
+                  state={{ registerCompany: company }}
+                  label="Open Employee share scheme"
+                />
+              </div>
             </Section>
           )}
           {access.access && (
@@ -366,11 +386,14 @@ function OwnShareholder({
                     : 'No access yet. An invitation lets them see their own holdings and history.'}
               </p>
               {!current && !invited && (
-                <PageLink
-                  to={`${DESTINATIONS.companyRegister.path}?company=${company}#member-access`}
-                  state={{ registerCompany: company, inviteMember: member }}
-                  label="Invite to their records"
-                />
+                <div className="flex justify-end">
+                  <PageLink
+                    compact
+                    to={`${DESTINATIONS.companyRegister.path}?company=${company}#member-access`}
+                    state={{ registerCompany: company, inviteMember: member }}
+                    label="Invite to their records"
+                  />
+                </div>
               )}
             </Section>
           )}

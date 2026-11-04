@@ -16,12 +16,13 @@ import {
   formatDate,
   formatDateTime,
   formatShareCount,
+  formatShortDate,
   hasCurrentRegisterReadAuthority,
+  holdingFacts,
   ownAppointmentsKey,
   registerClassesKey,
   registersKey,
   shareCount,
-  sharePercentage,
   signedShares,
   useCompanyMemberAccess,
   useOwnAppointments,
@@ -31,7 +32,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Action, Fact, LinkRow, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
+import { Action, Actions, LinkRow, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
@@ -223,10 +224,16 @@ function OwnShareholder({
         <>
           <Section title="Particulars">
             {privately(data.particulars, 'Their particulars', () => (
-              <Rows>
-                <Fact label="Name">{recorded?.name || title}</Fact>
-                <Fact label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Fact>
-              </Rows>
+              <View style={look.lines}>
+                <Text style={look.text}>{recorded?.name || title}</Text>
+                {recorded?.residentialAddress ? (
+                  <Text accessibilityLabel={`Residential address: ${recorded.residentialAddress}`} style={look.muted}>
+                    {recorded.residentialAddress}
+                  </Text>
+                ) : (
+                  <Text style={look.muted}>Residential address not recorded</Text>
+                )}
+              </View>
             ))}
             {settled(data.particulars) &&
               (recorded?.followsProfile ? (
@@ -234,18 +241,21 @@ function OwnShareholder({
               ) : (
                 edit &&
                 (holdings.length > 0 || recorded?.onRegister === false) && (
-                  <Action
-                    label={REGISTER_PARTICULARS_COPY.PREPARE}
-                    onPress={() => {
-                      try {
-                        guardEdit();
-                        setNavigationError(false);
-                        navigation.navigate('ShareholderParticulars', { company, member });
-                      } catch {
-                        setNavigationError(true);
-                      }
-                    }}
-                  />
+                  <Actions>
+                    <Action
+                      compact
+                      label={REGISTER_PARTICULARS_COPY.PREPARE}
+                      onPress={() => {
+                        try {
+                          guardEdit();
+                          setNavigationError(false);
+                          navigation.navigate('ShareholderParticulars', { company, member });
+                        } catch {
+                          setNavigationError(true);
+                        }
+                      }}
+                    />
+                  </Actions>
                 )
               ))}
             {navigationError && (
@@ -257,56 +267,67 @@ function OwnShareholder({
           </Section>
           <Section title="Holdings">
             {!holdings.length && <Text style={look.muted}>No current holding.</Text>}
-            {holdings.map(({ register, holder }, index) => (
-              <View key={register.token.uuid} style={[look.stack, index > 0 && look.group]}>
-                <Text accessibilityRole="header" style={look.heading}>
-                  {register.token.name} · {register.token.symbol}
-                </Text>
+            {holdings.length > 0 && (
+              <View accessibilityLabel="Current holdings">
                 <Rows>
-                  {[
-                    ['Shares held', formatShareCount(holder.balance)],
-                    ['% of class', sharePercentage(holder.balance, register.issuedSupply)],
-                    ['Date added', formatDate(holder.enteredOn, 'Not recorded')],
-                    ['Holder type', HOLDER_TYPE_LABELS[holder.holderType]],
-                    ...(holder.name && holder.name !== title ? [['Name for this class', holder.name]] : []),
-                  ].map(([label, value]) => (
-                    <Fact key={label} label={label}>
-                      {value}
-                    </Fact>
+                  {holdings.map(({ register, holder }) => (
+                    <View key={register.token.uuid} style={look.row}>
+                      <View style={look.line}>
+                        <Text accessibilityRole="header" style={[look.title, look.fill]}>
+                          {register.token.name} · {register.token.symbol}
+                        </Text>
+                        <Text style={[look.figure, look.title]}>{shareCount(holder.balance)}</Text>
+                      </View>
+                      <Text style={look.small}>{holdingFacts({ register, holder })}</Text>
+                      {!!holder.name && holder.name !== title && (
+                        <Text style={look.small}>{`Name for this class: ${holder.name}`}</Text>
+                      )}
+                      {holder.holderType === 'ambiguous' && (
+                        <Text style={look.muted}>{REGISTER_COPY.AMBIGUOUS_NOTE}</Text>
+                      )}
+                      {holder.holderType === 'unidentified' && (
+                        <Text style={look.muted}>{REGISTER_COPY.UNIDENTIFIED_NOTE}</Text>
+                      )}
+                      {prepare &&
+                        !holder.wallets.length &&
+                        register.initialized &&
+                        register.token.status === 'draft' && (
+                          <Actions>
+                            <Action
+                              compact
+                              label="Transfer shares"
+                              accessibilityLabel={`Transfer shares (${register.token.name})`}
+                              onPress={() =>
+                                navigation.navigate('TransferPreparation', {
+                                  company,
+                                  token: register.token.uuid,
+                                  fromMember: member,
+                                })
+                              }
+                            />
+                          </Actions>
+                        )}
+                    </View>
                   ))}
                 </Rows>
-                {holder.holderType === 'ambiguous' && <Text style={look.muted}>{REGISTER_COPY.AMBIGUOUS_NOTE}</Text>}
-                {holder.holderType === 'unidentified' && (
-                  <Text style={look.muted}>{REGISTER_COPY.UNIDENTIFIED_NOTE}</Text>
-                )}
-                {prepare && !holder.wallets.length && register.initialized && register.token.status === 'draft' && (
-                  <Action
-                    label="Transfer shares"
-                    accessibilityLabel={`Transfer shares (${register.token.name})`}
-                    onPress={() =>
-                      navigation.navigate('TransferPreparation', {
-                        company,
-                        token: register.token.uuid,
-                        fromMember: member,
-                      })
-                    }
-                  />
-                )}
               </View>
-            ))}
+            )}
             {former.map(({ register, row }) => (
               <Text key={`${register.token.uuid}/${row.uuid}`} style={look.muted}>
                 {register.token.name} · {shareCount(row.sharesAtCessation)}, ceased{' '}
-                {formatDate(row.ceasedOn, 'Not recorded')}
-                {row.returnedOn ? ` · returned ${formatDate(row.returnedOn)}` : ''}
+                {formatShortDate(row.ceasedOn, 'Not recorded')}
+                {row.returnedOn ? ` · returned ${formatShortDate(row.returnedOn)}` : ''}
                 {row.correctedBy ? ' · cessation corrected' : ''}
               </Text>
             ))}
             {prepare && issueClass && recorded?.walletless && recorded.particularsRetained && (
-              <Action
-                label="Issue shares to them"
-                onPress={() => navigation.navigate('IssueShares', { company, token: issueClass, member })}
-              />
+              <Actions>
+                <Action
+                  compact
+                  label="Issue shares to them"
+                  onPress={() => navigation.navigate('IssueShares', { company, token: issueClass, member })}
+                />
+              </Actions>
             )}
             {former.some(({ register }) => register.formerMembersStale) && (
               <Text style={look.muted}>The former-member history needs a refresh before relying on it.</Text>
@@ -317,18 +338,20 @@ function OwnShareholder({
               data.entries.data?.length ? (
                 <Rows>
                   {data.entries.data.map(({ token, entry }) => (
-                    <View key={entry.uuid} style={[look.line, look.row]}>
-                      <Text style={[look.text, look.fill]}>
-                        {formatDate(entry.effectiveOn)} · {className(token)} ·{' '}
-                        {REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]}
-                      </Text>
-                      <Text style={look.figure}>
-                        {signedShares(
-                          entry.changes
-                            .filter((change) => change.member === member)
-                            .reduce((sum, change) => sum + BigInt(change.shares), 0n),
-                        )}{' '}
-                        shares
+                    <View key={entry.uuid} style={look.row}>
+                      <View style={look.line}>
+                        <Text style={[look.title, look.fill]}>{REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]}</Text>
+                        <Text style={[look.figure, look.title]}>
+                          {signedShares(
+                            entry.changes
+                              .filter((change) => change.member === member)
+                              .reduce((sum, change) => sum + BigInt(change.shares), 0n),
+                          )}{' '}
+                          shares
+                        </Text>
+                      </View>
+                      <Text style={look.small}>
+                        {formatShortDate(entry.effectiveOn)} · {className(token)}
                       </Text>
                     </View>
                   ))}
@@ -367,7 +390,13 @@ function OwnShareholder({
                   ))}
                 </Rows>
               </View>
-              <Action label="Open Employee share scheme" onPress={() => navigation.navigate('EmployeeScheme')} />
+              <Actions>
+                <Action
+                  compact
+                  label="Open Employee share scheme"
+                  onPress={() => navigation.navigate('EmployeeScheme')}
+                />
+              </Actions>
             </Section>
           )}
           {access.access && (
@@ -380,10 +409,13 @@ function OwnShareholder({
                     : 'No access yet. An invitation lets them see their own holdings and history.'}
               </Text>
               {!current && !invited && (
-                <Action
-                  label="Invite to their records"
-                  onPress={() => navigation.navigate('MemberAccess', { company, inviteMember: member })}
-                />
+                <Actions>
+                  <Action
+                    compact
+                    label="Invite to their records"
+                    onPress={() => navigation.navigate('MemberAccess', { company, inviteMember: member })}
+                  />
+                </Actions>
               )}
             </Section>
           )}
