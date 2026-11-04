@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRunningAction } from '@hooks/useRunningAction';
 import {
   FIELD_LIMITS,
-  formatDate,
   formatDateTime,
+  formatShortDate,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
   MEMBER_INVITATION_STATUS_LABELS,
@@ -150,22 +150,26 @@ export function CompanyMemberAccess({
                 {associations.map((association) => (
                   <li
                     key={association.uuid}
-                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6 xl:grid-cols-[minmax(0,1fr)_10rem_12rem_10rem]"
+                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 py-3 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6 md:py-4 xl:grid-cols-[minmax(0,1fr)_10rem_12rem_10rem]"
                   >
                     <span className="min-w-0 break-words font-medium">
                       {memberName(association.member)}
-                      <span className="block font-normal text-text-muted">{association.acceptedEmail}</span>
+                      <span className="hidden font-normal text-text-muted md:block">{association.acceptedEmail}</span>
                     </span>
-                    <span className="col-start-1 row-start-2 tabular-nums text-text-muted md:col-auto md:row-auto">
-                      <span className="md:sr-only">Linked: </span>
-                      {formatDate(association.createdAt)}
+                    <span className="hidden tabular-nums text-text-muted md:block">
+                      <span className="sr-only">Linked: </span>
+                      {formatShortDate(association.createdAt)}
                     </span>
                     <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted md:col-auto md:row-auto">
                       {association.current ? 'Current access' : 'Revoked access'}
                     </span>
+                    <span className="col-span-2 break-words text-xs text-text-muted md:hidden">
+                      {association.acceptedEmail} · linked {formatShortDate(association.createdAt)}
+                    </span>
                     {association.current && revokeMember !== association.uuid && (
                       <div className="col-span-2 flex items-start justify-end md:col-span-3 xl:col-span-1">
                         <PageAction
+                          compact
                           label="Revoke access"
                           context={`${memberName(association.member)}, ${association.acceptedEmail}`}
                           disabled={held}
@@ -232,21 +236,24 @@ export function CompanyMemberAccess({
                 {invitations.map((item) => (
                   <li
                     key={item.uuid}
-                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2 py-4 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6 xl:grid-cols-[minmax(0,1fr)_10rem_12rem_10rem]"
+                    className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 py-3 text-sm md:grid-cols-[minmax(0,1fr)_10rem_12rem] md:gap-6 md:py-4 xl:grid-cols-[minmax(0,1fr)_10rem_12rem_10rem]"
                   >
                     <span className="min-w-0 break-words font-medium">
                       {memberName(item.member)}
-                      <span className="block font-normal text-text-muted">{item.intendedEmail}</span>
+                      <span className="hidden font-normal text-text-muted md:block">{item.intendedEmail}</span>
                     </span>
-                    <span className="col-start-1 row-start-2 tabular-nums text-text-muted md:col-auto md:row-auto">
-                      <span className="md:sr-only">Invited: </span>
-                      {formatDate(item.createdAt)}
+                    <span className="hidden tabular-nums text-text-muted md:block">
+                      <span className="sr-only">Invited: </span>
+                      {formatShortDate(item.createdAt)}
                     </span>
                     <span className="col-start-2 row-start-1 min-w-0 break-words text-text-muted md:col-auto md:row-auto">
                       {MEMBER_INVITATION_STATUS_LABELS[item.status]}
                       {deadline(item) && <span className="hidden md:block">{deadline(item)}</span>}
                     </span>
-                    {deadline(item) && <span className="col-span-2 text-text-muted md:hidden">{deadline(item)}</span>}
+                    <span className="col-span-2 break-words text-xs text-text-muted md:hidden">
+                      {item.intendedEmail} · invited {formatShortDate(item.createdAt)}
+                      {deadline(item) && <span className="block">{deadline(item)}</span>}
+                    </span>
                   </li>
                 ))}
               </ul>

@@ -144,7 +144,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   totals on the web, register setup's summary) and an award's chart legend keep their own layout,
   without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
-  with its destination's title, with optional detail lines and an aside. A step in a checklist, such
+  with its destination's title, with optional detail lines, an optional `figure` at the right of the
+  title, such as an award's promised shares, and an aside. A step in a checklist, such
   as "Activate your company", and a row that starts a task, such as "Prepare a non-paid
   transfer", are named for the step or the task; a record's row, such as a share class in Ledger,
   for the record; and a row that opens a section of a page, such as "Documents", for that
@@ -167,7 +168,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   screens the action has its own fixed-width column (from `xl` for
   Certificates, Member access and Team); on narrower screens it sits beneath the row's
   facts, still at the right edge, except Changes' compact **Correct**, which stays at the end of the
-  row's first line. A shareholder's Holdings and History rows don't expand either: the class, or the
+  row's first line. Member access's **Revoke access** is a compact text action in the same place.
+  A shareholder's Holdings and History rows don't expand either: the class, or the
   entry's kind, with the shares at the right, then the facts in muted text, with a holding's compact
   **Transfer shares** beneath them at the right edge. **Change particulars**, **Issue shares to
   them**, **Open Employee share scheme** and **Invite to their records** sit at the same edge as
@@ -319,14 +321,16 @@ the certificate's status, **Can prepare** or **None due, the entry was reversed*
 class reads **No register entries for this class yet.** Rows don't expand.
 
 The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
-Its **Member access** submenu uses **People** and **Invitations** `Section` cards, in that order,
-with compact rows aligned under Person, Linked or Invited, and Status. People retains current and
-revoked access records; invitations remain separate records. The view uses the standard
-workspace width and Ledger's aligned change-row pattern;
-headers match the row columns and summaries stack on smaller screens. Show names, secondary emails
+Its **Member access** submenu uses **People** and **Invitations** `Section` cards, in that order.
+On wider screens their rows align under Person, Linked or Invited, and Status, with headers matching
+the row columns. At phone width each row takes two lines: the name with the access or invitation
+status at the right, then the email and the short linked or invited date in muted text. People
+retains current and revoked access records; invitations remain separate records. The view uses the
+standard workspace width and Ledger's aligned change-row pattern. Show names, secondary emails
 or class context and genuine dates in the row, without repeating the page title inside a card.
-A current person's Member access row ends with **Revoke access**, which opens the reason form beneath the
-row; its confirmation says what revocation does. A pending or expired invitation shows its acceptance deadline.
+A current person's Member access row ends with a compact **Revoke access**, which opens the reason form
+beneath the row; its confirmation says what revocation does. A pending or expired invitation shows its
+acceptance deadline, beneath the status on wider screens and beneath the email at phone width.
 Access and invitation records show no internal references, fingerprints or file sizes; these
 remain in the audit records. Keep unavailable reads and their retries distinct
 from confirmed empty collections.
@@ -1054,8 +1058,9 @@ Figures, amounts and dates are formatted only by the shared formatters in `packa
 by a local helper or a browser `toLocale…` call:
 
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
-  the server recorded. The compact rows of Issue shares, Transfer shares and Corrections use
-  `formatShortDate`, "20 Oct 2026", read the same way.
+  the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
+  page, Employee share scheme at phone width and Member access use `formatShortDate`, "20 Oct 2026",
+  read the same way.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter
   month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.

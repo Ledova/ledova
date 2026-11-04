@@ -6,8 +6,8 @@ import {
   FIELD_LIMITS,
   INVITATION_FIELDS,
   MEMBER_INVITATION_STATUS_LABELS,
-  formatDate,
   formatDateTime,
+  formatShortDate,
   useErrorSummary,
   useMemberAccessForm,
   useSubmissionOwner,
@@ -266,16 +266,16 @@ function MemberAccess({
                   return (
                     <View key={association.uuid} style={look.row}>
                       <View style={look.line}>
-                        <View style={look.lines}>
-                          <Text style={look.title}>{name}</Text>
-                          <Text style={look.muted}>{association.acceptedEmail}</Text>
-                        </View>
+                        <Text style={[look.title, look.fill]}>{name}</Text>
                         <Text style={look.status}>{association.current ? 'Current access' : 'Revoked access'}</Text>
                       </View>
-                      <Text style={look.muted}>Linked: {formatDate(association.createdAt)}</Text>
+                      <Text style={look.small}>
+                        {`${association.acceptedEmail} · linked ${formatShortDate(association.createdAt)}`}
+                      </Text>
                       {association.current && revokeMember !== association.uuid && (
                         <Actions>
                           <Action
+                            compact
                             label="Revoke access"
                             accessibilityLabel={`Revoke access (${name}, ${association.acceptedEmail})`}
                             disabled={busy}
@@ -341,14 +341,13 @@ function MemberAccess({
                 {invitations.map((item) => (
                   <View key={item.uuid} style={look.row}>
                     <View style={look.line}>
-                      <View style={look.lines}>
-                        <Text style={look.title}>{memberName(item.member)}</Text>
-                        <Text style={look.muted}>{item.intendedEmail}</Text>
-                      </View>
+                      <Text style={[look.title, look.fill]}>{memberName(item.member)}</Text>
                       <Text style={look.status}>{MEMBER_INVITATION_STATUS_LABELS[item.status]}</Text>
                     </View>
-                    <Text style={look.muted}>Invited: {formatDate(item.createdAt)}</Text>
-                    {!!deadline(item) && <Text style={look.muted}>{deadline(item)}</Text>}
+                    <Text style={look.small}>
+                      {`${item.intendedEmail} · invited ${formatShortDate(item.createdAt)}`}
+                    </Text>
+                    {!!deadline(item) && <Text style={look.small}>{deadline(item)}</Text>}
                   </View>
                 ))}
               </Rows>

@@ -215,9 +215,10 @@ wallet in an opened draft class for someone who can prepare the register, opens 
 preparation with them as transferor, as on the web. A shareholder's page still leaves out Documents.
 Member access
 (`MemberAccessScreen.tsx`, through the shared `useMemberAccessForm`) has the web's People and
-Invitations: each person's name, email, Linked date and access, with **Revoke access**, whose reason
-form and confirmation dialog send nothing until confirmed, and each invitation's Invited date, status
-and deadline. **Invite a member** replaces them with the web's form, choosing the recipient from a
+Invitations in the web's two-line rows: each person's name and access, then their email and short
+linked date, with a compact **Revoke access**, whose reason form and confirmation dialog send nothing
+until confirmed, and each invitation's name and status, then its email and short invited date, with
+any deadline beneath. **Invite a member** replaces them with the web's form, choosing the recipient from a
 searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
 access to the company, each of these pages reads nothing and points to Dashboard. Pulling down rereads
 each of them while no form or action is open. Unlike the web, which keeps a held save on its page,
