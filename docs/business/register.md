@@ -432,21 +432,25 @@ account, payment, application or chain transaction.
    give the authority reference and reason, and attach the authority document. **Prepare transfer**
    saves the proposal; it moves no shares. Back and Continue keep the draft fields and selected
    files without saving or uploading.
-5. The saved record aligns From, To, Shares, Transfer date and Status, with **Show details and
-   documents** for the rest. **Review and approve** opens a main-page preview of the parties, ownership
+5. The **Share transfers** card lists the class's transfers newest company transfer date first, under
+   **Needs a decision** (prepared and approved), **Transferred** and **Rejected**; the last two show
+   five, with **Show all** for the rest. Each transfer is a compact row: the parties ("transferor to
+   recipient") and the shares, then "Non-paid transfer" and the company transfer date. Selecting the
+   row shows or hides its details and documents, and only an unfinished transfer shows its status and
+   decisions. **Review and approve** opens a main-page preview of the parties, ownership
    effect, transfer instrument and company authority, with long terms, particulars and documents
    on demand. Cancel returns to the record and its opener. **Approve** records the company approval
    and ledger transfer together, requiring current approval and application authority. A current
    earlier approval is reused; an approved transfer awaiting its entry shows **Ready to complete**.
-   Success shows **Approved** and the recorded entry, without a separate Apply action. A failed
+   Success moves the transfer under **Transferred**, without a separate Apply action. A failed
    transaction records no new approval or movement; retrying the same request cannot move the shares
-   twice. Rejection also uses page review. The preparation action shares the final record's action
-   row, or stands alone when no transfers exist. The API keeps its separate decision steps.
+   twice. Rejection also uses page review. **Prepare a non-paid transfer** sits beneath the card. The
+   API keeps its separate decision steps.
 
-The mobile app's Transfer shares has the same records, form, reviews and decisions at phone width, for
-a register reader of the selected company. **Share class** is in Filters and stays locked while a review
-is open, the preparation has its own page, each transfer's documents go to the phone's share sheet, and
-a chain class says its transfers aren’t available in the app.
+The mobile app's Transfer shares has the same card, groups, rows, form, reviews and decisions at phone
+width, for a register reader of the selected company. **Share class** is in Filters and stays locked
+while a review is open, the preparation has its own page, each transfer's documents go to the phone's
+share sheet, and a chain class says its transfers aren’t available in the app.
 
 The transferor must hold enough shares, and the director cannot be either party
 ([named directors](README.md#named-directors)). Applying records one Transfer entry, with the

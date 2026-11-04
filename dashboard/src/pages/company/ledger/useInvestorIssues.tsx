@@ -6,9 +6,9 @@ import {
   REGISTER_ALLOTMENT_COPY as COPY,
   appointmentForRegisterStep,
   hasCurrentRegisterReadAuthority,
-  type IssueRow,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  type RecordRow,
   type TokenHoldersResponse,
   peopleFrom,
   registerHoldersKey,
@@ -243,7 +243,7 @@ export function useInvestorIssues({
     </>
   );
   const listed = visible && privateReady && !kept;
-  const records: IssueRow<ReactNode>[] = (allotments.data ?? []).map((allotment) => ({
+  const records: RecordRow<ReactNode>[] = (allotments.data ?? []).map((allotment) => ({
     uuid: allotment.uuid,
     stage: allotment.stage,
     companyEventOn: allotment.companyEventOn,

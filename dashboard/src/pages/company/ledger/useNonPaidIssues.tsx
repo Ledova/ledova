@@ -4,7 +4,7 @@ import {
   hasCurrentRegisterReadAuthority,
   appointmentForRegisterStep,
   peopleFrom,
-  type IssueRow,
+  type RecordRow,
   type RegisterDecisionKind,
   type OwnCompanyAppointment,
   REGISTER_GRANT_COPY as COPY,
@@ -238,7 +238,7 @@ export function useNonPaidIssues({
     </>
   );
   const listed = visible && privateReady && !kept;
-  const records: IssueRow<ReactNode>[] = (grants.data ?? []).map((grant) => ({
+  const records: RecordRow<ReactNode>[] = (grants.data ?? []).map((grant) => ({
     uuid: grant.uuid,
     stage: grant.stage,
     companyEventOn: grant.companyEventOn,

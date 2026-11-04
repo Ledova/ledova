@@ -10,7 +10,8 @@ import {
   shareCount,
   formatMoney,
   formatDate,
-  issueGroup,
+  ISSUE_GROUPS,
+  recordGroup,
   STAGE_TONES,
   type RegisterSteps,
   useAllotmentRecordDownload,
@@ -21,7 +22,7 @@ import { DecisionTrail } from './DecisionTrail';
 import { RegisterDecisions } from '@pages/company/shared/RegisterDecisions';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { AllotmentReview } from './AllotmentReview';
-import { IssueSummary } from './IssueSummary';
+import { RecordSummary } from './RecordSummary';
 
 const DECISION_COPY = { ...COPY, DECISIONS: { ...COPY.DECISIONS, approve: 'Approve', apply: 'Shares recorded' } };
 
@@ -115,14 +116,14 @@ export function AllotmentRecord({
   return (
     <RecordShell hidden={!visible || collapsed} ruled={ruled} focusKey={focusKey}>
       {visible && (
-        <IssueSummary
+        <RecordSummary
           name={allotment.name}
           kind="Investor issue"
           shares={allotment.shares}
           amount={formatMoney(allotment.consideration, allotment.currency)}
           companyEventOn={allotment.companyEventOn}
           status={
-            issueGroup(allotment.stage) === 'decide'
+            recordGroup(ISSUE_GROUPS, allotment.stage) === 'decide'
               ? {
                   tone: STAGE_TONES[allotment.stage] ?? 'waiting',
                   label:
@@ -153,7 +154,7 @@ export function AllotmentRecord({
           <AllotmentRows allotment={allotment} />
           <p className="text-sm text-text-muted">{COPY.RECEIPT_NOTE}</p>
           {documentsView}
-        </IssueSummary>
+        </RecordSummary>
       )}
       <RegisterDecisions
         recordActions

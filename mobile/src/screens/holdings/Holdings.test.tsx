@@ -1698,8 +1698,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ]);
   await view.rerender(<TransferSharesScreen route={{ key: 'transfers', name: 'TransferShares', params: landed }} />);
   expect(await screen.findByText(REGISTER_TRANSFER_COPY.PREPARED)).toBeTruthy();
-  expect(screen.getByLabelText('From: Synthetic Holder A')).toBeTruthy();
-  expect(screen.getByLabelText('To: Synthetic Holder B')).toBeTruthy();
+  const transferSummary = 'Synthetic Holder A to Synthetic Holder B, 1 share. Show details and documents';
+  expect(screen.getByRole('button', { name: transferSummary })).toBeTruthy();
+  expect(screen.getByText('Needs a decision · 1')).toBeTruthy();
   expect(screen.getByLabelText('Status: Prepared')).toBeTruthy();
   await settled();
   await fireEvent.press(screen.getByRole('button', { name: REGISTER_TRANSFER_COPY.PREPARE }));
@@ -1711,7 +1712,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   expect(await screen.findByText('Ownership impact')).toBeTruthy();
   await fireEvent.press(await screen.findByRole('button', { name: 'Approve', disabled: false }));
-  expect(await screen.findByLabelText('Status: Approved')).toBeTruthy();
+  expect(await screen.findByText('Transferred · 1')).toBeTruthy();
   const completed = { completeTransfer: true, applyAppointment: ADMINISTRATION.uuid };
   expect(transferPosts().slice(1)).toEqual([
     [URLS.REGISTER_TRANSFER_PREVIEW(transfer.uuid), { ...decision('approve'), ...completed }, expect.anything()],
@@ -1959,7 +1960,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByText(REGISTER_TRANSFER_COPY.READ_ONLY_NOTE)).toBeTruthy();
   await act(async () => screen.getByTestId('transfer-shares-scroll').props.refreshControl.props.onRefresh());
   expect(await screen.findByLabelText('Status: Prepared')).toBeTruthy();
-  expect(screen.getByLabelText('Status: Approved')).toBeTruthy();
+  expect(screen.getByText('Transferred · 1')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Prepare a non-paid transfer|Review and approve|Reject)/ })).toBeNull();
   await view.rerender(<ShareholderScreen route={{ key: 'read-only', name: 'Shareholder', params: shareholder }} />);
   expect(await screen.findByText('Founders · FND')).toBeTruthy();

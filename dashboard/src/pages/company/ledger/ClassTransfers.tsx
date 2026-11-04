@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { generatePath } from 'react-router-dom';
 import { pageTitle } from '@utils/destinations';
 import { useQueryClient } from '@tanstack/react-query';
@@ -6,7 +6,9 @@ import {
   DESTINATIONS,
   hasCurrentRegisterReadAuthority,
   REGISTER_TRANSFER_COPY as COPY,
+  TRANSFER_GROUPS,
   type OrderSubmissionOwner,
+  type RecordRow,
   type TokenHoldersResponse,
   registerHoldersKey,
   useOwnAppointments,
@@ -20,6 +22,7 @@ import {
 import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
 import { PageLink } from '@components/Page';
 
+import { GroupedRecords } from './GroupedRecords';
 import { TransferRecord } from './TransferRecord';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
 
@@ -57,8 +60,18 @@ export function ClassTransfers({
     appointments.isSuccess &&
     appointments.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
+  const [heldRecords, setHeldRecords] = useState<ReadonlySet<string>>(() => new Set());
   const recordHeld = useCallback(
-    (uuid: string, held: boolean) => onHeldChange?.(token, uuid, held),
+    (uuid: string, held: boolean) => {
+      setHeldRecords((current) => {
+        if (current.has(uuid) === held) return current;
+        const next = new Set(current);
+        if (held) next.add(uuid);
+        else next.delete(uuid);
+        return next;
+      });
+      onHeldChange?.(token, uuid, held);
+    },
     [onHeldChange, token],
   );
   const refresh = async () => {
@@ -78,7 +91,29 @@ export function ClassTransfers({
     );
   };
   const supported = register.initialized && register.token.status === 'draft';
-  const records = transfers.data ?? [];
+  const rows: RecordRow<ReactNode>[] = (transfers.data ?? []).map((transfer) => ({
+    uuid: transfer.uuid,
+    stage: transfer.stage,
+    companyEventOn: transfer.companyEventOn,
+    createdAt: transfer.createdAt,
+    shown: privateReady,
+    held: heldRecords.has(transfer.uuid),
+    render: ({ collapsed, ruled }) => (
+      <TransferRecord
+        landed={landed?.record === transfer.uuid ? landed : undefined}
+        transfer={transfer}
+        visible={privateReady}
+        collapsed={collapsed}
+        ruled={ruled}
+        onHeldChange={recordHeld}
+        steps={steps ?? {}}
+        guard={guard}
+        onSettled={refresh}
+        reviewTarget={reviewTarget}
+        onReviewChange={reviewChanged}
+      />
+    ),
+  }));
   const prepareAction =
     privateReady && steps?.prepare && supported ? (
       <PageLink to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })} label={COPY.PREPARE} />
@@ -123,28 +158,10 @@ export function ClassTransfers({
       <div hidden={!!reviewing}>
         <Section title="Share transfers">
           {!reviewing && status}
-          <ul className="divide-y divide-border-subtle">
-            {records.map((transfer, index) => (
-              <TransferRecord
-                key={transfer.uuid}
-                landed={landed?.record === transfer.uuid ? landed : undefined}
-                transfer={transfer}
-                visible={privateReady}
-                onHeldChange={recordHeld}
-                steps={steps ?? {}}
-                guard={guard}
-                onSettled={refresh}
-                prepareAction={index === records.length - 1 ? prepareAction : undefined}
-                reviewTarget={reviewTarget}
-                onReviewChange={reviewChanged}
-              />
-            ))}
-          </ul>
-          {records.length === 0 && prepareAction && (
-            <div className="flex flex-wrap justify-end gap-2">{prepareAction}</div>
-          )}
+          <GroupedRecords grouping={TRANSFER_GROUPS} rows={rows} requested={landed} />
         </Section>
       </div>
+      {prepareAction && !reviewing && <div className="flex flex-wrap justify-end gap-2">{prepareAction}</div>}
       <div hidden={!reviewing} className="space-y-5">
         {reviewing && status}
         <div ref={setReviewTarget} />

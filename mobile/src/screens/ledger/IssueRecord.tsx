@@ -16,8 +16,6 @@ import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useLedgerStyles } from './useLedgerStyles';
 
-export type IssueStatus = { tone: Tone; label: string };
-
 export function SummaryCell({
   label,
   values,
@@ -36,7 +34,7 @@ export function SummaryCell({
   );
 }
 
-export function IssueSummary({
+export function RecordSummary({
   name,
   kind,
   shares,
@@ -50,7 +48,7 @@ export function IssueSummary({
   shares: string;
   amount?: string;
   companyEventOn?: string | null;
-  status?: IssueStatus;
+  status?: { tone: Tone; label: string };
   children: ReactNode;
 }) {
   const theme = useAppTheme();

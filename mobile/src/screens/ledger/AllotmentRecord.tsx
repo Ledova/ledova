@@ -1,13 +1,14 @@
 import { useCallback } from 'react';
 import { Text, View } from 'react-native';
 import {
+  ISSUE_GROUPS,
   REGISTER_ALLOTMENT_COPY as COPY,
   REGISTER_ALLOTMENT_DECISIONS,
   STAGE_TONES,
   formatDate,
   formatDateTime,
   formatMoney,
-  issueGroup,
+  recordGroup,
   shareCount,
   useAllotmentRecordDownload,
   type RegisterAllotment,
@@ -18,7 +19,7 @@ import {
 import { Fact, Rows, Status } from '../../components/Ledger';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { DocumentActions, IssueSummary, RecordShell, decisionTrail } from './IssueRecord';
+import { DocumentActions, RecordShell, RecordSummary, decisionTrail } from './IssueRecord';
 import { AllotmentReview } from './IssueReviews';
 import { RegisterDecisions } from './RegisterDecisions';
 import { useLedgerStyles } from './useLedgerStyles';
@@ -82,14 +83,14 @@ export function AllotmentRecord({
     >
       {visible && (
         <View style={[look.summary, inReview && look.hidden]}>
-          <IssueSummary
+          <RecordSummary
             name={allotment.name}
             kind="Investor issue"
             shares={allotment.shares}
             amount={formatMoney(allotment.consideration, allotment.currency)}
             companyEventOn={allotment.companyEventOn}
             status={
-              issueGroup(allotment.stage) === 'decide'
+              recordGroup(ISSUE_GROUPS, allotment.stage) === 'decide'
                 ? {
                     tone: STAGE_TONES[allotment.stage] ?? 'waiting',
                     label: allotment.stage === 'approved' ? 'Ready to complete' : stage,
@@ -139,7 +140,7 @@ export function AllotmentRecord({
             </Rows>
             <Text style={look.muted}>{COPY.RECEIPT_NOTE}</Text>
             {documentsView}
-          </IssueSummary>
+          </RecordSummary>
         </View>
       )}
       <RegisterDecisions

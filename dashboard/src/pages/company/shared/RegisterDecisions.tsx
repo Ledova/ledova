@@ -43,7 +43,6 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   visible = true,
   onHeldChange,
   recordActions = false,
-  leadingAction,
   approveLabel,
   pageReview,
 }: {
@@ -62,7 +61,6 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   visible?: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
   recordActions?: boolean;
-  leadingAction?: ReactNode;
   approveLabel?: string;
   pageReview?: {
     target: HTMLElement | null;
@@ -310,17 +308,11 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   if (!visible) return null;
   return (
     <>
-      {(available.length > 0 || leadingAction) &&
+      {available.length > 0 &&
         (recordActions ? (
-          <FormActions>
-            {leadingAction}
-            {actionButtons}
-          </FormActions>
+          <FormActions>{actionButtons}</FormActions>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {leadingAction}
-            {actionButtons}
-          </div>
+          <div className="flex flex-wrap gap-2">{actionButtons}</div>
         ))}
       {KINDS.map(
         (kind) =>
