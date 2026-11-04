@@ -275,8 +275,9 @@ right), then "Correction" and the short effective date; opening records, newest 
 and shares, then the short record date and member count; and particulars changes under one untitled
 group (`PARTICULARS_GROUPS`), newest as-at date first, five then **Show all N changes**, with the
 member's name, then what changed (`particularsChanged`) and the short as-at date. Only an unfinished
-record shows its status beneath its summary (a particulars change unless it was applied), followed
-by its decision actions; its details hold the rest, its downloads included.
+record, a rejected opening record, or a particulars change that was not applied shows its status
+beneath its summary, followed by any decision actions; its details hold the rest, its downloads
+included.
 Entries stay immutable; current register readers can
 inspect retained supporting records and permitted downloads. The same view holds capability-guarded
 correction, copied-opening and particulars workflows. Certificate
