@@ -186,7 +186,7 @@ export function ImportRecord({
             figure={shareCount(totals.total)}
             facts={`${formatShortDate(proposal.asAt)} · ${totals.count} ${totals.count === 1 ? 'member' : 'members'}`}
             status={
-              proposal.stage === 'submitted' || proposal.stage === 'approved'
+              proposal.stage !== 'applied'
                 ? {
                     tone: STAGE_TONES[proposal.stage] ?? 'waiting',
                     label: COPY.STAGES[proposal.stage] ?? proposal.stage,

@@ -333,7 +333,7 @@ uncertain decision. Opening records (`ImportRecord.tsx`) lists the class's copie
 web's summaries (kind and shares, then record date and members), each opening its details, **Show
 the shareholders** (each shareholder's allotments and documents behind **Show allotments**) and the
 register and ASIC downloads; an unfinished one adds its status and **Reject**, **Review** and
-**Confirm** for the steps the person's appointments hold; a decision replaces the records with the
+**Confirm** for the steps the person's appointments hold, and a rejected one shows its status; a decision replaces the records with the
 web's Review, Confirm or Reject import, its preview of each member against the stored ledger and,
 when confirming opens the register, the web's note that it issues no shares. For someone who can
 prepare the register it starts with **Bring records**, or **Correct copied opening** once an applied

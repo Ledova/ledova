@@ -642,8 +642,8 @@ prepared in [Documents](member-records.md#preparing-a-certificate).
 The same view holds the existing append-only correction and maintenance workflows: corrections,
 source opening records and particulars changes. Each record is a compact summary, as on Issue
 shares; selecting it shows or hides its snapshot, documents and decision trail. Only an unfinished
-record, or a particulars change that was not applied, shows its status beneath it, with any
-decisions. Corrections sit under **Needs a
+record, a rejected opening record, or a particulars change that was not applied shows its status
+beneath it, with any decisions. Corrections sit under **Needs a
 decision**, **Corrected** and **Rejected**, the last two showing five with **Show all** for the
 rest; each reads like "Correction of the issue of 26 Oct 2026 to …", with the shares when it has one
 compensating change, then its effective date. An opening record shows its kind and shares, then its
