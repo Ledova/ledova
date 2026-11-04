@@ -39,9 +39,10 @@ Company information, authority records and company team use this workspace frame
 Team is the selected company's page: its team, **Invite a company user** and the invitations you
 issued (owner, 5 November 2026). Inviting replaces the collection with one focused inline task, a
 card titled **Invite a company user** that retains its mounted editors and drafts. Accepting a
-company invitation is the same kind of task, **Accept a company invitation**, opened from Account's
-**Company officer invitation** (Team's address with `#accept`), or straight away for someone with
-no appointments who owns no company. The invitation's appointment choice starts each option with
+company invitation is the same kind of task, **Accept a company invitation**, opened at once from Account's
+**Company officer invitation** (Team's address with `#accept`), or for someone with no appointments
+who owns no company once their appointments load. Of the two tasks, only inviting, which draws on
+those appointments, shows their loading or failure. The invitation's appointment choice starts each option with
 its appointment date. Appointment rows are compact at every width: the company or person with the
 status at the right; one muted line with a team member's email and the actions (**All actions**
 when the appointment holds every one) and any delegation ("may delegate all of these" when it
@@ -492,8 +493,8 @@ invitation.
 Each group opens on its routes and marks the current destination. Ledger, Shareholders and Documents
 remain siblings, and every web group appears in the small-screen drawer; native navigation is documented
 [separately](mobile.md#navigation). The sidebar has no More group or Help & Support link. Removing
-these links changes no underlying route, audience or permission. Representative authority remains
-a contextual task in Team.
+these links changes no underlying route, audience or permission. Representative authority is
+a contextual task in Account's Your appointments.
 Page controls start or complete work for that page or record: Add person, Invite a member,
 Add share class, Edit, Save, Confirm and contextual issue or transfer
 actions remain beside their records. Keep section navigation in the sidebar rather than repeating it

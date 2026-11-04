@@ -60,7 +60,7 @@ function OwnTeam({
   const look = useTeamStyles();
   const { directory, companies, company: selected } = useMemberRecordsState();
   const scroll = useRef<ScrollView>(null);
-  const [task, setTask] = useState<'accept' | 'invite' | null>(null);
+  const [task, setTask] = useState<'accept' | 'invite' | null>(accept ? 'accept' : null);
   const [draftSource, setDraftSource] = useState<OwnCompanyAppointment | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const teamState = useCompanyTeam({
@@ -94,7 +94,7 @@ function OwnTeam({
   const [started, setStarted] = useState(false);
   if (!started && own.isSuccess && !own.isFetching && !directory.isLoading && !directory.isRefreshing) {
     setStarted(true);
-    if (accept || (appointments.length === 0 && !companies.some((row) => row.isOwner))) setTask('accept');
+    if (appointments.length === 0 && !companies.some((row) => row.isOwner)) setTask('accept');
   }
   useEffect(() => {
     if (task) scroll.current?.scrollTo({ y: 0, animated: false });
@@ -217,7 +217,7 @@ function OwnTeam({
         </Section>
       </View>
       <View style={[look.stack, !task && look.hidden]}>
-        {accountStatus}
+        {task === 'invite' && accountStatus}
         <View style={task !== 'accept' && look.hidden}>
           <Section title="Accept a company invitation">
             <AcceptInvitationForm

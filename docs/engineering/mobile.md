@@ -102,7 +102,7 @@ Issue shares, Transfer shares and Corrections with their preparations, and Set u
 Shareholders for Shareholders, a shareholder's page, its particulars change, Employee share scheme, an
 award's page and Member access, Documents for Certificates, Inspection copies and Company pack,
 Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like
-the web's sidebar, it marks Team on
+the web's sidebar, it marks Account on
 Representative authority and its requests, Employee scheme on an award's page, Transfer shares on a
 transfer's preparation and Corrections on a correction's preparation. Choosing Dashboard
 returns to it. Ledger opens its overview, Shareholders its people list, Documents opens Certificates
@@ -394,9 +394,9 @@ page at phone width, read and sent through the shared `useCompanyTeam`, `useAcce
 and `useTeamInvitationForm` with the selected company: the company's Team, **Invite a company user** and Invitations you
 issued, with the web's rows, wording, loading, empty and failure states. The Team list is read only with a current
 own administration appointment for that company; otherwise it says that authority is required.
-Accepting and inviting replace the page with the web's inline form, which keeps its draft when
-closed; Team opens on accepting from Account's **Company officer invitation**, and for someone with
-no appointments who owns no company. The capabilities are
+Accepting and inviting replace the page with the web's inline form, and the invitation keeps its
+draft when closed. Team opens on accepting at once from Account's **Company officer invitation**, and
+for someone with no appointments who owns no company once their appointments load. The capabilities are
 checkboxes, the invitation deadline and appointment expiry are typed as `YYYY-MM-DD` (UTC) with the
 web's checks, and the one-time code shows once as selectable text to copy. **Revoke appointment**
 asks first in the web's dialog. Pulling down rereads the page while no form or revocation is open.

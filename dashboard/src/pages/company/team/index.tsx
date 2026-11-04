@@ -46,7 +46,7 @@ function OwnTeam({
   const settings = useSettingsNavigation();
   const context = useCompanyContext();
   const location = useLocation();
-  const [task, setTask] = useState<'accept' | 'invite' | null>(null);
+  const [task, setTask] = useState<'accept' | 'invite' | null>(location.hash === '#accept' ? 'accept' : null);
   const [returnFocus, setReturnFocus] = useState<'accept' | 'invite' | null>(null);
   const [draftSource, setDraftSource] = useState<OwnCompanyAppointment | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -81,7 +81,7 @@ function OwnTeam({
   const [started, setStarted] = useState(false);
   if (!started && own.isSuccess && !own.isFetching && !settings.isLoading) {
     setStarted(true);
-    if (location.hash === '#accept' || (appointments.length === 0 && !settings.hasOwnedCompany)) setTask('accept');
+    if (appointments.length === 0 && !settings.hasOwnedCompany) setTask('accept');
   }
   useEffect(() => {
     if (task) heading.current?.focus();
@@ -201,7 +201,7 @@ function OwnTeam({
         </Section>
       </div>
       <div hidden={!task} className="space-y-5">
-        {accountStatus}
+        {task === 'invite' && accountStatus}
         <div hidden={task !== 'accept'}>
           <Section title="Accept a company invitation" header={taskHeading('accept', 'Accept a company invitation')}>
             <AcceptInvitationForm
