@@ -137,8 +137,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   title. A card's title is a heading, such as each class's summary on Ledger. On the web, every
   paragraph in a card, including its forms' notes but not flex, right-aligned or truncated rows, and a page's
   lede keep a readable width (`max-w-prose`).
-- `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as a
-  shareholder's holding or an import's supporting records. The web sets values in tabular numerals
+- `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as an
+  imported shareholder's details or an import's supporting records. The web sets values in tabular numerals
   and, below `sm`, puts each label above its value; the app's `Rows` hold `Fact`s, which always do,
   left-aligned, with `mono` for a recorded wallet. Breakdowns of figures (company ownership, a class's
   totals on the web, register setup's summary) and an award's chart legend keep their own layout,
@@ -169,7 +169,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   facts, still at the right edge, except Changes' compact **Correct**, which stays at the end of the
   row's first line. A shareholder's Holdings and History rows don't expand either: the class, or the
   entry's kind, with the shares at the right, then the facts in muted text, with a holding's compact
-  **Transfer shares** beneath them at the right edge, where the page's other actions also sit as
+  **Transfer shares** beneath them at the right edge. **Change particulars**, **Issue shares to
+  them**, **Open Employee share scheme** and **Invite to their records** sit at the same edge as
   compact text actions. The Account and Data and privacy rows and an action that stands on
   its own follow the same edge on web and in the app: Try again after a failed read, **Retry
   original member action**, and in the app the Invitation page's and empty Dashboard's actions. Load
@@ -216,7 +217,8 @@ contextual labels and one vesting explanation. Employee share scheme has no back
 selected-file display and focus stable through entry reads, explicit retries and post-save refreshes
 ([read policy](frontend.md#automatic-data-freshness)). Its award list uses `LinkRow`: Recipient and
 agreement date, then Promised, Vested and Issued quantities and the trailing arrow; on small screens the
-three quantities sit beneath the recipient as one line. Each row opens the award's own page, built like a
+promised shares sit at the right of the recipient, with the short agreement date and the vested and
+issued shares beneath as one line. Each row opens the award's own page, built like a
 shareholder's page: the recipient as its title, the class and agreement date as its lede, **Back to
 Employee share scheme** and **Recipient details** in the heading, then headed cards without chevrons:
 **Entitlement** (the chart, whose legend keys each colour and lists only non-zero parts, and the

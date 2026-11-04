@@ -999,8 +999,9 @@ it('reads every class page and groups exact holdings by member identity with sea
     [/^Preference shares ·/, '2026-09-03'],
   ] as const) {
     const holding = screen.getByRole('heading', { name }).closest('li')!;
+    expect(within(holding).getByText('9,007,199,254,740,993 shares')).toBeTruthy();
     expect(
-      within(holding).getByText(new RegExp(` · ${HOLDER_TYPE_LABELS.member} · added ${formatShortDate(date)}$`)),
+      within(holding).getByText(`100.00% of class · ${HOLDER_TYPE_LABELS.member} · added ${formatShortDate(date)}`),
     ).toBeTruthy();
   }
   expect(screen.getByText('Name for this class: Preference Member Name')).toBeTruthy();
