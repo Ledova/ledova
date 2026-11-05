@@ -8,6 +8,7 @@ import { useAuth } from '@ledova/shared';
 import { AuthLayoutAction } from './auth';
 import { InSignedInFrame } from './InSignedInFrame';
 import { PhoneBar } from './PhoneBar';
+import type { PageBackLink } from './PageTitle';
 import { SignOutButton } from './SignOutButton';
 import { LedgerNavigationProvider } from './LedgerNavigationProvider';
 import { CompanyContextProvider } from './CompanyContextProvider';
@@ -61,7 +62,11 @@ export default function Layout({ children }: LayoutProps) {
   const phone = usePhoneWidth();
   const [barTitle, setBarTitle] = useState<string | null>(null);
   const [barActions, setBarActions] = useState<HTMLDivElement | null>(null);
-  const bar = useMemo(() => ({ phone, actions: barActions, setTitle: setBarTitle }), [phone, barActions]);
+  const [barBack, setBarBack] = useState<PageBackLink | null>(null);
+  const bar = useMemo(
+    () => ({ phone, actions: barActions, setTitle: setBarTitle, setBack: setBarBack }),
+    [phone, barActions],
+  );
   useHeadingFocus();
 
   if (!framed) {
@@ -96,7 +101,7 @@ export default function Layout({ children }: LayoutProps) {
               </div>
 
               <div className="fixed inset-x-0 top-0 z-40 lg:hidden">
-                <MobileHeader title={barTitle} actionsRef={setBarActions} />
+                <MobileHeader title={barTitle} back={barBack} actionsRef={setBarActions} />
               </div>
 
               <main id="main" className="pt-14 lg:ml-52 lg:pt-0">

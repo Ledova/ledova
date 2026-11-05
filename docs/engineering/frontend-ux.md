@@ -128,8 +128,10 @@ section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
-action and the bell; no page has a back button, so the app leaves out the web's title-row way back,
-such as Back to Account, and Android's Back and the iOS swipe return to the previous page. A tap on a
+action and the bell. Representative authority's top bar shows a back arrow in place of the menu
+button, as on the web ([back arrow](#navigation)); the other pages have no back button yet
+([#1547](https://github.com/Ledova/ledova/issues/1547)), so the app leaves out the web's title-row way
+back, and Android's Back and the iOS swipe return to the previous page. A tap on a
 control acts at once, even while the keyboard is up.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
@@ -518,11 +520,15 @@ company-centred explorer for all relationships, without a separate Your shares n
 Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme shows as Employee
 scheme, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
-Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
-link in the title row for a contextual task: Back to Account on Representative authority, Back to
-Representative authority on an authority request's page, Back to Shareholders on a shareholder's
-page, Back to Employee share scheme on an award's page, and Back to Corrections for ledger
-maintenance.
+Back to Settings because their sidebar links already provide navigation. A page with a parent shows
+a back arrow (owner, 5 November 2026): `BackArrow`, named for screen readers "Back to" and the
+parent, at the start of the phone top bar in place of the menu button, and just before the title on
+wider screens, with no **Back to …** button in the page. Representative authority (Back to Account)
+opts in with `back={{ arrow: true }}` so far; [#1547](https://github.com/Ledova/ledova/issues/1547)
+brings it to the rest. Until then `Page` puts one useful parent link in the title row for a
+contextual task: Back to Representative authority on an authority request's page, Back to
+Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, and Back to
+Corrections for ledger maintenance.
 Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
 by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).

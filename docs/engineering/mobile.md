@@ -84,8 +84,11 @@ the individual role, then pre-screening, personal details, financial profile and
 dashboard's routes and guards do not apply.
 
 The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Every page shows
-the web's phone top bar (`TopBar`), never a back button: the menu button, the page's title, its
-action (such as Switch company or Filters) and the notifications bell. Inside the frame `Page` sets
+the web's phone top bar (`TopBar`): the menu button, the page's title, its action (such as Switch
+company or Filters) and the notifications bell. Representative authority's bar shows a back arrow,
+Back to Account, in place of the menu button (`topBar` with a back target), which goes back or else
+opens Account; the other pages have no back button yet
+([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
 its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
 anchored panel (`AnchoredPanel`) as `FilterPopover`. It has a Notifications header with **Mark all
@@ -416,8 +419,8 @@ Request and Appointment cards, the declaration and Terms for an admin request st
 ([document view copies](#document-view-copies)), **Withdraw request** and **Establish appointment**
 while pending, and **Revoke appointment**. Withdrawing and revoking ask first in the web's dialogs.
 Pulling down rereads the requests while no request form is open and no action is running.
-The web's title-row way back, Back to Account and Back to Representative authority, is left out, as the
-app has no back buttons; Android's Back and the iOS swipe return to the previous page.
+Its top bar's back arrow returns to Account. The request page leaves out the web's Back to
+Representative authority; Android's Back and the iOS swipe return to the previous page.
 Activation (`ActivationScreen.tsx`) is the web's page at phone width, through the shared
 `useCompanySelection`, limited to personal administration of the selected company, and
 `useCompanyActivation`: Activation status with the company's status on one line, wrapping when
