@@ -227,12 +227,12 @@ and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before s
   `make ci-checks PYTHON=/Users/ronildo/.local/state/ledova/web-walkthrough-20261021/.venv/bin/python`.
   They pass shared **9**, dashboard **20**, mobile **5**, contracts **14** and smoke **7**. Dashboard
   is at its cap of 20, so a new core test replaces another.
-- `make preflight` stops at the backend suite here, which needs Python **3.13.15** where this Mac has
-  **3.13.3**. CI runs that suite.
+- With the same `PYTHON=`, `make preflight` stops at the backend suite, which needs Python **3.13.15**
+  where this Mac has **3.13.3**. CI runs that suite.
 - A ruleset on `main` requires `Django verdict` and `PR type and issue` on a branch up to date with
   `main`. Auto-merge pinned with `--match-head-commit` is the usual last step.
-- A `Refs` pull request's commits must avoid closing keywords, so close its issue by hand after the
-  merge.
+- A `Refs` pull request's commits must avoid closing keywords, so close the issue by hand once its
+  work is done.
 
 ## Continue on this Mac
 
