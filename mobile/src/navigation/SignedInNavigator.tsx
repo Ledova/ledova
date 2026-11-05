@@ -76,7 +76,7 @@ export function SignedInNavigator() {
   const { unreadCount } = useNotifications();
   const closeNotifications = useCallback(() => setNotificationsAnchor(null), []);
   useFollowPush(closeNotifications);
-  const topBar = (current: Section, back?: { route: MenuRoute; label: string }) => ({
+  const topBar = (current: Section, back?: { route: keyof SignedInStackParamList; label: string }) => ({
     headerShown: true,
     header: ({ navigation, route, options }: NativeStackHeaderProps) => (
       <TopBar
@@ -136,7 +136,11 @@ export function SignedInNavigator() {
               component={AuthorityScreen}
               options={topBar('Settings', { route: 'Account', label: 'Back to Account' })}
             />
-            <Stack.Screen name="AuthorityRequest" component={AuthorityRequestScreen} options={topBar('Settings')} />
+            <Stack.Screen
+              name="AuthorityRequest"
+              component={AuthorityRequestScreen}
+              options={topBar('Settings', { route: 'Authority', label: 'Back to Representative authority' })}
+            />
             <Stack.Screen name="Invitation" component={InvitationScreen} options={topBar('Dashboard')} />
           </Stack.Navigator>
           <NotificationsPanel anchor={notificationsAnchor} onClose={closeNotifications} />
