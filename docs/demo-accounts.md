@@ -158,7 +158,8 @@ and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before s
 - ledova.io serves main `a1ada30ee` for the backend, worker, dashboard and website, released on
   5 November 2026 with no migrations. The release record is in the private `Ledova/infra`. Nobody
   signed in for the release checks, so signed-in pages there are unconfirmed.
-- The mobile app has not been released. It runs on the iOS simulator through Metro.
+- The mobile app has not been released. It runs on the iOS simulator through Metro, and Android
+  hasn't been checked.
 - Since 31 October:
   - #1476 removed particulars and certificate requests, #1489 removed notices, #1491 kept only
     personal ID verification, and #1492 made a linked member's register details follow their
@@ -178,8 +179,9 @@ and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before s
    - A shareholder's supporting Documents section in the app.
    - Keeping held saves across leaving a page in the app, where leaving drops a retry, so a repeated
      add or invite could duplicate.
-   - The other follow-ups recorded in its comments: #1529's findings, the failed recipients read on
-     Issue shares to them, and the untested guards after preparing a transfer or setup.
+   - The other follow-ups: the review findings on #1529, and, in the issue's comments, the failed
+     recipients read on Issue shares to them and the untested guards after preparing a transfer or
+     setup.
 2. [#1453](https://github.com/Ledova/ledova/issues/1453): the frontend architecture work the owner
    paused, including keeping open work mounted during a same-account recheck.
 3. [#1555](https://github.com/Ledova/ledova/issues/1555): pagination, which the owner set aside for
@@ -188,18 +190,20 @@ and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before s
 
 **How the owner works:**
 
-- The owner walks through pages and stops on each for feedback. "Make it compact too" means the same
-  compact pattern on the web and in the app: one-line rows, compact text actions at the right edge,
-  and a status only while something is unfinished. "Looks good, next" means finish any open
-  post-merge steps, then show the next page.
+- The owner walks through pages and stops on each for feedback. "Make it compact too" means the
+  pattern in [UX standards](engineering/frontend-ux.md) on the web and in the app: usually two lines,
+  with the main figure or status at the right and one muted line of facts, and compact text actions
+  at the right edge. "Looks good, next" means finish any open post-merge steps, then show the next
+  page.
 - Every UI change goes on both platforms and is checked on both, the web in Chrome's phone view and
-  the app in the iOS simulator. Change layout only: never colours or fonts.
-- Show what's kept, moved and removed before opening a PR for anything more than the agreed pattern.
+  the app in the iOS simulator. Never change colours or fonts.
+- Show the owner the result on both platforms before opening a PR for anything beyond the agreed
+  pattern.
 - Merge without asking once an independent review passes at the exact head and required CI is green.
   Record each review and merge on the PR, and delete the branch, worktree and temporary files
   afterwards.
-- A release, a live migration, signer activation or a new cost needs the owner's explicit go, each
-  time. Hosting procedures are in `Ledova/infra`.
+- A release, a live migration, signer activation, real-funds use or a new cost needs the owner's
+  explicit go, each time. Hosting procedures are in `Ledova/infra`.
 
 **Traps found this round:**
 
@@ -211,18 +215,24 @@ and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before s
 - A non-paid transfer hides its back arrow while a submission is unresolved, because its Cancel is
   locked then and the web's navigation blocker covers only Ledger and award pages.
 - No test renders the app's `TopBar`, so its arrows and `held` need a live check.
-- `make ci-checks` needs the generated `mobile/expo-env.d.ts` deleted first when Metro has run from
-  that checkout. A reload signs the app out, and running the checks can cause one. After a branch
+- When Metro has run from a checkout, delete the generated, git-ignored `expo-env.d.ts` in `mobile/`
+  before the checks. A reload signs the app out, and running the checks can cause one. After a branch
   switch, reload the app before judging a change.
+- The walkthrough API doesn't reload and allows only origin 5173, so restart it after a backend change
+  and preview a branch's dashboard on that port.
 
 **Checks:**
 
-- `make ci-checks` passes shared **9**, dashboard **20**, mobile **5**, contracts **14** and smoke
-  **7**. Dashboard is at its cap of 20, so a new core test replaces another.
+- On this Mac run the checks with the walkthrough's Python:
+  `make ci-checks PYTHON=/Users/ronildo/.local/state/ledova/web-walkthrough-20261021/.venv/bin/python`.
+  They pass shared **9**, dashboard **20**, mobile **5**, contracts **14** and smoke **7**. Dashboard
+  is at its cap of 20, so a new core test replaces another.
+- `make preflight` stops at the backend suite here, which needs Python **3.13.15** where this Mac has
+  **3.13.3**. CI runs that suite.
 - A ruleset on `main` requires `Django verdict` and `PR type and issue` on a branch up to date with
   `main`. Auto-merge pinned with `--match-head-commit` is the usual last step.
-- Pull requests must name an issue, and commit text must avoid closing keywords, so close issues by
-  hand after the merge.
+- A `Refs` pull request's commits must avoid closing keywords, so close its issue by hand after the
+  merge.
 
 ## Continue on this Mac
 
