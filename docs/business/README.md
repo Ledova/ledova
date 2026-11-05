@@ -283,7 +283,7 @@ on mobile ([member records](member-records.md)).
 The mobile app has the web's phone frame: a top bar with the menu and the notifications bell, and a
 slide-out menu with the Dark theme switch. It opens on **Dashboard**, the selected company's ownership
 overview, as on the web; **Switch company** changes the company. **Ledger** opens that company's share
-classes, each with **Class details**, with **Issue shares**, **Transfer shares** and **Corrections**
+classes, each row opening its class's page, with **Issue shares**, **Transfer shares** and **Corrections**
 beneath it, and
 **Shareholders** its people list, with **Employee scheme** and
 **Member access** beneath it, for a register reader, as on the web

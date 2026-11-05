@@ -258,12 +258,11 @@ await issue, opens Issue shares for the award's class with its non-paid issue fo
 issue opens Issue shares at its record, as on the web. Pulling down rereads either page while no form is
 open or held.
 Ledger (`mobile/src/screens/ledger/LedgerScreen.tsx`) is the web's Ledger overview at phone width for
-a register reader of the selected company, read through `useCompanyRegisters.ts`: one card per share
-class, titled with its name and code, with Issued shares and Current shareholders, **Ledger not
-opened** while that applies, the authorised shares when the class has a limit other than the internal
-quantity guard, the web's notes when completed issues or transfers wait or cannot be checked, and a
-**Class details** row that opens the class's page; a company without classes shows No share classes
-yet. **Add share class**, below the cards for someone whose appointment allows preparation, opens Set
+a register reader of the selected company, read through `useCompanyRegisters.ts`: the web's Share
+classes card, a compact row per class with its name and issued shares, then its code, current
+shareholders, any authorised limit and a short note while its ledger is not opened or issues or
+transfers wait or cannot be checked (`classFacts`); each row opens the class's page, which keeps the full notes. A company
+without classes shows No share classes yet. **Add share class**, below the card for someone whose appointment allows preparation, opens Set
 up your ledger. A class's page (`ShareClassScreen.tsx`, the class's name as its title) is the web's, read
 through the shared `useShareClass`: Summary with the class's code and type, Issued shares, Current
 shareholders, **Ledger opened** or not, the authorised shares, the non-transferable note and the

@@ -607,20 +607,21 @@ company's share classes and current structure; who holds the shares is on Shareh
 
 The Ledger view shows:
 
-- a card for each class: Issued shares, Current shareholders, Ledger not opened while that applies,
-  Authorised shares where applicable, a note when completed issues or transfers wait or cannot be
-  checked, and a **Class details** row at the end that opens the class;
-- **Add share class** below the cards, aligned right, for someone who can prepare the register, opening
+- a **Share classes** card with a compact row for each class: its name and issued shares, then one
+  line with its code, current shareholders, Authorised shares where applicable, and a short note while
+  its ledger is not opened or completed issues or transfers wait or cannot be checked; each row opens
+  the class (owner, 5 November 2026);
+- **Add share class** below the card, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
-The mobile app's Ledger shows the same cards, each with **Class details**, to a register reader of the
-selected company, and **Add share class** to someone who can prepare the register. The menu lists Issue
+The mobile app's Ledger shows the same rows to a register reader of the selected company, and **Add
+share class** to someone who can prepare the register. The menu lists Issue
 shares, Transfer shares and Corrections beneath it ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
 [non-paid transfers](#non-paid-transfers-between-members),
 [compensating corrections](#compensating-corrections)).
 
 Ledger's three web sidebar sub-items each open their own focused view, with a shared share-class
-selector and without the overview cards: Issue shares
+selector and without the Share classes card: Issue shares
 ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares)), Transfer shares
 ([non-paid transfers](#non-paid-transfers-between-members)) and Corrections.
 
@@ -658,7 +659,7 @@ reading Provided by the company or, before the work became company-run, "Verifie
 A section that read successfully with nothing to show is left out. An unfinished request keeps its
 class and exact request, and while one is held the company, task and class cannot be changed; its
 sidebar link lets the person return from another view to resume the same request. A failed read
-withholds the class cards and the shareholder list rather than implying holdings are zero.
+withholds the share classes and the shareholder list rather than implying holdings are zero.
 
 The focused views reuse the existing controllers, authority checks and original-request recovery.
 The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
@@ -757,7 +758,7 @@ person chosen.
 
 ### The Share class page
 
-Each class opens directly from **Class details** on its Ledger card, titled with the class's name.
+Each class opens directly from its row on Ledger, titled with the class's name.
 Its Summary card shows the class's code, type, state and current register summary, followed by the
 company's optional
 [Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,

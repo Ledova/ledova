@@ -1399,11 +1399,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
     screen.getAllByText(/^(Issue shares|Transfer shares|Corrections)$/).map(({ props }) => props.children),
   ).toEqual(['Issue shares', 'Transfer shares', 'Corrections']);
   await view.rerender(<LedgerScreen />);
-  expect(await screen.findByText('Founders · FND')).toBeTruthy();
-  expect(screen.getByLabelText('Issued shares: 8')).toBeTruthy();
-  expect(screen.getByLabelText('Current shareholders: 2')).toBeTruthy();
-  expect(screen.queryByText('Elsewhere · ELS')).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: 'Class details (Founders)' }));
+  const foundersRow = await screen.findByRole('button', {
+    name: /^Founders, 8 issued shares, FND · 2 current shareholders/,
+  });
+  expect(screen.queryByRole('button', { name: /^Elsewhere, / })).toBeNull();
+  await fireEvent.press(foundersRow);
   expect(mockNavigate).toHaveBeenLastCalledWith('ShareClass', founders);
   await fireEvent.press(await screen.findByRole('button', { name: 'Add share class' }));
   const setup = { company: ADMINISTERED.uuid };
@@ -1996,7 +1996,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(correctionPosts()).toHaveLength(5);
   const decidedImports = importPosts().length;
   await view.rerender(<LedgerScreen />);
-  expect(await screen.findByText('Founders · FND')).toBeTruthy();
+  expect(await screen.findByRole('button', { name: /^Founders, / })).toBeTruthy();
   await settled();
   expect(screen.queryByRole('button', { name: 'Add share class' })).toBeNull();
   await view.rerender(

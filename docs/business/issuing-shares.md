@@ -53,7 +53,7 @@ The web app no longer offers the chain actions described below: the owner remove
 
 ### Class rights
 
-On the web or in the mobile app, choose **Class details** on a class's Ledger card. **Class rights**
+On the web or in the mobile app, choose the class on Ledger. **Class rights**
 records the company's description of existing terms below the current register summary. Choose
 **Edit** to record:
 
