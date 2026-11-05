@@ -134,11 +134,8 @@ section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
-action and the bell. Representative authority's, an authority request's, a share class's, Set up your ledger's, an
-award's and a particulars change's top bars show a back arrow in place of the menu button, as on the web ([back arrow](#navigation)); the other pages have
-no back button yet
-([#1547](https://github.com/Ledova/ledova/issues/1547)), so the app leaves out the web's title-row way
-back, and Android's Back and the iOS swipe return to the previous page. A tap on a
+action and the bell. A page with a parent shows a back arrow in place of the menu button, as on the web
+([back arrow](#navigation)), while Android's Back and the iOS swipe return to the previous page. A tap on a
 control acts at once, even while the keyboard is up.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
@@ -173,7 +170,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   does. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
   or opens an external resource.
 - `PageAction` and `PageLink` (`Action` on mobile): a content-width action placed with what it acts
-  on: the title row for the page (including the way back to the parent), a section for that section,
+  on: the title row for the page, a section for that section,
   a row for that row's record alone. A web collection's primary creation action sits beneath its
   cards, aligned right. Actions do not wait for a row to be selected.
 - `MoreToggle` (`dashboard/src/components/Ledger.tsx`): a plain text button with `aria-expanded`
@@ -469,8 +466,8 @@ company below the person's name in the sidebar footer and preserve its context i
 names use small text (`text-xs`), retain stored capitalization and stay on one truncated line with
 the full name in a title. Below `lg`, where the sidebar is a drawer, the top bar holds the menu
 button (or a page's [back arrow](#navigation), where it has one), the page's title and its actions,
-then the bell (`PhoneBar`); the page keeps its `h1` for screen readers and starts with any other back
-link, any `links` (such as an award's Recipient details) and its lede. The bar names no company. Dark theme sits beside Sign out in
+then the bell (`PhoneBar`); the page keeps its `h1` for screen readers and starts with any `links`
+(such as an award's Recipient details) and its lede. The bar names no company. Dark theme sits beside Sign out in
 the sidebar's footer at every width. The navigation scrolls between the fixed
 brand header and footer.
 Do not repeat the current company name as a passive heading, subtitle or card label in signed-in
@@ -538,23 +535,22 @@ company-centred explorer for all relationships, without a separate Your shares n
 Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme shows as Employee
 scheme, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
-Back to Settings because their sidebar links already provide navigation. Pages with a parent are to
-show a back arrow (owner, 5 November 2026): `BackArrow`, named for screen readers "Back to" and the
-parent, at the start of the phone top bar in place of the menu button, and just before the title on
-wider screens, with no **Back to …** button in the page. So far Representative authority (Back to
-Account), an authority request's page (Back to Representative authority), a share class's page and
-Set up your ledger (Back to Ledger), an award's page (Back to Employee share scheme) and a particulars
-change do, through `arrow` on their parents in `WEB_PARENTS`. Once a particulars change has found its
-shareholder, its arrow goes back to that shareholder by name, and until then to Corrections.
-[#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the
-rest. Until then `Page` puts one useful parent link in the title row for a contextual task: Back to
-Shareholders on a shareholder's page and Back to Corrections for ledger maintenance.
+Back to Settings because their sidebar links already provide navigation. Every other page with a
+parent shows a back arrow (owner, 5 November 2026): `BackArrow`, named for screen readers "Back to" and
+the parent, at the start of the phone top bar in place of the menu button, and just before the title on
+wider screens. It is the only way back, so no page renders a **Back to …** button. `WEB_PARENTS` gives
+each route its parent: Representative authority returns to Account, an authority request to
+Representative authority, a share class and Set up your ledger to Ledger, an award to Employee share
+scheme, a shareholder to Shareholders, ledger maintenance to Corrections and a non-paid transfer to
+Transfer shares. Once a particulars change has found its shareholder, its arrow goes back to that
+shareholder by name, and until then to Corrections. A non-paid transfer locks Cancel while a submission
+is unresolved, and hides its arrow then too, so the phone top bar shows the menu button instead.
 
 A way back to a Ledger class or task carries the place it means, built by `registerPlace`
 (`dashboard/src/pages/company/ledger/shared/registerPlace.ts`): a correction returns to that
 class's Corrections view, a class's own page to Ledger and a non-paid transfer to that class's
 Transfer shares. A shareholder's page links back to Shareholders with its company through `Page`'s
-parent link, and a transfer started there links back to them by name. Preparing a correction or
+parent link. Preparing a correction or
 making a particulars change lands on its new record under Corrections; a non-paid transfer lands under
 Transfer shares. Each keeps its class and task, with focus and one line naming what was prepared
 ([feedback](#feedback)). A preparation started from a shareholder's page also lands on its record in
@@ -586,7 +582,7 @@ confirmation) or pressed, and comes in four forms:
   Mobile's `FormActions` draws the same rule and row; its `Actions` is that row without the rule, for
   an action that stands on its own.
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
-  the title row's way back, Add share class, a shareholder's Details, Issue shares to them. While a
+  Add share class, a shareholder's Details, Issue shares to them. While a
   held Ledger action blocks leaving, `disabled` shows it as a disabled action instead.
 - **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
   it at once.

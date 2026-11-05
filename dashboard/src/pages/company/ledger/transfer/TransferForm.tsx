@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Field, TextInput, TextArea, FileField } from '@components/Field';
 import {
@@ -21,6 +21,7 @@ import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 type TransferFormProps = Omit<TransferPreparationOptions, 'onPrepared' | 'newKey' | 'session'> & {
   classLabel: string;
   onCancel?: () => void;
+  onHeldChange?: (held: boolean) => void;
 };
 
 const LIMITS: Partial<Record<string, number>> = {
@@ -65,6 +66,7 @@ export function TransferForm({
   onRefused,
   initialFrom,
   onCancel,
+  onHeldChange,
 }: TransferFormProps) {
   const navigate = useNavigate();
   const {
@@ -101,6 +103,10 @@ export function TransferForm({
   });
   const checks = useErrorSummary(problems);
   const [step, setStep] = useState<(typeof STEPS)[number]['id']>('people');
+  useEffect(() => {
+    onHeldChange?.(busy || !!operation);
+    return () => onHeldChange?.(false);
+  }, [busy, operation, onHeldChange]);
   const stepIndex = STEPS.findIndex((item) => item.id === step);
   const field = (
     key: Exclude<keyof typeof draft, 'fromMember' | 'toMember' | 'name' | 'residentialAddress'>,

@@ -78,20 +78,17 @@ export function settingsView(pathname: string, hash: string): SettingsView | und
   return undefined;
 }
 
-const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent & { arrow?: true }>> = {
+const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   ...DESTINATION_PARENTS,
   company: { destination: 'settings', back: false },
   companyTeam: { destination: 'settings', back: false },
   companyListing: { destination: 'settings', back: false },
   userProfile: { destination: 'settings', back: false },
-  companyAuthority: { destination: 'settings', view: 'account', arrow: true },
-  companyAuthorityRequest: { destination: 'companyAuthority', arrow: true },
-  companyClass: { destination: 'companyRegister', arrow: true },
-  companyRegisterSetup: { destination: 'companyRegister', arrow: true },
-  companyRegisterImport: { destination: 'companyRegister', arrow: true },
-  companyRegisterAward: { destination: 'companyRegister', view: 'awards', arrow: true },
+  companyAuthority: { destination: 'settings', view: 'account' },
+  companyAuthorityRequest: { destination: 'companyAuthority' },
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
-  companyRegisterParticulars: { destination: 'companyRegister', view: 'corrections', arrow: true },
+  companyRegisterTransfer: { destination: 'companyRegister', view: 'transfer' },
+  companyRegisterParticulars: { destination: 'companyRegister', view: 'corrections' },
 };
 
 function viewName(key: DestinationKey, view: string): string | undefined {
@@ -122,7 +119,6 @@ export function backLink(key: DestinationKey) {
   return {
     to: parent.view ? `${path}#${parent.view}` : path,
     label: `Back to ${pageTitle(parent.destination, parent.view)}`,
-    arrow: parent.arrow,
   };
 }
 

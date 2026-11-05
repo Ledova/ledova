@@ -106,6 +106,10 @@ export function TopBar({
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   useEffect(() => navigation.addListener('blur', () => setOpen(false)), [navigation]);
+  const hasBack = !!back;
+  useEffect(() => {
+    if (hasBack) setOpen(false);
+  }, [hasBack]);
   return (
     <View
       style={{

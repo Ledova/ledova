@@ -2,7 +2,7 @@ import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany'
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
 import { AccountCheck } from '@components/AccountCheck';
 import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import {
@@ -35,7 +35,7 @@ export default function CompanyRegisterTransferPage() {
           currentOwner={boundary.get}
         />
       ) : (
-        <Page back={{ to: undefined }}>
+        <Page>
           <AccountCheck />
         </Page>
       )}
@@ -54,6 +54,7 @@ function OwnTransfer({
 }) {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const [held, setHeld] = useState(false);
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
@@ -119,6 +120,7 @@ function OwnTransfer({
           blocked={stale || busy}
           onRefused={retry}
           initialFrom={fromMember}
+          onHeldChange={setHeld}
           onCancel={() => {
             const place = registerPlace({ company: listed.companyUuid, token: uuid, task: 'transfer' });
             navigate(place.to, { state: place.state });
@@ -129,7 +131,13 @@ function OwnTransfer({
   return (
     <Page
       lede={companyMatches && listed && appointment ? `${listed.name} (${listed.symbol})` : undefined}
-      back={{ to: undefined }}
+      back={
+        held
+          ? { to: undefined }
+          : companyMatches
+            ? registerPlace({ company: listed?.companyUuid, token: uuid, task: 'transfer' })
+            : undefined
+      }
     >
       {content}
     </Page>
