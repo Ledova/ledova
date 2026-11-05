@@ -147,9 +147,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   lede keep a readable width (`max-w-prose`).
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as an
   imported shareholder's details or an import's supporting records. The web sets values in tabular numerals
-  and, below `sm`, puts each label above its value; the app's `Rows` hold `Fact`s, which always do,
-  left-aligned, with `mono` for a recorded wallet. With `inline`, a `Row` or `Fact` keeps its label on
-  the left and its value on the right at every width, a long value wrapping right-aligned beside it;
+  and, below `sm`, puts each label above its value; the app's `Rows` hold `Fact`s, which do so by
+  default, left-aligned, with `mono` for a recorded wallet. With `inline`, a web `Row` or an app `Fact`
+  keeps its label on the left and its value on the right at every width, a long value wrapping right-aligned beside it;
   an authority request's page uses it for every fact (owner, 5 November 2026). Breakdowns of figures (company ownership, a class's
   totals on the web, register setup's summary) and an award's chart legend keep their own layout,
   without tinted tiles.
