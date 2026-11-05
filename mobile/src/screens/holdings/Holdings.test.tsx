@@ -1104,8 +1104,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByLabelText('Your companies')).toBeNull();
   expect(screen.getByLabelText('Your shares: 10')).toBeTruthy();
   expect(screen.getByLabelText('Current shareholders: 3')).toBeTruthy();
-  expect(screen.getByText('100.00%')).toBeTruthy();
-  expect(screen.getByText('You: 10')).toBeTruthy();
+  expect(screen.getByText('ORD · 100.00% · You: 10')).toBeTruthy();
   await view.rerender(<InvitationScreen />);
   await fireEvent.changeText(screen.getByLabelText('Link or code from the email'), OTHER_CODE);
   const acceptOther = await screen.findByRole('button', { name: 'Accept invitation' });

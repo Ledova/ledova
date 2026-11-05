@@ -72,7 +72,8 @@ function useDashboardStyles() {
     dot: { width: 10, height: 10, borderRadius: 5 },
     className: { fontFamily: theme.fontFamily.medium, fontSize: 14, color: theme.colors.text.primary },
     small: { fontFamily: theme.fontFamily.regular, fontSize: 12, color: theme.colors.text.muted },
-    figures: { alignItems: 'flex-end' as const },
+    classLine: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: theme.spacing.smd },
+    grow: { flex: 1, minWidth: 0 },
     figure: { fontFamily: theme.fontFamily.regular, fontSize: 14, color: theme.colors.text.primary },
     holdersArea: { minHeight: 192 },
     loading: {
@@ -611,20 +612,24 @@ function OwnershipClasses({
             style={[look.classRow, row.uuid === chosen && look.classSelected]}
           >
             <View style={[look.dot, { backgroundColor: theme.colors.chart[ownershipColorIndex(classes, row.uuid)] }]} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={look.className}>{row.name}</Text>
-              <Text style={look.small}>{row.symbol}</Text>
-            </View>
-            <View style={look.figures}>
-              <Text style={look.figure}>
-                {row.issuedSupply === null ? 'Not recorded' : formatShareCount(row.issuedSupply)}
+            <View style={look.grow}>
+              <View style={look.classLine}>
+                <Text style={[look.className, look.grow]}>{row.name}</Text>
+                <Text style={look.figure}>
+                  {row.issuedSupply === null ? 'Not recorded' : formatShareCount(row.issuedSupply)}
+                </Text>
+              </View>
+              <Text style={look.small}>
+                {[
+                  row.symbol,
+                  shown && row.issuedSupply !== null ? sharePercentage(row.issuedSupply, total) : null,
+                  !personalOnly && row.ownShares !== null && BigInt(row.ownShares) > 0n
+                    ? `You: ${formatShareCount(row.ownShares)}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </Text>
-              {shown && row.issuedSupply !== null && (
-                <Text style={look.small}>{sharePercentage(row.issuedSupply, total)}</Text>
-              )}
-              {!personalOnly && row.ownShares !== null && BigInt(row.ownShares) > 0n && (
-                <Text style={look.small}>You: {formatShareCount(row.ownShares)}</Text>
-              )}
             </View>
             <CaretRightIcon size={16} color={theme.colors.text.muted} />
           </Pressable>

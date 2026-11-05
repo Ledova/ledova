@@ -58,7 +58,9 @@ cards, columns, class choices and default class (owner, 28 October 2026). Dashbo
 list by issued shares. Ownership dashboards put their overview and charts before
 record-management details, with awards separate from issued shares. The selected company uses one
 ownership ring beside a linked class list, with full class names before their secondary codes.
-Names wrap without displacing the figures. Select a segment or class row to open an aligned class
+Each class row is compact: the name with its issued count at the right, then one muted line with the
+class code, its share of the company's issued shares and, for a member, **You:** and their holding.
+Names wrap without displacing the count. Select a segment or class row to open an aligned class
 details card beneath the overview. A muted trailing chevron identifies class rows that open this
 detail; holder rows keep their highlight-only interaction. Show the relevant exact totals and own
 position, followed by the ranked holder list, 25 to a page, only for company-authorised readers. The
