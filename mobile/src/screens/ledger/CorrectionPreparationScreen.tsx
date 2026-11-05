@@ -108,9 +108,7 @@ function OwnCorrection({
       navigation.popTo('Corrections', params);
     else navigation.replace('Corrections', params);
   };
-  const cancel = () => toCorrections({ company, token });
   let content: ReactNode;
-  let formShown = false;
   if (!classes.data || !appointments.data)
     content =
       classes.isError || appointments.isError ? (
@@ -142,7 +140,6 @@ function OwnCorrection({
       </Text>
     );
   else {
-    formShown = true;
     content = (
       <>
         <Section title={listed.name}>
@@ -175,7 +172,7 @@ function OwnCorrection({
               void corrected.refetch();
               void appointments.refetch();
             }}
-            onCancel={cancel}
+            onCancel={() => toCorrections({ company, token })}
             onPrepared={(record) => toCorrections({ company, token, record, outcome: COPY.PREPARED })}
           />
         </Section>
@@ -185,11 +182,6 @@ function OwnCorrection({
   return (
     <Page testID="correction-preparation-scroll" title={TITLE} lede={LEDE}>
       {content}
-      {!formShown && (
-        <FormActions>
-          <Action label="Cancel" accessibilityLabel="Cancel (correction)" onPress={cancel} />
-        </FormActions>
-      )}
     </Page>
   );
 }

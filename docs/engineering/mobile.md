@@ -360,7 +360,7 @@ through the shared `useCorrectionEntry` and `useCorrectionPreparation`): the ent
 and its exact inverse, then Authority, Approving director for a resolution, Authority reference, the
 effective date typed as `YYYY-MM-DD` (UTC), the authority document and the reason, keeping its retry
 of an uncertain preparation. Preparing or Cancel returns to the class's Corrections, with a prepared
-correction in view and marked as prepared, and a page that cannot show the form still offers Cancel.
+correction in view and marked as prepared.
 A read-only appointment gets the web's notes and no actions. Share class is locked while a review or
 held decision is open, and pulling down rereads the classes, the person's appointments, the entries,
 corrections, opening records and particulars changes while none is.
