@@ -13,7 +13,7 @@ import {
 } from '@ledova/shared';
 import { Outcome, Section, Loading, LoadError, Failure } from '@components/Ledger';
 import { PersonSelect } from '@pages/company/ledger/shared/PersonPicker';
-import { FormActions, PageAction } from '@components/Page';
+import { Actions, FormActions, PageAction } from '@components/Page';
 import { Confirmation } from '@components/Modal';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -77,7 +77,7 @@ export function CompanyMemberAccess({
   const [revokeMember, setRevokeMember] = useState('');
   const [revoking, setRevoking] = useState<{ uuid: string; name: string } | null>(null);
   const invite = useRef<HTMLHeadingElement>(null);
-  const inviteAction = useRef<HTMLDivElement>(null);
+  const inviteAction = useRef<HTMLButtonElement>(null);
   const restoreInviteFocus = useRef(false);
   const shown = !!inviteMember && member?.uuid === inviteMember;
   const target = `${company}:${inviteMember}`;
@@ -89,7 +89,7 @@ export function CompanyMemberAccess({
       invite.current?.scrollIntoView?.({ block: 'start' });
     } else if (restoreInviteFocus.current) {
       restoreInviteFocus.current = false;
-      inviteAction.current?.querySelector('button')?.focus();
+      inviteAction.current?.focus();
     }
   }, [inviting]);
   const invitations = access.access?.invitations ?? [];
@@ -356,8 +356,9 @@ export function CompanyMemberAccess({
           </Section>
         </div>
         {access.admin && !inviting && (
-          <div ref={inviteAction} className="flex flex-wrap justify-end gap-2">
+          <Actions>
             <PageAction
+              ref={inviteAction}
               label="Invite a member"
               primary
               disabled={held}
@@ -366,7 +367,7 @@ export function CompanyMemberAccess({
                 setInviting(true);
               }}
             />
-          </div>
+          </Actions>
         )}
       </div>
       {revoking && (

@@ -271,18 +271,7 @@ function SignedInOwnership({
                       />
                     </Section>
                     {selected && (
-                      <Section
-                        title="Class details"
-                        header={
-                          <h2
-                            ref={details}
-                            tabIndex={-1}
-                            className="break-words font-display text-xl focus:outline-none"
-                          >
-                            {selectedClass?.name ?? 'Class unavailable'}
-                          </h2>
-                        }
-                      >
+                      <Section title={selectedClass?.name ?? 'Class unavailable'} headingRef={details}>
                         {!selectedClass ? (
                           <p role="status" className="text-sm text-text-muted">
                             This share class is no longer available in the company overview.
