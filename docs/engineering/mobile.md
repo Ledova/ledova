@@ -415,7 +415,8 @@ company on Dashboard. The capabilities are checkboxes, the expiry is typed as `Y
 with the web's check, and **Choose file** picks the supporting document through `expo-file-system`'s
 own picker (`pickDocument` in `mobile/src/services/documentCopies.ts`), checked as on the web. A
 request opens its page (`AuthorityRequestScreen.tsx`, the company's name as its title): the web's
-Request and Appointment cards, the declaration and Terms for an admin request still pending,
+Request and Appointment cards, each fact on one line with its label on the left and its value on the
+right (`inline` `Fact`s), the declaration and Terms for an admin request still pending,
 **Show the declaration**, **Download evidence**, which shares the file
 ([document view copies](#document-view-copies)), **Withdraw request** and **Establish appointment**
 while pending, and **Revoke appointment**. Withdrawing and revoking ask first in the web's dialogs.

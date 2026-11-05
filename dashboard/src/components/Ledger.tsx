@@ -155,7 +155,14 @@ export function Fact({
   );
 }
 
-export function Row({ label, children }: { label: string; children: ReactNode }) {
+export function Row({ label, inline = false, children }: { label: string; inline?: boolean; children: ReactNode }) {
+  if (inline)
+    return (
+      <div className="flex min-w-0 items-baseline justify-between gap-4 py-3">
+        <dt className="shrink-0 text-sm text-text-muted">{label}</dt>
+        <dd className="min-w-0 break-words text-right text-sm tabular-nums text-text-primary">{children}</dd>
+      </div>
+    );
   return (
     <div className="grid min-w-0 gap-1 py-3 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:gap-6">
       <dt className="min-w-0 break-words text-sm text-text-muted">{label}</dt>

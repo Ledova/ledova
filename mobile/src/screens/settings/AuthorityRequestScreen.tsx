@@ -195,18 +195,28 @@ function AuthorityRequestRecord({
     <>
       <Section title="Request">
         <Rows>
-          <Fact label="Status">
+          <Fact inline label="Status">
             <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
               {authorityRequestStatus(request)}
             </Status>
           </Fact>
-          <Fact label="Requested expiry">
+          <Fact inline label="Requested expiry">
             {request.requestedExpiresAt ? formatDateTime(request.requestedExpiresAt) : 'No requested expiry'}
           </Fact>
-          <Fact label="Requested actions">{requestScopeLabels(request.requestedCapabilities)}</Fact>
-          <Fact label="Requested delegation">{requestScopeLabels(request.delegatableCapabilities)}</Fact>
-          <Fact label="Submitted">{formatDateTime(request.createdAt)}</Fact>
-          {request.withdrawnAt && <Fact label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Fact>}
+          <Fact inline label="Requested actions">
+            {requestScopeLabels(request.requestedCapabilities)}
+          </Fact>
+          <Fact inline label="Requested delegation">
+            {requestScopeLabels(request.delegatableCapabilities)}
+          </Fact>
+          <Fact inline label="Submitted">
+            {formatDateTime(request.createdAt)}
+          </Fact>
+          {request.withdrawnAt && (
+            <Fact inline label="Withdrawn">
+              {formatDateTime(request.withdrawnAt)}
+            </Fact>
+          )}
         </Rows>
         <Text style={styles.muted}>{request.verificationMessage}</Text>
         {request.status === 'pending' && (
@@ -270,15 +280,29 @@ function AuthorityRequestRecord({
       {appointment && (
         <Section title="Appointment">
           <Rows>
-            <Fact label="Appointment status">{APPOINTMENT_STATUS_LABELS[appointment.status]}</Fact>
-            <Fact label="Current company authority">{appointment.isEffective ? 'Current' : 'Not current'}</Fact>
-            <Fact label="Admitted">{formatDateTime(appointment.createdAt)}</Fact>
-            <Fact label="Appointed actions">{requestScopeLabels(appointment.capabilities)}</Fact>
-            <Fact label="Appointed delegation">{requestScopeLabels(appointment.delegatableCapabilities)}</Fact>
-            <Fact label="Appointment expiry">
+            <Fact inline label="Appointment status">
+              {APPOINTMENT_STATUS_LABELS[appointment.status]}
+            </Fact>
+            <Fact inline label="Current company authority">
+              {appointment.isEffective ? 'Current' : 'Not current'}
+            </Fact>
+            <Fact inline label="Admitted">
+              {formatDateTime(appointment.createdAt)}
+            </Fact>
+            <Fact inline label="Appointed actions">
+              {requestScopeLabels(appointment.capabilities)}
+            </Fact>
+            <Fact inline label="Appointed delegation">
+              {requestScopeLabels(appointment.delegatableCapabilities)}
+            </Fact>
+            <Fact inline label="Appointment expiry">
               {appointment.expiresAt ? formatDateTime(appointment.expiresAt) : 'No expiry'}
             </Fact>
-            {appointment.revokedAt && <Fact label="Revoked">{formatDateTime(appointment.revokedAt)}</Fact>}
+            {appointment.revokedAt && (
+              <Fact inline label="Revoked">
+                {formatDateTime(appointment.revokedAt)}
+              </Fact>
+            )}
           </Rows>
           <ShowMore show="Show the declaration" hide="Hide the declaration">
             <Text style={styles.muted}>Declaration version {appointment.declarationVersion}</Text>
