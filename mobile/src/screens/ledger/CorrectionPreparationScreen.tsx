@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, Text, View } from 'react-native';
 import { useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -26,6 +26,7 @@ import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { Choices, Field, FileField } from '../../components/register/RegisterFields';
 import { useMemberRecordsState } from '../../contexts';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { RegisterChanges } from './CorrectionRecord';
@@ -49,12 +50,25 @@ export function CorrectionPreparationScreen({
   const preferences = useUserPreferences();
   const { directory, companies } = useMemberRecordsState();
   const readable = companies.some((row) => row.uuid === company && row.canReadRegister);
-  if (owner && !preferences.isError && readable && !directory.hasError && !directory.isLoading)
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    `${company}/${token}/${entry}`,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      readable &&
+      !directory.hasError &&
+      !directory.isLoading &&
+      !directory.isRefreshing,
+  );
+  if (owner && scope.scope !== undefined)
     return (
       <OwnCorrection
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company}/${token}/${entry}`}
+        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}`}
         owner={owner}
-        currentOwner={boundary.get}
+        currentOwner={scope.currentOwner}
+        accountOwner={boundary.get}
+        available={scope.available}
         company={company}
         token={token}
         entry={entry}
@@ -70,12 +84,16 @@ export function CorrectionPreparationScreen({
 function OwnCorrection({
   owner,
   currentOwner,
+  accountOwner,
+  available,
   company,
   token,
   entry,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  accountOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
   token: string;
   entry: string;
@@ -88,100 +106,151 @@ function OwnCorrection({
     },
     [owner, currentOwner],
   );
-  const classes = useRegisterClasses(owner, guard, orderSubmissionSession);
-  const appointments = useOwnAppointments(owner, guard, { session: orderSubmissionSession });
+  const accountGuard = useMemo(
+    () => () => {
+      if (accountOwner() !== owner) throw new Error('Your signed-in account changed. Reopen the register.');
+    },
+    [owner, accountOwner],
+  );
+  const classes = useRegisterClasses(owner, accountGuard, orderSubmissionSession, available);
+  const appointments = useOwnAppointments(owner, accountGuard, { session: orderSubmissionSession });
   const listed = classes.data?.find((item) => item.uuid === token);
   const companyMatches = listed?.companyUuid === company;
   const appointment =
     companyMatches && appointments.data ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
-  const corrected = useCorrectionEntry(owner, token, entry, guard, appointment, orderSubmissionSession);
+  const corrected = useCorrectionEntry(
+    owner,
+    token,
+    entry,
+    guard,
+    available ? appointment : undefined,
+    orderSubmissionSession,
+  );
+  const fetching = classes.isFetching || appointments.isFetching || corrected.isFetching;
+  const stale = classes.isError || appointments.isError || corrected.isError;
+  const fresh =
+    available &&
+    !fetching &&
+    !stale &&
+    classes.isSuccess &&
+    appointments.isSuccess &&
+    companyMatches &&
+    !!appointment &&
+    corrected.isSuccess &&
+    !!corrected.data?.correctable;
+  const [context, setContext] = useState<{
+    listed: NonNullable<typeof listed>;
+    appointment: NonNullable<typeof appointment>;
+    entry: NonNullable<typeof corrected.data>;
+  } | null>(null);
+  if (
+    fresh &&
+    listed &&
+    appointment &&
+    corrected.data &&
+    (!context ||
+      (context.appointment.uuid === appointment.uuid &&
+        (context.listed !== listed || context.entry !== corrected.data)))
+  )
+    setContext({ listed, appointment: context?.appointment ?? appointment, entry: corrected.data });
+  const live = useRef({ ready: false, appointment: '' });
+  useLayoutEffect(() => {
+    live.current = {
+      ready: fresh,
+      appointment: appointment?.uuid ?? '',
+    };
+  });
+  const expectedAppointment = context?.appointment.uuid;
+  const formGuard = useMemo(
+    () => () => {
+      guard();
+      if (!live.current.ready || live.current.appointment !== expectedAppointment)
+        throw new Error('Your preparation appointment changed. Reopen this form.');
+    },
+    [guard, expectedAppointment],
+  );
+  const formReady = fresh && appointment?.uuid === context?.appointment.uuid;
   const retry = () => {
     if (classes.isError) void classes.refetch();
     if (appointments.isError) void appointments.refetch();
-    if (corrected.isError) void corrected.refetch();
+    if (available && corrected.isError) void corrected.refetch();
   };
-  const fetching = classes.isFetching || appointments.isFetching || corrected.isFetching;
-  const stale = classes.isError || appointments.isError || corrected.isError;
   const toCorrections = (params: SignedInStackParamList['Corrections']) => {
     Keyboard.dismiss();
     if (navigation.getState()?.routes.some(({ name }) => name === 'Corrections'))
       navigation.popTo('Corrections', params);
     else navigation.replace('Corrections', params);
   };
-  let content: ReactNode;
-  if (!classes.data || !appointments.data)
-    content =
-      classes.isError || appointments.isError ? (
-        <LoadError retry={retry} busy={fetching}>
-          {classes.isError ? 'The register could not be loaded.' : 'Your appointments could not be loaded.'}
-        </LoadError>
-      ) : (
-        <Loading>Loading the register…</Loading>
-      );
-  else if (!listed || !companyMatches)
-    content = <Text style={look.muted}>This share class is not in a register you can read.</Text>;
-  else if (!appointment) content = <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>;
-  else if (corrected.data === undefined)
-    content = corrected.isError ? (
+  let status: ReactNode;
+  if (stale)
+    status = (
       <LoadError retry={retry} busy={fetching}>
-        The register could not be loaded.
+        The register or your appointments could not be loaded.
       </LoadError>
-    ) : (
-      <Loading>Loading the register…</Loading>
     );
+  else if (!classes.data || !appointments.data || fetching) status = <Loading>Loading the register…</Loading>;
+  else if (!listed || !companyMatches)
+    status = <Text style={look.muted}>This share class is not in a register you can read.</Text>;
+  else if (!appointment) status = <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>;
+  else if (corrected.data === undefined) status = <Loading>Loading the register…</Loading>;
   else if (corrected.data === null)
-    content = <Text style={look.muted}>This entry is not in the register of this share class.</Text>;
+    status = <Text style={look.muted}>This entry is not in the register of this share class.</Text>;
   else if (!corrected.data.correctable)
-    content = (
+    status = (
       <Text style={look.muted}>
         {corrected.data.correctedBy
           ? COPY.CORRECTED_NOTE
           : 'This entry records no change, so there is nothing to correct.'}
       </Text>
     );
-  else {
-    content = (
-      <>
-        <Section title={listed.name}>
-          <Text style={look.muted}>{listed.symbol}</Text>
-          <Rows>
-            <Fact label={COPY.ORIGINAL_CHANGES}>
-              <RegisterChanges lead={describeEntry(corrected.data)} changes={corrected.data.changes} />
-            </Fact>
-            <Fact label={COPY.COMPENSATING_CHANGES}>
-              <RegisterChanges changes={entryInverse(corrected.data)} />
-            </Fact>
-          </Rows>
-          <Text style={look.muted}>{COPY.COMPENSATION_NOTE}</Text>
-        </Section>
-        <Section title={COPY.PREPARE}>
-          {stale && (
-            <LoadError retry={retry} busy={fetching}>
-              The register or your appointments could not be loaded.
-            </LoadError>
-          )}
-          <CorrectionForm
-            owner={owner}
-            guard={guard}
-            company={company}
-            token={token}
-            entry={corrected.data}
-            appointment={appointment}
-            blocked={stale}
-            onConflict={() => {
-              void corrected.refetch();
-              void appointments.refetch();
-            }}
-            onCancel={() => toCorrections({ company, token })}
-            onPrepared={(record) => toCorrections({ company, token, record, outcome: COPY.PREPARED })}
-          />
-        </Section>
-      </>
-    );
-  }
+  else if (context && appointment.uuid !== context.appointment.uuid)
+    status = <Text style={look.muted}>Your preparation appointment changed. Reopen this form.</Text>;
   return (
-    <Page testID="correction-preparation-scroll" title={TITLE} lede={LEDE}>
-      {content}
+    <Page
+      testID="correction-preparation-scroll"
+      title={TITLE}
+      lede={LEDE}
+      available={available}
+      unavailable={<RegisterAccess owner={owner} />}
+    >
+      {!formReady && status}
+      {context && (
+        <View
+          style={[look.fields, !formReady && look.hidden]}
+          accessibilityElementsHidden={!formReady}
+          importantForAccessibility={formReady ? 'auto' : 'no-hide-descendants'}
+        >
+          <Section title={context.listed.name}>
+            <Text style={look.muted}>{context.listed.symbol}</Text>
+            <Rows>
+              <Fact label={COPY.ORIGINAL_CHANGES}>
+                <RegisterChanges lead={describeEntry(context.entry)} changes={context.entry.changes} />
+              </Fact>
+              <Fact label={COPY.COMPENSATING_CHANGES}>
+                <RegisterChanges changes={entryInverse(context.entry)} />
+              </Fact>
+            </Rows>
+            <Text style={look.muted}>{COPY.COMPENSATION_NOTE}</Text>
+          </Section>
+          <Section title={COPY.PREPARE}>
+            <CorrectionForm
+              owner={owner}
+              guard={formGuard}
+              company={company}
+              token={token}
+              entry={context.entry}
+              appointment={context.appointment}
+              blocked={!formReady}
+              onConflict={() => {
+                void corrected.refetch();
+                void appointments.refetch();
+              }}
+              onCancel={() => toCorrections({ company, token })}
+              onPrepared={(record) => toCorrections({ company, token, record, outcome: COPY.PREPARED })}
+            />
+          </Section>
+        </View>
+      )}
     </Page>
   );
 }

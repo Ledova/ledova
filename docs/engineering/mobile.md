@@ -247,19 +247,23 @@ linked date, with a compact **Revoke access**, whose reason form and confirmatio
 until confirmed, and each invitation's name and status, then its email and short invited date, with
 any deadline beneath. **Invite a member** replaces them with the web's form, choosing the recipient from a
 searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
-access to the company, each of these pages reads nothing and points to Dashboard. Pulling down rereads
+access to the company, these pages read no private company records and point to Dashboard. Pulling down rereads
 each of them while no form or action is open. Unlike the web, which keeps a held save on its page,
 leaving an app page still drops that save's retry, so repeating an unresolved add, invitation,
 award, document save or register instruction can record it twice. Navigation protection remains
 planned under #1464.
 
-Team, an employee award, a shareholder, a share class, Company pack and Inspection copies keep
-an existing form mounted during a same-account access reread or failure. `useRetainedScope.ts` in
+Company registry tasks keep an existing form mounted during a same-account access reread or failure:
+Team, shareholder records and member access, the employee scheme and awards, share classes, issues,
+transfers, corrections, particulars changes, ledger setup, Company pack and Inspection copies. `useRetainedScope.ts` in
 `mobile/src/hooks` retains only the confirmed company/record scope under the exact account and
 session epoch. `Page` hides private content and its accessibility tree while showing the access
 status in the same frame; actions and private reads stay blocked by live guards. A changed account,
 session, explicit company selection or record discards the old form; losing access alone keeps it hidden. Current appointment reads remain account-bound,
-so a failed company-access reread can recover. Other mutation pages still need this treatment.
+so a failed company-access reread can recover. `useCompanyRegisters.ts` keeps the last confirmed
+register snapshot inside the current owner/company component; private queries and actions still
+require live source readiness. A held command keeps its original company, person, class, appointment
+and idempotency key rather than being rebound to newly read authority.
 Company pack and Inspection copies key forms by their source identity, not transient readiness or
 an entire register snapshot, and keep their drafts while their sources are rechecked.
 Employee share scheme (`EmployeeSchemeScreen.tsx`) is the web's view at phone width for a register

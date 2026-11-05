@@ -16,6 +16,7 @@ import {
   useErrorSummary,
   usePersonRegistration,
   useSubmissionOwner,
+  useUserPreferences,
   type OrderSubmissionOwner,
   type Person,
   type RegisterEntryKind,
@@ -44,6 +45,8 @@ import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
+import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useShareholderStyles } from './useShareholderStyles';
@@ -57,15 +60,29 @@ const counted = (count: number) => `${formatShareCount(String(count))} ${count =
 
 export function ShareholdersScreen() {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company } = useMemberRecordsState();
+  const { directory, companies, company, companySelection } = useMemberRecordsState();
+  const preferences = useUserPreferences();
   const choosing = directory.isLoading || (!company && companies.length > 0);
-  if (owner && company?.canReadRegister && !directory.hasError && !choosing)
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    company?.uuid,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      !!company?.canReadRegister &&
+      !directory.hasError &&
+      !choosing &&
+      !directory.isRefreshing,
+    companySelection,
+  );
+  if (owner && scope.scope)
     return (
       <CompanyShareholders
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company.uuid}`}
+        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}`}
         owner={owner}
         currentOwner={boundary.get}
-        company={company.uuid}
+        company={scope.scope}
+        available={scope.available}
       />
     );
   return (
@@ -88,17 +105,19 @@ export function ShareholdersScreen() {
 function CompanyShareholders({
   owner,
   currentOwner,
+  available,
   company,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
 }) {
   const theme = useAppTheme();
   const form = useCompanyStyles();
   const look = useShareholderStyles();
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
-  const source = useCompanyRegisters(owner, currentOwner, company, 'Shareholders');
+  const source = useCompanyRegisters(owner, currentOwner, company, 'Shareholders', available);
   const [held, setHeld] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [typed, setTyped] = useState('');
@@ -117,6 +136,7 @@ function CompanyShareholders({
   const person = usePersonRegistration({
     owner,
     guard: source.guard,
+    accountGuard: source.accountGuard,
     company,
     sourceReady: source.ownershipReady,
     onHeldChange: setHeld,
@@ -143,8 +163,24 @@ function CompanyShareholders({
       testID="shareholders-scroll"
       title={TITLE}
       lede={LEDE}
+      available={available && source.sourceReady}
+      unavailable={
+        !available ? (
+          <RegisterAccess owner={owner} />
+        ) : source.accountError ? (
+          <LoadError retry={source.retryAccount} busy={source.isRefreshing}>
+            Your account could not be loaded.
+          </LoadError>
+        ) : source.hasError || source.invalid ? (
+          <LoadError retry={source.retry} busy={source.isRefreshing}>
+            The register could not be loaded.
+          </LoadError>
+        ) : (
+          <Loading>Loading the register…</Loading>
+        )
+      }
       titleAction={
-        source.ownershipReady && (shareholders.length > 0 || people.length > 0) ? (
+        available && source.ownershipReady && (shareholders.length > 0 || people.length > 0) ? (
           <FilterPopover active={filtered || !!search}>
             {(close) => (
               <>
@@ -194,7 +230,7 @@ function CompanyShareholders({
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing || person.editing || held) return;
+            if (!available || refreshing || person.editing || held) return;
             setRefreshing(true);
             void Promise.all([
               source.retry(),

@@ -31,6 +31,7 @@ import {
   type OwnCompanyAppointment,
   type OwnMemberRecord,
   type OrderSubmissionOwner,
+  type MemberInvitationCreate,
   type RegisterAllotment,
   type RegisterAllotmentDecideRequest,
   type RegisterAllotmentDecisionRequest,
@@ -658,6 +659,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let documentClasses = false;
   let preferencesWait: Promise<void> | null = null;
   let preferencesFailure = false;
+  let directoryFailure = false;
+  let loseInvitationReply = true;
   let appointmentsWait: Promise<void> | null = null;
   let loseVestingReply = false;
   const supportingDocuments: RegisterMemberDocument[] = [];
@@ -673,7 +676,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
       return { data: preferences };
     }
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
-    if (url === COMPANY_ENDPOINTS.BASE) return page(administered ? [ADMINISTERED] : []);
+    if (url === COMPANY_ENDPOINTS.BASE) {
+      if (directoryFailure) throw new Error('Synthetic directory refusal');
+      return page(administered ? [ADMINISTERED] : []);
+    }
     if (url === APPOINTMENTS) {
       if (appointmentsWait) await appointmentsWait;
       return page(appointed ? [own] : []);
@@ -849,6 +855,23 @@ it('associates a member by invitation code, switches to their company on Dashboa
         declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION,
       };
       return { data: own };
+    }
+    if (url === URLS.MEMBER_INVITATION_SEND_EMAIL) {
+      const request = value as MemberInvitationCreate;
+      if (loseInvitationReply) {
+        loseInvitationReply = false;
+        throw Object.assign(new Error('Synthetic lost invitation response'), { response: { status: 503 } });
+      }
+      return {
+        data: {
+          uuid: request.operationId,
+          company: request.company,
+          member: request.member,
+          appointment: request.appointment,
+          intendedEmail: request.intendedEmail,
+          emailDelivery: 'accepted',
+        },
+      };
     }
     if (url === URLS.MEMBER_INVITATION_PREVIEW) {
       const other = body.code === OTHER_CODE;
@@ -1735,6 +1758,59 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(
     screen.getByRole('button', { name: 'Revoke access (Synthetic Holder B, holder-b@example.test)' }),
   ).toBeTruthy();
+  const memberInvitationPage = (member: string) => (
+    <MemberAccessScreen
+      route={{
+        key: 'retained-invitation',
+        name: 'MemberAccess',
+        params: { company: ADMINISTERED.uuid, inviteMember: member },
+      }}
+    />
+  );
+  await view.rerender(memberInvitationPage(HOLDER_A.member));
+  await fireEvent.changeText(await screen.findByLabelText('Intended recipient email'), 'holder-a@example.test');
+  await fireEvent.press(screen.getByRole('button', { name: 'Send invitation', disabled: false }));
+  const retryInvitation = await screen.findByRole('button', {
+    name: 'Retry original company member action',
+    disabled: false,
+  });
+  const staleInvitationAction = retryInvitation.props.onAccessibilityTap;
+  const invitationPosts = () => api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_INVITATION_SEND_EMAIL);
+  expect(invitationPosts()).toHaveLength(1);
+  directoryFailure = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownershipCompaniesKey(owner), exact: true });
+  });
+  expect(await screen.findByText('Your company access could not be confirmed.')).toBeTruthy();
+  expect(screen.queryByLabelText('Intended recipient email')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Retry original company member action' })).toBeNull();
+  await act(async () => staleInvitationAction());
+  expect(invitationPosts()).toHaveLength(1);
+  directoryFailure = false;
+  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  expect((await screen.findByLabelText('Intended recipient email')).props.value).toBe('holder-a@example.test');
+  const recoveredInvitation = await screen.findByRole('button', {
+    name: 'Retry original company member action',
+    disabled: false,
+  });
+  expect(screen.getByRole('button', { name: 'Member or award recipient: Synthetic Holder A' })).toBeTruthy();
+  await fireEvent.press(recoveredInvitation);
+  expect(
+    await screen.findByText('The invitation email was accepted for sending. Awaiting the recipient’s acceptance.'),
+  ).toBeTruthy();
+  expect(invitationPosts()).toHaveLength(2);
+  expect(invitationPosts()[1][1]).toEqual(invitationPosts()[0][1]);
+  expect(invitationPosts()[0][1]).toEqual({
+    operationId: expect.any(String),
+    company: ADMINISTERED.uuid,
+    member: HOLDER_A.member,
+    appointment: ADMINISTRATION.uuid,
+    intendedEmail: 'holder-a@example.test',
+  });
+  await view.rerender(memberInvitationPage(HOLDER_B.member));
+  expect((await screen.findByLabelText('Intended recipient email')).props.value).toBe('');
+  expect(screen.getByRole('button', { name: 'Member or award recipient: Synthetic Holder B' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Retry original company member action' })).toBeNull();
   const scheme = <EmployeeSchemeScreen />;
   await view.rerender(scheme);
   expect(await screen.findByText(REGISTER_AWARD_COPY.EMPTY)).toBeTruthy();

@@ -19,6 +19,7 @@ import {
   usePeople,
   useRegisterAwards,
   useSubmissionOwner,
+  useUserPreferences,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
@@ -31,6 +32,8 @@ import { Page } from '../../components/Page';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
+import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { AwardForm } from './AwardForms';
@@ -41,15 +44,29 @@ const LEDE = 'Record employee entitlements and vesting. Shares are issued throug
 
 export function EmployeeSchemeScreen() {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company } = useMemberRecordsState();
+  const { directory, companies, company, companySelection } = useMemberRecordsState();
+  const preferences = useUserPreferences();
   const choosing = directory.isLoading || (!company && companies.length > 0);
-  if (owner && company?.canReadRegister && !directory.hasError && !choosing)
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    company?.uuid,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      !!company?.canReadRegister &&
+      !directory.hasError &&
+      !choosing &&
+      !directory.isRefreshing,
+    companySelection,
+  );
+  if (owner && scope.scope)
     return (
       <CompanyScheme
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company.uuid}`}
+        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}`}
         owner={owner}
         currentOwner={boundary.get}
-        company={company.uuid}
+        company={scope.scope}
+        available={scope.available}
       />
     );
   return (
@@ -72,14 +89,16 @@ export function EmployeeSchemeScreen() {
 function CompanyScheme({
   owner,
   currentOwner,
+  available,
   company,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
 }) {
   const theme = useAppTheme();
-  const source = useCompanyRegisters(owner, currentOwner, company, TITLE);
+  const source = useCompanyRegisters(owner, currentOwner, company, TITLE, available);
   const [chosen, setChosen] = useState('');
   const [editing, setEditing] = useState(false);
   const [held, setHeld] = useState(false);
@@ -92,8 +111,24 @@ function CompanyScheme({
       testID="employee-scheme-scroll"
       title={TITLE}
       lede={LEDE}
+      available={available && source.sourceReady}
+      unavailable={
+        !available ? (
+          <RegisterAccess owner={owner} />
+        ) : source.accountError ? (
+          <LoadError retry={source.retryAccount} busy={source.isRefreshing}>
+            Your account could not be loaded.
+          </LoadError>
+        ) : source.hasError || source.invalid ? (
+          <LoadError retry={source.retry} busy={source.isRefreshing}>
+            The register could not be loaded.
+          </LoadError>
+        ) : (
+          <Loading>Loading the register…</Loading>
+        )
+      }
       titleAction={
-        source.sourceReady && registers.length > 1 && register ? (
+        available && source.sourceReady && registers.length > 1 && register ? (
           <FilterPopover>
             {(close) => (
               <SelectField
@@ -120,7 +155,7 @@ function CompanyScheme({
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing || editing || held) return;
+            if (!available || refreshing || editing || held) return;
             setRefreshing(true);
             void Promise.all([source.retry(), refreshAwards.current()]).finally(() => setRefreshing(false));
           }}
@@ -145,6 +180,7 @@ function CompanyScheme({
           company={company}
           register={register}
           guard={source.guard}
+          accountGuard={source.accountGuard}
           sourceReady={source.sourceReady}
           refreshRef={refreshAwards}
           onEditingChange={setEditing}
@@ -160,6 +196,7 @@ function ClassAwards({
   company,
   register,
   guard,
+  accountGuard,
   sourceReady,
   refreshRef,
   onEditingChange,
@@ -169,6 +206,7 @@ function ClassAwards({
   company: string;
   register: TokenHoldersResponse;
   guard: () => void;
+  accountGuard: () => void;
   sourceReady: boolean;
   refreshRef: RefObject<() => Promise<unknown>>;
   onEditingChange: (editing: boolean) => void;
@@ -182,7 +220,7 @@ function ClassAwards({
   const [formHeld, setFormHeld] = useState(false);
   const live = useRef(true);
   const latestAppointments = useRef<OwnCompanyAppointment[]>([]);
-  const appointments = useOwnAppointments(owner, guard, { session: orderSubmissionSession });
+  const appointments = useOwnAppointments(owner, accountGuard, { session: orderSubmissionSession });
   const readable = hasCurrentRegisterReadAuthority(appointments.isSuccess ? appointments.data : [], company);
   useLayoutEffect(() => {
     latestAppointments.current = appointments.isSuccess ? appointments.data : [];
@@ -203,11 +241,17 @@ function ClassAwards({
     [guard, company],
   );
   const token = register.token.uuid;
-  const awards = useRegisterAwards(owner, company, token, check, readable, orderSubmissionSession);
+  const awards = useRegisterAwards(owner, company, token, check, readable && sourceReady, orderSubmissionSession);
   const appointment =
     readable && appointments.isSuccess ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
   const supported = register.initialized && register.token.status === 'draft';
-  const members = usePeople(owner, token, check, editing && !!appointment && supported, orderSubmissionSession);
+  const members = usePeople(
+    owner,
+    token,
+    check,
+    sourceReady && editing && !!appointment && supported,
+    orderSubmissionSession,
+  );
   const blocked =
     !readable || !sourceReady || awards.isFetching || awards.isError || appointments.isFetching || appointments.isError;
   const visible =

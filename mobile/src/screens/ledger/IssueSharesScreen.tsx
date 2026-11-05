@@ -9,6 +9,7 @@ import {
   hasCurrentRegisterReadAuthority,
   ownAppointmentsKey,
   useSubmissionOwner,
+  useUserPreferences,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type TokenHoldersResponse,
@@ -22,6 +23,8 @@ import { Choices } from '../../components/register/RegisterFields';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
+import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { GroupedRecords } from './GroupedRecords';
@@ -43,16 +46,30 @@ type IssueRequest = { key: string; token?: string; member?: string; award?: stri
 
 export function IssueSharesScreen({ route }: { route: RouteProp<SignedInStackParamList, 'IssueShares'> }) {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company } = useMemberRecordsState();
+  const { directory, companies, company, companySelection } = useMemberRecordsState();
+  const preferences = useUserPreferences();
   const choosing = directory.isLoading || (!company && companies.length > 0);
-  if (owner && company?.canReadRegister && !directory.hasError && !choosing) {
-    const request = route.params?.company === company.uuid ? { key: route.key, ...route.params } : undefined;
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    company?.uuid,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      !!company?.canReadRegister &&
+      !directory.hasError &&
+      !choosing &&
+      !directory.isRefreshing,
+    companySelection,
+  );
+  if (owner && scope.scope) {
+    const request = route.params?.company === scope.scope ? { key: route.key, ...route.params } : undefined;
     return (
       <CompanyIssues
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company.uuid}`}
+        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}`}
         owner={owner}
         currentOwner={boundary.get}
-        company={company.uuid}
+        company={scope.scope}
+        available={scope.available}
         request={request}
       />
     );
@@ -77,11 +94,13 @@ export function IssueSharesScreen({ route }: { route: RouteProp<SignedInStackPar
 function CompanyIssues({
   owner,
   currentOwner,
+  available,
   company,
   request,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
   request?: IssueRequest;
 }) {
@@ -89,14 +108,12 @@ function CompanyIssues({
   const look = useLedgerStyles();
   const page = useRef<ScrollView>(null);
   const content = useRef<View>(null!);
-  const source = useCompanyRegisters(owner, currentOwner, company, TITLE);
+  const source = useCompanyRegisters(owner, currentOwner, company, TITLE, available);
   const [chosen, setChosen] = useState(request?.token ?? '');
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [kept, setKept] = useState<TokenHoldersResponse[]>([]);
   const refreshIssues = useRef<() => Promise<unknown>>(async () => undefined);
-  if (source.registers && source.registers.length > 0 && source.registers !== kept) setKept(source.registers);
-  const registers = source.registers ?? (busy ? kept : []);
+  const registers = source.registers ?? [];
   const register = registers.find(({ token }) => token.uuid === chosen) ?? registers[0];
   const toTop = useCallback(() => page.current?.scrollTo({ y: 0, animated: false }), []);
   const focusRecord = useCallback((record: View) => {
@@ -118,8 +135,24 @@ function CompanyIssues({
       testID="issue-shares-scroll"
       title={TITLE}
       lede={LEDE}
+      available={available && source.sourceReady}
+      unavailable={
+        !available ? (
+          <RegisterAccess owner={owner} />
+        ) : source.accountError ? (
+          <LoadError retry={source.retryAccount} busy={source.isRefreshing}>
+            Your account could not be loaded.
+          </LoadError>
+        ) : source.hasError || source.invalid ? (
+          <LoadError retry={source.retry} busy={source.isRefreshing}>
+            The register could not be loaded.
+          </LoadError>
+        ) : (
+          <Loading>Loading the register…</Loading>
+        )
+      }
       titleAction={
-        source.sourceReady && registers.length > 1 && register ? (
+        available && source.sourceReady && registers.length > 1 && register ? (
           <FilterPopover>
             {(close) => (
               <SelectField
@@ -146,7 +179,7 @@ function CompanyIssues({
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing || busy) return;
+            if (!available || refreshing || busy) return;
             setRefreshing(true);
             void Promise.all([source.retry(), refreshIssues.current()]).finally(() => setRefreshing(false));
           }}
@@ -176,6 +209,7 @@ function CompanyIssues({
           company={company}
           register={register}
           guard={source.guard}
+          accountGuard={source.accountGuard}
           sourceReady={source.sourceReady}
           request={request && (!request.token || request.token === register.token.uuid) ? request : undefined}
           refreshRef={refreshIssues}
@@ -193,6 +227,7 @@ function ClassIssues({
   company,
   register,
   guard,
+  accountGuard,
   sourceReady,
   request,
   refreshRef,
@@ -204,6 +239,7 @@ function ClassIssues({
   company: string;
   register: TokenHoldersResponse;
   guard: () => void;
+  accountGuard: () => void;
   sourceReady: boolean;
   request?: IssueRequest;
   refreshRef: RefObject<() => Promise<unknown>>;
@@ -238,6 +274,7 @@ function ClassIssues({
     company,
     register,
     guard,
+    accountGuard,
     sourceReady,
     onHeldChange: setAllotmentHeld,
     issueMember: member,
@@ -254,6 +291,7 @@ function ClassIssues({
     company,
     register,
     guard,
+    accountGuard,
     sourceReady,
     onHeldChange: setGrantHeld,
     award,

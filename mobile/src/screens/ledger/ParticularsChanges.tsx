@@ -143,6 +143,7 @@ export function ParticularsChanges({
   company,
   registers,
   guard,
+  accountGuard,
   sourceReady,
   hidden,
   refreshRef,
@@ -151,6 +152,7 @@ export function ParticularsChanges({
   company: string;
   registers: TokenHoldersResponse[];
   guard: () => void;
+  accountGuard: () => void;
   sourceReady: boolean;
   hidden: boolean;
   refreshRef: RefObject<() => Promise<unknown>>;
@@ -161,7 +163,7 @@ export function ParticularsChanges({
   useLayoutEffect(() => {
     source.current = sourceReady;
   }, [sourceReady]);
-  const appointments = useOwnAppointments(owner, guard, { session: orderSubmissionSession });
+  const appointments = useOwnAppointments(owner, accountGuard, { session: orderSubmissionSession });
   const readable = appointments.isSuccess && hasCurrentRegisterReadAuthority(appointments.data, company);
   const check = useMemo(
     () => () => {

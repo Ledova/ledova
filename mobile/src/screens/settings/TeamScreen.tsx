@@ -108,7 +108,7 @@ function CompanyTeam({ autoAccept }: { autoAccept: boolean }) {
   if (!owner || scope.scope === undefined)
     return (
       <Page testID="team-scroll" title="Team">
-        <AccountCheck />
+        <RegisterAccess owner={owner} />
       </Page>
     );
   return (

@@ -11,6 +11,7 @@ import {
   useErrorSummary,
   useMemberAccessForm,
   useSubmissionOwner,
+  useUserPreferences,
   type MemberInvitation,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
@@ -24,6 +25,8 @@ import { Field } from '../../components/register/RegisterFields';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
+import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { PersonSelect } from '../../components/PersonSelect';
@@ -34,16 +37,30 @@ const LEDE = 'Invite people to their records and manage their access.';
 
 export function MemberAccessScreen({ route }: { route: RouteProp<SignedInStackParamList, 'MemberAccess'> }) {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company } = useMemberRecordsState();
+  const { directory, companies, company, companySelection } = useMemberRecordsState();
+  const preferences = useUserPreferences();
   const choosing = directory.isLoading || (!company && companies.length > 0);
-  if (owner && company?.canReadRegister && !directory.hasError && !choosing) {
-    const inviteMember = route.params?.company === company.uuid ? route.params.inviteMember : undefined;
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    company?.uuid,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      !!company?.canReadRegister &&
+      !directory.hasError &&
+      !choosing &&
+      !directory.isRefreshing,
+    companySelection,
+  );
+  if (owner && scope.scope) {
+    const inviteMember = route.params?.company === scope.scope ? route.params.inviteMember : undefined;
     return (
       <CompanyMemberAccess
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company.uuid}/${inviteMember ?? ''}`}
+        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}/${inviteMember ?? ''}`}
         owner={owner}
         currentOwner={boundary.get}
-        company={company.uuid}
+        company={scope.scope}
+        available={scope.available}
         inviteMember={inviteMember}
       />
     );
@@ -68,17 +85,19 @@ export function MemberAccessScreen({ route }: { route: RouteProp<SignedInStackPa
 function CompanyMemberAccess({
   owner,
   currentOwner,
+  available,
   company,
   inviteMember,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
   inviteMember?: string;
 }) {
   const theme = useAppTheme();
   const scroll = useRef<ScrollView>(null);
-  const source = useCompanyRegisters(owner, currentOwner, company, 'member access');
+  const source = useCompanyRegisters(owner, currentOwner, company, 'member access', available);
   const [refreshing, setRefreshing] = useState(false);
   const [open, setOpen] = useState(false);
   const toTop = useCallback(() => scroll.current?.scrollTo({ y: 0, animated: false }), []);
@@ -88,13 +107,29 @@ function CompanyMemberAccess({
       testID="member-access-scroll"
       title={TITLE}
       lede={LEDE}
+      available={available && source.sourceReady}
+      unavailable={
+        !available ? (
+          <RegisterAccess owner={owner} />
+        ) : source.accountError ? (
+          <LoadError retry={source.retryAccount} busy={source.isRefreshing}>
+            Your account could not be loaded.
+          </LoadError>
+        ) : source.hasError || source.invalid ? (
+          <LoadError retry={source.retry} busy={source.isRefreshing}>
+            The register could not be loaded.
+          </LoadError>
+        ) : (
+          <Loading>Loading the register…</Loading>
+        )
+      }
       refreshControl={
         <RefreshControl
           testID="member-access-refresh"
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing || open) return;
+            if (!available || refreshing || open) return;
             setRefreshing(true);
             void source.retry().finally(() => setRefreshing(false));
           }}
@@ -119,6 +154,7 @@ function CompanyMemberAccess({
           company={company}
           registers={source.registers}
           sourceReady={source.sourceReady}
+          available={available && source.sourceReady}
           inviteMember={inviteMember}
           refreshing={refreshing}
           onOpenChange={setOpen}
@@ -135,6 +171,7 @@ function MemberAccess({
   company,
   registers,
   sourceReady,
+  available,
   inviteMember,
   refreshing,
   onOpenChange,
@@ -145,6 +182,7 @@ function MemberAccess({
   company: string;
   registers: TokenHoldersResponse[];
   sourceReady: boolean;
+  available: boolean;
   inviteMember?: string;
   refreshing: boolean;
   onOpenChange: (open: boolean) => void;
@@ -440,7 +478,7 @@ function MemberAccess({
         </Section>
       )}
       <CustomModal
-        visible={!!revoking}
+        visible={available && !!revoking}
         title={revoking ? `Revoke access for ${revoking.name}?` : 'Revoke access'}
         busy={access.busy}
         onClose={() => setRevoking(null)}
