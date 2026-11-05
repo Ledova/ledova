@@ -170,7 +170,7 @@ function OwnParticulars({
     );
   }
   return (
-    <Page testID="particulars-scroll" title={TITLE} lede={LEDE}>
+    <Page testID="particulars-scroll" title={found && found.company.uuid === company ? found.label : TITLE} lede={LEDE}>
       {content}
     </Page>
   );

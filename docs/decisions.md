@@ -2251,7 +2251,8 @@ details, finished issues stay on Issue shares and who recorded each event stays 
 
 **Simpler Change particulars, decided on 5 November 2026.** The owner approved the same treatment for a
 particulars change: the form alone, started with the current name and address, under a shorter
-introduction. The card repeating those details is gone, except for a member who keeps them in their
+introduction and titled with the shareholder's name, as an award's page is with its recipient's. The
+card repeating those details is gone, except for a member who keeps them in their
 own profile and so has no form, and the page no longer states the rule on which particulars win. That
 rule stays in [the register guide](business/register.md#changing-a-members-particulars).
 

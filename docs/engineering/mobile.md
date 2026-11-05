@@ -213,8 +213,9 @@ opens the shareholder's page (`ShareholderScreen.tsx`, their name as its title) 
 `useShareholder`: Particulars with **Change particulars** or the profile note, Holdings with any
 former holding, History, Employee awards, and Access to their own records with **Invite to their
 records**, which opens Member access with them chosen, each with the web's loading, failure and private
-states. **Change particulars** opens the web's Particulars change page (`ParticularsScreen.tsx`, through
-the shared `useParticularsMember` and `useParticularsEdit`): the one-step form, which starts with their
+states. **Change particulars** opens the web's Particulars change page (`ParticularsScreen.tsx`, the
+shareholder as its title, through the shared `useParticularsMember` and `useParticularsEdit`): the
+one-step form, which starts with their
 current particulars and returns to the shareholder's page saying Particulars changed., where the edit
 began. A member who keeps their own details in their profile gets Current particulars and the profile
 note instead of the form. The change is listed under Corrections' Particulars changes. Each Employee awards row opens that award's page, and
