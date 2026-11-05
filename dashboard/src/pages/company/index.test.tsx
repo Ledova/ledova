@@ -20,6 +20,8 @@ import { APPOINTMENT, companyRecord, renderCompanyPage } from '../../testSupport
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
+const sdk = vi.hoisted(() => ({ init: vi.fn(), withConf: vi.fn(), on: vi.fn(), build: vi.fn(), launch: vi.fn() }));
+vi.mock('@sumsub/websdk', () => ({ default: { init: sdk.init } }));
 const COMPANY = '/api/v1/companies/company-one/';
 const CLASSES = COMPANY_TOKEN_ENDPOINTS.REGISTER;
 const EMPTY = { results: [], next: null, previous: null, count: 0 };
@@ -35,6 +37,15 @@ beforeEach(() => {
   Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() });
   vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
   vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
+  sdk.init.mockReturnValue(sdk);
+  sdk.withConf.mockReturnValue(sdk);
+  sdk.on.mockReturnValue(sdk);
+  sdk.build.mockReturnValue(sdk);
+  sdk.launch.mockImplementation((selector: string) => {
+    const marker = document.createElement('div');
+    marker.textContent = 'Identity provider widget';
+    document.querySelector(selector)?.appendChild(marker);
+  });
   failed = null;
   company = companyRecord();
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -182,14 +193,27 @@ it('shows focused company details, keeps team drafts and retries unavailable ide
   await screen.findByRole('button', { name: 'Start verification' });
   expect(screen.queryByText(/financial regulations/)).toBeNull();
 
+  const providerContainer = document.querySelector('#sumsub-profile-websdk-container');
+  expect(providerContainer).toBeTruthy();
   statusUnavailable = true;
-  await act(async () => client.refetchQueries({ queryKey: IDENTITY_VERIFICATION_QUERY_KEY, exact: true }));
+  api.post.mockResolvedValueOnce({ data: { accessToken: 'synthetic-provider-token' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Start verification' }));
+  await screen.findByText('Identity provider widget');
   await screen.findByText('Your identity verification status could not be loaded.');
   expect(screen.queryByRole('button', { name: 'Start verification' })).toBeNull();
+  expect(document.querySelector('#sumsub-profile-websdk-container')).toBe(providerContainer);
   statusUnavailable = false;
-  verified = true;
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  await waitFor(() => expect(screen.queryByText('Your identity verification status could not be loaded.')).toBeNull());
+  expect(document.querySelector('#sumsub-profile-websdk-container')).toBe(providerContainer);
+  expect(screen.getByText('Identity provider widget')).toBeTruthy();
+  expect(sdk.launch).toHaveBeenCalledTimes(1);
+  expect(api.post).toHaveBeenCalledExactlyOnceWith(IDENTITY_VERIFICATION_ENDPOINTS.TOKEN);
+
+  verified = true;
+  await act(async () => client.refetchQueries({ queryKey: IDENTITY_VERIFICATION_QUERY_KEY, exact: true }));
   await screen.findByRole('heading', { name: 'Already verified' });
   expect(screen.queryByRole('button', { name: 'Start verification' })).toBeNull();
-  expect(api.post).not.toHaveBeenCalled();
+  expect(screen.queryByText('Identity provider widget')).toBeNull();
+  expect(api.post).toHaveBeenCalledTimes(1);
 });

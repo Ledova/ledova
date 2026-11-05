@@ -89,7 +89,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
     }
   }, [isOpen, resetState]);
 
-  const canStart = showForm && !isLoadingStatus && !sdkActive && !formUrl;
+  const canStart = showForm && !statusUnavailable && !isLoadingStatus && !sdkActive && !formUrl;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Identity verification" size="lg" fullHeight={!!formUrl}>

@@ -136,7 +136,7 @@ export function useIdentityVerification() {
     showOnHoldBanner,
     showRejectedBanner,
     showRetryBanner,
-    showForm: statusQuery.isSuccess && showForm,
+    showForm: showForm && (statusQuery.isSuccess || isLaunching || sdkActive),
 
     isVerified,
     sdkActive,
