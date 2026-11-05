@@ -51,8 +51,11 @@ date, any revocation and the expiry. A compact **Revoke appointment** sits at th
 line that holds an own appointment's **Show the declaration**. Issued invitations show the company,
 their actions, and their acceptance or deadline with the appointment's expiry. The app's Team has
 the same cards, rows and inline tasks at phone width.
-Ledger's share-class summaries stack as full-width `Section` cards, using the workspace's spacing
-and the shared card heading and padding. For company readers, the register pages (Ledger, Shareholders,
+Ledger lists its share classes in one **Share classes** card, a compact row each (owner, 5 November
+2026): the class name with its issued shares at the right, then one muted line with its code, current
+shareholders, any authorised limit other than the internal quantity guard, and a short note while its
+ledger is not opened or issues or transfers wait to be recorded (`classFacts`). Each row opens the
+class's page, which keeps the full notes. For company readers, the register pages (Ledger, Shareholders,
 Employee share scheme, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
 cards, columns, class choices and default class (owner, 28 October 2026). Dashboard ranks its class
 list by issued shares. Ownership dashboards put their overview and charts before
@@ -162,7 +165,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   as "Activate your company", and a row that starts a task, such as "Prepare a non-paid
   transfer", are named for the step or the task; a record's row, such as a share class in Ledger,
   for the record; and a row that opens a section of a page, such as "Documents", for that
-  section. The class cards on Dashboard and Ledger end with a **Class details** row. While a held
+  section. Dashboard's class card ends with a **Class details** row, and each of Ledger's class rows
+  opens the class's page. While a held
   Ledger action blocks leaving, `disabled` dims the row and keeps it from opening, as the sidebar
   does. A title row never repeats a sidebar destination; an underlined link belongs to a sentence
   or opens an external resource.

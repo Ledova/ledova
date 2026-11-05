@@ -134,7 +134,7 @@ export {
   type RecordGrouping,
   type RecordRow,
 } from './record-groups';
-export { ownershipSummary } from './register-ownership';
+export { classFacts, ownershipSummary } from './register-ownership';
 export { hasWholeShares, wholeShares } from './share-quantities';
 export { ownershipColorIndex, ownershipView, rankOwnershipClasses, type OwnershipClass } from './memberOwnership';
 export {

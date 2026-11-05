@@ -6,6 +6,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   appointmentForRegisterStep,
+  classFacts,
+  formatShareCount,
   ownershipSummary,
   useSubmissionOwner,
   useUserPreferences,
@@ -28,7 +30,6 @@ import { ClassImports } from './ClassImports';
 import { ClassIssues } from './ClassIssues';
 import { ClassAwards } from './ClassAwards';
 import { ClassTransfers } from './ClassTransfers';
-import { ClassRegister } from '@pages/company/ledger/shared/ClassRegister';
 import { CompanyPeople } from './CompanyPeople';
 import { ClassInspectionCopy } from './ClassInspectionCopy';
 import { CompanyMemberAccess } from './CompanyMemberAccess';
@@ -520,25 +521,34 @@ function OwnRegister({
       )}
       {scope && (view === 'register' || view === 'awards' || documents === 'inspection-copies') && (
         <>
-          {view === 'register' && !selectedTask && ownershipReady && scope.registers.length === 0 && (
+          {view === 'register' && !selectedTask && ownershipReady && (
             <Section title="Share classes">
-              <p className="text-sm text-text-muted">No share classes yet.</p>
+              {scope.registers.length === 0 ? (
+                <p className="text-sm text-text-muted">No share classes yet.</p>
+              ) : (
+                <ul className="divide-y divide-border-subtle">
+                  {scope.registers.map((register) => (
+                    <li key={register.token.uuid}>
+                      <LinkRow
+                        to={`${generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}?company=${scope.company.uuid}`}
+                        label={register.token.name}
+                        context="class details"
+                        figure={
+                          <span className="shrink-0 tabular-nums text-text-primary">
+                            {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
+                            <span className="sr-only"> issued shares</span>
+                          </span>
+                        }
+                        disabled={held}
+                      >
+                        <span className="block break-words text-xs text-text-muted">{classFacts(register)}</span>
+                      </LinkRow>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Section>
           )}
-          {view === 'register' &&
-            !selectedTask &&
-            ownershipReady &&
-            scope.registers.map((register) => (
-              <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
-                <ClassRegister register={register} former={false} />
-                <LinkRow
-                  to={`${generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}?company=${scope.company.uuid}`}
-                  label="Class details"
-                  context={register.token.name}
-                  disabled={held}
-                />
-              </Section>
-            ))}
           {view === 'register' && !selectedTask && canAddClass && (
             <div className="flex flex-wrap justify-end gap-2">
               <PageLink

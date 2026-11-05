@@ -228,7 +228,7 @@ it('preserves original preparation and combined approval recovery through refres
   await waitFor(() => expect(investorTask().getAttribute('aria-disabled')).toBeNull());
   fireEvent.click(investorTask());
   expect(await screen.findByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
-  expect(screen.queryByRole('link', { name: /Class details/ })).toBeNull();
+  expect(screen.queryByRole('link', { name: /class details/ })).toBeNull();
   const taskClass = () => {
     const toggle = screen.getByRole('button', { name: 'Filters' });
     if (toggle.getAttribute('aria-expanded') !== 'true') fireEvent.click(toggle);
@@ -525,7 +525,7 @@ it('preserves original preparation and combined approval recovery through refres
   fireEvent.click(allotments.getByRole('button', { name: 'Try again' }));
   const recover = await allotments.findByRole('button', { name: /^Recover approve receipt/ });
   expect(screen.getByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
-  expect(screen.queryByRole('region', { name: `${REGISTER.token.name} share summary` })).toBeNull();
+  expect(screen.queryByRole('link', { name: `${REGISTER.token.name} (class details)` })).toBeNull();
   expect(allotments.queryByRole('button', { name: /^Record issue [(]allotment/ })).toBeNull();
   expect(recover).toBeTruthy();
   fireEvent.click(await allotments.findByRole('button', { name: /^Recover approve receipt/ }));

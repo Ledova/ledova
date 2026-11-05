@@ -1,4 +1,29 @@
+import { TECHNICAL_SHARE_LIMIT } from '../constants/business/register';
 import type { TokenHoldersResponse } from '../types/domain/company-token';
+import { formatShareCount } from './formatting';
+
+export function classFacts(
+  register: Pick<TokenHoldersResponse, 'token' | 'initialized' | 'totalHolders' | 'waitingEffects'>,
+) {
+  const holders = register.totalHolders;
+  const waiting = register.waitingEffects;
+  return [
+    register.token.symbol,
+    register.initialized ? `${holders} current ${holders === 1 ? 'shareholder' : 'shareholders'}` : 'ledger not opened',
+    register.token.totalSupply === TECHNICAL_SHARE_LIMIT
+      ? null
+      : `${formatShareCount(register.token.totalSupply)} authorised`,
+    !register.initialized
+      ? null
+      : waiting === null
+        ? 'waiting issues and transfers not checked'
+        : waiting > 0
+          ? `${waiting} ${waiting === 1 ? 'issue or transfer waits' : 'issues or transfers wait'} to be recorded`
+          : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
 
 export function ownershipSummary(registers: TokenHoldersResponse[]) {
   const classes = new Set<string>();

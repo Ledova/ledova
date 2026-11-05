@@ -4,7 +4,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { Loading, LoadError, Outcome, Section, Failure } from '@components/Ledger';
 import { FormActions, PageAction } from '@components/Page';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { FormerShareholders } from './shared/ClassRegister';
+import { FormerShareholders } from './shared/FormerShareholders';
 import { CompanyShareholders } from './CompanyShareholders';
 import { PersonFields } from './shared/PersonPicker';
 

@@ -1,27 +1,24 @@
 import { useState } from 'react';
-import { RefreshControl, Text, View } from 'react-native';
+import { RefreshControl, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   DESTINATIONS,
-  REGISTER_COPY,
-  TECHNICAL_SHARE_LIMIT,
   appointmentForRegisterStep,
+  classFacts,
   formatShareCount,
   useOwnAppointments,
   useSubmissionOwner,
   type OrderSubmissionOwner,
-  type TokenHoldersResponse,
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
-import { Action, Actions, LinkRow, LoadError, Loading, Rows, Section, Status } from '../../components/Ledger';
+import { Action, Actions, LinkRow, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { ClassFigures } from './ClassFigures';
 import { useLedgerStyles } from './useLedgerStyles';
 
 const TITLE = DESTINATIONS.companyRegister.title;
@@ -111,18 +108,25 @@ function CompanyLedger({
           <Text style={look.muted}>No share classes yet.</Text>
         </Section>
       ) : (
-        registers.map((register) => (
-          <Section key={register.token.uuid} title={`${register.token.name} · ${register.token.symbol}`}>
-            <ClassRegister register={register} />
-            <Rows>
-              <LinkRow
-                label="Class details"
-                accessibilityLabel={`Class details (${register.token.name})`}
-                onPress={() => navigation.navigate('ShareClass', { company, token: register.token.uuid })}
-              />
-            </Rows>
-          </Section>
-        ))
+        <Section title="Share classes">
+          <Rows>
+            {registers.map((register) => {
+              const issued = register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply);
+              const facts = classFacts(register);
+              return (
+                <LinkRow
+                  key={register.token.uuid}
+                  label={register.token.name}
+                  accessibilityLabel={`${register.token.name}, ${register.issuedSupply === null ? 'issued shares not recorded' : `${issued} issued shares`}, ${facts}`}
+                  figure={issued}
+                  onPress={() => navigation.navigate('ShareClass', { company, token: register.token.uuid })}
+                >
+                  <Text style={look.small}>{facts}</Text>
+                </LinkRow>
+              );
+            })}
+          </Rows>
+        </Section>
       )}
       {canAddClass && (
         <Actions>
@@ -130,46 +134,5 @@ function CompanyLedger({
         </Actions>
       )}
     </Page>
-  );
-}
-
-function ClassRegister({ register }: { register: TokenHoldersResponse }) {
-  const look = useLedgerStyles();
-  return (
-    <>
-      <View style={look.summary}>
-        <ClassFigures
-          label={`${register.token.name} share summary`}
-          issued={register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
-          holders={register.initialized ? String(register.totalHolders) : 'Not recorded'}
-        />
-        {!register.initialized && (
-          <Status tone="waiting" muted>
-            Ledger not opened
-          </Status>
-        )}
-      </View>
-      {register.token.totalSupply !== TECHNICAL_SHARE_LIMIT && (
-        <Text style={look.muted}>
-          Authorised shares · <Text style={look.strong}>{formatShareCount(register.token.totalSupply)}</Text>
-        </Text>
-      )}
-      {!register.initialized ? (
-        <Text style={look.muted}>{REGISTER_COPY.NOT_OPENED_NOTE}</Text>
-      ) : (
-        <>
-          {register.waitingEffects === null ? (
-            <Text accessibilityLiveRegion="polite" style={look.muted}>
-              {REGISTER_COPY.WAITING_UNKNOWN_NOTE}
-            </Text>
-          ) : register.waitingEffects > 0 ? (
-            <Text accessibilityLiveRegion="polite" style={look.muted}>
-              {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
-            </Text>
-          ) : null}
-          {register.holders.length === 0 && <Text style={look.muted}>No current members yet.</Text>}
-        </>
-      )}
-    </>
   );
 }
