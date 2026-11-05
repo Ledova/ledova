@@ -440,6 +440,32 @@ it('reads every class page and groups exact holdings by member identity with sea
   fireEvent.change(personForm().getByLabelText('Residential address'), {
     target: { value: '3 Fictional Lane, Sydney NSW 2000' },
   });
+  const personName = personForm().getByLabelText('Name') as HTMLInputElement;
+  let releasePreferences!: () => void;
+  let recheckingPreferences!: Promise<unknown>;
+  await act(async () => {
+    recheckingPreferences = client.fetchQuery({
+      queryKey: USER_PREFERENCES_QUERY_KEY,
+      queryFn: () =>
+        new Promise((resolve) => {
+          releasePreferences = () => resolve({ data: companyPreferences() });
+        }),
+      staleTime: 0,
+    });
+  });
+  await waitFor(() => expect(screen.queryByRole('form', { name: 'Add person' })).toBeNull());
+  expect(api.post).not.toHaveBeenCalled();
+  await act(async () => {
+    releasePreferences();
+    await recheckingPreferences;
+  });
+  expect(personName.isConnected).toBe(true);
+  await screen.findByRole('form', { name: 'Add person' });
+  expect(personForm().getByLabelText('Name')).toBe(personName);
+  expect(personName.value).toBe('Taylor Demo');
+  expect((personForm().getByLabelText('Residential address') as HTMLTextAreaElement).value).toBe(
+    '3 Fictional Lane, Sydney NSW 2000',
+  );
   fireEvent.click(personForm().getByRole('button', { name: 'Add person' }));
   await personForm().findByRole('alert');
   expect(personForm().getByLabelText('Name').matches(':disabled')).toBe(true);
