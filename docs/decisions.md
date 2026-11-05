@@ -2104,7 +2104,8 @@ Its three tabs and no drawer, its holdings across companies and its removal of t
 eligibility pages were superseded on 31 October 2026 by the
 [web's phone frame, per-company pages and eligibility brought forward](#mobile-app-like-the-web-at-phone-width),
 and its shareholder-only scope on 3 November 2026 by the
-[company side, built section by section](#mobile-app-like-the-web-at-phone-width); the rest stands. Investor eligibility then left the web and the app on 2 November 2026
+[company side, built section by section](#mobile-app-like-the-web-at-phone-width), with company
+signup following on 5 November; the rest stands. Investor eligibility then left the web and the app on 2 November 2026
 ([verification limited to ID checks](#verification-limited-to-id-checks)). Members do receive class totals where a company shares its ownership with members.
 
 On 26 October 2026 the owner made the mobile app a shareholder app: "make mobile shareholder-only.
@@ -2130,7 +2131,8 @@ agreed the screens through [mockups](https://claude.ai/artifact/CHeXcDVycP9csCT3
 - **Removed from mobile:** company administration, registration and activation, the deferred
   investing screens (wallets, buying and sending crypto, trading, activity, Directory, Applications
   and eligibility), identity verification, Help and the QR scanner, with their code. Mobile signup creates individual accounts. A company account
-  that has not finished signup is told the app is for shareholders.
+  that has not finished signup is told the app is for shareholders. This signup restriction was
+  replaced on 5 November 2026 by phase 5 of the [native rebuild](#mobile-app-like-the-web-at-phone-width).
 - **Notifications for share events** (a certificate ready, shares vested or issued, a details
   change decided) needed new server notifications; S7 (#1344) adds them. The certificate-ready
   notice was removed on 2 November 2026.
@@ -2150,7 +2152,12 @@ the App Store rather than showing the web app inside one. Each phase is its own 
 3. **Team, Activation, representative authority and the eligibility pages.** The investor's eligibility
    pages were later brought forward (below).
 4. **The Ledger and company tasks.**
-5. **Sign-up for company accounts.**
+5. **Sign-up for company accounts.** Delivered on 5 November 2026: Account type offers Company
+   representative, followed by personal details, Company details and the combined review of company
+   information, authority and Terms. The same shared hooks retain saved details, settle retries and
+   require a current administrator appointment before completion. The owner kept the native
+   provider identity journey as separate work under [#1562](https://github.com/Ledova/ledova/issues/1562)
+   on 5 November; configured identity requirements continue to block completion.
 
 **Phase 2, also decided on 31 October 2026.** After comparing the web in Chrome's phone view with the
 app page by page for the same account, the owner chose the web's per-company model for the pages a

@@ -5,12 +5,11 @@ import { useNavigate } from 'react-router-dom';
 
 import { ClipboardTextIcon } from '@phosphor-icons/react';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
-import { formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
+import { COMPANY_TYPES, formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
 import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
 
 import { Section } from '@components/Ledger';
-import { COMPANY_TYPES } from '@pages/signup/shared/constants';
 import { SITE_URL } from '@utils/siteUrl';
 import { LoadingState } from '@pages/signup/shared/LoadingState';
 

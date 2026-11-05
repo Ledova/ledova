@@ -150,8 +150,8 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
 
 ## Current handover — 5 November 2026
 
-Nothing is in flight: `main` holds everything, with no open pull request, other branch or worktree,
-and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before starting it.
+Claude released its claims on #1464 and #1453 in the handover. Codex continues #1464 with native
+company signup; check GitHub for current claims and pull requests before starting another increment.
 
 **Where things stand:**
 
@@ -171,11 +171,14 @@ and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before s
     particulars were simplified further (#1557–#1559).
   - [#1547](https://github.com/Ledova/ledova/issues/1547) made the back arrow the only way back on
     every page with a parent (#1560).
+  - #1464's phase 5 now gives the app the company-representative choice, Company details and the
+    combined company/authority/Terms review, reusing saved details and interrupted-request recovery.
+    A configured identity requirement still blocks completion; the owner kept the native provider
+    journey separate under [#1562](https://github.com/Ledova/ledova/issues/1562).
 
 **What's next, in order:**
 
 1. [#1464](https://github.com/Ledova/ledova/issues/1464):
-   - Phase 5, sign-up for company accounts. The app still tells them it is for shareholders.
    - A shareholder's supporting Documents section in the app.
    - Keeping held saves across leaving a page in the app, where leaving drops a retry, so a repeated
      add or invite could duplicate.
@@ -225,7 +228,7 @@ and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before s
 
 - On this Mac run the checks with the walkthrough's Python:
   `make ci-checks PYTHON=/Users/ronildo/.local/state/ledova/web-walkthrough-20261021/.venv/bin/python`.
-  They pass shared **9**, dashboard **20**, mobile **5**, contracts **14** and smoke **7**. Dashboard
+  They pass shared **9**, dashboard **20**, mobile **6**, contracts **14** and smoke **7**. Dashboard
   is at its cap of 20, so a new core test replaces another.
 - With the same `PYTHON=`, `make preflight` stops at the backend suite, which needs Python **3.13.15**
   where this Mac has **3.13.3**. CI runs that suite.

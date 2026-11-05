@@ -2,13 +2,14 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Linking, A
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
+import { ScreenHeader } from '../../../components/header';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { ClipboardIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useReview } from './useReview';
-import { formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
+import { COMPANY_TYPES, formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
 import { PUBLIC_LINKS } from '../../../config/publicLinks';
 
 export function ReviewScreen() {
@@ -52,28 +53,6 @@ export function ReviewScreen() {
       color: theme.colors.status.error.icon,
       textAlign: 'center',
     },
-    header: {
-      alignItems: 'center',
-      marginTop: theme.spacing.xs,
-      marginBottom: theme.spacing.md,
-    },
-    iconContainer: {
-      padding: theme.spacing.xs,
-      marginBottom: theme.spacing.sm,
-    },
-    title: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      marginBottom: theme.spacing.xs,
-    },
-    subtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-      paddingHorizontal: theme.spacing.md,
-      lineHeight: theme.lineHeight.normal * theme.fontSize.sm,
-    },
     card: {
       backgroundColor: theme.colors.surface.raised,
       borderRadius: theme.borderRadius.lg,
@@ -91,7 +70,7 @@ export function ReviewScreen() {
     },
     sectionTitle: {
       fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.semibold,
+      fontFamily: theme.fontFamily.display,
       color: theme.colors.text.primary,
     },
     infoList: {
@@ -184,9 +163,24 @@ export function ReviewScreen() {
     },
   }));
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { data, isLoading, error, completionError, completeSignup, isSubmitting, canCompleteSignup, retryLoad } =
-    useReview();
-  const busy = isSubmitting;
+  const {
+    data,
+    company,
+    isCompany,
+    identityRequired,
+    isLoading,
+    error,
+    completionError,
+    completeSignup,
+    isSubmitting,
+    canCompleteSignup,
+    retryLoad,
+    authorityRequest,
+    authorityError,
+    resetAuthorityRequest,
+    isResettingAuthority,
+  } = useReview();
+  const busy = isSubmitting || isResettingAuthority;
   const finish = async () => {
     if (!canCompleteSignup || busy) return;
     try {
@@ -197,7 +191,7 @@ export function ReviewScreen() {
   };
 
   const handleBack = () => {
-    navigation.navigate('FinancialProfile');
+    if (!busy) navigation.navigate(isCompany ? 'CompanyRegistration' : 'FinancialProfile');
   };
 
   const handleOpenTerms = async () => {
@@ -259,17 +253,21 @@ export function ReviewScreen() {
     <GradientBackground>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <View style={styles.iconContainer}>
+          <ScreenHeader
+            icon={
               <ClipboardIcon
                 size={theme.icon.sizes.md}
                 color={theme.colors.text.muted}
                 weight={theme.icon.weights.regular}
               />
-            </View>
-            <Text style={styles.title}>Review & Confirm</Text>
-            <Text style={styles.subtitle}>Please review your information before completing signup</Text>
-          </View>
+            }
+            title={isCompany ? 'Complete company setup' : 'Review & Confirm'}
+            subtitle={
+              isCompany
+                ? 'Review your saved details. Documents and team setup can wait until your dashboard.'
+                : 'Please review your information before completing signup'
+            }
+          />
 
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -301,10 +299,37 @@ export function ReviewScreen() {
 
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>Financial Profile</Text>
+              <Text style={styles.sectionTitle}>{isCompany ? 'Company Information' : 'Financial Profile'}</Text>
             </View>
             <View style={styles.cardContent}>
-              {financialProfile ? (
+              {isCompany ? (
+                company ? (
+                  <View style={styles.infoList}>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Company Name:</Text>
+                      <Text style={styles.infoValue}>{company.name}</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>ACN:</Text>
+                      <Text style={styles.infoValue}>{company.acn}</Text>
+                    </View>
+                    {company.abn ? (
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>ABN:</Text>
+                        <Text style={styles.infoValue}>{company.abn}</Text>
+                      </View>
+                    ) : null}
+                    <View style={styles.infoRow}>
+                      <Text style={styles.infoLabel}>Type:</Text>
+                      <Text style={styles.infoValue}>
+                        {COMPANY_TYPES.find((type) => type.value === company.companyType)?.label ?? company.companyType}
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={styles.errorText}>No company information found.</Text>
+                )
+              ) : financialProfile ? (
                 <View style={styles.infoList}>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Source of Funds:</Text>
@@ -343,22 +368,62 @@ export function ReviewScreen() {
 
           <View style={styles.card}>
             <View style={styles.cardContent}>
-              <Text style={styles.termsText}>
-                By completing signup, you accept the{' '}
-                <Text style={styles.linkText} onPress={handleOpenTerms}>
-                  Terms of Service
-                </Text>{' '}
-                and{' '}
-                <Text style={styles.linkText} onPress={handleOpenPrivacyPolicy}>
-                  Privacy Policy
+              {isCompany && company ? (
+                <View style={styles.infoList}>
+                  <Text style={styles.termsText}>
+                    By completing setup, you confirm that you are authorised to administer {company.name}, including
+                    managing its users, and accept the{' '}
+                    <Text style={styles.linkText} onPress={handleOpenTerms}>
+                      Terms of Service
+                    </Text>{' '}
+                    on the company’s behalf.
+                  </Text>
+                  {authorityError ? (
+                    <View style={styles.infoList}>
+                      <Text accessibilityRole="alert" style={styles.errorText}>
+                        {authorityError}
+                      </Text>
+                      {authorityRequest?.status === 'pending' ? (
+                        <TouchableOpacity
+                          accessibilityRole="button"
+                          disabled={busy}
+                          onPress={() => void resetAuthorityRequest().catch(() => undefined)}
+                        >
+                          <Text style={styles.backLink}>Update saved setup</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        disabled={busy}
+                        onPress={() => void retryLoad().catch(() => undefined)}
+                      >
+                        <Text style={styles.backLink}>Try again</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+                </View>
+              ) : (
+                <Text style={styles.termsText}>
+                  By completing signup, you accept the{' '}
+                  <Text style={styles.linkText} onPress={handleOpenTerms}>
+                    Terms of Service
+                  </Text>{' '}
+                  and{' '}
+                  <Text style={styles.linkText} onPress={handleOpenPrivacyPolicy}>
+                    Privacy Policy
+                  </Text>
+                  .
                 </Text>
-                .
-              </Text>
+              )}
             </View>
             <View style={styles.buttonContainer}>
-              {!canCompleteSignup && (
+              {identityRequired ? (
+                <Text accessibilityRole="alert" style={styles.validationText}>
+                  This platform requires a verified identity before company setup.
+                </Text>
+              ) : !canCompleteSignup ? (
                 <Text style={styles.validationText}>Please ensure all information is complete to proceed.</Text>
-              )}
+              ) : null}
               {completionError && (
                 <Text accessibilityRole="alert" style={styles.errorText}>
                   {completionError}
@@ -371,7 +436,7 @@ export function ReviewScreen() {
                 fullWidth
                 style={styles.completeButton}
               >
-                Complete Signup
+                {isCompany ? 'Complete company setup' : 'Complete Signup'}
               </PrimaryButton>
             </View>
           </View>

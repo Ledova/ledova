@@ -1,12 +1,26 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { WarningCircleIcon } from 'phosphor-react-native';
+import { WarningCircleIcon, UserIcon, BuildingsIcon } from 'phosphor-react-native';
 import { useSignupAccountType } from '@ledova/shared';
 import { GradientBackground } from '../../../components/GradientBackground';
-import { PrimaryButton } from '../../../components/buttons';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
+
+const ACCOUNT_TYPES = [
+  {
+    role: 'investor',
+    title: 'Individual investor',
+    description: 'Invest in private-company shares and track your holdings.',
+    icon: UserIcon,
+  },
+  {
+    role: 'company',
+    title: 'Company representative',
+    description: 'Register your company and manage its share register.',
+    icon: BuildingsIcon,
+  },
+] as const;
 
 export function AccountTypeScreen() {
   const theme = useAppTheme();
@@ -33,6 +47,35 @@ export function AccountTypeScreen() {
       fontSize: theme.fontSize.sm,
       color: theme.colors.text.muted,
       textAlign: 'center',
+    },
+    choices: {
+      gap: theme.spacing.md,
+    },
+    choice: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: theme.spacing.md,
+      padding: theme.spacing.lg,
+      borderWidth: 1,
+      borderColor: theme.colors.border.default,
+      borderRadius: theme.borderRadius.lg,
+      backgroundColor: theme.colors.surface.raised,
+    },
+    choiceContent: {
+      flex: 1,
+      gap: theme.spacing.xs,
+    },
+    choiceTitle: {
+      fontFamily: theme.fontFamily.display,
+      fontSize: theme.fontSize.lg,
+      color: theme.colors.text.primary,
+    },
+    choiceDescription: {
+      fontSize: theme.fontSize.sm,
+      color: theme.colors.text.muted,
+    },
+    disabled: {
+      opacity: 0.5,
     },
     errorContainer: {
       flexDirection: 'row',
@@ -67,9 +110,9 @@ export function AccountTypeScreen() {
         <View style={styles.content}>
           <View style={styles.header}>
             <Text accessibilityRole="header" style={styles.title}>
-              Welcome to Ledova
+              Choose account type
             </Text>
-            <Text style={styles.subtitle}>See the shares, awards and documents that companies record for you.</Text>
+            <Text style={styles.subtitle}>How will you be using Ledova?</Text>
           </View>
 
           {error ? (
@@ -83,13 +126,31 @@ export function AccountTypeScreen() {
             </View>
           ) : null}
 
-          <PrimaryButton
-            loading={isSubmitting}
-            disabled={isSubmitting || !account}
-            onPress={() => chooseRole('investor', () => navigation.navigate('PreScreening'))}
-          >
-            Continue
-          </PrimaryButton>
+          <View style={styles.choices}>
+            {ACCOUNT_TYPES.map((option) => {
+              const Icon = option.icon;
+              return (
+                <Pressable
+                  key={option.role}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.title}
+                  disabled={isSubmitting || !account}
+                  style={[styles.choice, isSubmitting || !account ? styles.disabled : null]}
+                  onPress={() =>
+                    void chooseRole(option.role, () =>
+                      navigation.navigate(option.role === 'company' ? 'UserProfile' : 'PreScreening'),
+                    )
+                  }
+                >
+                  <Icon size={theme.icon.sizes.lg} color={theme.colors.text.muted} />
+                  <View style={styles.choiceContent}>
+                    <Text style={styles.choiceTitle}>{option.title}</Text>
+                    <Text style={styles.choiceDescription}>{option.description}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
 
           <View style={styles.footer}>
             <TouchableOpacity onPress={() => navigation.navigate('SignUp')} disabled={isSubmitting}>

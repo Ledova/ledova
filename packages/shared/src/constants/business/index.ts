@@ -9,6 +9,7 @@ export * from './register-corrections';
 export * from './register-particulars';
 export * from './company-authority';
 export * from './signup';
+export * from './company-types';
 export * from './company-activation';
 
 export * from './register-allotments';
