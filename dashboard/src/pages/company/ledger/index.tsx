@@ -20,7 +20,7 @@ import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { documentView, ledgerTask, pageTitle, type DocumentView, type LedgerTask } from '@utils/destinations';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
-import { Page, PageActions, PageLink } from '@components/Page';
+import { Actions, Page, PageActions, PageLink } from '@components/Page';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { certificatesLocation } from '@utils/paths';
@@ -558,13 +558,13 @@ function OwnRegister({
             </Section>
           )}
           {view === 'register' && !selectedTask && canAddClass && (
-            <div className="flex flex-wrap justify-end gap-2">
+            <Actions>
               <PageLink
                 primary
                 to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
                 label="Add share class"
               />
-            </div>
+            </Actions>
           )}
           {((view === 'register' && selectedTask) || documents === 'inspection-copies') &&
             sourceReady &&

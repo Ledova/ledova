@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { usePersonRegistration, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { Loading, LoadError, Outcome, Section, Failure } from '@components/Ledger';
-import { FormActions, PageAction } from '@components/Page';
+import { Actions, FormActions, PageAction } from '@components/Page';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { FormerShareholders } from './shared/FormerShareholders';
 import { CompanyShareholders } from './CompanyShareholders';
@@ -116,7 +116,7 @@ export function CompanyPeople({
       {person.editing ? (
         <PersonForm person={person} />
       ) : person.canPrepare ? (
-        <div className="flex flex-wrap justify-end gap-2">
+        <Actions>
           <PageAction
             ref={add}
             primary
@@ -124,7 +124,7 @@ export function CompanyPeople({
             disabled={blocked || !person.peopleReady}
             onClick={person.open}
           />
-        </div>
+        </Actions>
       ) : null}
     </>
   );

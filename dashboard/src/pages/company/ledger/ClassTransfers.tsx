@@ -20,7 +20,7 @@ import {
   useRegisterTransfers,
 } from '@ledova/shared';
 import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
-import { PageLink } from '@components/Page';
+import { Actions, PageLink } from '@components/Page';
 
 import { GroupedRecords } from './GroupedRecords';
 import { TransferRecord } from './TransferRecord';
@@ -116,7 +116,11 @@ export function ClassTransfers({
   }));
   const prepareAction =
     privateReady && steps?.prepare && supported ? (
-      <PageLink to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })} label={COPY.PREPARE} />
+      <PageLink
+        primary
+        to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })}
+        label={COPY.PREPARE}
+      />
     ) : null;
   const status = (
     <>
@@ -161,7 +165,7 @@ export function ClassTransfers({
           <GroupedRecords grouping={TRANSFER_GROUPS} rows={rows} requested={landed} />
         </Section>
       </div>
-      {prepareAction && !reviewing && <div className="flex flex-wrap justify-end gap-2">{prepareAction}</div>}
+      {prepareAction && !reviewing && <Actions>{prepareAction}</Actions>}
       <div hidden={!reviewing} className="space-y-5">
         {reviewing && status}
         <div ref={setReviewTarget} />

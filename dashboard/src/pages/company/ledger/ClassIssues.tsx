@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ISSUE_GROUPS, type OrderSubmissionOwner, type TokenHoldersResponse } from '@ledova/shared';
 import { Choices } from '@components/Choices';
 import { Section } from '@components/Ledger';
-import { FormActions, PageAction } from '@components/Page';
+import { Actions, FormActions, PageAction } from '@components/Page';
 import { GroupedRecords } from './GroupedRecords';
 import { useInvestorIssues } from './useInvestorIssues';
 import { useNonPaidIssues } from './useNonPaidIssues';
@@ -146,7 +146,7 @@ export function ClassIssues({
         </Section>
       </div>
       {investor.prepare && browsing && (
-        <div className="flex flex-wrap justify-end gap-2">
+        <Actions>
           <PageAction
             ref={prepareAction}
             label="Prepare issue"
@@ -157,7 +157,7 @@ export function ClassIssues({
               setPreparing(true);
             }}
           />
-        </div>
+        </Actions>
       )}
       <div hidden={!reviewing} className="space-y-5">
         {reviewing && status}

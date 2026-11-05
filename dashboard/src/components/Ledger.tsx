@@ -7,12 +7,10 @@ import { PageAction } from './Page';
 
 export function Section({
   title,
-  header,
   headingRef,
   children,
 }: {
   title: string;
-  header?: ReactNode;
   headingRef?: Ref<HTMLHeadingElement>;
   children: ReactNode;
 }) {
@@ -21,15 +19,13 @@ export function Section({
     <section
       className={`flex flex-col border border-border bg-surface-raised p-4 [&_p:not(.flex,.text-right,.truncate)]:max-w-prose ${inFrame ? 'min-w-0 gap-4 rounded-2xl sm:p-6' : 'gap-2 rounded-xl sm:p-5'}`}
     >
-      {header ?? (
-        <h2
-          ref={headingRef}
-          tabIndex={headingRef ? -1 : undefined}
-          className="break-words font-display text-xl tracking-[-0.01em] text-text-primary focus:outline-none"
-        >
-          {title}
-        </h2>
-      )}
+      <h2
+        ref={headingRef}
+        tabIndex={headingRef ? -1 : undefined}
+        className="break-words font-display text-xl tracking-[-0.01em] text-text-primary focus:outline-none"
+      >
+        {title}
+      </h2>
       {children}
     </section>
   );

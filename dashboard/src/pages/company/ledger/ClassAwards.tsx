@@ -4,6 +4,7 @@ import {
   REGISTER_AWARD_COPY as COPY,
   appointmentForRegisterStep,
   formatDate,
+  formatShortDate,
   awardSummary,
   formatShareCount,
   hasCurrentRegisterReadAuthority,
@@ -20,7 +21,7 @@ import {
   awardsKey,
   useRegisterAwards,
 } from '@ledova/shared';
-import { PageAction } from '@components/Page';
+import { Actions, PageAction } from '@components/Page';
 import { AwardForm } from './AwardForm';
 import { awardPath } from '@pages/company/ledger/shared/awards';
 import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
@@ -260,7 +261,7 @@ export function ClassAwards({
                     }
                   >
                     <span className="hidden text-xs text-text-muted md:block">
-                      Agreement {formatDate(award.termsOn)}
+                      Agreement {formatShortDate(award.termsOn)}
                     </span>
                     <span className="block text-xs text-text-muted md:hidden">{awardSummary(award).facts}</span>
                   </LinkRow>
@@ -312,7 +313,7 @@ export function ClassAwards({
         </div>
       </Section>
       {!editing && appointment && supported && (
-        <div className="flex flex-wrap justify-end gap-2">
+        <Actions>
           <PageAction
             ref={prepareAction}
             label={COPY.PREPARE}
@@ -324,7 +325,7 @@ export function ClassAwards({
               setEditing(true);
             }}
           />
-        </div>
+        </Actions>
       )}
     </div>
   );

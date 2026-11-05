@@ -10,22 +10,19 @@ import {
 export function DocumentAttachments({
   documents,
   update,
-  disabled = false,
   heading = true,
 }: {
   documents: DocumentDraft[];
   update: (documents: DocumentDraft[]) => void;
-  disabled?: boolean;
   heading?: boolean;
 }) {
   return (
-    <fieldset disabled={disabled} className={heading ? 'space-y-3 border-t border-border-subtle pt-4' : 'space-y-3'}>
+    <fieldset className={heading ? 'space-y-3 border-t border-border-subtle pt-4' : 'space-y-3'}>
       <legend className="sr-only">Documents</legend>
       <div className={`flex flex-wrap items-center gap-3 ${heading ? 'justify-between' : 'justify-end'}`}>
         {heading && <h3 className="text-sm font-medium text-text-primary">Documents</h3>}
         <PageAction
           label="Add document"
-          disabled={disabled}
           onClick={() => update([...documents, { id: crypto.randomUUID(), category: 'other', file: null }])}
         />
       </div>
@@ -67,7 +64,6 @@ export function DocumentAttachments({
                 <PageAction
                   label="Remove"
                   context={`document ${index + 1}`}
-                  disabled={disabled}
                   onClick={() => update(documents.filter((row) => row.id !== document.id))}
                 />
               </div>

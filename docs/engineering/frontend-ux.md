@@ -1108,7 +1108,7 @@ by a local helper or a browser `toLocale…` call:
 
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
   the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
-  page, Employee share scheme and Certificates at phone width, Member access, prepared inspection
+  page, Employee share scheme, Certificates at phone width, Member access, prepared inspection
   copies, appointments and issued invitations, Account details' Member since, Activation's
   historical record, authority requests, Set up your ledger's record date and shareholder rows, and an
   award's agreement and event dates use `formatShortDate`, "20 Oct 2026", read the same way; allotment

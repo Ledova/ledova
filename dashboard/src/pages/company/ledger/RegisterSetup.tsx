@@ -6,7 +6,7 @@ import {
   useOwnAppointments,
 } from '@ledova/shared';
 import { Section, LoadError, Loading } from '@components/Ledger';
-import { PageLink } from '@components/Page';
+import { Actions, PageLink } from '@components/Page';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 
@@ -36,9 +36,9 @@ export function RegisterSetup({ owner, guard }: { owner: OrderSubmissionOwner; g
       <Section title="Share classes">
         <p className="text-sm text-text-muted">No share classes yet.</p>
       </Section>
-      <div className="flex flex-wrap justify-end gap-2">
+      <Actions>
         <PageLink primary to={`${DESTINATIONS.companyRegisterSetup.path}?company=${company}`} label="Add share class" />
-      </div>
+      </Actions>
     </>
   );
 }
