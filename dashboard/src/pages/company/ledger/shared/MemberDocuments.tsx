@@ -88,7 +88,9 @@ function OwnMemberDocuments(
             <p className="text-sm text-text-muted">No supporting documents attached.</p>
           )}
           {!editor && documents.appointment && props.holdings.length > 0 && (
-            <PageAction label="Add documents" onClick={documents.open} disabled={documents.busy} />
+            <FormActions>
+              <PageAction label="Add documents" onClick={documents.open} disabled={documents.busy} />
+            </FormActions>
           )}
         </>
       )}

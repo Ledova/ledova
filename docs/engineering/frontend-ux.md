@@ -1134,7 +1134,8 @@ by a local helper or a browser `toLocale…` call:
   correction records, former shareholders, certificates, inspection copies, member access, Team,
   representative authority and Profile show no internal references, register
   sequences, block numbers, gas or fingerprints, and have no **Record details** or **Technical
-  details** section; an award shows who recorded it and when as one muted line. Where only an
+  details** section; an award shows who recorded it and when as one muted line under
+  **Show terms and vesting schedule**. Where only an
   identifier tells records apart, such as two shareholders with one name or two options that read
   the same, the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first
   eight characters), never the full UUID, including in choices and screen-reader context. Internal
