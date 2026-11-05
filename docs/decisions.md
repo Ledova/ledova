@@ -2239,8 +2239,9 @@ chose a back arrow at the start of the top bar, in place of the menu button, on 
 wider web screens just before the page title. It is delivered on Representative authority first,
 then, at the owner's request while making each compact, on an authority request's page, a share
 class's page, an award's page, a particulars change and Set up your ledger, which lost its in-page
-return button on [14 October](#manual-register-setup-shares-before-shareholders) and keeps none;
-[#1547](https://github.com/Ledova/ledova/issues/1547) brings it to every other page with a parent.
+return button on [14 October](#manual-register-setup-shares-before-shareholders) and keeps none.
+[#1547](https://github.com/Ledova/ledova/issues/1547) then brought it to Transfer shares, ledger
+maintenance and a shareholder's page, so the arrow is now the only back link on every page with a parent.
 
 **Simpler award page, decided on 5 November 2026.** After the compact pass the owner found much of an
 award's page neither relevant nor useful and asked for a significantly simpler page that doesn't repeat

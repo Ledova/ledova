@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Keyboard, Text, View } from 'react-native';
 import { useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -113,6 +113,7 @@ function OwnTransfer({
 }) {
   const look = useLedgerStyles();
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
+  const [held, setHeld] = useState(false);
   const guard = useMemo(
     () => () => {
       if (currentOwner() !== owner) throw new Error('Your signed-in account changed. Reopen the register.');
@@ -174,6 +175,7 @@ function OwnTransfer({
           blocked={stale || busy}
           onRefused={retry}
           initialFrom={fromMember}
+          onHeldChange={setHeld}
           onCancel={() => toTransfers({ company, token })}
           onPrepared={(record) => toTransfers({ company, token, record, outcome: COPY.PREPARED })}
         />
@@ -183,6 +185,7 @@ function OwnTransfer({
     <Page
       testID="transfer-preparation-scroll"
       title={TITLE}
+      held={held}
       lede={companyMatches && listed && appointment ? `${listed.name} (${listed.symbol})` : undefined}
     >
       {content}
@@ -193,8 +196,13 @@ function OwnTransfer({
 function TransferForm({
   classLabel,
   onCancel,
+  onHeldChange,
   ...options
-}: Omit<TransferPreparationOptions, 'newKey' | 'session'> & { classLabel: string; onCancel: () => void }) {
+}: Omit<TransferPreparationOptions, 'newKey' | 'session'> & {
+  classLabel: string;
+  onCancel: () => void;
+  onHeldChange: (held: boolean) => void;
+}) {
   const look = useLedgerStyles();
   const { blocked } = options;
   const model = useTransferPreparation({ ...options, newKey: randomUUID, session: orderSubmissionSession });
@@ -202,6 +210,10 @@ function TransferForm({
   const [step, setStep] = useState<(typeof STEPS)[number]['id']>('people');
   const stepIndex = STEPS.findIndex((item) => item.id === step);
   const locked = model.busy || blocked || !!model.operation;
+  useEffect(() => {
+    onHeldChange(model.busy || !!model.operation);
+    return () => onHeldChange(false);
+  }, [model.busy, model.operation, onHeldChange]);
   const field = (key: FieldKey, label: string, accessibilityLabel?: string) => {
     const date = key.endsWith('On');
     return (

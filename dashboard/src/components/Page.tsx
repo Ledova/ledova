@@ -38,7 +38,7 @@ export function Page({
   const bar = useContext(PhoneBar);
   const inBar = inFrame && bar.phone;
   const { setTitle, setBack } = bar;
-  const arrow = link.arrow && link.to && link.label ? { to: link.to, label: link.label, state: link.state } : null;
+  const arrow = link.to && link.label ? { to: link.to, label: link.label, state: link.state } : null;
   useEffect(() => {
     if (!tabTitle) return;
     document.title = `${tabTitle} · Ledova`;
@@ -53,10 +53,10 @@ export function Page({
   }, [inBar, title, setTitle]);
   const backState = JSON.stringify(link.state);
   useEffect(() => {
-    if (!inBar || !link.arrow || !link.to || !link.label) return;
+    if (!inBar || !link.to || !link.label) return;
     setBack({ to: link.to, label: link.label, state: link.state });
     return () => setBack(null);
-  }, [inBar, link.arrow, link.to, link.label, backState, setBack]);
+  }, [inBar, link.to, link.label, backState, setBack]);
   const heading = (className: string) => (
     <h1 tabIndex={-1} aria-describedby={lede ? ledeId : undefined} className={className}>
       {title}
@@ -67,7 +67,6 @@ export function Page({
       {lede}
     </p>
   );
-  const backLink = !arrow && link.to && link.label && <PageLink to={link.to} state={link.state} label={link.label} />;
   const desktopHeading = heading('font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none');
 
   return (
@@ -78,7 +77,6 @@ export function Page({
         {inBar ? (
           <>
             {heading('sr-only')}
-            {backLink}
             {links}
             {ledeText}
             {bar.actions && actions && createPortal(actions, bar.actions)}
@@ -95,7 +93,6 @@ export function Page({
                 desktopHeading
               )}
               <div ref={setActionsTarget} className="flex flex-wrap items-center gap-2 empty:hidden">
-                {backLink}
                 {links}
                 {actions}
               </div>

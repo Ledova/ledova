@@ -13,15 +13,16 @@ type PageProps = Pick<
   titleAction?: ReactNode;
   links?: ReactNode;
   lede?: string;
+  held?: boolean;
   children?: ReactNode;
 };
 
-export function Page({ ref, title, titleAction, links, lede, children, ...scroll }: PageProps) {
+export function Page({ ref, title, titleAction, links, lede, held = false, children, ...scroll }: PageProps) {
   const inFrame = useContext(InSignedInFrame);
   const navigation =
     useNavigation<NavigationProp<ParamListBase, string, string | undefined, NavigationState, FrameOptions>>();
   useLayoutEffect(() => {
-    if (inFrame) navigation.setOptions({ title, action: titleAction });
+    if (inFrame) navigation.setOptions({ title, action: titleAction, held });
   });
   const styles = useThemedStyles((theme) => ({
     page: { flex: 1, backgroundColor: theme.colors.surface.base },

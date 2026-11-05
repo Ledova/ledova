@@ -85,16 +85,18 @@ dashboard's routes and guards do not apply.
 
 The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Every page shows
 the web's phone top bar (`TopBar`): the menu button, the page's title, its action (such as Switch
-company or Filters) and the notifications bell. Representative authority's bar shows a back arrow,
-Back to Account, in place of the menu button (`topBar` with a back target). The arrow returns to the
-parent: it goes back to the parent when the parent is in the stack and otherwise opens the parent in
-the page's place, so a class opened from Dashboard's **Class details** also returns to Ledger, as on
-the web, while Android's Back and the iOS swipe return to the previous page. An
-authority request's bar shows Back to Representative authority, a share class's and Set up your
-ledger's bars Back to Ledger, an award's bar Back to Employee share scheme and a particulars change's
-bar Back to shareholder, the same way. A parent that needs its company and member gets them from the page
-(`keepParams`), because the arrow's `popTo` replaces the parent's params; the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
-the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
+company or Filters) and the notifications bell. A page with a parent shows a back arrow in place of the
+menu button (`topBar` with a back target): Back to Account on Representative authority, Back to
+Representative authority on an authority request, Back to Ledger on a share class and Set up your
+ledger, Back to Employee share scheme on an award, Back to Shareholders on a shareholder's page, Back to
+shareholder on a particulars change, Back to Transfer shares on a non-paid transfer and Back to
+Corrections on a correction. The arrow returns to the parent: it goes back to the parent when the parent
+is in the stack and otherwise opens the parent in the page's place, so a class opened from Dashboard's
+**Class details** also returns to Ledger, as on the web, while Android's Back and the iOS swipe return to
+the previous page. A parent that needs params gets them from the page (`keepParams`), because the
+arrow's `popTo` replaces the parent's params. A non-paid transfer locks Cancel while a submission is
+unresolved, and sets `held` then, which hides its arrow so the bar shows the menu button instead. Inside the frame `Page` sets
+the title, action and `held` as the screen's options (`FrameOptions`) and starts with
 its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
 anchored panel (`AnchoredPanel`) as `FilterPopover`. It has a Notifications header with **Mark all
 as read** while any are unread, and the web's rows with an unread dot and a dismiss button. It also has
@@ -106,12 +108,9 @@ selected company, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Ledger for Ledger,
-Issue shares, Transfer shares and Corrections with their preparations,
-Shareholders for Shareholders, a shareholder's page, Employee share scheme and
+Issue shares, Transfer shares and Corrections, Shareholders for Shareholders, Employee share scheme and
 Member access, Documents for Certificates, Inspection copies and Company pack,
-Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like
-the web's sidebar, it marks Transfer shares on a
-transfer's preparation and Corrections on a correction's preparation. Choosing Dashboard
+Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Choosing Dashboard
 returns to it. Ledger opens its overview, Shareholders its people list, Documents opens Certificates
 and Settings opens Profile.
 Like the web's groups, a caret shows a group's pages beneath it, open while one of them is shown.

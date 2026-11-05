@@ -625,6 +625,7 @@ it('preserves original preparation and combined approval recovery through refres
     if (url === URLS.REGISTER_TRANSFERS) throw new Error('Synthetic interrupted transfer preparation');
     return earlierPost(url, body);
   });
+  const transferHeld = vi.fn();
   renderCompanyPage(
     client,
     <TransferForm
@@ -660,6 +661,7 @@ it('preserves original preparation and combined approval recovery through refres
       appointment={APPOINTMENT}
       blocked={false}
       onRefused={() => {}}
+      onHeldChange={transferHeld}
     />,
     'Transfer shares',
   );
@@ -718,6 +720,7 @@ it('preserves original preparation and combined approval recovery through refres
   expect(api.post.mock.calls).toHaveLength(requestsBeforeTransfer);
   fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
   await screen.findByRole('alert');
+  expect(transferHeld).toHaveBeenLastCalledWith(true);
   expect(screen.getByRole('button', { name: 'Back' }).matches(':disabled')).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: TRANSFER_COPY.SUBMIT }));
   await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_TRANSFERS)).toHaveLength(2));

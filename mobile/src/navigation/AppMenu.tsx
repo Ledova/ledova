@@ -58,11 +58,6 @@ type MenuItem = {
   items?: { route: MenuRoute; label: string; hint?: string }[];
 };
 
-const PARENT_ROUTES: Partial<Record<string, MenuRoute>> = {
-  TransferPreparation: 'TransferShares',
-  CorrectionPreparation: 'Corrections',
-};
-
 const sections = (canReadRegister: boolean): MenuItem[] => [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
   ...(canReadRegister
@@ -246,10 +241,9 @@ export function AppMenu({
     fontSize: theme.fontSize.sm,
     color: active ? theme.colors.brand.light : theme.colors.text.secondary,
   });
-  const marked = PARENT_ROUTES[route] ?? route;
   const item = (section: MenuItem) => {
     const active = section.name === current;
-    const here = active && !section.items?.some((child) => child.route === marked);
+    const here = active && !section.items?.some((child) => child.route === route);
     const expanded = toggled[section.name] ?? active;
     const Icon = section.icon;
     const Caret = expanded ? CaretDownIcon : CaretRightIcon;
@@ -301,11 +295,11 @@ export function AppMenu({
                 key={child.route}
                 accessibilityRole="button"
                 accessibilityHint={child.hint}
-                accessibilityState={{ selected: child.route === marked }}
+                accessibilityState={{ selected: child.route === route }}
                 onPress={() => onSelect(child.route)}
-                style={row(child.route === marked)}
+                style={row(child.route === route)}
               >
-                <Text style={label(child.route === marked)}>{child.label}</Text>
+                <Text style={label(child.route === route)}>{child.label}</Text>
               </TouchableOpacity>
             ))}
           </View>

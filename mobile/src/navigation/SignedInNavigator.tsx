@@ -88,7 +88,11 @@ export function SignedInNavigator() {
         title={options.title}
         action={(options as FrameOptions).action}
         current={current}
-        back={back && { ...back, params: back.keepParams ? route.params : undefined }}
+        back={
+          back && !(options as FrameOptions).held
+            ? { ...back, params: back.keepParams ? route.params : undefined }
+            : undefined
+        }
         onNotifications={setNotificationsAnchor}
         notificationsOpen={!!notificationsAnchor}
         unreadCount={unreadCount}
@@ -112,12 +116,20 @@ export function SignedInNavigator() {
             />
             <Stack.Screen name="IssueShares" component={IssueSharesScreen} options={topBar('Ledger')} />
             <Stack.Screen name="TransferShares" component={TransferSharesScreen} options={topBar('Ledger')} />
-            <Stack.Screen name="TransferPreparation" component={TransferPreparationScreen} options={topBar('Ledger')} />
+            <Stack.Screen
+              name="TransferPreparation"
+              component={TransferPreparationScreen}
+              options={topBar('Ledger', {
+                route: 'TransferShares',
+                label: 'Back to Transfer shares',
+                keepParams: true,
+              })}
+            />
             <Stack.Screen name="Corrections" component={CorrectionsScreen} options={topBar('Ledger')} />
             <Stack.Screen
               name="CorrectionPreparation"
               component={CorrectionPreparationScreen}
-              options={topBar('Ledger')}
+              options={topBar('Ledger', { route: 'Corrections', label: 'Back to Corrections', keepParams: true })}
             />
             <Stack.Screen
               name="RegisterSetup"
@@ -125,7 +137,11 @@ export function SignedInNavigator() {
               options={topBar('Ledger', { route: 'Ledger', label: 'Back to Ledger' })}
             />
             <Stack.Screen name="Shareholders" component={ShareholdersScreen} options={topBar('Shareholders')} />
-            <Stack.Screen name="Shareholder" component={ShareholderScreen} options={topBar('Shareholders')} />
+            <Stack.Screen
+              name="Shareholder"
+              component={ShareholderScreen}
+              options={topBar('Shareholders', { route: 'Shareholders', label: 'Back to Shareholders' })}
+            />
             <Stack.Screen
               name="ShareholderParticulars"
               component={ParticularsScreen}
