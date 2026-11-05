@@ -87,6 +87,8 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent & { arrow?: 
   companyAuthority: { destination: 'settings', view: 'account', arrow: true },
   companyAuthorityRequest: { destination: 'companyAuthority', arrow: true },
   companyClass: { destination: 'companyRegister', arrow: true },
+  companyRegisterSetup: { destination: 'companyRegister', arrow: true },
+  companyRegisterImport: { destination: 'companyRegister', arrow: true },
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
   companyRegisterParticulars: { destination: 'companyRegister', view: 'corrections' },
 };

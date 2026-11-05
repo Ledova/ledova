@@ -569,10 +569,16 @@ function OwnImport({
           }
           classFields={
             <Rows>
-              <Fact label="Class name">{retained!.listed.name}</Fact>
-              <Fact label="Class code">{retained!.listed.symbol}</Fact>
-              <Fact label="Class type">{retained!.listed.tokenTypeDisplay || 'Not recorded'}</Fact>
-              <Fact label="Technical share limit">
+              <Fact label="Class name" inline>
+                {retained!.listed.name}
+              </Fact>
+              <Fact label="Class code" inline>
+                {retained!.listed.symbol}
+              </Fact>
+              <Fact label="Class type" inline>
+                {retained!.listed.tokenTypeDisplay || 'Not recorded'}
+              </Fact>
+              <Fact label="Technical share limit" inline>
                 {retained!.listed.totalSupply === TECHNICAL_SHARE_LIMIT
                   ? REGISTER_COPY.QUANTITY_GUARD
                   : formatShareCount(retained!.listed.totalSupply)}

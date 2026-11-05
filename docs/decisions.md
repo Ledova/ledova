@@ -2237,7 +2237,9 @@ found the web's in-page **Back to Account** button out of place and asked for on
 a small back icon in the top bar instead of buttons in the page. Of the placements proposed, the owner
 chose a back arrow at the start of the top bar, in place of the menu button, on web and app, and on
 wider web screens just before the page title. It is delivered on Representative authority first,
-then, at the owner's request while making it compact, on an authority request's page;
+then, at the owner's request while making each compact, on an authority request's page, a share
+class's page and Set up your ledger, which lost its in-page return button on
+[14 October](#manual-register-setup-shares-before-shareholders) and keeps none;
 [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to every other page with a parent.
 
 ## The signed-in app

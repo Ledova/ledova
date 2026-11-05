@@ -40,9 +40,10 @@ import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 
 export default function CompanyRegisterImportPage() {
   const { uuid = '' } = useParams();
+  const [search] = useSearchParams();
   const { owner, boundary, preferences } = useRegisterPreparationOwner();
   return (
-    <Page>
+    <Page back={registerPlace({ company: search.get('company') ?? undefined })}>
       {owner && !preferences.isError ? (
         uuid ? (
           <OwnImport
@@ -237,7 +238,7 @@ function OwnImport({
                 : formatShareCount(retained.listed.totalSupply),
             ],
           ].map(([label, value]) => (
-            <Row key={label} label={label}>
+            <Row key={label} label={label} inline>
               {value}
             </Row>
           ))}

@@ -12,10 +12,10 @@ import type {
   TokenHoldersResponse,
 } from '../types';
 import { REGISTER_IMPORT_COPY } from '../constants/business/register-imports';
-import { formatShareCount } from './formatting';
+import { formatShareCount, sharePercentage } from './formatting';
 import { rowsOf } from './register-commands';
 import { isRegisterImportMemberDocuments } from './register-member-documents';
-import { isCalendarDate } from './date';
+import { formatShortDate, isCalendarDate } from './date';
 
 const MEMBER_TEXT = ['member', 'name', 'residentialAddress', 'shares', 'enteredOn'];
 const FORMER_TEXT = ['name', 'residentialAddress', 'shares', 'ceasedOn'];
@@ -113,6 +113,17 @@ export function registerImportOf(record: RegisterImportRecord): RegisterImport {
 export function registerImportTotals(members: Pick<RegisterImportMemberRow, 'shares'>[]) {
   const total = members.reduce((sum, row) => sum + BigInt(/^\d+$/.test(row.shares) ? row.shares : '0'), 0n);
   return { total: total.toString(), count: members.length };
+}
+
+export const memberAddedOn = (enteredOn: string) =>
+  enteredOn ? `Added ${formatShortDate(enteredOn)}` : 'Date not recorded';
+
+export function memberRecordFacts(member: Pick<RegisterImportMemberRow, 'shares' | 'enteredOn'>, total: string) {
+  const share = /^\d+$/.test(member.shares) ? sharePercentage(member.shares, total) : 'Not recorded';
+  return [
+    share === 'Not recorded' ? '% of class not recorded' : `${share} of class`,
+    member.enteredOn ? `added ${formatShortDate(member.enteredOn)}` : 'date added not recorded',
+  ].join(' · ');
 }
 
 function allotmentRows(rows: RegisterImportAllotment[] | undefined) {

@@ -8,8 +8,10 @@ import {
   REGISTER_SETUP_STEPS,
   formatDate,
   formatShareCount,
+  formatShortDate,
   registerImportTotals,
   refusalSentences,
+  shareCount,
   useImportPreparation,
   type ImportPreparationOptions,
 } from '@ledova/shared';
@@ -21,7 +23,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useId, useRef, useState, type ReactNode } from 'react';
 
 import { BringRecords } from './BringRecords';
-import { MemberRecords } from '@pages/company/ledger/shared/MemberRecords';
+import { MemberRecords, MemberRow } from '@pages/company/ledger/shared/MemberRecords';
 
 const IMPORT_NOTE =
   'Coming soon. Import will read a document into these same editable forms. Review and correct the records before saving.';
@@ -149,9 +151,6 @@ export function ImportForm({
                   } else if (!holderEditor) void prepare();
                 }}
               >
-                <h3 className="text-base font-medium text-text-primary">
-                  {phase === 'details' ? 'Share details' : 'Shareholders'}
-                </h3>
                 <ErrorSummary
                   attempt={tries}
                   claim={(count) => count > focusedTry.current && (focusedTry.current = count) === count}
@@ -198,7 +197,8 @@ export function ImportForm({
                   <FormActions>
                     {phase === 'shareholders' && (
                       <PageAction
-                        label="Back to share details"
+                        label="Back"
+                        context="share details"
                         disabled={busy || blocked || holderEditor}
                         onClick={() => {
                           setAttempted(false);
@@ -242,30 +242,22 @@ export function ImportForm({
                 aria-label={proposal.status === 'applied' ? 'Recorded ledger' : 'Review ledger'}
                 className="space-y-5"
               >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  {proposal.status === 'applied' ? (
+                {proposal.status === 'applied' && (
+                  <p className="text-sm text-text-primary">
                     <Status tone="done">Recorded</Status>
-                  ) : (
-                    <h3 className="text-base font-medium text-text-primary">Review</h3>
-                  )}
-                  <p className="text-sm text-text-muted">
-                    Record date · <time dateTime={proposal.asAt}>{formatDate(proposal.asAt)}</time>
                   </p>
-                </div>
-                <dl className="grid grid-cols-2 gap-3">
-                  <div className="min-w-0">
-                    <dt className="text-xs text-text-muted">Shares held</dt>
-                    <dd className="mt-2 break-words text-2xl font-medium tabular-nums text-text-primary">
-                      {formatShareCount(registerImportTotals(proposal.members).total)}
-                    </dd>
-                  </div>
-                  <div className="min-w-0">
-                    <dt className="text-xs text-text-muted">Shareholders</dt>
-                    <dd className="mt-2 text-2xl font-medium tabular-nums text-text-primary">
-                      {proposal.members.length}
-                    </dd>
-                  </div>
-                </dl>
+                )}
+                <Rows>
+                  <Row label="Record date" inline>
+                    <time dateTime={proposal.asAt}>{formatShortDate(proposal.asAt)}</time>
+                  </Row>
+                  <Row label="Shares held" inline>
+                    {formatShareCount(registerImportTotals(proposal.members).total)}
+                  </Row>
+                  <Row label="Shareholders" inline>
+                    {proposal.members.length}
+                  </Row>
+                </Rows>
                 {proposal.correctionOf && <p className="text-sm text-text-muted">Correction: {proposal.reason}</p>}
                 {((proposal.sourceReference || proposal.authorityReference) !== 'Company-provided share records' ||
                   proposal.asicIssuedTotal !== null ||
@@ -276,33 +268,44 @@ export function ImportForm({
                     <Rows>
                       {(proposal.sourceReference || proposal.authorityReference) !==
                         'Company-provided share records' && (
-                        <Row label="Source record">{proposal.sourceReference || proposal.authorityReference}</Row>
+                        <Row label="Source record" inline>
+                          {proposal.sourceReference || proposal.authorityReference}
+                        </Row>
                       )}
                       {proposal.asicIssuedTotal !== null && (
-                        <Row label="ASIC issued shares cross-check">{formatShareCount(proposal.asicIssuedTotal)}</Row>
+                        <Row label="ASIC issued shares cross-check" inline>
+                          {formatShareCount(proposal.asicIssuedTotal)}
+                        </Row>
                       )}
                       {proposal.asicMemberCount !== null && (
-                        <Row label="Shareholders listed by ASIC">{proposal.asicMemberCount}</Row>
+                        <Row label="Shareholders listed by ASIC" inline>
+                          {proposal.asicMemberCount}
+                        </Row>
                       )}
                       {proposal.registerEvidence && (
-                        <Row label="Source copy">Retained company-provided register copy</Row>
+                        <Row label="Source copy" inline>
+                          Retained company-provided register copy
+                        </Row>
                       )}
-                      {proposal.asicEvidence && <Row label="ASIC copy">Retained company-provided extract</Row>}
+                      {proposal.asicEvidence && (
+                        <Row label="ASIC copy" inline>
+                          Retained company-provided extract
+                        </Row>
+                      )}
                     </Rows>
                   </ShowMore>
                 )}
                 <MemberRecords members={proposal.members} />
                 {!!proposal.formerMembers.length && (
-                  <ul className="divide-y divide-border-subtle">
+                  <ul aria-label="Former shareholders" className="divide-y divide-border-subtle">
                     {proposal.formerMembers.map((member, index) => (
-                      <li key={index} className="py-3">
-                        <Rows>
-                          <Row label="Former shareholder">{member.name}</Row>
-                          <Row label="Address">{member.residentialAddress}</Row>
-                          <Row label="Shares at cessation">{formatShareCount(member.shares)}</Row>
-                          <Row label="Ceased on">{formatDate(member.ceasedOn)}</Row>
-                        </Rows>
-                      </li>
+                      <MemberRow
+                        key={index}
+                        name={member.name}
+                        shares={shareCount(member.shares)}
+                        address={member.residentialAddress}
+                        facts={`Former shareholder · Ceased ${formatShortDate(member.ceasedOn)}`}
+                      />
                     ))}
                   </ul>
                 )}

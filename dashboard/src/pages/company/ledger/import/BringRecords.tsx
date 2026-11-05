@@ -3,16 +3,17 @@ import { useLayoutEffect, useState } from 'react';
 import {
   FIELD_LIMITS,
   blankMember,
-  formatDate,
   formatShareCount,
+  memberAddedOn,
+  shareCount,
   type MemberDraft,
   type PreparationDraft,
   type RegisterTransferMember,
 } from '@ledova/shared';
-import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { MemberFields } from './MemberFields';
+import { MemberRow } from '@pages/company/ledger/shared/MemberRecords';
 import { ShowMore, Failure } from '@components/Ledger';
 
 export function BringRecords({
@@ -128,57 +129,49 @@ export function BringRecords({
               </div>
             )}
             {listed && (
-              <Table
-                caption="Draft shareholders"
-                columns={[
-                  { label: 'Shareholder' },
-                  { label: 'Shares held', align: 'right' },
-                  { label: 'Date added' },
-                  { label: 'Actions', hidden: true },
-                ]}
-              >
+              <ul aria-label="Draft shareholders" className="divide-y divide-border-subtle">
                 {draft.members.map((row, index) =>
                   started(row) && row.member !== editor?.member ? (
-                    <tr key={row.member}>
-                      <th scope="row" className="px-4 py-4 text-left font-normal">
-                        <p className="font-medium text-text-primary">{row.name || 'Shareholder details incomplete'}</p>
-                        <p className="mt-1 max-w-64 truncate text-xs text-text-muted">{row.residentialAddress}</p>
-                        {validateMember(index).length > 0 && (
-                          <p className="mt-1 text-xs text-error-light">Needs details</p>
-                        )}
-                      </th>
-                      <td className="px-4 py-4 text-right tabular-nums">
-                        {row.shares ? formatShareCount(row.shares) : '—'}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-4 text-text-muted">{formatDate(row.enteredOn, '—')}</td>
-                      <td className="px-4 py-4">
-                        <div className="flex gap-2">
-                          <PageAction
-                            label="Edit"
-                            context={`shareholder ${index + 1}`}
-                            disabled={busy || editorOpen}
-                            onClick={() => {
-                              forget();
-                              setEditor({ member: row.member, original: row });
-                            }}
-                          />
-                          <PageAction
-                            label="Remove"
-                            context={`shareholder ${index + 1}`}
-                            disabled={busy || editorOpen}
-                            onClick={() =>
-                              update((current) => ({
-                                ...current,
-                                members: current.members.filter((_, at) => at !== index),
-                              }))
-                            }
-                          />
-                        </div>
-                      </td>
-                    </tr>
+                    <MemberRow
+                      key={row.member}
+                      name={row.name || 'Shareholder details incomplete'}
+                      shares={row.shares ? shareCount(row.shares) : '—'}
+                      address={row.residentialAddress}
+                      facts={
+                        <>
+                          {memberAddedOn(row.enteredOn)}
+                          {validateMember(index).length > 0 && (
+                            <span className="text-error-light"> · Needs details</span>
+                          )}
+                        </>
+                      }
+                    >
+                      <PageAction
+                        compact
+                        label="Edit"
+                        context={`shareholder ${index + 1}`}
+                        disabled={busy || editorOpen}
+                        onClick={() => {
+                          forget();
+                          setEditor({ member: row.member, original: row });
+                        }}
+                      />
+                      <PageAction
+                        compact
+                        label="Remove"
+                        context={`shareholder ${index + 1}`}
+                        disabled={busy || editorOpen}
+                        onClick={() =>
+                          update((current) => ({
+                            ...current,
+                            members: current.members.filter((_, at) => at !== index),
+                          }))
+                        }
+                      />
+                    </MemberRow>
                   ) : null,
                 )}
-              </Table>
+              </ul>
             )}
             {editing && (
               <div className={listed ? 'space-y-5 border-t border-border-subtle pt-5' : 'space-y-5'}>

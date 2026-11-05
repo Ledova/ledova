@@ -69,8 +69,8 @@ export interface DestinationParent {
 export const DESTINATION_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   memberRecords: { destination: 'home', back: false },
   companyClass: { destination: 'companyRegister' },
-  companyRegisterSetup: { destination: 'companyRegister', back: false },
-  companyRegisterImport: { destination: 'companyRegister', back: false },
+  companyRegisterSetup: { destination: 'companyRegister' },
+  companyRegisterImport: { destination: 'companyRegister' },
   companyRegisterCorrection: { destination: 'companyRegister' },
   companyRegisterTransfer: { destination: 'companyRegister' },
   companyRegisterParticulars: { destination: 'companyRegister', view: 'shareholders' },

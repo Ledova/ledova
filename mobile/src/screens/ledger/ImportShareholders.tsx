@@ -10,8 +10,10 @@ import {
   blankMember,
   formatDate,
   formatShareCount,
+  memberAddedOn,
   peopleFrom,
   registerImportMoney,
+  shareCount,
   wholeShares,
   type AllotmentDraft,
   type DocumentDraft,
@@ -25,8 +27,8 @@ import { PersonSelect } from '../../components/PersonSelect';
 import { Field, FileField } from '../../components/register/RegisterFields';
 import { SelectField } from '../../components/SelectField';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { SummaryCell } from './IssueRecord';
 import { DATE } from './IssueForms';
+import { MemberRow } from './ImportRecord';
 import { useLedgerStyles } from './useLedgerStyles';
 
 const CATEGORIES = Object.entries(REGISTER_MEMBER_DOCUMENT_CATEGORIES).map(([value, label]) => ({
@@ -153,31 +155,26 @@ export function ImportShareholders({
               {draft.members.map((row, index) =>
                 started(row) && row.member !== editor?.member ? (
                   <View key={row.member} style={look.row}>
-                    <View style={look.terms}>
-                      <Text style={look.title}>{row.name || 'Shareholder details incomplete'}</Text>
-                      {!!row.residentialAddress && (
-                        <Text numberOfLines={1} style={look.small}>
-                          {row.residentialAddress}
-                        </Text>
-                      )}
-                      {validateMember(index).length > 0 && <Text style={styles.error}>Needs details</Text>}
-                    </View>
-                    <View style={look.pair}>
-                      <SummaryCell label="Shares held" values={[row.shares ? formatShareCount(row.shares) : '—']}>
-                        <Text style={look.title}>{row.shares ? formatShareCount(row.shares) : '—'}</Text>
-                      </SummaryCell>
-                      <SummaryCell label="Date added" values={[formatDate(row.enteredOn, '—')]}>
-                        <Text style={look.title}>{formatDate(row.enteredOn, '—')}</Text>
-                      </SummaryCell>
-                    </View>
-                    <Actions>
+                    <MemberRow
+                      name={row.name || 'Shareholder details incomplete'}
+                      shares={row.shares ? shareCount(row.shares) : '—'}
+                      address={row.residentialAddress}
+                      facts={
+                        <>
+                          {memberAddedOn(row.enteredOn)}
+                          {validateMember(index).length > 0 && <Text style={look.smallError}> · Needs details</Text>}
+                        </>
+                      }
+                    >
                       <Action
+                        compact
                         label="Edit"
                         accessibilityLabel={`Edit (shareholder ${index + 1})`}
                         disabled={locked || editorOpen}
                         onPress={() => edit(row.member, row)}
                       />
                       <Action
+                        compact
                         label="Remove"
                         accessibilityLabel={`Remove (shareholder ${index + 1})`}
                         disabled={locked || editorOpen}
@@ -188,7 +185,7 @@ export function ImportShareholders({
                           }))
                         }
                       />
-                    </Actions>
+                    </MemberRow>
                   </View>
                 ) : null,
               )}

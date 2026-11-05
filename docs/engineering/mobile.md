@@ -90,8 +90,8 @@ Back to Account, in place of the menu button (`topBar` with a back target). The 
 parent: it goes back to the parent when the parent is in the stack and otherwise opens the parent in
 the page's place, so a class opened from Dashboard's **Class details** also returns to Ledger, as on
 the web, while Android's Back and the iOS swipe return to the previous page. An
-authority request's bar shows Back to Representative authority and a share class's bar Back to Ledger
-the same way; the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
+authority request's bar shows Back to Representative authority, and a share class's and Set up your
+ledger's bars Back to Ledger, the same way; the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
 its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
 anchored panel (`AnchoredPanel`) as `FilterPopover`. It has a Notifications header with **Mark all
@@ -104,7 +104,7 @@ selected company, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Ledger for Ledger,
-Issue shares, Transfer shares and Corrections with their preparations, and Set up your ledger,
+Issue shares, Transfer shares and Corrections with their preparations,
 Shareholders for Shareholders, a shareholder's page, its particulars change, Employee share scheme, an
 award's page and Member access, Documents for Certificates, Inspection copies and Company pack,
 Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like
@@ -372,8 +372,11 @@ and the confirmation together and returns to Dashboard. The web's disabled **Imp
 for a class, from **Set up your ledger** or Corrections, it brings records into its unopened register,
 or replaces the latest applied opening's shareholder rows in full with a reason, and resumes a saved
 draft for review. Dates are typed as `YYYY-MM-DD` (UTC). Each save and decision keeps the web's retry
-of an uncertain result, and **Edit records** retires a prepared draft for editing. **Cancel** returns
-to the page that opened it, and a page that cannot show the form still offers it.
+of an uncertain result, and **Edit records** retires a prepared draft for editing. Shareholders are
+compact rows (`MemberRow` in `ImportRecord.tsx`), with **Edit** and **Remove** in the draft and **Show
+allotments** on Review, whose record date, shares held and shareholders are one line each. **Cancel**
+returns to the page that opened it, on every step but Shareholders, where **Back** returns to Share
+details, and a page that cannot show the form still offers it. The top bar's arrow returns to Ledger.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
 Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details, each label above its value, and **Edit** opens their form

@@ -33,7 +33,8 @@ invitation reviews and wide tables take the standard workspace width. Inline pre
 and result states retain their collection's frame. Tables scroll within their card on small screens,
 except Shareholders, which lists each person with only the classes they hold below `md`.
 A stepped preparation (register setup, an investor issue, a transfer) is one card: its title names the class or
-the task, `FormSteps` sits at its top, each step has a small heading, and one primary action ends the step.
+the task, `FormSteps` sits at its top, each step has a small heading unless it would repeat the step's name, as in
+register setup, and one primary action ends the step.
 Register setup's card is titled with the class being set up, and a recorded ledger shows its state as a `Status`.
 Company information, authority records and company team use this workspace frame too.
 Team is the selected company's page: its team, **Invite a company user** and the invitations you
@@ -133,8 +134,8 @@ section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
-action and the bell. Representative authority's, an authority request's and a share class's top bars show a back
-arrow in place of the menu button, as on the web ([back arrow](#navigation)); the other pages have
+action and the bell. Representative authority's, an authority request's, a share class's and Set up your ledger's top bars
+show a back arrow in place of the menu button, as on the web ([back arrow](#navigation)); the other pages have
 no back button yet
 ([#1547](https://github.com/Ledova/ledova/issues/1547)), so the app leaves out the web's title-row way
 back, and Android's Back and the iOS swipe return to the previous page. A tap on a
@@ -157,8 +158,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   default, left-aligned, with `mono` for a recorded wallet. With `inline`, a web `Row` or an app `Fact`
   keeps its label on the left and its value on the right at every width, a long value wrapping right-aligned beside it;
   an authority request's page uses it for every fact (owner, 5 November 2026), and a share class's page
-  for its summary figures, recorded rights and effective date. Breakdowns of figures (company ownership,
-  register setup's summary) and an award's chart legend keep their own layout,
+  for its summary figures, recorded rights and effective date, and register setup for its review's figures and a class's
+  details. Breakdowns of figures (company ownership) and an award's chart legend keep their own layout,
   without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines, an optional `figure` at the right of the
@@ -190,7 +191,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   **Revoke appointment** are compact text actions, placed like the others.
   A shareholder's Holdings and History rows don't expand either: the class, or the
   entry's kind, with the shares at the right, then the facts in muted text, with a holding's compact
-  **Transfer shares** beneath them at the right edge. **Change particulars**, **Issue shares to
+  **Transfer shares** beneath them at the right edge. Register setup's shareholders and a copied opening's are
+  compact rows at every width (`MemberRow`): the name with the shares at the right, the address, then the facts, with
+  **Edit** and **Remove**, or **Allotments**, as compact text actions at the right edge. **Change particulars**, **Issue shares to
   them**, **Open Employee share scheme** and **Invite to their records** sit at the same edge as
   compact text actions. The Account and Data and privacy rows and an action that stands on
   its own follow the same edge on web and in the app: Try again after a failed read, **Retry
@@ -534,14 +537,13 @@ Back to Settings because their sidebar links already provide navigation. Pages w
 show a back arrow (owner, 5 November 2026): `BackArrow`, named for screen readers "Back to" and the
 parent, at the start of the phone top bar in place of the menu button, and just before the title on
 wider screens, with no **Back to …** button in the page. So far Representative authority (Back to
-Account), an authority request's page (Back to Representative authority) and a share class's page
-(Back to Ledger) do, through `arrow` on their parents in `WEB_PARENTS`; [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the
+Account), an authority request's page (Back to Representative authority), a share class's page and
+Set up your ledger (Back to Ledger) do, through `arrow` on their parents in `WEB_PARENTS`; [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the
 rest. Until then `Page` puts one useful parent link in the title row for a contextual task: Back to
 Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, and Back to
 Corrections for ledger maintenance.
 Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
-by name. Register setup has none, on purpose
-([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).
+by name.
 
 A way back to a Ledger class or task carries the place it means, built by `registerPlace`
 (`dashboard/src/pages/company/ledger/shared/registerPlace.ts`): a correction returns to that

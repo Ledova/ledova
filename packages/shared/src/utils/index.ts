@@ -76,6 +76,8 @@ export {
   importFigures,
   isPreparedRegisterImport,
   isRegisterImportMembers,
+  memberAddedOn,
+  memberRecordFacts,
   openingRecordsLink,
   registerImportMoney,
   registerImportTotals,

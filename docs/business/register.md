@@ -236,7 +236,8 @@ web and, at phone width, in the app:
    and fully paid means nothing remains unpaid. Existing unknown amounts remain unknown.
    For a genuinely unopened non-tokenised class
    with no issued shares or earlier members, leave the draft empty to record its empty opening.
-4. Review the shares, shareholders and record date in one table, with particulars under Details.
+4. Review the record date, shares held and shareholders, one line each, then a compact row for each
+   shareholder with particulars under **Allotments** (**Show allotments** in the app).
    Confirm loads a fresh preview and records approval and application together; an appointee who may
    only review records the approval for another to apply.
 
