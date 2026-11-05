@@ -560,8 +560,10 @@ Transfer shares. Each keeps its class and task, with focus and one line naming w
 ([feedback](#feedback)). A preparation started from a shareholder's page also lands on its record in
 Ledger, since a shareholder's page doesn't list prepared records.
 
-Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`; a
-shareholder's page says "Shareholder" there, so their name stays out of the browser's history. After
+Each page's title is also the browser tab's title, "<page title> · Ledova", set by `Page`. A page
+titled with a person's or company's name (a shareholder's, an award's, an authority request's or a
+particulars change's) keeps its destination's title there through `documentTitle`, so the name stays
+out of the browser's history. After
 a route change, including a Ledger view, focus moves to the page's heading once any closing dialog
 has handed focus back, unless the page has already focused something of its own, such as the
 register class it opens at. Focus stays where it is when a dialog stays open, after a redirect such

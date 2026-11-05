@@ -193,8 +193,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   Router's `generatePath`, or with the web-only paths in `utils/paths.ts` (the company dashboard,
   sign-in, sign-up and `SIGNUP_STEPS`); source writes no literal path. Titles come from
   the web `pageTitle` mapping used by `signedInRoutes`
-  ([routes, audiences and guards](#routes-audiences-and-guards)); a page sets `PageTitle` only for a
-  hash view.
+  ([routes, audiences and guards](#routes-audiences-and-guards)); a page overrides it with `PageTitle`
+  for a hash view or to show its record's name.
 - **Errors and waiting.** A failed request reads as a `role="alert"` sentence, the kit's `Failure`
   ([validation](frontend-ux.md#validation)). Read a status with `failureStatus`, never an inline
   cast. A page's first read renders `<Page loading>`; a failed read shows `LoadError` with Try again
