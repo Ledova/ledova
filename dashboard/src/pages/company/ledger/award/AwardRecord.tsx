@@ -286,7 +286,7 @@ export function AwardRecord({
                           Recorded {formatDateTime(event.createdAt)}
                           {event.preparedByName && ` by ${event.preparedByName}`}
                         </p>
-                        <div className="flex flex-wrap justify-end gap-x-4 gap-y-1">
+                        <div className="flex flex-wrap justify-end gap-x-4 gap-y-6">
                           <PageAction
                             compact
                             label="Download vesting evidence"

@@ -158,8 +158,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   default, left-aligned, with `mono` for a recorded wallet. With `inline`, a web `Row` or an app `Fact`
   keeps its label on the left and its value on the right at every width, a long value wrapping right-aligned beside it;
   an authority request's page uses it for every fact (owner, 5 November 2026), and a share class's page
-  for its summary figures, recorded rights and effective date, and register setup for its review's figures and a class's
-  details. Breakdowns of figures (company ownership) and an award's chart legend keep their own layout,
+  for its summary figures, recorded rights and effective date, register setup for its review's figures and a class's
+  details, and an award's page for its short facts and figures. Breakdowns of figures (company ownership) and an award's chart legend keep their own layout,
   without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines, an optional `figure` at the right of the
@@ -1105,7 +1105,8 @@ by a local helper or a browser `toLocale…` call:
   the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
   page, Employee share scheme and Certificates at phone width, Member access, prepared inspection
   copies, appointments and issued invitations, Account details' Member since, Activation's
-  historical record and authority requests use `formatShortDate`, "20 Oct 2026", read the same way.
+  historical record, authority requests, Set up your ledger's records and an award's page use
+  `formatShortDate`, "20 Oct 2026", read the same way.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter
   month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.

@@ -54,7 +54,7 @@ export function Page({
   const backState = JSON.stringify(link.state);
   useEffect(() => {
     if (!inBar || !link.arrow || !link.to || !link.label) return;
-    setBack({ to: link.to, label: link.label, state: backState && JSON.parse(backState) });
+    setBack({ to: link.to, label: link.label, state: link.state });
     return () => setBack(null);
   }, [inBar, link.arrow, link.to, link.label, backState, setBack]);
   const heading = (className: string) => (
