@@ -20,6 +20,7 @@ import {
   formatShortDate,
   ownAppointmentsKey,
   ownershipCompaniesKey,
+  registerClassesKey,
   sydneyToday,
   utcToday,
   type ClassRightsRequest,
@@ -45,6 +46,7 @@ import {
   type RegisterImport,
   type RegisterImportPreparation,
   type RegisterMemberDocumentRequest,
+  type RegisterMemberDocument,
   type RegisterParticularsChange,
   type RegisterTransfer,
   type RegisterTransferDecideRequest,
@@ -524,6 +526,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let vestings: RegisterAwardVesting[] = [];
   let rights: ClassRightsRevision[] = [];
   let thirdHolder = false;
+  let documentClasses = false;
+  const supportingDocuments: RegisterMemberDocument[] = [];
   let allotments: RegisterAllotment[] = [];
   let grants: RegisterGrant[] = [];
   let transfers: RegisterTransfer[] = [];
@@ -542,6 +546,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
       const classes = [
         { ...FOUNDERS, companyUuid: ADMINISTERED.uuid, tokenTypeDisplay: 'Ordinary', totalSupply: '1000' },
         { ...ELSEWHERE, companyUuid: ELSEWHERE_COMPANY },
+        ...(documentClasses
+          ? [{ ...FOUNDERS, ...PREFERENCE, companyUuid: ADMINISTERED.uuid, tokenTypeDisplay: 'Preference' }]
+          : []),
       ];
       return page(classes.filter((item) => !company || item.companyUuid === company));
     }
@@ -565,6 +572,16 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.REGISTER_PEOPLE) return { data: { company: ADMINISTERED.uuid, members: [] } };
     if (url === URLS.HOLDERS(PREFERENCE.uuid)) {
       const token = { ...REGISTER.token, ...PREFERENCE, totalSupply: TECHNICAL_SHARE_LIMIT };
+      if (documentClasses)
+        return {
+          data: {
+            ...REGISTER,
+            token,
+            issuedSupply: '2',
+            totalHolders: 1,
+            holders: [{ ...HOLDER_A, balance: '2', percentage: 100 }],
+          },
+        };
       return { data: { ...REGISTER, token, initialized: false, issuedSupply: null } };
     }
     if (url === URLS.REGISTER_MEMBERS(FOUNDERS.uuid) || url === URLS.REGISTER_MEMBERS(PREFERENCE.uuid)) {
@@ -599,6 +616,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.REGISTER_PARTICULARS_CHANGES) return page([PARTICULARS_EDIT]);
     if (url === URLS.MEMBER_INVITATIONS) return page([]);
     if (url === URLS.REGISTER_ENTRIES(FOUNDERS.uuid)) return { data: { results: [CERTIFIED], next: null, count: 1 } };
+    if (url === URLS.REGISTER_ENTRIES(PREFERENCE.uuid)) return page([]);
     if (url === URLS.DETAIL(FOUNDERS.uuid)) {
       const company = { company: ADMINISTERED.uuid, companyUuid: ADMINISTERED.uuid, companyName: ADMINISTERED.name };
       return { data: { ...FOUNDERS, ...company, status: 'draft', tokenTypeDisplay: 'Ordinary', totalSupply: '1000' } };
@@ -607,7 +625,30 @@ it('associates a member by invitation code, switches to their company on Dashboa
       const administrationAppointment = own.capabilities.includes('admin') ? own.uuid : null;
       return { data: { ...page(rights).data, previous: null, current: rights[0] ?? null, administrationAppointment } };
     }
-    if (url === URLS.REGISTER_MEMBER_DOCUMENTS) return page([]);
+    if (url === URLS.REGISTER_MEMBER_DOCUMENTS) {
+      const {
+        company,
+        member,
+        token,
+        idempotency_key: key,
+      } = (config?.params ?? {}) as {
+        company?: string;
+        member?: string;
+        token?: string;
+        idempotency_key?: string;
+      };
+      return page(
+        supportingDocuments.filter(
+          (document) =>
+            document.company === company &&
+            (!member || document.member === member) &&
+            (!token || document.token === token) &&
+            (!key || document.idempotencyKey === key),
+        ),
+      );
+    }
+    if (supportingDocuments.some((document) => url === URLS.REGISTER_MEMBER_DOCUMENT_FILE(document.uuid)))
+      return { data: new ArrayBuffer(4), headers: { 'content-type': 'application/pdf' } };
     const preview = {
       token: FOUNDERS.uuid,
       appointment: ADMINISTRATION.uuid,
@@ -1001,7 +1042,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     }
     if (url === URLS.REGISTER_MEMBER_DOCUMENTS) {
       const request = value as RegisterMemberDocumentRequest;
-      const snapshot = {
+      const snapshot: RegisterMemberDocument['snapshot'] = {
         evidence: request.evidence,
         company: request.companyId,
         documentType: 'supporting',
@@ -1012,16 +1053,16 @@ it('associates a member by invitation code, switches to their company on Dashboa
         sha256: 'a'.repeat(64),
       };
       const { companyId, ...document } = request;
-      return {
-        data: {
-          ...document,
-          uuid: '45454545-4545-4545-8545-454545454545',
-          company: companyId,
-          sourceImport: null,
-          snapshot,
-          createdAt: '2026-11-04T00:00:00Z',
-        },
+      const stored = {
+        ...document,
+        uuid: request.idempotencyKey,
+        company: companyId,
+        sourceImport: null,
+        snapshot,
+        createdAt: '2026-11-04T00:00:00Z',
       };
+      supportingDocuments.push(stored);
+      return { data: stored };
     }
     if (url === URLS.CLASS_RIGHTS(FOUNDERS.uuid)) {
       const request = value as ClassRightsRequest;
@@ -1974,6 +2015,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(<ShareholderScreen route={{ key: 'read-only', name: 'Shareholder', params: shareholder }} />);
   expect(await screen.findByText('Founders · FND')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Transfer shares|Issue shares to them)/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
   expect(transferPosts()).toHaveLength(3);
   const pendingCorrection = {
     ...correction,
@@ -2130,6 +2172,61 @@ it('associates a member by invitation code, switches to their company on Dashboa
     sheet('register-FND-inspection-copy.csv', 'text/csv'),
     sheet(`company-pack-${ADMINISTERED.uuid}.zip`, 'application/zip'),
   ]);
+  documentClasses = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: registerClassesKey(owner), type: 'all', exact: true });
+  });
+  await view.rerender(
+    <ShareholderScreen route={{ key: 'holder-documents', name: 'Shareholder', params: shareholder }} />,
+  );
+  expect(await screen.findByText('Preference shares · PRF')).toBeTruthy();
+  expect(await screen.findByText('No supporting documents attached.')).toBeTruthy();
+  expect(api.get.mock.calls).toContainEqual([
+    URLS.REGISTER_MEMBER_DOCUMENTS,
+    expect.objectContaining({
+      params: expect.objectContaining({ company: ADMINISTERED.uuid, member: HOLDER_A.member }),
+    }),
+  ]);
+  await fireEvent.press(screen.getByRole('button', { name: 'Add documents', disabled: false }));
+  await settled();
+  const sourceReads = () => api.get.mock.calls.filter(([url]) => /\/(holders|register-member-documents)\//.test(url));
+  const beforeRefresh = sourceReads().length;
+  await act(async () => screen.getByTestId('shareholder-scroll').props.refreshControl.props.onRefresh());
+  expect(sourceReads()).toHaveLength(beforeRefresh);
+  await fireEvent.press(screen.getByRole('button', { name: 'Share class: Founders · FND' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Preference shares · PRF' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Add document' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Category: Other supporting document' }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'Shareholder agreement' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'File. Choose file' }));
+  await screen.findByRole('button', { name: 'File, synthetic.pdf. Choose file' });
+  expect(screen.getByRole('button', { name: 'Share class: Preference shares · PRF' })).toBeDisabled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Save documents' }));
+  expect(await screen.findByText('Shareholder agreement · Preference shares · PRF')).toBeTruthy();
+  expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS)).toHaveLength(2);
+  expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS)[1]).toEqual([
+    URLS.REGISTER_MEMBER_DOCUMENTS,
+    expect.objectContaining({
+      companyId: ADMINISTERED.uuid,
+      member: HOLDER_A.member,
+      token: PREFERENCE.uuid,
+      category: 'shareholder_agreement',
+      appointment: ADMINISTRATION.uuid,
+    }),
+    expect.anything(),
+  ]);
+  const document = supportingDocuments[1];
+  await fireEvent.press(screen.getByRole('button', { name: 'Download (synthetic.pdf)' }));
+  await waitFor(() => expect(shares.mock.calls).toHaveLength(5));
+  expect(shares.mock.calls[4]).toEqual(sheet('synthetic.pdf', 'application/pdf'));
+  expect(api.get.mock.calls).toContainEqual([URLS.REGISTER_MEMBER_DOCUMENT_FILE(document.uuid), bytes]);
+  own = { ...ADMINISTRATION, capabilities: [] };
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+  });
+  expect(await screen.findByText('Documents are private to current company register appointees.')).toBeTruthy();
+  expect(screen.queryByText('synthetic.pdf')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
   await view.rerender(certificatesPage);
   expect(await screen.findByText(/^Transfer · ORD · entry 2 · /)).toBeTruthy();
   refused = true;

@@ -150,8 +150,8 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
 
 ## Current handover — 5 November 2026
 
-Claude released its claims on #1464 and #1453 in the handover. Codex continues #1464 with native
-company signup; check GitHub for current claims and pull requests before starting another increment.
+Claude released its claims on #1464 and #1453 in the handover. Codex continues #1464; check GitHub for
+current claims and pull requests before starting another increment.
 
 **Where things stand:**
 
@@ -175,11 +175,12 @@ company signup; check GitHub for current claims and pull requests before startin
     combined company/authority/Terms review, reusing saved details and interrupted-request recovery.
     A configured identity requirement still blocks completion; the owner kept the native provider
     journey separate under [#1562](https://github.com/Ledova/ledova/issues/1562).
+  - A shareholder's page in the app now has the web's supporting Documents section, reusing the
+    class page's document controls with the person fixed and a choice of their share classes.
 
 **What's next, in order:**
 
 1. [#1464](https://github.com/Ledova/ledova/issues/1464):
-   - A shareholder's supporting Documents section in the app.
    - Keeping held saves across leaving a page in the app, where leaving drops a retry, so a repeated
      add or invite could duplicate.
    - The other follow-ups: the review findings on #1529, and, in the issue's comments, the failed

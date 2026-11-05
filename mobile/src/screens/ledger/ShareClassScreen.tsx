@@ -25,7 +25,7 @@ import type { SignedInStackParamList } from '../../navigation/SignedInNavigator'
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ClassRights } from './ClassRights';
-import { ShareholderDocuments } from './ShareholderDocuments';
+import { ShareholderDocuments } from '../../components/register/ShareholderDocuments';
 import { useLedgerStyles } from './useLedgerStyles';
 
 const TITLE = DESTINATIONS.companyClass.title;

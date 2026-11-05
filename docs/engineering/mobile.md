@@ -234,7 +234,12 @@ who can prepare the register when the person holds no linked wallet and their pa
 retained, opens Issue shares for an opened draft class they hold, or else the company's first, with
 them chosen in an investor issue, as on the web. **Transfer shares**, on a holding without a linked
 wallet in an opened draft class for someone who can prepare the register, opens the transfer's
-preparation with them as transferor, as on the web. A shareholder's page still leaves out Documents.
+preparation with them as transferor, as on the web. **Documents** lists that person's retained
+supporting files across classes, with category, class and **Download**. **Add documents**, for someone
+who can prepare the register, keeps the person fixed and offers **Share class** when they hold more
+than one class. It reuses `components/register/ShareholderDocuments.tsx` with the class page, through
+`useMemberDocuments`, with the same appointment checks and uncertain-save recovery. Picking a file
+locks its class, and pulling down waits while the editor or a save is open.
 Member access
 (`MemberAccessScreen.tsx`, through the shared `useMemberAccessForm`) has the web's People and
 Invitations in the web's two-line rows: each person's name and access, then their email and short
@@ -290,7 +295,7 @@ date on one line, the documents with **Download**, the recorded
 line and **Show previous versions**, and **Edit** when the server names a current administration
 appointment, which opens the web's form in the card: the six rights groups with the fields their
 choice needs, Additional terms, the effective date typed as `YYYY-MM-DD` (UTC) and the documents, with
-the web's retry of an uncertain save; and Shareholder documents (`ShareholderDocuments.tsx`, through
+the web's retry of an uncertain save; and Shareholder documents (`mobile/src/components/register/ShareholderDocuments.tsx`, through
 the shared `useMemberDocuments`) with the class's retained supporting files, each with its category,
 holder and **Download**, and **Add documents** for someone who can prepare the register, choosing the
 holder from a searchable list and each file's category. Without register access to the company, both
