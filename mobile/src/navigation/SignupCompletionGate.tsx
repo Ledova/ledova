@@ -31,11 +31,14 @@ export function SignupCompletionGate() {
     } else if (!waiting && !failed && userProfile && !userProfile.isSignupCompleted) {
       navigation.reset({
         index: 0,
-        routes: [{
-          name: isCompany && (userProfile.fullName?.trim().split(/\s+/).length ?? 0) > 1
-            ? 'CompanyRegistration'
-            : 'AccountType',
-        }],
+        routes: [
+          {
+            name:
+              isCompany && (userProfile.fullName?.trim().split(/\s+/).length ?? 0) > 1
+                ? 'CompanyRegistration'
+                : 'AccountType',
+          },
+        ],
       });
     }
   }, [auth.isAuthenticated, auth.isLoading, auth.isFetching, waiting, failed, userProfile, isCompany, navigation]);
