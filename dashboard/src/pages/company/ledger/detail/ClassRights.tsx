@@ -245,13 +245,15 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
             <p className="text-sm text-text-muted">No rights recorded.</p>
           )}
           {(rights.appointment || rights.pending) && !rights.editor && (
-            <PageAction
-              ref={editAction}
-              label="Edit"
-              context="Class rights"
-              disabled={rights.busy}
-              onClick={rights.open}
-            />
+            <FormActions>
+              <PageAction
+                ref={editAction}
+                label="Edit"
+                context="Class rights"
+                disabled={rights.busy}
+                onClick={rights.open}
+              />
+            </FormActions>
           )}
           <Outcome>{rights.outcome}</Outcome>
           {!rights.editor && rights.error && <Failure>{rights.error}</Failure>}

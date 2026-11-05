@@ -286,8 +286,7 @@ function FreshClass({
             <p className="text-xs text-text-muted">Use the recorded class code of 1–5 letters, such as A or ORD.</p>
           )}
           <p className="text-xs text-text-muted">
-            Class code and type do not define the rights attached to the shares. The technical share limit is an
-            internal quantity guard, not authorised capital.
+            Class code and type do not define the rights attached to the shares.
           </p>
         </fieldset>
       }
