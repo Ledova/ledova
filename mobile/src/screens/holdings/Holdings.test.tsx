@@ -1524,6 +1524,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByText('Needs a decision · 1')).toBeTruthy();
   expect(screen.getByLabelText('Status: Prepared')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Record issue/ })).toBeNull();
+  expect(screen.getByRole('button', { name: /^Review and approve \(grant for Synthetic Holder B / })).toBeTruthy();
   const grant = grants[0];
   expect(issuePosts()).toEqual([
     [

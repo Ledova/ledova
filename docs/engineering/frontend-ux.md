@@ -279,7 +279,7 @@ last (`recordGroups` with `ISSUE_GROUPS` in `packages/shared/src/utils/record-gr
 shown, one empty state stands for both kinds only once both are confirmed empty, and loading or
 failure is never an empty state. Issued and Rejected show five rows, then **Show all N issues** or
 **Show all N rejected issues**; a group opens by itself when a record beyond its first five was asked
-for, such as from an award's page, or has a decision in progress. A row has no labels: the recipient
+for, such as from a link to that record, or has a decision in progress. A row has no labels: the recipient
 and share count, then the kind and short company issue date (`formatShortDate`, "26 Oct 2026"), with
 an investor issue's amount on the right. The whole summary is the disclosure button, with a caret,
 for the longer state explanations, compliance responsibilities, terms, history and downloads; only a
