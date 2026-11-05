@@ -16,7 +16,17 @@ import {
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, Fact, FormActions, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
+import {
+  Action,
+  Actions,
+  Fact,
+  FormActions,
+  LoadError,
+  Loading,
+  Outcome,
+  Rows,
+  Section,
+} from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { useRetainedScope } from '../../hooks/useRetainedScope';
@@ -27,7 +37,6 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { InspectionCopyHistory } from './OutputHistory';
-import { useDocumentStyles } from './useDocumentStyles';
 
 const TITLE = 'Inspection copies';
 const LEDE = 'Prepare a copy of the register for someone who requests one.';
@@ -174,18 +183,16 @@ function CompanyInspectionCopies({
           <Text style={styles.muted}>
             {register.token.name} · {register.token.symbol}
           </Text>
-          <Section title="Inspection copy">
-            <ClassInspectionCopy
-              key={register.token.uuid}
-              owner={owner}
-              register={register}
-              guard={source.guard}
-              sourceReady={source.ready}
-              open={open}
-              onBusyChange={setFormBusy}
-              onOpenChange={setOpen}
-            />
-          </Section>
+          <ClassInspectionCopy
+            key={register.token.uuid}
+            owner={owner}
+            register={register}
+            guard={source.guard}
+            sourceReady={source.ready}
+            open={open}
+            onBusyChange={setFormBusy}
+            onOpenChange={setOpen}
+          />
         </View>
       )}
     </Page>
@@ -212,7 +219,9 @@ function ClassInspectionCopy({
   const client = useQueryClient();
   return (
     <>
-      <InspectionCopyHistory owner={owner} token={register.token.uuid} guard={guard} enabled={sourceReady} />
+      <Section title="Prepared copies">
+        <InspectionCopyHistory owner={owner} token={register.token.uuid} guard={guard} enabled={sourceReady} />
+      </Section>
       <InspectionForm
         register={register}
         guard={guard}
@@ -244,7 +253,6 @@ function InspectionForm({
   onPrepared: () => void;
 }) {
   const styles = useCompanyStyles();
-  const look = useDocumentStyles();
   const { draft, setDraft, target, setTarget, busy, error, downloaded, problems, blocked, preview, download } =
     useClassInspectionCopy({
       register,
@@ -261,15 +269,12 @@ function InspectionForm({
   const checks = useErrorSummary(problems);
   if (!open)
     return (
-      <FormActions>
-        <Action label="Prepare inspection copy" disabled={blocked} onPress={() => onOpenChange(true)} />
-      </FormActions>
+      <Actions>
+        <Action primary label="Prepare inspection copy" disabled={blocked} onPress={() => onOpenChange(true)} />
+      </Actions>
     );
   return (
-    <View style={look.form}>
-      <Text accessibilityRole="header" style={look.heading}>
-        New inspection copy
-      </Text>
+    <Section title="New inspection copy">
       <Text style={styles.muted}>
         Prepare an inspection CSV under your current company appointment. It includes residential addresses. The
         company&apos;s request and output provenance are retained.
@@ -351,6 +356,6 @@ function InspectionForm({
           />
         )}
       </FormActions>
-    </View>
+    </Section>
   );
 }

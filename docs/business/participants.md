@@ -235,7 +235,7 @@ risk assessment, transaction and any company decision stay as they are.
 Profile shows Personal information (full name, email, phone, date of birth, address and citizenship).
 Personal-details editing opens inline, with aligned Cancel and save actions.
 
-To change your full name, residential address or phone, choose **Edit**, change
+To change your full name, residential address or phone, choose **Edit details**, change
 them and choose **Save personal details**. These details are self-reported: editing them verifies
 nothing and leaves existing identity results unchanged. A Profile save creates no company
 appointment, member association or register instruction. While your account is linked to a member of

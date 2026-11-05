@@ -1,7 +1,7 @@
 import { Field, TextArea, TextInput } from '@components/Field';
 import { useEffect, useRef, useState } from 'react';
 import { FIELD_LIMITS, formatDate, failureSentence } from '@ledova/shared';
-import { FormActions, PageAction } from '@components/Page';
+import { Actions, FormActions, PageAction } from '@components/Page';
 import { Outcome, Row, Rows, Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { useUserProfile } from '@hooks/useUserProfile';
 
@@ -79,21 +79,29 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
       <Section title="Personal information">
         <Rows>
           {!isEditing && (
-            <Row label="Full name">
+            <Row label="Full name" inline>
               <span className="break-words">{userProfile.fullName || 'Not provided'}</span>
             </Row>
           )}
-          <Row label="Email">
+          <Row label="Email" inline>
             <span className="break-all">{userProfile.email || 'Not provided'}</span>
           </Row>
-          {!isEditing && <Row label="Phone">{phone}</Row>}
-          <Row label="Date of birth">{formatDate(userProfile.dateOfBirth, 'Not provided')}</Row>
           {!isEditing && (
-            <Row label="Address">
+            <Row label="Phone" inline>
+              {phone}
+            </Row>
+          )}
+          <Row label="Date of birth" inline>
+            {formatDate(userProfile.dateOfBirth, 'Not provided')}
+          </Row>
+          {!isEditing && (
+            <Row label="Address" inline>
               <span className="break-words">{userProfile.residentialAddress || 'Not provided'}</span>
             </Row>
           )}
-          <Row label="Citizenship">{userProfile.citizenshipCountryName || 'Not provided'}</Row>
+          <Row label="Citizenship" inline>
+            {userProfile.citizenshipCountryName || 'Not provided'}
+          </Row>
         </Rows>
         <Outcome>{savedFor !== null && savedFor === ownerKey && 'Your personal details were saved.'}</Outcome>
         {isEditing ? (
@@ -176,9 +184,9 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
             </FormActions>
           </form>
         ) : (
-          <FormActions>
-            <PageAction ref={editAction} label="Edit" disabled={blocked} onClick={editDetails} />
-          </FormActions>
+          <Actions>
+            <PageAction ref={editAction} compact label="Edit details" disabled={blocked} onClick={editDetails} />
+          </Actions>
         )}
       </Section>
     </>

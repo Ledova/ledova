@@ -240,7 +240,7 @@ function OwnTeam({
             Your appointments could not be loaded.
           </LoadError>
         )}
-        <Section title="Team">
+        <Section title="Appointments">
           {!companyName &&
             !own.isPending &&
             !own.isFetching &&

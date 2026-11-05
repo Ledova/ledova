@@ -258,6 +258,10 @@ export function PageLink({
   );
 }
 
+export function Actions({ children }: { children: ReactNode }) {
+  return <div className="flex flex-wrap items-center justify-end gap-2">{children}</div>;
+}
+
 export function FormActions({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border-subtle pt-4 empty:hidden">

@@ -1,17 +1,35 @@
-import { useContext, useId, useState, type ReactNode } from 'react';
+import { useContext, useId, useState, type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretRightIcon } from '@phosphor-icons/react';
 import { formatShortDate } from '@ledova/shared';
 import { InSignedInFrame } from './InSignedInFrame';
 import { PageAction } from './Page';
 
-export function Section({ title, header, children }: { title: string; header?: ReactNode; children: ReactNode }) {
+export function Section({
+  title,
+  header,
+  headingRef,
+  children,
+}: {
+  title: string;
+  header?: ReactNode;
+  headingRef?: Ref<HTMLHeadingElement>;
+  children: ReactNode;
+}) {
   const inFrame = useContext(InSignedInFrame);
   return (
     <section
       className={`flex flex-col border border-border bg-surface-raised p-4 [&_p:not(.flex,.text-right,.truncate)]:max-w-prose ${inFrame ? 'min-w-0 gap-4 rounded-2xl sm:p-6' : 'gap-2 rounded-xl sm:p-5'}`}
     >
-      {header ?? <h2 className="break-words font-display text-xl tracking-[-0.01em] text-text-primary">{title}</h2>}
+      {header ?? (
+        <h2
+          ref={headingRef}
+          tabIndex={headingRef ? -1 : undefined}
+          className="break-words font-display text-xl tracking-[-0.01em] text-text-primary focus:outline-none"
+        >
+          {title}
+        </h2>
+      )}
       {children}
     </section>
   );

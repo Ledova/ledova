@@ -2,7 +2,7 @@ import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { type Company, ownCompaniesKey, useCompanySelection, REGISTER_QUERY_KEY } from '@ledova/shared';
-import { FormActions, PageAction } from '@components/Page';
+import { Actions, PageAction } from '@components/Page';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
 import { EditCompanyForm } from './CompanyForms';
@@ -61,45 +61,58 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
           ) : (
             <>
               <Rows>
-                <Row label="Company name">
+                <Row label="Company name" inline>
                   <span className="break-words">{company.name}</span>
                 </Row>
-                <Row label="Status">
+                <Row label="Status" inline>
                   <CompanyStatusMark status={company.status} label={company.statusDisplay} />
                 </Row>
                 {company.tradingName && (
-                  <Row label="Trading name">
+                  <Row label="Trading name" inline>
                     <span className="break-words">{company.tradingName}</span>
                   </Row>
                 )}
-                <Row label="Type">{company.companyTypeDisplay}</Row>
-                <Row label="ACN">{company.acn}</Row>
-                <Row label="Ownership overview">
+                <Row label="Type" inline>
+                  {company.companyTypeDisplay}
+                </Row>
+                <Row label="ACN" inline>
+                  {company.acn}
+                </Row>
+                <Row label="Ownership overview" inline>
                   {company.shareOwnershipWithMembers ? 'Shared with members' : 'Not shared'}
                 </Row>
-                {company.abn && <Row label="ABN">{company.abn}</Row>}
+                {company.abn && (
+                  <Row label="ABN" inline>
+                    {company.abn}
+                  </Row>
+                )}
                 {data.canAdmin && company.email && (
-                  <Row label="Email">
+                  <Row label="Email" inline>
                     <span className="break-all">{company.email}</span>
                   </Row>
                 )}
-                {company.phone && <Row label="Phone">{company.phone}</Row>}
+                {company.phone && (
+                  <Row label="Phone" inline>
+                    {company.phone}
+                  </Row>
+                )}
                 {address && (
-                  <Row label="Address">
+                  <Row label="Address" inline>
                     <span className="break-words">{address}</span>
                   </Row>
                 )}
               </Rows>
               <p className="text-sm text-text-muted">Company information is provided by the company.</p>
               {data.canAdmin && (
-                <FormActions>
+                <Actions>
                   <PageAction
                     ref={editAction}
+                    compact
                     label="Edit company"
                     onClick={() => setEditing(company)}
                     disabled={data.isRefreshing}
                   />
-                </FormActions>
+                </Actions>
               )}
             </>
           )}

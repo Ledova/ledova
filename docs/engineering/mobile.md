@@ -191,17 +191,16 @@ is not recorded in says so, as does a company that records neither register acce
 record for the person; a failed read offers Try again.
 Inspection copies (`InspectionCopiesScreen.tsx`) is the web's page for a register reader of the
 selected company: the selected class's name, with **Share class** in Filters when there is more than
-one, then the Inspection copy card read through the shared `useClassRegister`,
-`useInspectionCopies` and `useClassInspectionCopy`: its prepared copies straight beneath the title
-(each recipient, then one muted line with the short request date, any late delivery and who prepared
-it when, then the instruction), then **Prepare inspection copy**,
-which opens the web's form beneath them. Its request date is typed as `YYYY-MM-DD` (Sydney), starting
+one, then the Prepared copies card read through the shared `useClassRegister`,
+`useInspectionCopies` and `useClassInspectionCopy`: each recipient, then one muted line with the
+short request date, any late delivery and who prepared it when, then the instruction. **Prepare
+inspection copy** beneath the card opens the web's New inspection copy card. Its request date is typed as `YYYY-MM-DD` (Sydney), starting
 at today; **Preview inspection copy** shows the request's rows and **Confirm and download inspection
-copy** shares the CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack card, through
+copy** shares the CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack page, through
 the shared `useCompanyPackAuthority`, `useCompanyPacks` and `useCompanyPack`: for a current
-administrator, its prepared packs (each recipient, then who prepared it when and its share-class count,
-then the instruction) and **Prepare company pack**, whose form takes the instruction and
-recipient, keeps the web's included records and limitations behind **Show included records and
+administrator, the Prepared packs card (each recipient, then who prepared it when and its share-class
+count, then the instruction) and **Prepare company pack** beneath it, whose New company pack card takes the
+instruction and recipient, keeps the web's included records and limitations behind **Show included records and
 limitations** and shares the ZIP; for any other register reader, the web's notice that administration
 is required. Both pages show the web's loading, failure and empty states, and without register access
 for the selected company they read nothing and point to Dashboard. Pulling down rereads Certificates,
@@ -412,7 +411,7 @@ returns to the page that opened it, on every step but Shareholders, where **Back
 details, and a page that cannot show the form still offers it. The top bar's arrow returns to Ledger.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
 Activation. Profile, the `Settings` route, is the web's Personal
-information card: the person's details, each label above its value, and **Edit** opens their form
+information card: the person's details on one-line rows, and **Edit details** opens their form
 in the card. Pulling down refreshes the profile. Account (`Account`) has the web's four cards. Security
 shows the identity check status from the profile (the app has no identity check flow, so there is no
 **Review**), **Change** for the password, and the app's biometric sign-in and App lock switches, with
@@ -432,9 +431,9 @@ with its original code, after leaving the page, and the pages show a loading lin
 empty one while the list rereads. Only the focused page selects its record and class.
 Team (`mobile/src/screens/settings/TeamScreen.tsx`, its forms in `TeamForms.tsx`) is the web's Team
 page at phone width, read and sent through the shared `useCompanyTeam`, `useAcceptInvitationForm`
-and `useTeamInvitationForm` with the selected company: the company's Team, **Invite a company user** and Invitations you
-issued, with the web's rows, wording, loading, empty and failure states. The Team list is read only with a current
-own administration appointment for that company; otherwise it says that authority is required.
+and `useTeamInvitationForm` with the selected company: the company's Appointments, **Invite a company user** and
+Invitations you issued, with the web's rows, wording, loading, empty and failure states. Appointments are read only with a
+current own administration appointment for that company; otherwise it says that authority is required.
 Accepting and inviting replace the page with the web's inline form, and the invitation keeps its
 draft when closed. Team opens on accepting at once from Account's **Company officer invitation**, and
 for someone with no appointments who owns no company once their appointments load. Acceptance is an

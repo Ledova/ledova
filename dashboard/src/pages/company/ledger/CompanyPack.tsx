@@ -9,7 +9,7 @@ import {
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Outcome, Section, LoadError, Loading, ShowMore, Failure } from '@components/Ledger';
-import { FormActions, PageAction } from '@components/Page';
+import { Actions, FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { BROWSER_FILES } from '@utils/saveFile';
@@ -31,30 +31,32 @@ export function CompanyPack({
   const { appointments, appointment, check } = useCompanyPackAuthority({ owner, guard, company });
   const client = useQueryClient();
   return (
-    <Section title="Company pack">
-      {appointments.isError ? (
-        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
-          Your appointments could not be loaded.
-        </LoadError>
-      ) : appointment ? (
-        <>
+    <div className="space-y-6">
+      <Section title="Prepared packs">
+        {appointments.isError ? (
+          <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+            Your appointments could not be loaded.
+          </LoadError>
+        ) : appointment ? (
           <CompanyPackHistory owner={owner} company={company} guard={check} enabled={sourceReady} />
-          <PackForm
-            key={JSON.stringify([company, appointment.uuid, sourceReady])}
-            company={company}
-            appointment={appointment.uuid}
-            guard={check}
-            sourceReady={sourceReady}
-            onEditingChange={onEditingChange}
-            onPrepared={() => void client.invalidateQueries({ queryKey: companyPacksKey(owner, company) })}
-          />
-        </>
-      ) : appointments.isSuccess && !appointments.isFetching ? (
-        <p className="text-sm text-text-muted">A current administrator appointment for this company is required.</p>
-      ) : (
-        <Loading>Loading your appointments…</Loading>
+        ) : appointments.isSuccess && !appointments.isFetching ? (
+          <p className="text-sm text-text-muted">A current administrator appointment for this company is required.</p>
+        ) : (
+          <Loading>Loading your appointments…</Loading>
+        )}
+      </Section>
+      {appointment && (
+        <PackForm
+          key={JSON.stringify([company, appointment.uuid, sourceReady])}
+          company={company}
+          appointment={appointment.uuid}
+          guard={check}
+          sourceReady={sourceReady}
+          onEditingChange={onEditingChange}
+          onPrepared={() => void client.invalidateQueries({ queryKey: companyPacksKey(owner, company) })}
+        />
       )}
-    </Section>
+    </div>
   );
 }
 
@@ -87,18 +89,18 @@ function PackForm({
   const checks = useErrorSummary(problems);
   if (!open)
     return (
-      <FormActions>
+      <Actions>
         <PageAction
           ref={opener}
+          primary
           label="Prepare company pack"
           disabled={busy || !sourceReady}
           onClick={() => setOpen(true)}
         />
-      </FormActions>
+      </Actions>
     );
   return (
-    <div className="flex flex-col gap-4 border-t border-border-subtle pt-4">
-      <h3 className="text-sm font-medium text-text-primary">New company pack</h3>
+    <Section title="New company pack">
       <p className="text-sm text-text-muted">
         This company ZIP includes residential addresses and private records. Current company administration, a written
         instruction and a named recipient are required; the captured records and generation time are retained.
@@ -153,6 +155,6 @@ function PackForm({
           }}
         />
       </FormActions>
-    </div>
+    </Section>
   );
 }
