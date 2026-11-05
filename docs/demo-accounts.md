@@ -148,97 +148,89 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   same passwords, and every other record was added again through the API, so every record has its
   file. The walkthrough now runs from the main checkout, which holds its uploads.
 
-## Current handover — 31 October 2026
+## Current handover — 5 November 2026
 
-- The signed-in web UX walkthrough under [#1378](https://github.com/Ledova/ledova/issues/1378) is
-  finished. The owner steered it live in Chrome on localhost, and every change merged after an
-  independent review at its exact head with green required CI.
-  - **28 October:** class card filters (#1384) and oldest-first classes (#1385); last-used company
-    at sign-in (#1389); the register CSV download removed, with inspection copies under Documents (#1390); and
-    company documents in Documents, with recorded details on Profile (#1391).
-  - **UX review in five phases:**
-    - Phase 1 (#1392) removed record-details chevrons and internal IDs.
-    - Phase 2 (#1393, #1394) gave lists visible actions and the employee award its own page.
-    - Phase 3 (#1395–#1397) covered Member access and Team rows, and gave authority requests and
-      offerings their own pages.
-    - Phase 4 covered the share class chain area: Chain actions (#1400), condensed workflows
-      (#1405) and Corrections' chain views (#1407).
-    - After the owner's "Please continue until the end", the remaining company chevrons (#1411),
-      phase 5's plain eligibility pages and wallet approvals (#1413), and the investor pages'
-      content chevrons (#1415) followed.
-- [#1416](https://github.com/Ledova/ledova/issues/1416) then gave Company eligibility, Offerings and
-  Activity sidebar links, listed Published to your members under Documents and removed the web Market
-  page with the client code only it used. The trading API is unchanged. At the owner's request sidebar
-  items stay on one line: Employee scheme, Eligibility, Supporting and Published replace longer
-  labels, and Supporting sits under Eligibility.
-- [#1421](https://github.com/Ledova/ledova/issues/1421) takes offerings out of the first release. The
-  web client went first (Offerings, Directory, Applications, paid issues and the large-investment
-  claim), then the backend, with associated-person claims and account readiness. Verification now
-  offers two claim categories and links Your company eligibility from Your claims.
-  [Planned offerings](business/offerings.md) keeps their design.
-- [#1424](https://github.com/Ledova/ledova/issues/1424) tidied the pages the owner found cluttered:
-  - A company gives investors a request link instead of its Company ID.
-  - Company eligibility lists requests first and picks the reviewer's appointment.
-  - Corrections names changes by kind and date.
-  - At the owner's choice, a request shares the investor's name with their consent (#1428), and
-    Inspection copies and Company pack list what the company's own people prepared (#1429).
-  - Eligibility request details no longer show internal IDs. They show the investor's name when the
-    request shared one, and the investor sees the company's name when it is one of theirs.
-- [#1445](https://github.com/Ledova/ledova/issues/1445) applied the owner-approved 30 October review
-  of the signed-in pages: the phone layout (#1446), a failed session check that no longer signs
-  people out (#1447), clearer members' pages (#1448), particulars changes that start from the
-  member's current details and a tidier Team (#1449), and seven small fixes (#1450).
-- At the owner's direction on 31 October,
-  [#1452](https://github.com/Ledova/ledova/issues/1452) removes wallets and the class's on-chain
-  features from the web app, keeping the backend and its data, and
-  [#1453](https://github.com/Ledova/ledova/issues/1453) simplifies the frontend architecture after
-  that day's review.
-- The rules the owner accepted are in [UX standards](engineering/frontend-ux.md):
-  - Lists don't expand, and a record opens its own page or is a titled record.
-  - There are no chevrons inside records, and long optional content sits behind `ShowMore`.
-  - No internal IDs are shown. A short reference appears only where records would otherwise read
-    the same or have no name. A company gives investors a request link instead of an ID.
-- **Process:**
-  - A ruleset on `main` requires `Django verdict` and `PR type and issue` on a branch up to date
-    with `main` ([decision](decisions.md#required-ci-and-auto-merge-on-main), #1409).
-  - Auto-merge is turned on once the review passes. It stays on across pushes, so turn it off before
-    any push other than a merge of `main` whose own changes are shown unchanged, and on again after
-    the delta's review. Each merge is checked for tree and parent and recorded on its PR, and the
-    owner is not asked to merge.
-- **Checks:**
-  - Local preflight passes dashboard **19** and browser smoke **7**, within the unchanged caps.
-  - Local backend verification stops at Python **3.13.15** (this Mac has **3.13.3**), and CI runs
-    the pinned suite.
-  - Pages are checked against the demo data above. Before it was added, pages without local data
-    were checked with sample API responses served in the browser only.
-- **Branch previews:** run the branch's backend on **8040** and its dashboard on **5175** against the
-  walkthrough database, with CORS and CSRF set to 5175, through configs in `.claude/launch.json`.
-  The backend must run the branch's own code. Stop both when they are no longer needed.
-- **Still open:**
-  - Mobile work stays for later.
-  - Older items include #624's deferred physical-device release acceptance and #1160's PyMuPDF
-    decision; check GitHub before resuming.
-- The walkthrough database was rebuilt and given demo data at the owner's request.
-- [#1431](https://github.com/Ledova/ledova/issues/1431) rebuilt ledova.io on a fresh database on
-  30 October 2026, serving main `90274b07`. At the owner's choice it kept no earlier test data. At
-  the owner's request, every branch except `main`, every extra worktree and ledova.io's old data and
-  backups were then deleted ([record](https://github.com/Ledova/infra/blob/70fdf2457150930de862477eb00692a84e52e4aa/docs/operations/evidence/ledova-io-rebuild-2026-10-30.md)).
-- #1433's homepage previews were released to ledova.io the same day
-  ([#1432](https://github.com/Ledova/ledova/issues/1432)). The local demo data was then copied to
-  ledova.io ([#1435](https://github.com/Ledova/ledova/issues/1435)), so the five accounts above are
-  there with the same passwords. Afterwards ledova.io's app was opened to every network
-  ([#1437](https://github.com/Ledova/ledova/issues/1437)), and the five accounts were given their
-  role-based addresses on both ([#1439](https://github.com/Ledova/ledova/issues/1439)). The
-  website's layout ([#1441](https://github.com/Ledova/ledova/issues/1441)) and Privacy page
-  ([#1443](https://github.com/Ledova/ledova/issues/1443)) followed that day, and #1445's app
-  changes on 31 October. ledova.io now runs main `3f3018c3` for the website, `c73d3978` for the
-  dashboard and `90274b07` for the backend.
+Nothing is in flight: `main` holds everything, with no open pull request, other branch or worktree,
+and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before starting it.
+
+**Where things stand:**
+
+- ledova.io serves main `a1ada30ee` for the backend, worker, dashboard and website, released on
+  5 November 2026 with no migrations. The release record is in the private `Ledova/infra`. Nobody
+  signed in for the release checks, so signed-in pages there are unconfirmed.
+- The mobile app has not been released. It runs on the iOS simulator through Metro.
+- Since 31 October:
+  - #1476 removed particulars and certificate requests, #1489 removed notices, #1491 kept only
+    personal ID verification, and #1492 made a linked member's register details follow their
+    profile.
+  - [#1464](https://github.com/Ledova/ledova/issues/1464) rebuilt the app to match the web at phone
+    width, including the company side.
+  - The owner then walked through both platforms page by page as Taylor, Casey and Alex, on
+    3–5 November. Pages became compact, Team and Account split, and the award's page and Change
+    particulars were simplified further (#1557–#1559).
+  - [#1547](https://github.com/Ledova/ledova/issues/1547) made the back arrow the only way back on
+    every page with a parent (#1560).
+
+**What's next, in order:**
+
+1. [#1464](https://github.com/Ledova/ledova/issues/1464):
+   - Phase 5, sign-up for company accounts. The app still tells them it is for shareholders.
+   - A shareholder's supporting Documents section in the app.
+   - Keeping held saves across leaving a page in the app, where leaving drops a retry, so a repeated
+     add or invite could duplicate.
+   - The other follow-ups recorded in its comments: #1529's findings, the failed recipients read on
+     Issue shares to them, and the untested guards after preparing a transfer or setup.
+2. [#1453](https://github.com/Ledova/ledova/issues/1453): the frontend architecture work the owner
+   paused, including keeping open work mounted during a same-account recheck.
+3. [#1555](https://github.com/Ledova/ledova/issues/1555): pagination, which the owner set aside for
+   later. Ask before starting it.
+4. Older items: #624's physical-device release acceptance and #1160's PyMuPDF decision.
+
+**How the owner works:**
+
+- The owner walks through pages and stops on each for feedback. "Make it compact too" means the same
+  compact pattern on the web and in the app: one-line rows, compact text actions at the right edge,
+  and a status only while something is unfinished. "Looks good, next" means finish any open
+  post-merge steps, then show the next page.
+- Every UI change goes on both platforms and is checked on both, the web in Chrome's phone view and
+  the app in the iOS simulator. Change layout only: never colours or fonts.
+- Show what's kept, moved and removed before opening a PR for anything more than the agreed pattern.
+- Merge without asking once an independent review passes at the exact head and required CI is green.
+  Record each review and merge on the PR, and delete the branch, worktree and temporary files
+  afterwards.
+- A release, a live migration, signer activation or a new cost needs the owner's explicit go, each
+  time. Hosting procedures are in `Ledova/infra`.
+
+**Traps found this round:**
+
+- Independent reviews mostly blocked on stale documentation, not code. When a page changes, also
+  search `docs/business` and the general rules in `docs/engineering`, such as tab titles and what the
+  app's menu marks.
+- In the app, `popTo` with no params clears the parent's params, which crashes a parent that needs
+  them. Pass `keepParams` to `topBar`.
+- A non-paid transfer hides its back arrow while a submission is unresolved, because its Cancel is
+  locked then and the web's navigation blocker covers only Ledger and award pages.
+- No test renders the app's `TopBar`, so its arrows and `held` need a live check.
+- `make ci-checks` needs the generated `mobile/expo-env.d.ts` deleted first when Metro has run from
+  that checkout. A reload signs the app out, and running the checks can cause one. After a branch
+  switch, reload the app before judging a change.
+
+**Checks:**
+
+- `make ci-checks` passes shared **9**, dashboard **20**, mobile **5**, contracts **14** and smoke
+  **7**. Dashboard is at its cap of 20, so a new core test replaces another.
+- A ruleset on `main` requires `Django verdict` and `PR type and issue` on a branch up to date with
+  `main`. Auto-merge pinned with `--match-head-commit` is the usual last step.
+- Pull requests must name an issue, and commit text must avoid closing keywords, so close issues by
+  hand after the merge.
 
 ## Continue on this Mac
 
 Use this repository copy of the guide; the former copy under `~/Developer/ledova-artifacts/` has
 moved here. Pull current main, read AGENTS.md, CONTRIBUTING.md and the accepted plan/index before
-new work. Reuse the running servers and database. Do not start another instance on an occupied port.
+new work. Reuse any running servers and the database. Do not start another instance on an occupied
+port. The walkthrough servers are stopped between sessions; PostgreSQL, Redis and ClamAV run in Docker
+(`docker start ledova-postgres-1 ledova-redis-1 ledova-clamav-local` after a restart).
 
 The dashboard normally runs at **http://localhost:5173** and the API at **http://localhost:8000**.
 When no account can sign in, check that the API answers: **http://localhost:8000/health/** should
@@ -253,6 +245,13 @@ cd /Users/ronildo/Developer/ledova
 ```sh
 cd /Users/ronildo/Developer/ledova
 PATH=/Users/ronildo/.nvm/versions/node/v22.22.2/bin:$PATH VITE_API_URL=http://localhost:8000 npm run dev -w dashboard -- --host 127.0.0.1 --port 5173 --strictPort
+```
+
+For the app, start Metro the same way and open the dev client on the simulator:
+
+```sh
+cd /Users/ronildo/Developer/ledova/mobile
+PATH=/Users/ronildo/.nvm/versions/node/v22.22.2/bin:$PATH EXPO_PUBLIC_API_URL=http://localhost:8000 EXPO_PUBLIC_MARKETING_URL=http://localhost:5176 npx expo start --dev-client --localhost --port 8081
 ```
 
 The backend launcher uses its private local environment and invitation mailbox rather than external
