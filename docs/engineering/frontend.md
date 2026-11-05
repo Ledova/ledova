@@ -482,10 +482,10 @@ content stable until a relevant read is needed, without mounting another workflo
 an overview. Certificates re-reads the member list on entry and reads only while open; Profile
 reads no member records.
 
-`dashboard/src/hooks/useEntryReads.ts` and
-`dashboard/src/pages/company/ledger/useIssueEntryRead.ts` retain ordered entry reads:
-confirm current authority or association before dependent records, and defer a read while an editor,
-decision review or original-request recovery is open.
+`dashboard/src/pages/company/ledger/useIssueEntryRead.ts` confirms settled account, class and
+appointment reads before refreshing issue records. `dashboard/src/pages/company/ledger/ClassAwards.tsx`
+refreshes stale award records on entry, deferring that read while an award editor or
+original-request recovery is open.
 
 Authentication and user-preferences identity checks, token renewal and checks of a genuinely running
 operation are separate from idle page freshness. Authentication verification alone confirms validity,
