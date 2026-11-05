@@ -225,6 +225,7 @@ export function useAwardForm({
     setTerms,
     schedule,
     setSchedule,
+    file,
     setFile,
     busy,
     held,

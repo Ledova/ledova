@@ -268,6 +268,7 @@ export function ImportShareholders({
         )}
         <FileField
           label="Current share register"
+          value={draft.registerFile}
           hint={
             draft.registerEvidence
               ? `${UPLOAD_RULE.HINT} The retained source copy will be reused unless you choose another file.`
@@ -278,6 +279,7 @@ export function ImportShareholders({
         />
         <FileField
           label="ASIC extract"
+          value={draft.asicFile}
           hint={
             draft.asicEvidence
               ? `${UPLOAD_RULE.HINT} The retained ASIC copy and figures will be reused unless you change them.`
@@ -672,6 +674,7 @@ function DocumentAttachments({
             ) : (
               <FileField
                 label="File"
+                value={document.file}
                 hint={UPLOAD_RULE.HINT}
                 disabled={locked || !!document.file}
                 onFile={(file) => update(documents.map((row) => (row.id === document.id ? { ...row, file } : row)))}

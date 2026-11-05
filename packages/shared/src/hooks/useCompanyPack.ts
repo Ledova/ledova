@@ -41,13 +41,19 @@ export function useCompanyPackAuthority({
   guard,
   company,
   session,
+  available = true,
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
   session?: OrderSubmissionSession;
+  available?: boolean;
 }) {
   const client = useQueryClient();
+  const sourceAvailable = useRef(available);
+  useLayoutEffect(() => {
+    sourceAvailable.current = available;
+  }, [available]);
   const appointments = useOwnAppointments(owner, guard, { session });
   const appointment =
     appointments.isSuccess && !appointments.isFetching ? administrator(appointments.data, company) : undefined;
@@ -56,6 +62,7 @@ export function useCompanyPackAuthority({
     const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
     const state = client.getQueryState<OwnCompanyAppointment[]>(ownAppointmentsKey(owner));
     if (
+      !sourceAvailable.current ||
       preferences?.status !== 'success' ||
       preferences.fetchStatus !== 'idle' ||
       !appointment ||

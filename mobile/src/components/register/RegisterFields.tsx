@@ -1,5 +1,6 @@
 import { Pressable, Text, TextInput, View, type KeyboardTypeOptions, type TextInputProps } from 'react-native';
 import { CheckIcon } from 'phosphor-react-native';
+import type { UploadFile } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { usePickedDocument } from '../../hooks/usePickedDocument';
@@ -138,6 +139,7 @@ export function FileField({
   hint,
   disabled,
   error,
+  value,
   onFile,
 }: {
   label: string;
@@ -145,6 +147,7 @@ export function FileField({
   hint?: string;
   disabled: boolean;
   error?: string | null;
+  value: UploadFile | null | undefined;
   onFile: (file: PickedDocument | null) => void;
 }) {
   const styles = useCompanyStyles();
@@ -163,7 +166,7 @@ export function FileField({
     filename: { flex: 1, fontFamily: theme.fontFamily.regular, fontSize: 16, color: theme.colors.text.muted },
     off: { opacity: 0.5 },
   }));
-  const picked = usePickedDocument(onFile);
+  const picked = usePickedDocument(value, onFile);
   const unavailable = disabled || picked.isPicking;
   const problem = picked.refusal ?? error;
   return (

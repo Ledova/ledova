@@ -41,6 +41,7 @@ export function memberDocumentsKey(owner: OrderSubmissionOwner, company: string)
 export function useMemberDocuments({
   owner,
   guard,
+  accountGuard = guard,
   company,
   member,
   token,
@@ -53,6 +54,7 @@ export function useMemberDocuments({
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
+  accountGuard?: () => void;
   company: string;
   member?: string;
   token?: string;
@@ -75,7 +77,7 @@ export function useMemberDocuments({
   const [busy, setBusy] = useState(false);
   const [held, setHeld] = useState(false);
   const [error, setError] = useState('');
-  const appointments = useOwnAppointments(owner, guard, {
+  const appointments = useOwnAppointments(owner, accountGuard, {
     enabled: sourceReady && !readsPaused,
     session,
   });

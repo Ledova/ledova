@@ -237,6 +237,7 @@ function TransferForm({
   const document = (kind: TransferDocumentKind, accessibilityLabel: string) => (
     <FileField
       label="Document"
+      value={model.files[kind]}
       accessibilityLabel={accessibilityLabel}
       disabled={locked}
       error={checks.field(`${kind}Document`).error}

@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, RefreshControl, Text, View, type ScrollView } from 'react-native';
-import type { RouteProp } from '@react-navigation/native';
+import { useNavigation, type NavigationProp, type RouteProp } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   formatDate,
   formatDateTime,
   issuedInvitationDates,
   scopeFacts,
   scopeLabels,
+  ownAppointmentsKey,
+  USER_PREFERENCES_QUERY_KEY,
   useCompanyTeam,
   useSubmissionOwner,
   useUserPreferences,
@@ -17,20 +20,92 @@ import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
+import { RegisterAccess } from '../../components/RegisterAccess';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
 import { AppointmentRecord, RevokeAppointmentModal, useTeamStyles } from './Appointments';
 import { AcceptInvitationForm, TeamInvitationForm } from './TeamForms';
 
 const LEDE = 'Manage company appointments and invitations.';
 
 export function TeamScreen({ route }: { route?: RouteProp<SignedInStackParamList, 'Team'> }) {
+  return route?.params?.accept ? <InvitationTask /> : <CompanyTeam autoAccept={route?.params?.accept !== false} />;
+}
+
+function InvitationTask() {
+  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
+  return owner ? (
+    <OwnInvitationTask
+      key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}`}
+      owner={owner}
+      currentOwner={boundary.get}
+    />
+  ) : (
+    <Page testID="team-scroll" title="Team">
+      <AccountCheck />
+    </Page>
+  );
+}
+
+function OwnInvitationTask({
+  owner,
+  currentOwner,
+}: {
+  owner: OrderSubmissionOwner;
+  currentOwner: () => OrderSubmissionOwner | null;
+}) {
+  const preferences = useUserPreferences();
+  const client = useQueryClient();
+  const navigation = useNavigation<NavigationProp<SignedInStackParamList, 'Team'>>();
+  const [busy, setBusy] = useState(false);
+  const available = !preferences.isError && !preferences.isFetching;
+  const guard = useCallback(() => {
+    const current = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
+    if (currentOwner() !== owner || current?.status !== 'success' || current.fetchStatus !== 'idle')
+      throw new Error('Your signed-in account changed. Reopen company team.');
+  }, [client, currentOwner, owner]);
+  return (
+    <Page
+      testID="team-scroll"
+      title="Team"
+      lede={LEDE}
+      held={busy}
+      available={available}
+      unavailable={<AccountCheck />}
+    >
+      <Section title="Accept a company invitation">
+        <AcceptInvitationForm
+          disabled={!available}
+          guard={guard}
+          onBusy={setBusy}
+          onCancel={() => navigation.setParams({ accept: false })}
+          onRecorded={() => void client.invalidateQueries({ queryKey: ownAppointmentsKey(owner) })}
+        />
+      </Section>
+    </Page>
+  );
+}
+
+function CompanyTeam({ autoAccept }: { autoAccept: boolean }) {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
   const preferences = useUserPreferences();
-  if (!owner || preferences.isError)
+  const { directory, company: selected, companySelection } = useMemberRecordsState();
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    selected?.uuid ?? (directory.hasError || directory.isLoading || directory.isRefreshing ? undefined : ''),
+    !preferences.isError &&
+      !preferences.isFetching &&
+      !directory.hasError &&
+      !directory.isLoading &&
+      !directory.isRefreshing,
+    companySelection,
+  );
+  if (!owner || scope.scope === undefined)
     return (
       <Page testID="team-scroll" title="Team">
         <AccountCheck />
@@ -38,10 +113,12 @@ export function TeamScreen({ route }: { route?: RouteProp<SignedInStackParamList
     );
   return (
     <OwnTeam
-      key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}`}
+      key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}`}
       owner={owner}
       currentOwner={boundary.get}
-      accept={!!route?.params?.accept}
+      available={scope.available}
+      companyUuid={scope.scope}
+      autoAccept={autoAccept}
     />
   );
 }
@@ -49,30 +126,35 @@ export function TeamScreen({ route }: { route?: RouteProp<SignedInStackParamList
 function OwnTeam({
   owner,
   currentOwner,
-  accept,
+  available,
+  companyUuid,
+  autoAccept,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
-  accept: boolean;
+  available: boolean;
+  companyUuid: string;
+  autoAccept: boolean;
 }) {
   const theme = useAppTheme();
   const styles = useCompanyStyles();
   const look = useTeamStyles();
+  const navigation = useNavigation<NavigationProp<SignedInStackParamList, 'Team'>>();
   const { directory, companies, company: selected } = useMemberRecordsState();
   const scroll = useRef<ScrollView>(null);
-  const [task, setTask] = useState<'accept' | 'invite' | null>(accept ? 'accept' : null);
+  const [task, setTask] = useState<'invite' | null>(null);
   const [draftSource, setDraftSource] = useState<OwnCompanyAppointment | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const teamState = useCompanyTeam({
     owner,
     currentOwner,
     editing: task !== null,
-    company: selected?.uuid ?? '',
-    companyName: selected?.name,
+    available,
+    company: companyUuid,
+    companyName: selected?.uuid === companyUuid ? selected.name : undefined,
     session: orderSubmissionSession,
   });
   const {
-    guard,
     company,
     sourceId,
     setSourceId,
@@ -92,10 +174,24 @@ function OwnTeam({
     companyName,
   } = teamState;
   const [started, setStarted] = useState(false);
-  if (!started && own.isSuccess && !own.isFetching && !directory.isLoading && !directory.isRefreshing) {
-    setStarted(true);
-    if (appointments.length === 0 && !companies.some((row) => row.isOwner)) setTask('accept');
-  }
+  useEffect(() => {
+    if (!started && available && own.isSuccess && !own.isFetching && !directory.isLoading && !directory.isRefreshing) {
+      setStarted(true);
+      if (autoAccept && appointments.length === 0 && !companies.some((row) => row.isOwner))
+        navigation.setParams({ accept: true });
+    }
+  }, [
+    started,
+    available,
+    own.isSuccess,
+    own.isFetching,
+    directory.isLoading,
+    directory.isRefreshing,
+    appointments.length,
+    companies,
+    autoAccept,
+    navigation,
+  ]);
   useEffect(() => {
     if (task) scroll.current?.scrollTo({ y: 0, animated: false });
   }, [task]);
@@ -106,7 +202,7 @@ function OwnTeam({
     setTask(null);
   };
   const invitationSource = source ?? (draftSource?.uuid === sourceId ? draftSource : null);
-  const sourceReady = own.isSuccess && !own.isFetching && !!source;
+  const sourceReady = available && own.isSuccess && !own.isFetching && !!source;
   const choosing = directory.isLoading || (!selected && companies.length > 0);
   const accountStatus = own.isError ? (
     <LoadError retry={() => own.refetch()} busy={own.isFetching}>
@@ -121,6 +217,8 @@ function OwnTeam({
       testID="team-scroll"
       title="Team"
       lede={LEDE}
+      available={available}
+      unavailable={<RegisterAccess owner={owner} />}
       refreshControl={
         <RefreshControl
           testID="team-refresh"
@@ -218,20 +316,6 @@ function OwnTeam({
       </View>
       <View style={[look.stack, !task && look.hidden]}>
         {task === 'invite' && accountStatus}
-        <View style={task !== 'accept' && look.hidden}>
-          <Section title="Accept a company invitation">
-            <AcceptInvitationForm
-              disabled={disabled || task !== 'accept'}
-              guard={guard}
-              onBusy={setFormBusy}
-              onCancel={endTask}
-              onRecorded={() => {
-                void own.refetch();
-                void invitations.refetch();
-              }}
-            />
-          </Section>
-        </View>
         <View style={task !== 'invite' && look.hidden}>
           <Section title="Invite a company user">
             <SelectField
@@ -281,7 +365,7 @@ function OwnTeam({
           {error}
         </Text>
       )}
-      <RevokeAppointmentModal team={teamState} />
+      <RevokeAppointmentModal team={teamState} available={available} />
     </Page>
   );
 }

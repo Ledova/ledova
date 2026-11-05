@@ -32,6 +32,7 @@ import { RegisterAccess } from '../../components/RegisterAccess';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
 import { AwardRecord } from './AwardRecord';
 import { useShareholderStyles } from './useShareholderStyles';
 
@@ -43,12 +44,25 @@ export function EmployeeAwardScreen({ route }: { route: RouteProp<SignedInStackP
   const preferences = useUserPreferences();
   const { directory, companies } = useMemberRecordsState();
   const readable = companies.some((row) => row.uuid === company && row.canReadRegister);
-  if (owner && !preferences.isError && readable && !directory.hasError && !directory.isLoading)
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    `${company}/${token}/${award}`,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      readable &&
+      !directory.hasError &&
+      !directory.isLoading &&
+      !directory.isRefreshing,
+  );
+  if (owner && scope.scope !== undefined)
     return (
       <OwnAward
         key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company}/${token}/${award}`}
         owner={owner}
-        currentOwner={boundary.get}
+        currentOwner={scope.currentOwner}
+        accountOwner={boundary.get}
+        available={scope.available}
         company={company}
         token={token}
         uuid={award}
@@ -64,12 +78,16 @@ export function EmployeeAwardScreen({ route }: { route: RouteProp<SignedInStackP
 function OwnAward({
   owner,
   currentOwner,
+  accountOwner,
+  available,
   company,
   token,
   uuid,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  accountOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
   token: string;
   uuid: string;
@@ -85,11 +103,17 @@ function OwnAward({
     },
     [owner, currentOwner],
   );
+  const accountGuard = useMemo(
+    () => () => {
+      if (accountOwner() !== owner) throw new Error('Your signed-in account changed. Reopen the register.');
+    },
+    [owner, accountOwner],
+  );
   const preferences = useUserPreferences();
-  const classes = useRegisterClasses(owner, guard, orderSubmissionSession);
+  const classes = useRegisterClasses(owner, accountGuard, orderSubmissionSession, available);
   const listed = classes.data?.find((item) => item.uuid === token);
   const companyMatches = listed?.companyUuid === company;
-  const appointments = useOwnAppointments(owner, guard, {
+  const appointments = useOwnAppointments(owner, accountGuard, {
     enabled: companyMatches,
     session: orderSubmissionSession,
   });
@@ -114,8 +138,17 @@ function OwnAward({
     [guard, company],
   );
   const readable =
-    companyMatches && appointments.isSuccess && hasCurrentRegisterReadAuthority(appointments.data, company);
-  const registers = useRegisters(owner, readable ? [token] : [], guard, orderSubmissionSession);
+    available &&
+    companyMatches &&
+    appointments.isSuccess &&
+    hasCurrentRegisterReadAuthority(appointments.data, company);
+  const registers = useRegisters(
+    owner,
+    companyMatches ? [token] : [],
+    guard,
+    orderSubmissionSession,
+    available && readable,
+  );
   const award = useRegisterAward(owner, company, token, uuid, check, readable, orderSubmissionSession);
   const grants = useRegisterGrants(owner, company, token, check, readable, orderSubmissionSession);
   const register = registers.data?.[0];
@@ -125,6 +158,7 @@ function OwnAward({
   const [editing, setEditing] = useState(false);
   const preferenceState = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
   const sourceReady =
+    available &&
     preferenceState?.status === 'success' &&
     preferenceState.fetchStatus === 'idle' &&
     classes.isSuccess &&
@@ -134,6 +168,7 @@ function OwnAward({
   const blocked =
     !readable || !sourceReady || award.isFetching || award.isError || appointments.isFetching || appointments.isError;
   const visible =
+    available &&
     readable &&
     sourceReady &&
     award.isSuccess &&
@@ -200,6 +235,8 @@ function OwnAward({
     <Page
       testID="employee-award-scroll"
       title={shown ? shown.recipientName : TITLE}
+      available={available}
+      unavailable={preferences.isError ? content : <RegisterAccess owner={owner} />}
       lede={shown && register ? `Employee award · ${register.token.name} · ${register.token.symbol}` : undefined}
       links={
         shown &&
@@ -221,7 +258,7 @@ function OwnAward({
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing || held || editing) return;
+            if (!available || refreshing || held || editing) return;
             setRefreshing(true);
             void Promise.all([
               classes.refetch(),

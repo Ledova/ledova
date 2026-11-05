@@ -41,6 +41,7 @@ import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
 import { useShareholderStyles } from './useShareholderStyles';
 
 const PRIVATE_NOTE =
@@ -60,12 +61,25 @@ export function ShareholderScreen({ route }: { route: RouteProp<SignedInStackPar
   const preferences = useUserPreferences();
   const { directory, companies } = useMemberRecordsState();
   const readable = companies.some((row) => row.uuid === company && row.canReadRegister);
-  if (owner && !preferences.isError && readable && !directory.hasError && !directory.isLoading)
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    `${company}/${member}`,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      readable &&
+      !directory.hasError &&
+      !directory.isLoading &&
+      !directory.isRefreshing,
+  );
+  if (owner && scope.scope !== undefined)
     return (
       <OwnShareholder
         key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company}/${member}`}
         owner={owner}
-        currentOwner={boundary.get}
+        currentOwner={scope.currentOwner}
+        accountOwner={boundary.get}
+        available={scope.available}
         company={company}
         member={member}
         outcome={outcome}
@@ -81,12 +95,16 @@ export function ShareholderScreen({ route }: { route: RouteProp<SignedInStackPar
 function OwnShareholder({
   owner,
   currentOwner,
+  accountOwner,
+  available,
   company,
   member,
   outcome,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  accountOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
   member: string;
   outcome?: string;
@@ -105,11 +123,21 @@ function OwnShareholder({
     },
     [owner, currentOwner],
   );
-  const data = useShareholder(owner, guard, company, member, orderSubmissionSession);
+  const accountGuard = useMemo(
+    () => () => {
+      if (accountOwner() !== owner) throw new Error('Your signed-in account changed. Reopen the register.');
+    },
+    [owner, accountOwner],
+  );
+  const data = useShareholder(owner, guard, company, member, orderSubmissionSession, { available, accountGuard });
   const preferenceRead = useUserPreferences();
   const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
-  const appointments = useOwnAppointments(owner, guard, { enabled: !!data.company, session: orderSubmissionSession });
+  const appointments = useOwnAppointments(owner, accountGuard, {
+    enabled: !!data.company,
+    session: orderSubmissionSession,
+  });
   const sourceReady =
+    available &&
     preferences?.status === 'success' &&
     preferences.fetchStatus === 'idle' &&
     data.classes.isSuccess &&
@@ -425,7 +453,9 @@ function OwnShareholder({
   return (
     <Page
       testID="shareholder-scroll"
-      title={title}
+      title={available ? title : DESTINATIONS.companyShareholder.title}
+      available={available}
+      unavailable={<RegisterAccess owner={owner} />}
       held={documentsHeld}
       refreshControl={
         <RefreshControl
@@ -433,7 +463,7 @@ function OwnShareholder({
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing || documentsHeld) return;
+            if (!available || refreshing || documentsHeld) return;
             setRefreshing(true);
             void Promise.all([
               data.classes.refetch(),
@@ -459,6 +489,7 @@ function OwnShareholder({
         <ShareholderDocuments
           title="Documents"
           owner={owner}
+          accountGuard={accountGuard}
           guard={guard}
           company={company}
           member={member}

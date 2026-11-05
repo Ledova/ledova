@@ -12,6 +12,7 @@ interface MemberRecords {
   select: (uuid: string) => void;
   companies: OwnershipCompany[];
   company: OwnershipCompany | undefined;
+  companySelection: string | null | undefined;
   member: OwnMemberRecord | undefined;
   selectCompany: (companyUuid: string) => boolean;
 }
@@ -65,6 +66,7 @@ export function MemberRecordsProvider({ children }: { children: ReactNode }) {
         },
         companies,
         company,
+        companySelection: remembered,
         member: memberOf(company, read.records),
         selectCompany,
       }}

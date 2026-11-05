@@ -54,7 +54,11 @@ export function useRegisters(
   uuids: string[],
   guard: () => void,
   session?: OrderSubmissionSession,
+  available = true,
 ) {
   const apiClient = useApiClient();
-  return useQuery(registersQuery(apiClient, owner, uuids, guard, session));
+  return useQuery({
+    ...registersQuery(apiClient, owner, uuids, guard, session),
+    enabled: available && uuids.length > 0,
+  });
 }

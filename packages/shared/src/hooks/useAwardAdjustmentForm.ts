@@ -298,6 +298,7 @@ export function useAwardAdjustmentForm({
     setCompanyEventOn,
     reason,
     setReason,
+    file,
     setFile,
     busy,
     held,

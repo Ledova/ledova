@@ -123,12 +123,18 @@ export function AppointmentRecord({
   );
 }
 
-export function RevokeAppointmentModal({ team }: { team: ReturnType<typeof useCompanyTeam> }) {
+export function RevokeAppointmentModal({
+  team,
+  available = true,
+}: {
+  team: ReturnType<typeof useCompanyTeam>;
+  available?: boolean;
+}) {
   const styles = useCompanyStyles();
   const { confirmation, revoking, close, disabled, canRevoke, ticket, revoke } = team;
   return (
     <CustomModal
-      visible={!!confirmation}
+      visible={available && !!confirmation}
       title="Revoke appointment permanently?"
       busy={revoking}
       onClose={close}
@@ -136,9 +142,10 @@ export function RevokeAppointmentModal({ team }: { team: ReturnType<typeof useCo
         <Action
           label={revoking ? 'Revoking…' : 'Permanently revoke appointment'}
           primary
-          disabled={!confirmation || disabled || !canRevoke(confirmation.appointment)}
+          disabled={!available || !confirmation || disabled || !canRevoke(confirmation.appointment)}
           onPress={() => {
             if (
+              !available ||
               !confirmation ||
               ticket.current !== confirmation.ticket ||
               disabled ||

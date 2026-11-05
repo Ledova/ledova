@@ -6,10 +6,16 @@ import { useApiClient } from './useApiClient';
 import { registerClassesKey } from './useCompanyOwnership';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
-export function useRegisterClasses(owner: OrderSubmissionOwner, guard: () => void, session?: OrderSubmissionSession) {
+export function useRegisterClasses(
+  owner: OrderSubmissionOwner,
+  guard: () => void,
+  session?: OrderSubmissionSession,
+  available = true,
+) {
   const apiClient = useApiClient();
   return useQuery({
     queryKey: registerClassesKey(owner),
+    enabled: available,
     queryFn: () =>
       readEveryPage(async (page) => {
         guard();

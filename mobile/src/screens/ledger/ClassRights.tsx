@@ -278,6 +278,7 @@ function RightsEditor({ rights }: { rights: Rights }) {
             ) : (
               <FileField
                 label="File"
+                value={document.file}
                 hint={UPLOAD_RULE.HINT}
                 disabled={locked}
                 onFile={(file) =>

@@ -160,7 +160,13 @@ export function AwardForm({
           error={checks.field('termsOn').error}
           onChange={(termsOn) => award.setTermsOn(termsOn.trim())}
         />
-        <FileField label="Document" disabled={locked} error={checks.field('file').error} onFile={award.setFile} />
+        <FileField
+          label="Document"
+          value={award.file}
+          disabled={locked}
+          error={checks.field('file').error}
+          onFile={award.setFile}
+        />
         <Field
           label="Terms"
           value={award.terms}
@@ -281,7 +287,13 @@ export function AwardVestingForm({
         error={checks.field('vestedOn').error}
         onChange={(vestedOn) => vesting.setVestedOn(vestedOn.trim())}
       />
-      <FileField label="Document" disabled={locked} error={checks.field('file').error} onFile={vesting.setFile} />
+      <FileField
+        label="Document"
+        value={vesting.file}
+        disabled={locked}
+        error={checks.field('file').error}
+        onFile={vesting.setFile}
+      />
       <FormFailure error={vesting.error} held={vesting.held} />
       <FormActions>
         {cancel}
@@ -379,6 +391,7 @@ export function AwardAdjustmentForm(
       />
       <FileField
         label={COPY.ADJUSTMENT_DOCUMENT}
+        value={change.file}
         hint={UPLOAD_RULE.HINT}
         disabled={locked}
         error={checks.field('file').error}

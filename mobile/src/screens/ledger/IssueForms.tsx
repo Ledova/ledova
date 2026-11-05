@@ -241,6 +241,7 @@ export function AllotmentForm({
   const document = (kind: AllotmentDocumentKind, label = COPY.DOCUMENTS[kind], accessibilityLabel?: string) => (
     <FileField
       label={label}
+      value={form.files[kind]}
       accessibilityLabel={accessibilityLabel}
       disabled={locked}
       error={checks.field(`${kind}Document`).error}
@@ -396,6 +397,7 @@ export function GrantForm({
   const document = (kind: GrantDocumentKind) => (
     <FileField
       label={GRANT_DOCUMENTS[kind]}
+      value={model.files[kind]}
       disabled={locked}
       error={checks.field(`${kind}Document`).error}
       onFile={(file) => model.setFiles((current) => ({ ...current, [kind]: file ?? undefined }))}
