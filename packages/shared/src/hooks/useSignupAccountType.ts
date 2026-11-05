@@ -29,9 +29,14 @@ export function useSignupAccountType() {
 
   const updateRoleMutation = useMutation({
     mutationFn: (role: SignupRole) => setAccountRole(apiClient, account!.uuid, role),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: USER_ACCOUNT_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: USER_ACCOUNT_QUERY_KEY }, { throwOnError: true }),
+        queryClient.invalidateQueries(
+          { queryKey: USER_PREFERENCES_QUERY_KEY, refetchType: 'all' },
+          { throwOnError: true },
+        ),
+      ]);
     },
   });
 
@@ -48,6 +53,7 @@ export function useSignupAccountType() {
       setError(
         apiErrorSentence(failure, 'We could not save your account type. Please try again.', SIGNUP_NETWORK_ERROR),
       );
+    } finally {
       setIsSubmitting(false);
     }
   };

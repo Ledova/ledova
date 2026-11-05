@@ -1,7 +1,14 @@
 import React from 'react';
+import axios from 'axios';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react-native';
-import { AUTH_QUERY_KEY, USER_PROFILES_QUERY_KEY } from '@ledova/shared';
+import {
+  ApiClientProvider,
+  AUTH_QUERY_KEY,
+  USER_PREFERENCES_QUERY_KEY,
+  USER_PROFILES_QUERY_KEY,
+  setAccountRole,
+} from '@ledova/shared';
 import { AccountTypeScreen } from '../account-type';
 import { UserProfileScreen } from '../user-profile';
 import { CompanyRegistrationScreen } from '../company-registration';
@@ -20,6 +27,7 @@ let mockProfileComplete = false;
 let mockProfileError = false;
 let mockRereading = false;
 let mockCompany = false;
+let mockStoredRole = 'investor';
 let mockPreferencesError = false;
 let mockInterrupted = true;
 let mockFullName = 'Alex Member';
@@ -33,6 +41,13 @@ let mockCompanyDetails = {
   abn: '',
 };
 
+jest.mock('../../../../../packages/shared/src/services/userAccount', () => ({
+  getUserAccount: jest.fn(async () => ({ data: { uuid: 'account-one', role: mockStoredRole } })),
+  setAccountRole: jest.fn(async (_client: unknown, _uuid: string, role: string) => {
+    mockStoredRole = role;
+    return { data: { uuid: 'account-one', role } };
+  }),
+}));
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ reset: mockReset, navigate: mockNavigate }) }));
 jest.mock('../../../navigation/SignedInNavigator', () => ({
   SignedInNavigator: () =>
@@ -58,15 +73,6 @@ jest.mock('@ledova/shared', () => {
     ...jest.requireActual('@ledova/shared'),
     useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: mockRereading, refetch: jest.fn() }),
     useUserPreferences: () => ({ isFetching: mockRereading, isError: mockPreferencesError, refetch: jest.fn() }),
-    useSignupAccountType: () => ({
-      account: { uuid: 'account-one' },
-      isSubmitting: false,
-      error: null,
-      chooseRole: async (role: string, onChosen: () => void) => {
-        mockCompany = role === 'company';
-        onChosen();
-      },
-    }),
     useSignupUserProfile: () => {
       const [form, setForm] = useState({
         fullName: mockFullName,
@@ -152,6 +158,7 @@ beforeEach(() => {
   mockProfileError = false;
   mockRereading = false;
   mockCompany = false;
+  mockStoredRole = 'investor';
   mockPreferencesError = false;
   mockInterrupted = true;
   mockFullName = 'Alex Member';
@@ -172,7 +179,9 @@ afterEach(async () => {
 });
 
 it('completes individual signup only through explicit Terms acceptance, resumes after an interrupted response, keeps unfinished profiles outside the account, waits for a readable role and resumes unfinished company accounts at their saved step', async () => {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } },
+  });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
@@ -239,14 +248,51 @@ it('completes individual signup only through explicit Terms acceptance, resumes 
 });
 
 it('takes a company representative through personal and company details, then requires explicit authority and Terms completion after identity and saved-setup checks', async () => {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } },
+  });
+  const apiClient = axios.create();
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>
+    </QueryClientProvider>
   );
+  let holdPreferences = false;
+  let finishPreferences: () => void = () => undefined;
+  const readPreferences = jest.fn(async () => {
+    if (holdPreferences)
+      await new Promise<void>((resolve) => {
+        finishPreferences = resolve;
+      });
+    mockCompany = mockStoredRole === 'company';
+    return { data: { userAccount: { uuid: 'account-one', role: mockStoredRole } } };
+  });
+  await client.fetchQuery({ queryKey: USER_PREFERENCES_QUERY_KEY, queryFn: readPreferences });
+  holdPreferences = true;
   const account = await render(<AccountTypeScreen />, { wrapper });
+  await waitFor(() => expect(account.getByRole('button', { name: 'Company representative' })).toBeEnabled());
   await fireEvent.press(account.getByRole('button', { name: 'Company representative' }));
+  await waitFor(() => expect(readPreferences).toHaveBeenCalledTimes(2));
+  expect(setAccountRole).toHaveBeenCalledWith(apiClient, 'account-one', 'company');
+  expect(mockCompany).toBe(false);
+  expect(mockNavigate).not.toHaveBeenCalled();
+  expect(account.getByRole('button', { name: 'Company representative' })).toBeDisabled();
+  finishPreferences();
+  await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('UserProfile'));
   expect(mockCompany).toBe(true);
-  expect(mockNavigate).toHaveBeenLastCalledWith('UserProfile');
+  expect(
+    client.getQueryData<{ data: { userAccount: { role: string } } }>(USER_PREFERENCES_QUERY_KEY)?.data.userAccount.role,
+  ).toBe('company');
+  await waitFor(() => expect(account.getByRole('button', { name: 'Individual investor' })).toBeEnabled());
+  holdPreferences = false;
+  await fireEvent.press(account.getByRole('button', { name: 'Individual investor' }));
+  await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('PreScreening'));
+  expect(mockCompany).toBe(false);
+  await waitFor(() => expect(account.getByRole('button', { name: 'Company representative' })).toBeEnabled());
+  await fireEvent.press(account.getByRole('button', { name: 'Company representative' }));
+  await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('UserProfile'));
+  expect(mockCompany).toBe(true);
+  expect(setAccountRole).toHaveBeenCalledTimes(3);
   await account.unmount();
 
   const personal = await render(<UserProfileScreen />, { wrapper });
@@ -285,11 +331,13 @@ it('takes a company representative through personal and company details, then re
   await review.rerender(<ReviewScreen />);
 
   let finishAuth: () => void = () => undefined;
-  const refreshAuth = jest.spyOn(client, 'refetchQueries').mockImplementationOnce(
-    () =>
-      new Promise<void>((resolve) => {
-        finishAuth = resolve;
-      }),
+  const refetchQueries = client.refetchQueries.bind(client);
+  const refreshAuth = jest.spyOn(client, 'refetchQueries').mockImplementation((filters, options) =>
+    filters?.queryKey === AUTH_QUERY_KEY
+      ? new Promise<void>((resolve) => {
+          finishAuth = resolve;
+        })
+      : refetchQueries(filters, options),
   );
   const refreshProfile = jest.spyOn(client, 'invalidateQueries');
   await fireEvent.press(review.getByRole('button', { name: 'Complete company setup' }));
