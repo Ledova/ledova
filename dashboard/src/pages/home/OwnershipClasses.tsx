@@ -83,7 +83,7 @@ export function OwnershipClasses({
                   data-class-uuid={row.uuid}
                   aria-label={`Explore ${row.name} (${row.symbol})`}
                   aria-pressed={row.uuid === selected}
-                  aria-describedby={`${id}-${row.uuid}`}
+                  aria-describedby={`${id}-${row.uuid} ${id}-${row.uuid}-facts`}
                   onClick={() => onSelect(row.uuid)}
                   onMouseEnter={() => setHovered(row.uuid)}
                   onMouseLeave={() => setHovered(null)}
@@ -97,26 +97,32 @@ export function OwnershipClasses({
                     style={{ backgroundColor: ownershipColor(classes, row.uuid) }}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block break-words font-medium text-text-primary">{row.name}</span>
-                    <span className="block break-all text-xs text-text-muted">{row.symbol}</span>
-                  </span>
-                  <span id={`${id}-${row.uuid}`} className="min-w-0 text-right tabular-nums">
-                    <span className="block break-all text-text-primary">
-                      {row.issuedSupply === null ? 'Not recorded' : formatShareCount(row.issuedSupply)}
-                      <span className="sr-only"> {personalOnly ? 'held by you' : 'issued shares'}</span>
-                    </span>
-                    {hasRing && row.issuedSupply !== null && (
-                      <span className="block text-xs text-text-muted">
-                        {sharePercentage(row.issuedSupply, total)}
-                        <span className="sr-only">
-                          {' '}
-                          {personalOnly ? 'of your shares in this company' : 'of company issued shares'}
-                        </span>
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="min-w-0 break-words font-medium text-text-primary">{row.name}</span>
+                      <span id={`${id}-${row.uuid}`} className="shrink-0 tabular-nums text-text-primary">
+                        {row.issuedSupply === null ? 'Not recorded' : formatShareCount(row.issuedSupply)}
+                        <span className="sr-only"> {personalOnly ? 'held by you' : 'issued shares'}</span>
                       </span>
-                    )}
-                    {!personalOnly && hasMember && row.ownShares !== null && BigInt(row.ownShares) > 0n && (
-                      <span className="block text-xs text-text-muted">You: {formatShareCount(row.ownShares)}</span>
-                    )}
+                    </span>
+                    <span
+                      id={`${id}-${row.uuid}-facts`}
+                      className="block break-words text-xs tabular-nums text-text-muted"
+                    >
+                      {row.symbol}
+                      {hasRing && row.issuedSupply !== null && (
+                        <>
+                          {' · '}
+                          {sharePercentage(row.issuedSupply, total)}
+                          <span className="sr-only">
+                            {' '}
+                            {personalOnly ? 'of your shares in this company' : 'of company issued shares'}
+                          </span>
+                        </>
+                      )}
+                      {!personalOnly && hasMember && row.ownShares !== null && BigInt(row.ownShares) > 0n && (
+                        <> · You: {formatShareCount(row.ownShares)}</>
+                      )}
+                    </span>
                   </span>
                   <CaretRightIcon aria-hidden className="h-4 w-4 shrink-0 text-text-muted" />
                 </button>

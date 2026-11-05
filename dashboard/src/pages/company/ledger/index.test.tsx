@@ -1912,8 +1912,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(confirm);
   const summary = await screen.findByRole('region', { name: 'Company ownership summary' });
   expect(within(summary).getByText('600')).toBeTruthy();
-  expect(screen.getByText('100.00%')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Explore Ordinary shares (ORD)' }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: 'Explore Ordinary shares (ORD)',
+      description: /100\.00%\s*of company issued shares/,
+    }),
+  );
   expect(
     within(await screen.findByRole('list', { name: 'Ordinary shares shareholders' })).getByText('Example Shareholder'),
   ).toBeTruthy();
