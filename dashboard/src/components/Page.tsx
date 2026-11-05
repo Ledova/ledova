@@ -51,11 +51,12 @@ export function Page({
     setTitle(title);
     return () => setTitle(null);
   }, [inBar, title, setTitle]);
+  const backState = JSON.stringify(link.state);
   useEffect(() => {
     if (!inBar || !link.arrow || !link.to || !link.label) return;
     setBack({ to: link.to, label: link.label, state: link.state });
     return () => setBack(null);
-  }, [inBar, link.arrow, link.to, link.label, link.state, setBack]);
+  }, [inBar, link.arrow, link.to, link.label, backState, setBack]);
   const heading = (className: string) => (
     <h1 tabIndex={-1} aria-describedby={lede ? ledeId : undefined} className={className}>
       {title}

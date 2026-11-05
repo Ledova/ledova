@@ -6,7 +6,6 @@ import {
   REGISTER_AWARD_COPY as COPY,
   USER_PREFERENCES_QUERY_KEY,
   appointmentForRegisterStep,
-  formatDate,
   hasCurrentRegisterReadAuthority,
   useSubmissionOwner,
   useUserPreferences,
@@ -196,7 +195,7 @@ function OwnAward({
         documentTitle={DESTINATIONS.companyRegisterAward.title}
         lede={
           visible && award.data && register
-            ? `Employee award · ${register.token.name} · ${register.token.symbol} · Agreement ${formatDate(award.data.termsOn)}`
+            ? `Employee award · ${register.token.name} · ${register.token.symbol}`
             : undefined
         }
         back={{ state: company ? { registerCompany: company, registerToken: token } : undefined }}
@@ -205,11 +204,14 @@ function OwnAward({
           award.data &&
           !held &&
           !editing && (
-            <PageLink
-              to={shareholderPath(award.data.member, company)}
-              label="Recipient details"
-              context={award.data.recipientName}
-            />
+            <div className="flex justify-end">
+              <PageLink
+                compact
+                to={shareholderPath(award.data.member, company)}
+                label="Recipient details"
+                context={award.data.recipientName}
+              />
+            </div>
           )
         }
       >

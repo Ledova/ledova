@@ -13,6 +13,7 @@ import {
   type RegisterGrant,
   shareCount,
   formatDate,
+  formatShortDate,
   STAGE_TONES,
   awardVestingsKey,
   awardEndsKey,
@@ -231,14 +232,19 @@ export function AwardRecord({
       {visible && (
         <Section title="Agreement and vesting schedule">
           <Rows>
-            <Row label={COPY.TERMS_ON}>{formatDate(award.termsOn)}</Row>
+            <Row label={COPY.TERMS_ON} inline>
+              {formatShortDate(award.termsOn)}
+            </Row>
             <Row label={COPY.TERMS}>{award.terms}</Row>
             <Row label={COPY.SCHEDULE}>{award.schedule}</Row>
-            <Row label="Residential address">{award.recipientResidentialAddress}</Row>
+            <Row label="Residential address" inline>
+              {award.recipientResidentialAddress}
+            </Row>
           </Rows>
           <p className="text-sm text-text-muted">{COPY.NOTE}</p>
-          <FormActions>
+          <div className="flex justify-end">
             <PageAction
+              compact
               label="Download agreement"
               busy={download.isPending && !download.variables}
               busyLabel="Downloading…"
@@ -246,7 +252,7 @@ export function AwardRecord({
               disabled={blocked || download.isPending}
               onClick={() => download.mutate(undefined)}
             />
-          </FormActions>
+          </div>
           {download.isError && !download.variables && downloadFailure}
         </Section>
       )}
@@ -269,17 +275,20 @@ export function AwardRecord({
                           ? 'This vesting event is already fully reversed.'
                           : null;
                     return (
-                      <div key={event.uuid} className="space-y-2 py-3 first:pt-0">
-                        <Rows>
-                          <Row label={COPY.VESTING_SHARES}>{shareCount(event.shares)}</Row>
-                          <Row label={COPY.VESTED_ON}>{formatDate(event.vestedOn)}</Row>
-                        </Rows>
-                        <p className="text-xs text-text-muted">
+                      <div key={event.uuid} className="flex flex-col gap-1 py-3 text-sm first:pt-0">
+                        <p className="flex items-baseline justify-between gap-3 font-medium text-text-primary">
+                          <span className="min-w-0 break-words">{shareCount(event.shares)} vested</span>
+                          <span className="shrink-0 whitespace-nowrap tabular-nums">
+                            {formatShortDate(event.vestedOn)}
+                          </span>
+                        </p>
+                        <p className="break-words text-xs text-text-muted">
                           Recorded {formatDateTime(event.createdAt)}
                           {event.preparedByName && ` by ${event.preparedByName}`}
                         </p>
-                        <FormActions>
+                        <div className="flex flex-wrap justify-end gap-x-4 gap-y-6">
                           <PageAction
+                            compact
                             label="Download vesting evidence"
                             busy={
                               download.isPending &&
@@ -293,6 +302,7 @@ export function AwardRecord({
                           />
                           {appointment && (
                             <PageAction
+                              compact
                               label={COPY.REVERSE}
                               context={vestingName(event)}
                               describedBy={reverseReason ? `${vestingsId}-${event.uuid}-reason` : undefined}
@@ -315,7 +325,7 @@ export function AwardRecord({
                               }}
                             />
                           )}
-                        </FormActions>
+                        </div>
                         {appointment && reverseReason && (
                           <p id={`${vestingsId}-${event.uuid}-reason`} className="text-right text-xs text-text-muted">
                             {reverseReason}
@@ -349,17 +359,24 @@ export function AwardRecord({
                   {ends.data.map((event) => (
                     <div key={event.uuid} className="space-y-2 py-3 first:pt-0">
                       <Rows>
-                        <Row label={COPY.ENDED_UNVESTED}>{shareCount(event.unvestedShares)}</Row>
-                        <Row label={COPY.ENDED_VESTED}>{shareCount(event.vestedShares)}</Row>
-                        <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
+                        <Row label={COPY.ENDED_UNVESTED} inline>
+                          {shareCount(event.unvestedShares)}
+                        </Row>
+                        <Row label={COPY.ENDED_VESTED} inline>
+                          {shareCount(event.vestedShares)}
+                        </Row>
+                        <Row label={COPY.COMPANY_EVENT_ON} inline>
+                          {formatShortDate(event.companyEventOn)}
+                        </Row>
                         <Row label={COPY.REASON}>{event.reason}</Row>
                       </Rows>
                       <p className="text-xs text-text-muted">
                         Recorded {formatDateTime(event.createdAt)}
                         {event.preparedByName && ` by ${event.preparedByName}`}
                       </p>
-                      <FormActions>
+                      <div className="flex justify-end">
                         <PageAction
+                          compact
                           label="Download entitlement evidence"
                           busy={
                             download.isPending &&
@@ -371,23 +388,30 @@ export function AwardRecord({
                           disabled={blocked || download.isPending || !eventReady}
                           onClick={() => download.mutate({ kind: 'end', uuid: event.uuid })}
                         />
-                      </FormActions>
+                      </div>
                     </div>
                   ))}
                   {reversals.data.map((event) => (
                     <div key={event.uuid} className="space-y-2 py-3 first:pt-0">
                       <Rows>
-                        <Row label={COPY.REVERSED_SHARES}>{shareCount(event.reversedShares)}</Row>
-                        <Row label="Original vesting">{originalVesting(event.vesting)}</Row>
-                        <Row label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Row>
+                        <Row label={COPY.REVERSED_SHARES} inline>
+                          {shareCount(event.reversedShares)}
+                        </Row>
+                        <Row label="Original vesting" inline>
+                          {originalVesting(event.vesting)}
+                        </Row>
+                        <Row label={COPY.COMPANY_EVENT_ON} inline>
+                          {formatShortDate(event.companyEventOn)}
+                        </Row>
                         <Row label={COPY.REASON}>{event.reason}</Row>
                       </Rows>
                       <p className="text-xs text-text-muted">
                         Recorded {formatDateTime(event.createdAt)}
                         {event.preparedByName && ` by ${event.preparedByName}`}
                       </p>
-                      <FormActions>
+                      <div className="flex justify-end">
                         <PageAction
+                          compact
                           label="Download correction evidence"
                           busy={
                             download.isPending &&
@@ -399,7 +423,7 @@ export function AwardRecord({
                           disabled={blocked || download.isPending || !eventReady}
                           onClick={() => download.mutate({ kind: 'reversal', uuid: event.uuid })}
                         />
-                      </FormActions>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -415,16 +439,24 @@ export function AwardRecord({
                 {grants.map((grant) => (
                   <LinkRow
                     key={grant.uuid}
-                    label={`${shareCount(grant.shares)}, prepared ${formatDateTime(grant.createdAt)}`}
-                    context={`issue from the award for ${award.recipientName}`}
+                    label={shareCount(grant.shares)}
+                    context={`prepared ${formatShortDate(grant.createdAt)}, issue from the award for ${award.recipientName}`}
                     to={`${DESTINATIONS.companyRegister.path}?company=${award.company}#issue`}
                     state={{ registerCompany: award.company, registerToken: award.token, registerRecord: grant.uuid }}
-                    aside={
-                      <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>
-                        {grant.stage === 'applied' ? 'Shares issued' : (GRANT_COPY.STAGES[grant.stage] ?? grant.stage)}
-                      </Status>
+                    figure={
+                      <span className="max-w-[45%] shrink-0 self-start">
+                        <Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>
+                          {grant.stage === 'applied'
+                            ? 'Shares issued'
+                            : (GRANT_COPY.STAGES[grant.stage] ?? grant.stage)}
+                        </Status>
+                      </span>
                     }
-                  />
+                  >
+                    <span className="block break-words text-xs text-text-muted">
+                      Prepared {formatShortDate(grant.createdAt)}
+                    </span>
+                  </LinkRow>
                 ))}
               </div>
             </Section>

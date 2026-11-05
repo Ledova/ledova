@@ -89,6 +89,7 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent & { arrow?: 
   companyClass: { destination: 'companyRegister', arrow: true },
   companyRegisterSetup: { destination: 'companyRegister', arrow: true },
   companyRegisterImport: { destination: 'companyRegister', arrow: true },
+  companyRegisterAward: { destination: 'companyRegister', view: 'awards', arrow: true },
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
   companyRegisterParticulars: { destination: 'companyRegister', view: 'corrections' },
 };

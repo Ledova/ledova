@@ -684,7 +684,7 @@ it('retains original award, vesting and linked issue preparations through interr
   fireEvent.click(screen.getByRole('link', { name: 'Return to ESS' }));
   await openAward();
   expect(screen.getByRole('heading', { name: 'Non-paid issues from this award' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('link', { name: /^10 shares, prepared/ }));
+  fireEvent.click(screen.getByRole('link', { name: /^10 shares \(prepared/ }));
   issues = within(await screen.findByRole('region', { name: 'Share issue workflow' }));
   await waitFor(() => expect(document.activeElement).toBe(awardIssueRecord()));
   expect(screen.queryByRole('button', { name: /^Record issue [(]grant/ })).toBeNull();

@@ -12,6 +12,7 @@ import {
   awardVestingsKey,
   formatDate,
   formatDateTime,
+  formatShortDate,
   remainingRegisterAwardVesting,
   shareCount,
   useAwardRecordDownload,
@@ -26,6 +27,7 @@ import {
 import { AwardStatus } from '../../components/AwardStatus';
 import {
   Action,
+  Actions,
   Fact,
   FormActions,
   LinkRow,
@@ -84,6 +86,7 @@ export function AwardRecord({
   const styles = useCompanyStyles();
   const look = useShareholderStyles();
   const own = useThemedStyles((theme) => ({
+    facts: { gap: theme.spacing.xs },
     reason: {
       fontFamily: theme.fontFamily.regular,
       fontSize: 12,
@@ -278,20 +281,25 @@ export function AwardRecord({
       {visible && (
         <Section title="Agreement and vesting schedule">
           <Rows>
-            <Fact label={COPY.TERMS_ON}>{formatDate(award.termsOn)}</Fact>
+            <Fact label={COPY.TERMS_ON} inline>
+              {formatShortDate(award.termsOn)}
+            </Fact>
             <Fact label={COPY.TERMS}>{award.terms}</Fact>
             <Fact label={COPY.SCHEDULE}>{award.schedule}</Fact>
-            <Fact label="Residential address">{award.recipientResidentialAddress}</Fact>
+            <Fact label="Residential address" inline>
+              {award.recipientResidentialAddress}
+            </Fact>
           </Rows>
           <Text style={look.muted}>{COPY.NOTE}</Text>
-          <FormActions>
+          <Actions>
             <Action
+              compact
               label={busy() ? 'Downloading…' : 'Download agreement'}
               accessibilityLabel={`${busy() ? 'Downloading…' : 'Download agreement'} (award for ${award.recipientName})`}
               disabled={blocked || download.isPending}
               onPress={() => download.mutate(undefined)}
             />
-          </FormActions>
+          </Actions>
           {download.isError && !download.variables && downloadFailure}
         </Section>
       )}
@@ -316,13 +324,16 @@ export function AwardRecord({
                     const name = vestingName(event);
                     return (
                       <View key={event.uuid} style={look.row}>
-                        <Rows>
-                          <Fact label={COPY.VESTING_SHARES}>{shareCount(event.shares)}</Fact>
-                          <Fact label={COPY.VESTED_ON}>{formatDate(event.vestedOn)}</Fact>
-                        </Rows>
-                        <Recorded at={event.createdAt} by={event.preparedByName} />
-                        <FormActions>
+                        <View style={own.facts}>
+                          <View style={look.line}>
+                            <Text style={[look.title, look.fill]}>{shareCount(event.shares)} vested</Text>
+                            <Text style={[look.figure, look.title]}>{formatShortDate(event.vestedOn)}</Text>
+                          </View>
+                          <Recorded at={event.createdAt} by={event.preparedByName} />
+                        </View>
+                        <Actions compact>
                           <Action
+                            compact
                             label={busy('vesting', event.uuid) ? 'Downloading…' : 'Download vesting evidence'}
                             accessibilityLabel={`${busy('vesting', event.uuid) ? 'Downloading…' : 'Download vesting evidence'} (${name})`}
                             disabled={blocked || download.isPending || !eventReady}
@@ -330,6 +341,7 @@ export function AwardRecord({
                           />
                           {appointment && (
                             <Action
+                              compact
                               label={COPY.REVERSE}
                               accessibilityLabel={`${COPY.REVERSE} (${name})`}
                               disabled={
@@ -351,7 +363,7 @@ export function AwardRecord({
                               }}
                             />
                           )}
-                        </FormActions>
+                        </Actions>
                         {appointment && reverseReason && <Text style={own.reason}>{reverseReason}</Text>}
                       </View>
                     );
@@ -377,39 +389,53 @@ export function AwardRecord({
                   {ends.data.map((event) => (
                     <View key={event.uuid} style={look.row}>
                       <Rows>
-                        <Fact label={COPY.ENDED_UNVESTED}>{shareCount(event.unvestedShares)}</Fact>
-                        <Fact label={COPY.ENDED_VESTED}>{shareCount(event.vestedShares)}</Fact>
-                        <Fact label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Fact>
+                        <Fact label={COPY.ENDED_UNVESTED} inline>
+                          {shareCount(event.unvestedShares)}
+                        </Fact>
+                        <Fact label={COPY.ENDED_VESTED} inline>
+                          {shareCount(event.vestedShares)}
+                        </Fact>
+                        <Fact label={COPY.COMPANY_EVENT_ON} inline>
+                          {formatShortDate(event.companyEventOn)}
+                        </Fact>
                         <Fact label={COPY.REASON}>{event.reason}</Fact>
                       </Rows>
                       <Recorded at={event.createdAt} by={event.preparedByName} />
-                      <FormActions>
+                      <Actions>
                         <Action
+                          compact
                           label={busy('end', event.uuid) ? 'Downloading…' : 'Download entitlement evidence'}
                           accessibilityLabel={`${busy('end', event.uuid) ? 'Downloading…' : 'Download entitlement evidence'} (${formatDate(event.companyEventOn)})`}
                           disabled={blocked || download.isPending || !eventReady}
                           onPress={() => download.mutate({ kind: 'end', uuid: event.uuid })}
                         />
-                      </FormActions>
+                      </Actions>
                     </View>
                   ))}
                   {reversals.data.map((event) => (
                     <View key={event.uuid} style={look.row}>
                       <Rows>
-                        <Fact label={COPY.REVERSED_SHARES}>{shareCount(event.reversedShares)}</Fact>
-                        <Fact label="Original vesting">{originalVesting(event.vesting)}</Fact>
-                        <Fact label={COPY.COMPANY_EVENT_ON}>{formatDate(event.companyEventOn)}</Fact>
+                        <Fact label={COPY.REVERSED_SHARES} inline>
+                          {shareCount(event.reversedShares)}
+                        </Fact>
+                        <Fact label="Original vesting" inline>
+                          {originalVesting(event.vesting)}
+                        </Fact>
+                        <Fact label={COPY.COMPANY_EVENT_ON} inline>
+                          {formatShortDate(event.companyEventOn)}
+                        </Fact>
                         <Fact label={COPY.REASON}>{event.reason}</Fact>
                       </Rows>
                       <Recorded at={event.createdAt} by={event.preparedByName} />
-                      <FormActions>
+                      <Actions>
                         <Action
+                          compact
                           label={busy('reversal', event.uuid) ? 'Downloading…' : 'Download correction evidence'}
                           accessibilityLabel={`${busy('reversal', event.uuid) ? 'Downloading…' : 'Download correction evidence'} (${formatDate(event.companyEventOn)})`}
                           disabled={blocked || download.isPending || !eventReady}
                           onPress={() => download.mutate({ kind: 'reversal', uuid: event.uuid })}
                         />
-                      </FormActions>
+                      </Actions>
                     </View>
                   ))}
                 </Rows>
@@ -423,15 +449,15 @@ export function AwardRecord({
             <Section title="Non-paid issues from this award">
               <Rows>
                 {grants.map((grant) => {
-                  const label = `${shareCount(grant.shares)}, prepared ${formatDateTime(grant.createdAt)}`;
+                  const prepared = formatShortDate(grant.createdAt);
                   const stage =
                     grant.stage === 'applied' ? 'Shares issued' : (GRANT_COPY.STAGES[grant.stage] ?? grant.stage);
                   return (
                     <LinkRow
                       key={grant.uuid}
-                      label={label}
-                      accessibilityLabel={`${label} (issue from the award for ${award.recipientName}), ${stage}`}
-                      aside={<Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>{stage}</Status>}
+                      label={shareCount(grant.shares)}
+                      accessibilityLabel={`${shareCount(grant.shares)}, prepared ${prepared} (issue from the award for ${award.recipientName}), ${stage}`}
+                      figure={<Status tone={STAGE_TONES[grant.stage] ?? 'waiting'}>{stage}</Status>}
                       onPress={() =>
                         navigation.navigate('IssueShares', {
                           company: award.company,
@@ -439,7 +465,9 @@ export function AwardRecord({
                           record: grant.uuid,
                         })
                       }
-                    />
+                    >
+                      <Text style={look.small}>Prepared {prepared}</Text>
+                    </LinkRow>
                   );
                 })}
               </Rows>
