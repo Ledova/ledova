@@ -44,6 +44,7 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = members.find((member) => member.member === selectedId);
   const total = registerImportTotals(members).total;
+  if (!members.length) return null;
   return (
     <>
       <ul aria-label="Shareholders" className="divide-y divide-border-subtle">

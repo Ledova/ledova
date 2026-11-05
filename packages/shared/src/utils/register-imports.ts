@@ -119,8 +119,11 @@ export const memberAddedOn = (enteredOn: string) =>
   enteredOn ? `Added ${formatShortDate(enteredOn)}` : 'Date not recorded';
 
 export function memberRecordFacts(member: Pick<RegisterImportMemberRow, 'shares' | 'enteredOn'>, total: string) {
-  const share = /^\d+$/.test(member.shares) ? `${sharePercentage(member.shares, total)} of class` : null;
-  return [share, memberAddedOn(member.enteredOn)].filter(Boolean).join(' · ');
+  const share = /^\d+$/.test(member.shares) ? sharePercentage(member.shares, total) : 'Not recorded';
+  return [
+    share === 'Not recorded' ? '% of class not recorded' : `${share} of class`,
+    member.enteredOn ? `added ${formatShortDate(member.enteredOn)}` : 'date added not recorded',
+  ].join(' · ');
 }
 
 function allotmentRows(rows: RegisterImportAllotment[] | undefined) {

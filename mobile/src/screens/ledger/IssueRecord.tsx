@@ -14,24 +14,6 @@ import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useLedgerStyles } from './useLedgerStyles';
 
-export function SummaryCell({
-  label,
-  values,
-  children,
-}: {
-  label: string;
-  values: (string | undefined)[];
-  children: ReactNode;
-}) {
-  const look = useLedgerStyles();
-  return (
-    <View accessible accessibilityLabel={`${label}: ${values.filter(Boolean).join(', ')}`} style={look.cell}>
-      <Text style={look.muted}>{label}</Text>
-      {children}
-    </View>
-  );
-}
-
 export function RecordSummary({
   name,
   figure,

@@ -2206,7 +2206,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const copiedMembers = within(copiedOpening).getByRole('list', { name: 'Shareholders' });
   expect(within(copiedMembers).getByText('Example Shareholder')).toBeTruthy();
   expect(within(copiedMembers).getByText('600 shares')).toBeTruthy();
-  expect(within(copiedMembers).getByText(new RegExp(`Added ${formatShortDate('2020-01-01')}$`))).toBeTruthy();
+  expect(within(copiedMembers).getByText(new RegExp(`added ${formatShortDate('2020-01-01')}$`))).toBeTruthy();
   const transferTask = screen.getByRole('link', { name: 'Transfer shares' });
   fireEvent.click(within(copiedMembers).getByRole('button', { name: 'Allotments (Example Shareholder)' }));
   const copiedDetails = await screen.findByRole('dialog', { name: 'Example Shareholder' });

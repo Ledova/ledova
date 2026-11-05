@@ -68,6 +68,7 @@ export function MemberRow({
 export function MemberRecords({ members }: { members: RegisterImportMemberRow[] }) {
   const look = useLedgerStyles();
   const total = registerImportTotals(members).total;
+  if (!members.length) return null;
   return (
     <View accessibilityLabel="Shareholders">
       <Rows>

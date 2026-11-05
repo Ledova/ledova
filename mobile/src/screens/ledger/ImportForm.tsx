@@ -297,7 +297,7 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
               onPress={() => void model.loadPreview()}
             />
           )}
-          {!recorded && !(editable && phase === 'shareholders') && (
+          {!recorded && !(editable && !uncertain && phase === 'shareholders') && (
             <Action
               label="Cancel"
               accessibilityLabel="Cancel (ledger setup)"

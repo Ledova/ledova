@@ -162,7 +162,7 @@ export function ImportShareholders({
                       facts={
                         <>
                           {memberAddedOn(row.enteredOn)}
-                          {validateMember(index).length > 0 && <Text style={styles.error}> · Needs details</Text>}
+                          {validateMember(index).length > 0 && <Text style={look.smallError}> · Needs details</Text>}
                         </>
                       }
                     >
