@@ -54,7 +54,7 @@ the same cards, rows and inline tasks at phone width.
 Ledger lists its share classes in one **Share classes** card, a compact row each (owner, 5 November
 2026): the class name with its issued shares at the right, then one muted line with its code, current
 shareholders, any authorised limit other than the internal quantity guard, and a short note while its
-ledger is not opened or issues or transfers wait to be recorded (`classFacts`). Each row opens the
+ledger is not opened or issues or transfers wait to be recorded or cannot be checked (`classFacts`). Each row opens the
 class's page, which keeps the full notes. For company readers, the register pages (Ledger, Shareholders,
 Employee share scheme, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
 cards, columns, class choices and default class (owner, 28 October 2026). Dashboard ranks its class
@@ -148,7 +148,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
   muted sentence ("No share classes yet.") and at most one action; a state is never a
-  title. A card's title is a heading, such as each class's summary on Ledger. On the web, every
+  title. A card's title is a heading, such as Ledger's Share classes. On the web, every
   paragraph in a card, including its forms' notes but not flex, right-aligned or truncated rows, and a page's
   lede keep a readable width (`max-w-prose`).
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as an

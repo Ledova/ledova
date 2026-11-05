@@ -534,9 +534,17 @@ function OwnRegister({
                         label={register.token.name}
                         context="class details"
                         figure={
-                          <span className="shrink-0 tabular-nums text-text-primary">
-                            {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
-                            <span className="sr-only"> issued shares</span>
+                          <span className="shrink-0 font-medium tabular-nums text-text-primary">
+                            {register.issuedSupply === null ? (
+                              <>
+                                <span className="sr-only">Issued shares </span>Not recorded
+                              </>
+                            ) : (
+                              <>
+                                {formatShareCount(register.issuedSupply)}
+                                <span className="sr-only"> issued shares</span>
+                              </>
+                            )}
                           </span>
                         }
                         disabled={held}

@@ -9,16 +9,18 @@ export function classFacts(
   const waiting = register.waitingEffects;
   return [
     register.token.symbol,
-    register.initialized ? `${holders} current ${holders === 1 ? 'shareholder' : 'shareholders'}` : 'ledger not opened',
+    register.initialized
+      ? `${formatShareCount(String(holders))} current ${holders === 1 ? 'shareholder' : 'shareholders'}`
+      : 'ledger not opened',
     register.token.totalSupply === TECHNICAL_SHARE_LIMIT
       ? null
       : `${formatShareCount(register.token.totalSupply)} authorised`,
     !register.initialized
       ? null
       : waiting === null
-        ? 'waiting issues and transfers not checked'
+        ? 'waiting issues or transfers not checked'
         : waiting > 0
-          ? `${waiting} ${waiting === 1 ? 'issue or transfer waits' : 'issues or transfers wait'} to be recorded`
+          ? `${formatShareCount(String(waiting))} ${waiting === 1 ? 'issue or transfer waits' : 'issues or transfers wait'} to be recorded`
           : null,
   ]
     .filter(Boolean)

@@ -811,7 +811,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Legacy certificate hashes redirect to the dedicated Certificates page.
   Ledger lists its share classes in one Share classes `Section`, a compact `LinkRow` per class with
   its issued shares as the figure and `classFacts` (code, current shareholders, any finite authorised
-  limit, and a note while the ledger is not opened or issues or transfers wait) beneath; each row opens
+  limit, and a note while the ledger is not opened or issues or transfers wait or cannot be checked) beneath; each row opens
   the class's page. Add share class sits in a right-aligned row below the card, including the empty
   card. The default internal quantity ceiling is omitted from these rows; finite class limits remain
   visible. Task views show their selected workflow rather than the

@@ -261,7 +261,7 @@ Ledger (`mobile/src/screens/ledger/LedgerScreen.tsx`) is the web's Ledger overvi
 a register reader of the selected company, read through `useCompanyRegisters.ts`: the web's Share
 classes card, a compact row per class with its name and issued shares, then its code, current
 shareholders, any authorised limit and a short note while its ledger is not opened or issues or
-transfers wait (`classFacts`); each row opens the class's page, which keeps the full notes. A company
+transfers wait or cannot be checked (`classFacts`); each row opens the class's page, which keeps the full notes. A company
 without classes shows No share classes yet. **Add share class**, below the card for someone whose appointment allows preparation, opens Set
 up your ledger. A class's page (`ShareClassScreen.tsx`, the class's name as its title) is the web's, read
 through the shared `useShareClass`: Summary with the class's code and type, Issued shares, Current
