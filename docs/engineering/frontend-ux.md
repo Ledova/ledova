@@ -185,8 +185,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   original member action**, and in the app the Invitation page's and empty Dashboard's actions. Load
   more keeps its place.
   Representative authority requests are compact `LinkRow`s that open each request's own page: the
-  company with the request's status at the right (the app's `LinkRow` takes a status element as its
-  `figure`, capped at 45% of the line), then its ACN and short submission date.
+  company with the request's status at the right, top-aligned and capped at 45% of the line on both
+  platforms (the app's `LinkRow` takes a status element as its `figure`), then its ACN and short
+  submission date.
 - Optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished input
   survives. The sidebar's group caret is a separate navigation
   button. Substantial record reviews use the main page; brief confirmations can use dialogs.

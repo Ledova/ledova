@@ -84,9 +84,11 @@ function OwnAuthorityRequests({
                     label={request.companyIdentityRaw.name}
                     context={`authority request submitted ${formatDate(request.createdAt)}, ${authorityRequestStatus(request).toLowerCase()}`}
                     figure={
-                      <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
-                        {authorityRequestStatus(request)}
-                      </Status>
+                      <span className="max-w-[45%] shrink-0 self-start">
+                        <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
+                          {authorityRequestStatus(request)}
+                        </Status>
+                      </span>
                     }
                   >
                     <span className="block text-xs text-text-muted">
