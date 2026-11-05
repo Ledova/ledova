@@ -12,20 +12,6 @@ export function useLedgerStyles() {
       terms: { gap: theme.spacing.xs },
       list: { gap: theme.spacing.sm },
       groups: { gap: theme.spacing.lg },
-      figures: { flexDirection: 'row' as const, gap: theme.spacing.md },
-      figure: { flex: 1, minWidth: 0, gap: theme.spacing.xs },
-      figureLabel: {
-        fontFamily: theme.fontFamily.regular,
-        fontSize: 12,
-        lineHeight: 16,
-        color: theme.colors.text.muted,
-      },
-      figureValue: {
-        fontFamily: theme.fontFamily.medium,
-        fontSize: 20,
-        lineHeight: 28,
-        color: theme.colors.text.primary,
-      },
       row: { gap: theme.spacing.sm, paddingVertical: theme.spacing.smd },
       line: {
         flexDirection: 'row' as const,
@@ -45,7 +31,6 @@ export function useLedgerStyles() {
       record: { gap: theme.spacing.smd, paddingVertical: theme.spacing.md },
       heading: { fontFamily: theme.fontFamily.medium, fontSize: 16, lineHeight: 24, color: theme.colors.text.primary },
       name: { fontFamily: theme.fontFamily.medium, fontSize: 16, lineHeight: 24, color: theme.colors.text.primary },
-      pair: { flexDirection: 'row' as const, gap: theme.spacing.md },
       cell: { flex: 1, minWidth: 0, gap: theme.spacing.xs },
       wrap: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: theme.spacing.sm },
       review: { gap: 20 },

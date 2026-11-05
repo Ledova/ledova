@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import {
   REGISTER_COPY,
@@ -12,9 +12,9 @@ import {
   formatShareCount,
   formatShortDate,
   importFigures,
+  memberRecordFacts,
   registerImportTotals,
   shareCount,
-  sharePercentage,
   useImportRecordDownload,
   type RegisterDecisionKind,
   type RegisterImport,
@@ -36,70 +36,116 @@ const TITLES: Record<RegisterDecisionKind, string> = {
   reject: `${COPY.DECISIONS.reject} import`,
 };
 
+export function MemberRow({
+  name,
+  shares,
+  address,
+  facts,
+  children,
+}: {
+  name: string;
+  shares: string;
+  address?: string;
+  facts: ReactNode;
+  children?: ReactNode;
+}) {
+  const look = useLedgerStyles();
+  return (
+    <View style={look.terms}>
+      <View style={look.line}>
+        <Text style={[look.title, look.fill]}>{name}</Text>
+        <Text style={look.title}>{shares}</Text>
+      </View>
+      {!!address && <Text style={look.small}>{address}</Text>}
+      <View style={look.line}>
+        <Text style={[look.small, look.fill]}>{facts}</Text>
+        {children}
+      </View>
+    </View>
+  );
+}
+
 export function MemberRecords({ members }: { members: RegisterImportMemberRow[] }) {
   const look = useLedgerStyles();
   const total = registerImportTotals(members).total;
   return (
     <View accessibilityLabel="Shareholders">
-      {members.map((member, index) => (
-        <View key={member.member} style={[look.summary, look.row, index > 0 && look.ruled]}>
-          <View style={look.terms}>
-            <Text style={look.title}>{member.name}</Text>
-            <Text style={look.muted}>{member.residentialAddress}</Text>
-          </View>
-          <Rows>
-            <Fact label="Shares held">{formatShareCount(member.shares)}</Fact>
-            <Fact label="% of class">
-              {/^\d+$/.test(member.shares) ? sharePercentage(member.shares, total) : 'Not recorded'}
-            </Fact>
-            <Fact label="Date added">{formatDate(member.enteredOn, '—')}</Fact>
-          </Rows>
-          <ShowMore show="Show allotments" hide="Hide allotments">
-            {member.allotments?.length ? (
-              member.allotments.map((allotment, number) => (
-                <View key={number} style={[look.summary, look.ruled]}>
-                  <Text accessibilityRole="header" style={look.title}>
-                    {`Allotment ${number + 1}`}
-                  </Text>
-                  <Rows>
-                    <Fact label="Allotment date">{formatDate(allotment.allottedOn, '—')}</Fact>
-                    <Fact label="Shares in allotment">{formatShareCount(allotment.shares)}</Fact>
-                    <Fact label="Amount paid">{allotment.amountPaid}</Fact>
-                    <Fact label="Amount unpaid">{allotment.amountUnpaid}</Fact>
-                    <Fact label="Payment status">{allotment.fullyPaid ? 'Fully paid' : 'Not fully paid'}</Fact>
-                    <Fact label="Held for someone else?">
-                      {allotment.beneficiallyHeld === null ? 'Not recorded' : allotment.beneficiallyHeld ? 'No' : 'Yes'}
-                    </Fact>
-                    {!!allotment.shareReference && <Fact label="Share reference">{allotment.shareReference}</Fact>}
-                    {!!allotment.certificateReference && (
-                      <Fact label="Certificate reference">{allotment.certificateReference}</Fact>
-                    )}
-                  </Rows>
-                </View>
-              ))
-            ) : (
-              <Text style={look.muted}>
-                {member.allotments
-                  ? 'No allotment history recorded.'
-                  : 'Allotment particulars were not captured in this earlier snapshot.'}
-              </Text>
-            )}
-            {!!member.documents?.length && (
-              <View style={[look.summary, look.ruled]}>
-                <Text accessibilityRole="header" style={look.title}>
-                  Documents
-                </Text>
-                {member.documents.map((document) => (
-                  <View key={document.evidence} style={look.terms}>
-                    <Text style={look.text}>{document.snapshot?.name || 'Retained supporting document'}</Text>
-                    <Text style={look.small}>{REGISTER_MEMBER_DOCUMENT_CATEGORIES[document.category]}</Text>
+      <Rows>
+        {members.map((member) => (
+          <View key={member.member} style={look.row}>
+            <MemberRow
+              name={member.name}
+              shares={shareCount(member.shares)}
+              address={member.residentialAddress}
+              facts={memberRecordFacts(member, total)}
+            />
+            <ShowMore show="Show allotments" hide="Hide allotments">
+              {member.allotments?.length ? (
+                member.allotments.map((allotment, number) => (
+                  <View key={number} style={[look.summary, look.ruled]}>
+                    <Text accessibilityRole="header" style={look.title}>
+                      {`Allotment ${number + 1}`}
+                    </Text>
+                    <Rows>
+                      <Fact label="Allotment date" inline>
+                        {formatDate(allotment.allottedOn, '—')}
+                      </Fact>
+                      <Fact label="Shares in allotment" inline>
+                        {formatShareCount(allotment.shares)}
+                      </Fact>
+                      <Fact label="Amount paid" inline>
+                        {allotment.amountPaid}
+                      </Fact>
+                      <Fact label="Amount unpaid" inline>
+                        {allotment.amountUnpaid}
+                      </Fact>
+                      <Fact label="Payment status" inline>
+                        {allotment.fullyPaid ? 'Fully paid' : 'Not fully paid'}
+                      </Fact>
+                      <Fact label="Held for someone else?" inline>
+                        {allotment.beneficiallyHeld === null
+                          ? 'Not recorded'
+                          : allotment.beneficiallyHeld
+                            ? 'No'
+                            : 'Yes'}
+                      </Fact>
+                      {!!allotment.shareReference && (
+                        <Fact label="Share reference" inline>
+                          {allotment.shareReference}
+                        </Fact>
+                      )}
+                      {!!allotment.certificateReference && (
+                        <Fact label="Certificate reference" inline>
+                          {allotment.certificateReference}
+                        </Fact>
+                      )}
+                    </Rows>
                   </View>
-                ))}
-              </View>
-            )}
-          </ShowMore>
-        </View>
-      ))}
+                ))
+              ) : (
+                <Text style={look.muted}>
+                  {member.allotments
+                    ? 'No allotment history recorded.'
+                    : 'Allotment particulars were not captured in this earlier snapshot.'}
+                </Text>
+              )}
+              {!!member.documents?.length && (
+                <View style={[look.summary, look.ruled]}>
+                  <Text accessibilityRole="header" style={look.title}>
+                    Documents
+                  </Text>
+                  {member.documents.map((document) => (
+                    <View key={document.evidence} style={look.terms}>
+                      <Text style={look.text}>{document.snapshot?.name || 'Retained supporting document'}</Text>
+                      <Text style={look.small}>{REGISTER_MEMBER_DOCUMENT_CATEGORIES[document.category]}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </ShowMore>
+          </View>
+        ))}
+      </Rows>
     </View>
   );
 }

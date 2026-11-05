@@ -1,16 +1,44 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   REGISTER_MEMBER_DOCUMENT_CATEGORIES,
   formatDate,
   formatShareCount,
+  memberRecordFacts,
   registerImportTotals,
-  sharePercentage,
+  shareCount,
   type RegisterImportMemberRow,
 } from '@ledova/shared';
-import { Table } from '@components/List';
 import { Modal } from '@components/Modal';
 import { PageAction } from '@components/Page';
 import { Row, Rows } from '@components/Ledger';
+
+export function MemberRow({
+  name,
+  shares,
+  address,
+  facts,
+  children,
+}: {
+  name: string;
+  shares: string;
+  address?: string;
+  facts: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <li className="flex flex-col gap-1 py-3 text-sm">
+      <p className="flex items-baseline justify-between gap-3 font-medium text-text-primary">
+        <span className="min-w-0 break-words">{name}</span>
+        <span className="shrink-0 whitespace-nowrap tabular-nums">{shares}</span>
+      </p>
+      {address && <p className="break-words text-xs text-text-muted">{address}</p>}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="min-w-0 break-words text-xs tabular-nums text-text-muted">{facts}</p>
+        {children && <span className="ml-auto flex gap-4">{children}</span>}
+      </div>
+    </li>
+  );
+}
 
 export function MemberRecords({ members }: { members: RegisterImportMemberRow[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -18,35 +46,19 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
   const total = registerImportTotals(members).total;
   return (
     <>
-      <Table
-        caption="Shareholders"
-        columns={[
-          { label: 'Shareholder' },
-          { label: 'Shares held', align: 'right' },
-          { label: '% of class', align: 'right' },
-          { label: 'Date added' },
-          { label: 'Allotments', hidden: true },
-        ]}
-      >
-        {members.map((member) => {
-          return (
-            <tr key={member.member}>
-              <th scope="row" className="px-4 py-4 text-left font-normal">
-                <p className="font-medium text-text-primary">{member.name}</p>
-                <p className="mt-1 max-w-64 truncate text-xs text-text-muted">{member.residentialAddress}</p>
-              </th>
-              <td className="px-4 py-4 text-right font-medium tabular-nums">{formatShareCount(member.shares)}</td>
-              <td className="whitespace-nowrap px-4 py-4 text-right tabular-nums text-text-muted">
-                {/^\d+$/.test(member.shares) ? sharePercentage(member.shares, total) : 'Not recorded'}
-              </td>
-              <td className="whitespace-nowrap px-4 py-4 text-text-muted">{formatDate(member.enteredOn, '—')}</td>
-              <td className="px-4 py-4">
-                <PageAction label="Allotments" context={member.name} onClick={() => setSelectedId(member.member)} />
-              </td>
-            </tr>
-          );
-        })}
-      </Table>
+      <ul aria-label="Shareholders" className="divide-y divide-border-subtle">
+        {members.map((member) => (
+          <MemberRow
+            key={member.member}
+            name={member.name}
+            shares={shareCount(member.shares)}
+            address={member.residentialAddress}
+            facts={memberRecordFacts(member, total)}
+          >
+            <PageAction compact label="Allotments" context={member.name} onClick={() => setSelectedId(member.member)} />
+          </MemberRow>
+        ))}
+      </ul>
       <Modal
         isOpen={!!selected}
         onClose={() => setSelectedId(null)}
@@ -63,7 +75,7 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                 ['Date first added to register', formatDate(selected.enteredOn, '—')],
                 ['Shares held', formatShareCount(selected.shares)],
               ].map(([label, value]) => (
-                <Row key={label} label={label}>
+                <Row key={label} label={label} inline>
                   {value}
                 </Row>
               ))}
@@ -93,7 +105,7 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
                           ? [['Certificate reference', allotment.certificateReference]]
                           : []),
                       ].map(([label, value]) => (
-                        <Row key={label} label={label}>
+                        <Row key={label} label={label} inline>
                           {value}
                         </Row>
                       ))}

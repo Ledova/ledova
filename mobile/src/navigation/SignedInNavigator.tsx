@@ -116,7 +116,11 @@ export function SignedInNavigator() {
               component={CorrectionPreparationScreen}
               options={topBar('Ledger')}
             />
-            <Stack.Screen name="RegisterSetup" component={RegisterSetupScreen} options={topBar('Ledger')} />
+            <Stack.Screen
+              name="RegisterSetup"
+              component={RegisterSetupScreen}
+              options={topBar('Ledger', { route: 'Ledger', label: 'Back to Ledger' })}
+            />
             <Stack.Screen name="Shareholders" component={ShareholdersScreen} options={topBar('Shareholders')} />
             <Stack.Screen name="Shareholder" component={ShareholderScreen} options={topBar('Shareholders')} />
             <Stack.Screen

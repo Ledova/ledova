@@ -8,8 +8,10 @@ import {
   REGISTER_SETUP_STEPS,
   formatDate,
   formatShareCount,
+  formatShortDate,
   refusalSentences,
   registerImportTotals,
+  shareCount,
   useImportPreparation,
   type ImportPreparationOptions,
 } from '@ledova/shared';
@@ -18,7 +20,7 @@ import { Field } from '../../components/register/RegisterFields';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ImportShareholders, Problems } from './ImportShareholders';
-import { MemberRecords } from './ImportRecord';
+import { MemberRecords, MemberRow } from './ImportRecord';
 import { DATE, FormSteps } from './IssueForms';
 import { useLedgerStyles } from './useLedgerStyles';
 
@@ -73,9 +75,6 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
         <FormSteps label="Ledger setup steps" steps={REGISTER_SETUP_STEPS} current={phase} />
       )}
       <View style={[look.fields, !editable && look.hidden]}>
-        <Text accessibilityRole="header" style={look.heading}>
-          {phase === 'details' ? 'Share details' : 'Shareholders'}
-        </Text>
         <Problems problems={model.attempted ? (phase === 'details' ? model.detailProblems : model.problems) : []} />
         <View style={[look.fields, phase !== 'details' && look.hidden]}>
           {classFields ??
@@ -136,43 +135,47 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
           accessibilityLabel={proposal.status === 'applied' ? 'Recorded ledger' : 'Review ledger'}
           style={look.fields}
         >
-          <View style={look.line}>
-            {proposal.status === 'applied' ? (
-              <Status tone="done">Recorded</Status>
-            ) : (
-              <Text accessibilityRole="header" style={look.heading}>
-                Review
-              </Text>
-            )}
-            <Text style={look.muted}>Record date · {formatDate(proposal.asAt)}</Text>
-          </View>
-          <View style={look.figures}>
-            <View accessible accessibilityLabel={`Shares held: ${total}`} style={look.figure}>
-              <Text style={look.figureLabel}>Shares held</Text>
-              <Text style={look.figureValue}>{total}</Text>
-            </View>
-            <View accessible accessibilityLabel={`Shareholders: ${proposal.members.length}`} style={look.figure}>
-              <Text style={look.figureLabel}>Shareholders</Text>
-              <Text style={look.figureValue}>{proposal.members.length}</Text>
-            </View>
-          </View>
+          {proposal.status === 'applied' && <Status tone="done">Recorded</Status>}
+          <Rows>
+            <Fact label="Record date" inline>
+              {formatShortDate(proposal.asAt)}
+            </Fact>
+            <Fact label="Shares held" inline>
+              {total}
+            </Fact>
+            <Fact label="Shareholders" inline>
+              {String(proposal.members.length)}
+            </Fact>
+          </Rows>
           {!!proposal.correctionOf && <Text style={look.muted}>Correction: {proposal.reason}</Text>}
           {supporting && (
             <ShowMore show="Show supporting records" hide="Hide supporting records">
               <Rows>
                 {(proposal.sourceReference || proposal.authorityReference) !== SOURCE && (
-                  <Fact label="Source record">{proposal.sourceReference || proposal.authorityReference}</Fact>
+                  <Fact label="Source record" inline>
+                    {proposal.sourceReference || proposal.authorityReference}
+                  </Fact>
                 )}
                 {proposal.asicIssuedTotal !== null && (
-                  <Fact label="ASIC issued shares cross-check">{formatShareCount(proposal.asicIssuedTotal)}</Fact>
+                  <Fact label="ASIC issued shares cross-check" inline>
+                    {formatShareCount(proposal.asicIssuedTotal)}
+                  </Fact>
                 )}
                 {proposal.asicMemberCount !== null && (
-                  <Fact label="Shareholders listed by ASIC">{String(proposal.asicMemberCount)}</Fact>
+                  <Fact label="Shareholders listed by ASIC" inline>
+                    {String(proposal.asicMemberCount)}
+                  </Fact>
                 )}
                 {!!proposal.registerEvidence && (
-                  <Fact label="Source copy">Retained company-provided register copy</Fact>
+                  <Fact label="Source copy" inline>
+                    Retained company-provided register copy
+                  </Fact>
                 )}
-                {!!proposal.asicEvidence && <Fact label="ASIC copy">Retained company-provided extract</Fact>}
+                {!!proposal.asicEvidence && (
+                  <Fact label="ASIC copy" inline>
+                    Retained company-provided extract
+                  </Fact>
+                )}
               </Rows>
             </ShowMore>
           )}
@@ -180,11 +183,13 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
           {proposal.formerMembers.length > 0 && (
             <Rows>
               {proposal.formerMembers.map((member, index) => (
-                <View key={index}>
-                  <Fact label="Former shareholder">{member.name}</Fact>
-                  <Fact label="Address">{member.residentialAddress}</Fact>
-                  <Fact label="Shares at cessation">{formatShareCount(member.shares)}</Fact>
-                  <Fact label="Ceased on">{formatDate(member.ceasedOn)}</Fact>
+                <View key={index} style={look.row}>
+                  <MemberRow
+                    name={member.name}
+                    shares={shareCount(member.shares)}
+                    address={member.residentialAddress}
+                    facts={`Former shareholder · Ceased ${formatShortDate(member.ceasedOn)}`}
+                  />
                 </View>
               ))}
             </Rows>
@@ -261,7 +266,8 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
         <FormActions>
           {editable && !uncertain && phase === 'shareholders' && (
             <Action
-              label="Back to share details"
+              label="Back"
+              accessibilityLabel="Back (share details)"
               disabled={locked}
               onPress={() => {
                 Keyboard.dismiss();
@@ -291,7 +297,7 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
               onPress={() => void model.loadPreview()}
             />
           )}
-          {!recorded && (
+          {!recorded && !(editable && phase === 'shareholders') && (
             <Action
               label="Cancel"
               accessibilityLabel="Cancel (ledger setup)"
