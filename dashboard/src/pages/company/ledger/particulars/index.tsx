@@ -4,9 +4,15 @@ import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useReg
 import { useMemo, useState, type ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { REGISTER_PARTICULARS_COPY, type OrderSubmissionOwner, useParticularsMember } from '@ledova/shared';
+import {
+  DESTINATIONS,
+  REGISTER_PARTICULARS_COPY,
+  type OrderSubmissionOwner,
+  useParticularsMember,
+} from '@ledova/shared';
 import { Row, Rows, Section, LoadError, Loading } from '@components/Ledger';
 import { Page } from '@components/Page';
+import { PageTitle } from '@components/PageTitle';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 import { ParticularsForm } from './ParticularsForm';
@@ -136,19 +142,22 @@ function OwnParticulars({
     );
   }
   return (
-    <Page
-      narrow
-      lede={LEDE}
-      back={
-        found && companyMatches
-          ? {
-              to: shareholderPath(member, found.company.uuid),
-              label: `Back to ${found.label}`,
-            }
-          : undefined
-      }
-    >
-      {content}
-    </Page>
+    <PageTitle.Provider value={found && companyMatches ? found.label : DESTINATIONS.companyRegisterParticulars.title}>
+      <Page
+        documentTitle={DESTINATIONS.companyRegisterParticulars.title}
+        narrow
+        lede={LEDE}
+        back={
+          found && companyMatches
+            ? {
+                to: shareholderPath(member, found.company.uuid),
+                label: `Back to ${found.label}`,
+              }
+            : undefined
+        }
+      >
+        {content}
+      </Page>
+    </PageTitle.Provider>
   );
 }

@@ -193,8 +193,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   Router's `generatePath`, or with the web-only paths in `utils/paths.ts` (the company dashboard,
   sign-in, sign-up and `SIGNUP_STEPS`); source writes no literal path. Titles come from
   the web `pageTitle` mapping used by `signedInRoutes`
-  ([routes, audiences and guards](#routes-audiences-and-guards)); a page sets `PageTitle` only for a
-  hash view.
+  ([routes, audiences and guards](#routes-audiences-and-guards)); a page overrides it with `PageTitle`
+  for a hash view or to show its record's name.
 - **Errors and waiting.** A failed request reads as a `role="alert"` sentence, the kit's `Failure`
   ([validation](frontend-ux.md#validation)). Read a status with `failureStatus`, never an inline
   cast. A page's first read renders `<Page loading>`; a failed read shows `LoadError` with Try again
@@ -646,7 +646,7 @@ The standalone preparations are `companyRegister*` entries in `DESTINATIONS`:
 (`import`, `correct/:entry`, `transfer`); and the particulars change at
 `/company/ledger/members/:member/particulars`. Setup is the import page without a class in its
 address: it chooses or creates a share class, then prepares the mirror import. The particulars
-change is one step: it sends the name and address the page read as `expected` and, once applied,
+change, titled with the shareholder's name, is one step: it sends the name and address the page read as `expected` and, once applied,
 lands on its record under Corrections (in the app, back on the shareholder's page). Its form logic is
 the shared `useParticularsEdit`, and the page finds the member through `useParticularsMember`. `appointmentForParticularsEdit` chooses its appointment: one
 holding `admin`, or `prepare`, `approve` and `apply`. A member row whose `followsProfile` is true
