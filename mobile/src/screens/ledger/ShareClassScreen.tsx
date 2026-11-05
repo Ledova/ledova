@@ -57,7 +57,6 @@ export function ShareClassScreen({ route }: { route: RouteProp<SignedInStackPara
         company={company}
         token={token}
         available={scope.available}
-        currentOwner={scope.currentOwner}
       />
     );
   return (
@@ -67,17 +66,7 @@ export function ShareClassScreen({ route }: { route: RouteProp<SignedInStackPara
   );
 }
 
-function OwnShareClass({
-  company,
-  token,
-  available,
-  currentOwner,
-}: {
-  company: string;
-  token: string;
-  available: boolean;
-  currentOwner: () => ReturnType<typeof useSubmissionOwner>['owner'];
-}) {
+function OwnShareClass({ company, token, available }: { company: string; token: string; available: boolean }) {
   const look = useLedgerStyles();
   const data = useShareClass(token, orderSubmissionSession, available);
   if (data.token.data && data.token.data.companyUuid !== company)
@@ -86,20 +75,10 @@ function OwnShareClass({
         <Text style={look.muted}>This share class is not in a register you can read.</Text>
       </Page>
     );
-  return <ClassPage data={data} token={token} available={available} currentOwner={currentOwner} />;
+  return <ClassPage data={data} token={token} available={available} />;
 }
 
-function ClassPage({
-  data,
-  token,
-  available,
-  currentOwner,
-}: {
-  data: ShareClass;
-  token: string;
-  available: boolean;
-  currentOwner: () => ReturnType<typeof useSubmissionOwner>['owner'];
-}) {
+function ClassPage({ data, token, available }: { data: ShareClass; token: string; available: boolean }) {
   const theme = useAppTheme();
   const look = useLedgerStyles();
   const client = useQueryClient();
@@ -228,10 +207,7 @@ function ClassPage({
           onHeldChange={onDocumentsHeld}
           owner={owner}
           accountGuard={data.accountGuard}
-          guard={() => {
-            if (currentOwner() !== owner) throw new Error('Your company access could not be confirmed.');
-            data.guard();
-          }}
+          guard={data.guard}
           company={listed.companyUuid}
           token={listed.uuid}
           sourceReady={registerReady}
