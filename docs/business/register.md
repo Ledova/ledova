@@ -764,7 +764,7 @@ shareholders one line each, followed by the company's optional
 [Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,
 and its separate **Shareholder documents** section. Shareholder management stays on Shareholders and
 register downloads on Documents. The summary gives the authorised shares when the class has a limit
-other than the internal quantity guard, says while the class's ledger is not opened, and says when the
+other than the internal quantity guard, says so while the class's ledger is not opened, and says when the
 class is recorded as non-transferable. Each recorded right sits on one line beside its name (owner,
 5 November 2026). The mobile app's class page has the same Summary, Class rights with **Edit** and Shareholder documents with
 **Add documents**.

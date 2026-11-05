@@ -157,8 +157,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   default, left-aligned, with `mono` for a recorded wallet. With `inline`, a web `Row` or an app `Fact`
   keeps its label on the left and its value on the right at every width, a long value wrapping right-aligned beside it;
   an authority request's page uses it for every fact (owner, 5 November 2026), and a share class's page
-  for its summary figures, recorded rights and effective date. Breakdowns of figures (company ownership, a class's
-  totals on the web, register setup's summary) and an award's chart legend keep their own layout,
+  for its summary figures, recorded rights and effective date. Breakdowns of figures (company ownership,
+  register setup's summary) and an award's chart legend keep their own layout,
   without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines, an optional `figure` at the right of the

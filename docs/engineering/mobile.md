@@ -88,7 +88,8 @@ the web's phone top bar (`TopBar`): the menu button, the page's title, its actio
 company or Filters) and the notifications bell. Representative authority's bar shows a back arrow,
 Back to Account, in place of the menu button (`topBar` with a back target). The arrow returns to the
 parent: it goes back to the parent when the parent is in the stack and otherwise opens the parent in
-the page's place, so a class opened from Dashboard's **Class details** also returns to Ledger. An
+the page's place, so a class opened from Dashboard's **Class details** also returns to Ledger, as on
+the web, while Android's Back and the iOS swipe return to the previous page. An
 authority request's bar shows Back to Representative authority and a share class's bar Back to Ledger
 the same way; the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
@@ -102,7 +103,7 @@ web's phone drawer, 208 points wide: Dashboard, Ledger and Shareholders for a re
 selected company, Documents and Settings, and a footer
 with the person's name, the selected company as on the web, and Sign out, which asks first, beside the
 Dark theme switch. It closes when its screen
-loses focus, and it marks the section the page belongs to: Ledger for Ledger, a share class's page,
+loses focus, and it marks the section the page belongs to: Ledger for Ledger,
 Issue shares, Transfer shares and Corrections with their preparations, and Set up your ledger,
 Shareholders for Shareholders, a shareholder's page, its particulars change, Employee share scheme, an
 award's page and Member access, Documents for Certificates, Inspection copies and Company pack,
