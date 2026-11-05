@@ -25,9 +25,7 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useShareholderStyles } from './useShareholderStyles';
 
 const TITLE = DESTINATIONS.companyRegisterParticulars.title;
-const LEDE =
-  "Change a member's name and residential address on the register. The change is recorded at once, dated today " +
-  "(UTC), and kept in the register's history.";
+const LEDE = "The change is recorded at once and kept in the register's history.";
 
 export function ParticularsScreen({ route }: { route: RouteProp<SignedInStackParamList, 'ShareholderParticulars'> }) {
   const { company, member } = route.params;
@@ -122,20 +120,22 @@ function OwnParticulars({
     const recorded = found.particulars.data?.members.find((row) => row.member === member);
     content = (
       <>
-        <Section title="Current particulars">
-          {found.particulars.isError ? (
-            <LoadError retry={() => found.particulars.refetch()} busy={found.particulars.isFetching}>
-              Their recorded particulars could not be loaded.
-            </LoadError>
-          ) : (
-            <Rows>
-              <Fact label="Name">{recorded?.name || found.name || 'Not recorded'}</Fact>
-              <Fact label="Residential address">{recorded?.residentialAddress || 'Not recorded'}</Fact>
-            </Rows>
-          )}
-          <Text style={look.muted}>{recorded?.followsProfile ? COPY.FOLLOWS_PROFILE : COPY.PRECEDENCE_NOTE}</Text>
-        </Section>
-        {recorded?.followsProfile ? null : formOpen ? (
+        {found.particulars.isError && (
+          <LoadError retry={() => found.particulars.refetch()} busy={found.particulars.isFetching}>
+            Their recorded particulars could not be loaded.
+          </LoadError>
+        )}
+        {recorded?.followsProfile ? (
+          !found.particulars.isError && (
+            <Section title="Current particulars">
+              <Rows>
+                <Fact label="Name">{recorded.name || found.name || 'Not recorded'}</Fact>
+                <Fact label="Residential address">{recorded.residentialAddress || 'Not recorded'}</Fact>
+              </Rows>
+              <Text style={look.muted}>{COPY.FOLLOWS_PROFILE}</Text>
+            </Section>
+          )
+        ) : formOpen ? (
           <Section title={COPY.PREPARE}>
             {stale && (
               <LoadError retry={retry} busy={fetching}>
@@ -205,18 +205,15 @@ function ParticularsForm(props: Omit<Parameters<typeof useParticularsEdit>[0], '
         error={checks.field('address').error}
         onChange={(address) => update({ address })}
       />
-      <View style={styles.group}>
-        <Field
-          label={`${COPY.REASON} (optional)`}
-          value={draft.reason}
-          maxLength={FIELD_LIMITS.REASON}
-          multiline
-          rows={3}
-          editable={!busy}
-          onChange={(reason) => update({ reason })}
-        />
-        <Text style={look.muted}>{COPY.REASON_NOTE}</Text>
-      </View>
+      <Field
+        label={`${COPY.REASON} (optional)`}
+        value={draft.reason}
+        maxLength={FIELD_LIMITS.REASON}
+        multiline
+        rows={3}
+        editable={!busy}
+        onChange={(reason) => update({ reason })}
+      />
       {!!error && (
         <Text accessibilityRole="alert" style={styles.error}>
           {error}

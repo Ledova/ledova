@@ -362,9 +362,9 @@ page shows "They keep their name and address up to date in their Ledova profile.
 
 1. Open the shareholder's page from **Shareholders** (Details), or an award recipient's from
    Recipient details on their award's page, and choose **Change particulars**.
-2. The page re-reads the member's current recorded name and residential address, shows them, and
-   starts the form with them. Change the name or residential address, optionally give a reason, and
-   choose **Save change**.
+2. The page re-reads the member's current recorded name and residential address and starts the form
+   with them. Change the name or residential address, optionally give a reason, and choose **Save
+   change**.
 3. The change applies at once, dated today (UTC), and opens on its record in **Ledger** →
    **Corrections**, which reads Name changed, Address changed or Name and address changed, with the
    particulars before and after in its details. In the app it returns to the shareholder's page,

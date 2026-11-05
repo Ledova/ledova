@@ -60,7 +60,7 @@ export function ParticularsForm(props: ParticularsFormProps) {
             onChange={(event) => update({ address: event.target.value })}
           />
         </Field>
-        <Field label={COPY.REASON} optional hint={COPY.REASON_NOTE}>
+        <Field label={COPY.REASON} optional>
           <TextArea
             rows={3}
             value={draft.reason}

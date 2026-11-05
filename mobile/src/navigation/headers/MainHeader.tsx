@@ -97,7 +97,7 @@ export function TopBar({
   title: string | undefined;
   action: ReactNode;
   current: Section;
-  back?: { route: string; label: string };
+  back?: { route: string; label: string; params?: object };
   onNotifications: (anchor: Anchor) => void;
   notificationsOpen: boolean;
   unreadCount: number;
@@ -130,8 +130,8 @@ export function TopBar({
             onPress={() =>
               navigation.dispatch(
                 navigation.getState()?.routes.some(({ name }) => name === back.route)
-                  ? StackActions.popTo(back.route)
-                  : StackActions.replace(back.route),
+                  ? StackActions.popTo(back.route, back.params)
+                  : StackActions.replace(back.route, back.params),
               )
             }
           />

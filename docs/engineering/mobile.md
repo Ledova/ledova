@@ -91,7 +91,9 @@ parent: it goes back to the parent when the parent is in the stack and otherwise
 the page's place, so a class opened from Dashboard's **Class details** also returns to Ledger, as on
 the web, while Android's Back and the iOS swipe return to the previous page. An
 authority request's bar shows Back to Representative authority, a share class's and Set up your
-ledger's bars Back to Ledger, and an award's bar Back to Employee share scheme, the same way; the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
+ledger's bars Back to Ledger, an award's bar Back to Employee share scheme and a particulars change's
+bar Back to shareholder, the same way. A parent that needs its company and member gets them from the page
+(`keepParams`), because the arrow's `popTo` replaces the parent's params; the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
 its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
 anchored panel (`AnchoredPanel`) as `FilterPopover`. It has a Notifications header with **Mark all
@@ -105,7 +107,7 @@ with the person's name, the selected company as on the web, and Sign out, which 
 Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Ledger for Ledger,
 Issue shares, Transfer shares and Corrections with their preparations,
-Shareholders for Shareholders, a shareholder's page, its particulars change, Employee share scheme and
+Shareholders for Shareholders, a shareholder's page, Employee share scheme and
 Member access, Documents for Certificates, Inspection copies and Company pack,
 Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like
 the web's sidebar, it marks Transfer shares on a
@@ -212,9 +214,10 @@ opens the shareholder's page (`ShareholderScreen.tsx`, their name as its title) 
 former holding, History, Employee awards, and Access to their own records with **Invite to their
 records**, which opens Member access with them chosen, each with the web's loading, failure and private
 states. **Change particulars** opens the web's Particulars change page (`ParticularsScreen.tsx`, through
-the shared `useParticularsMember` and `useParticularsEdit`): Current particulars and the one-step form,
-which returns to the shareholder's page saying Particulars changed., where the edit began; the change is
-listed under Corrections' Particulars changes. Each Employee awards row opens that award's page, and
+the shared `useParticularsMember` and `useParticularsEdit`): the one-step form, which starts with their
+current particulars and returns to the shareholder's page saying Particulars changed., where the edit
+began. A member who keeps their own details in their profile gets Current particulars and the profile
+note instead of the form. The change is listed under Corrections' Particulars changes. Each Employee awards row opens that award's page, and
 **Open Employee share scheme** opens the scheme. **Issue shares to them**, under Holdings for someone
 who can prepare the register when the person holds no linked wallet and their particulars are
 retained, opens Issue shares for an opened draft class they hold, or else the company's first, with

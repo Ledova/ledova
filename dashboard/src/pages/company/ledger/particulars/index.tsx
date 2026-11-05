@@ -12,9 +12,7 @@ import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 import { ParticularsForm } from './ParticularsForm';
 
 const COPY = REGISTER_PARTICULARS_COPY;
-const LEDE =
-  "Change a member's name and residential address on the register. The change is recorded at once, dated today " +
-  "(UTC), and kept in the register's history.";
+const LEDE = "The change is recorded at once and kept in the register's history.";
 
 export default function CompanyRegisterParticularsPage() {
   const { member = '' } = useParams();
@@ -88,26 +86,26 @@ function OwnParticulars({
     const recorded = found.particulars.data?.members.find((row) => row.member === member);
     content = (
       <>
-        <Section title="Current particulars">
-          {found.particulars.isError ? (
-            <LoadError retry={() => found.particulars.refetch()} busy={found.particulars.isFetching}>
-              Their recorded particulars could not be loaded.
-            </LoadError>
-          ) : (
-            <Rows>
-              <Row label="Name">{recorded?.name || found.name || 'Not recorded'}</Row>
-              <Row label="Residential address">
-                <span className="whitespace-pre-line break-words">
-                  {recorded?.residentialAddress || 'Not recorded'}
-                </span>
-              </Row>
-            </Rows>
-          )}
-          <p className="text-sm text-text-muted">
-            {recorded?.followsProfile ? COPY.FOLLOWS_PROFILE : COPY.PRECEDENCE_NOTE}
-          </p>
-        </Section>
-        {recorded?.followsProfile ? null : formOpen ? (
+        {found.particulars.isError && (
+          <LoadError retry={() => found.particulars.refetch()} busy={found.particulars.isFetching}>
+            Their recorded particulars could not be loaded.
+          </LoadError>
+        )}
+        {recorded?.followsProfile ? (
+          !found.particulars.isError && (
+            <Section title="Current particulars">
+              <Rows>
+                <Row label="Name">{recorded.name || found.name || 'Not recorded'}</Row>
+                <Row label="Residential address">
+                  <span className="whitespace-pre-line break-words">
+                    {recorded.residentialAddress || 'Not recorded'}
+                  </span>
+                </Row>
+              </Rows>
+              <p className="text-sm text-text-muted">{COPY.FOLLOWS_PROFILE}</p>
+            </Section>
+          )
+        ) : formOpen ? (
           <Section title={COPY.PREPARE}>
             {stale && (
               <LoadError retry={retry} busy={fetching}>
