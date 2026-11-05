@@ -228,7 +228,7 @@ company signup; check GitHub for current claims and pull requests before startin
 
 - On this Mac run the checks with the walkthrough's Python:
   `make ci-checks PYTHON=/Users/ronildo/.local/state/ledova/web-walkthrough-20261021/.venv/bin/python`.
-  They pass shared **9**, dashboard **20**, mobile **5**, contracts **14** and smoke **7**. Dashboard
+  They pass shared **9**, dashboard **20**, mobile **6**, contracts **14** and smoke **7**. Dashboard
   is at its cap of 20, so a new core test replaces another.
 - With the same `PYTHON=`, `make preflight` stops at the backend suite, which needs Python **3.13.15**
   where this Mac has **3.13.3**. CI runs that suite.

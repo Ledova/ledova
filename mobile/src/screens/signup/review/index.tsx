@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Linking, A
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
+import { ScreenHeader } from '../../../components/header';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { ClipboardIcon } from 'phosphor-react-native';
@@ -52,28 +53,6 @@ export function ReviewScreen() {
       color: theme.colors.status.error.icon,
       textAlign: 'center',
     },
-    header: {
-      alignItems: 'center',
-      marginTop: theme.spacing.xs,
-      marginBottom: theme.spacing.md,
-    },
-    iconContainer: {
-      padding: theme.spacing.xs,
-      marginBottom: theme.spacing.sm,
-    },
-    title: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      marginBottom: theme.spacing.xs,
-    },
-    subtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-      paddingHorizontal: theme.spacing.md,
-      lineHeight: theme.lineHeight.normal * theme.fontSize.sm,
-    },
     card: {
       backgroundColor: theme.colors.surface.raised,
       borderRadius: theme.borderRadius.lg,
@@ -91,7 +70,7 @@ export function ReviewScreen() {
     },
     sectionTitle: {
       fontSize: theme.fontSize.base,
-      fontWeight: theme.fontWeight.semibold,
+      fontFamily: theme.fontFamily.display,
       color: theme.colors.text.primary,
     },
     infoList: {
@@ -274,21 +253,21 @@ export function ReviewScreen() {
     <GradientBackground>
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.header}>
-            <View style={styles.iconContainer}>
+          <ScreenHeader
+            icon={
               <ClipboardIcon
                 size={theme.icon.sizes.md}
                 color={theme.colors.text.muted}
                 weight={theme.icon.weights.regular}
               />
-            </View>
-            <Text style={styles.title}>{isCompany ? 'Complete company setup' : 'Review & Confirm'}</Text>
-            <Text style={styles.subtitle}>
-              {isCompany
+            }
+            title={isCompany ? 'Complete company setup' : 'Review & Confirm'}
+            subtitle={
+              isCompany
                 ? 'Review your saved details. Documents and team setup can wait until your dashboard.'
-                : 'Please review your information before completing signup'}
-            </Text>
-          </View>
+                : 'Please review your information before completing signup'
+            }
+          />
 
           <View style={styles.card}>
             <View style={styles.cardHeader}>
