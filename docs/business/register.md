@@ -279,10 +279,11 @@ retention period; and while a deployment of the class is pending.
 
 ### Shareholder documents
 
-On the web, each shareholder can have optional Share certificate, Shareholder agreement,
+On web and mobile, each shareholder can have optional Share certificate, Shareholder agreement,
 Subscription agreement or Other supporting document attachments. Add them in the shareholder form
-during setup, or afterwards from the shareholder's page or the relevant class's details; in the app,
-in setup or from the class's page. Each
+during setup, or afterwards from the shareholder's page or the relevant class's details. The person's
+page keeps the shareholder fixed and selects the class; the class's page keeps the class fixed and
+selects the shareholder. Each
 attachment belongs to the company, person and share class; a setup attachment also keeps its source
 opening record. Recording existing holdings creates no historical share issue. Company source
 copies belong to the whole opening and remain separate.
@@ -723,7 +724,8 @@ Details show only while the account, the classes and the holdings read are curre
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger. The app's shareholder page shows
 the same sections and **Change particulars**, with award rows opening their pages and **Open Employee
-share scheme**, **Issue shares to them** and, on a holding, **Transfer shares**; it leaves out Documents.
+share scheme**, **Issue shares to them** and, on a holding, **Transfer shares**, and the same supporting
+Documents across their classes.
 
 ### Choosing a person
 

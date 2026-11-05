@@ -19,6 +19,7 @@ import {
   formatShortDate,
   hasCurrentRegisterReadAuthority,
   holdingFacts,
+  memberDocumentsKey,
   ownAppointmentsKey,
   registerClassesKey,
   registersKey,
@@ -35,6 +36,7 @@ import {
 import { Action, Actions, LinkRow, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
+import { ShareholderDocuments } from '../../components/register/ShareholderDocuments';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
@@ -95,6 +97,7 @@ function OwnShareholder({
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const client = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [documentsHeld, setDocumentsHeld] = useState(false);
   const [navigationError, setNavigationError] = useState(false);
   const guard = useMemo(
     () => () => {
@@ -423,13 +426,14 @@ function OwnShareholder({
     <Page
       testID="shareholder-scroll"
       title={title}
+      held={documentsHeld}
       refreshControl={
         <RefreshControl
           testID="shareholder-refresh"
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing) return;
+            if (refreshing || documentsHeld) return;
             setRefreshing(true);
             void Promise.all([
               data.classes.refetch(),
@@ -443,12 +447,35 @@ function OwnShareholder({
                   ]
                 : []),
               ...(access.canAdminister ? [access.refresh()] : []),
-            ]).finally(() => setRefreshing(false));
+            ])
+              .then(() => client.invalidateQueries({ queryKey: memberDocumentsKey(owner, company) }))
+              .finally(() => setRefreshing(false));
           }}
         />
       }
     >
       {content}
+      {data.company && (
+        <ShareholderDocuments
+          title="Documents"
+          owner={owner}
+          guard={guard}
+          company={company}
+          member={member}
+          sourceReady={sourceReady}
+          readsPaused={documentsHeld}
+          onHeldChange={setDocumentsHeld}
+          holdings={(data.registers.data ?? []).flatMap((register) =>
+            register.holders
+              .filter((holder) => holder.member === member)
+              .map(() => ({
+                member,
+                token: register.token.uuid,
+                label: `${register.token.name} · ${register.token.symbol}`,
+              })),
+          )}
+        />
+      )}
     </Page>
   );
 }

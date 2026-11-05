@@ -8,16 +8,17 @@ import {
   type DocumentDraft,
   type RegisterMemberDocumentCategory,
 } from '@ledova/shared';
-import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
-import { FileField } from '../../components/register/RegisterFields';
-import { SearchSelect } from '../../components/SearchSelect';
-import { SelectField } from '../../components/SelectField';
+import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../Ledger';
+import { FileField } from './RegisterFields';
+import { SearchSelect } from '../SearchSelect';
+import { SelectField } from '../SelectField';
+import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { useLedgerStyles } from './useLedgerStyles';
 
-type Props = Omit<Parameters<typeof useMemberDocuments>[0], 'member' | 'files' | 'newKey' | 'session'> & {
+type Props = Omit<Parameters<typeof useMemberDocuments>[0], 'files' | 'newKey' | 'session'> & {
+  title?: string;
   onHeldChange?: (held: boolean) => void;
 };
 
@@ -29,14 +30,33 @@ const CATEGORIES = Object.entries(REGISTER_MEMBER_DOCUMENT_CATEGORIES).map(([val
 export function ShareholderDocuments(props: Props) {
   return (
     <OwnShareholderDocuments
-      key={`${props.owner.userUuid}/${props.owner.ownerAccountUuid}/${props.company}/${props.token ?? ''}`}
+      key={`${props.owner.userUuid}/${props.owner.ownerAccountUuid}/${props.company}/${props.member ?? ''}/${props.token ?? ''}`}
       {...props}
     />
   );
 }
 
-function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
-  const look = useLedgerStyles();
+function OwnShareholderDocuments({ onHeldChange, title = 'Shareholder documents', ...props }: Props) {
+  const look = useThemedStyles((theme) => {
+    const text = { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20 };
+    return {
+      fields: { gap: theme.spacing.md },
+      summary: { gap: theme.spacing.smd },
+      terms: { gap: theme.spacing.xs },
+      row: { gap: theme.spacing.sm, paddingVertical: theme.spacing.smd },
+      line: {
+        flexDirection: 'row' as const,
+        flexWrap: 'wrap' as const,
+        alignItems: 'center' as const,
+        justifyContent: 'space-between' as const,
+        gap: 12,
+      },
+      fill: { flex: 1, minWidth: 0 },
+      muted: { ...text, color: theme.colors.text.muted },
+      title: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
+      small: { fontFamily: theme.fontFamily.regular, fontSize: 12, lineHeight: 16, color: theme.colors.text.muted },
+    };
+  });
   const styles = useCompanyStyles();
   const documents = useMemberDocuments({
     ...props,
@@ -50,11 +70,11 @@ function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
     return () => onHeldChange?.(false);
   }, [editor, documents.busy, documents.held, onHeldChange]);
   const locked = documents.busy || documents.held || !documents.ready;
-  const chosen = !!editor?.documents.some((row) => row.file);
+  const chosen = !!editor?.documents.some((row) => row.file || row.evidence);
   const change = (rows: (current: DocumentDraft[]) => DocumentDraft[]) =>
     documents.setEditor((current) => current && { ...current, documents: rows(current.documents) });
   return (
-    <Section title="Shareholder documents">
+    <Section title={title}>
       {documents.appointments.isError ? (
         <LoadError retry={() => documents.appointments.refetch()} busy={documents.appointments.isFetching}>
           Your company appointments could not be loaded.
@@ -108,13 +128,13 @@ function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
         <View style={look.fields}>
           {props.holdings.length > 1 && (
             <SearchSelect
-              label="Shareholder"
+              label={props.member ? 'Share class' : 'Shareholder'}
               choices={props.holdings.map((holding) => ({
                 value: `${holding.member}/${holding.token}`,
                 label: holding.label,
               }))}
               value={`${editor.member}/${editor.token}`}
-              noun={['shareholder', 'shareholders']}
+              noun={props.member ? ['share class', 'share classes'] : ['shareholder', 'shareholders']}
               disabled={locked || chosen}
               onChange={(value) => {
                 if (chosen) return;

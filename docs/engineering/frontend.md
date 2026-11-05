@@ -904,7 +904,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   into view. Its transfer preparation takes `fromMember` as a route parameter for the route's
   company, honoured when that company's register is readable and the class belongs to it.
 
-- A shareholder's page on the web (`dashboard/src/pages/company/ledger/member`): reads, through the shared
+- A shareholder's page on web (`dashboard/src/pages/company/ledger/member`) and mobile
+  (`mobile/src/screens/shareholders/ShareholderScreen.tsx`) reads, through the shared
   `useShareholder` (`packages/shared/src/hooks/useShareholder.ts`), the named
   company's classes and holders through the same queries as Ledger, the company's recorded
   particulars (`register/members/` of its first class), every page of the member's entries in each
@@ -919,7 +920,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   is held, Shareholders' Details links are disabled. The app's Shareholders, a shareholder's page, its
   particulars change and Member access render the same views at phone width through the shared
   `shareholderList`, `usePersonRegistration`, `useShareholder`, `useParticularsMember`,
-  `useParticularsEdit` and `useMemberAccessForm` ([navigation](mobile.md#navigation)).
+  `useParticularsEdit` and `useMemberAccessForm` ([navigation](mobile.md#navigation)). Both clients
+  reuse `useMemberDocuments` for the person's documents across classes and the class's documents
+  across people; the app shares `mobile/src/components/register/ShareholderDocuments.tsx` between
+  those two pages.
 - Register reads: the web reads the person's appointments through the account-bound cache Team and Account
   share and rereads them after a revocation on Team, Account or Representative authority, a refused decision or
   preview and a recorded decision other than an import's (which refreshes the imports, the register
