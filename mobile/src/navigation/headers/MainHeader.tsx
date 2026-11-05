@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { ArrowLeftIcon, BellIcon } from 'phosphor-react-native';
-import { CommonActions, type NavigationProp } from '@react-navigation/native';
+import { StackActions, type NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../contexts';
 import { useAnchor, type Anchor } from '../../components/AnchoredPanel';
@@ -128,7 +128,11 @@ export function TopBar({
           <BackButton
             label={back.label}
             onPress={() =>
-              navigation.canGoBack() ? navigation.goBack() : navigation.dispatch(CommonActions.navigate(back.route))
+              navigation.dispatch(
+                navigation.getState()?.routes.some(({ name }) => name === back.route)
+                  ? StackActions.popTo(back.route)
+                  : StackActions.replace(back.route),
+              )
             }
           />
         ) : (

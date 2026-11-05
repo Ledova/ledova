@@ -102,7 +102,11 @@ export function SignedInNavigator() {
           >
             <Stack.Screen name="Dashboard" component={DashboardScreen} options={topBar('Dashboard')} />
             <Stack.Screen name="Ledger" component={LedgerScreen} options={topBar('Ledger')} />
-            <Stack.Screen name="ShareClass" component={ShareClassScreen} options={topBar('Ledger')} />
+            <Stack.Screen
+              name="ShareClass"
+              component={ShareClassScreen}
+              options={topBar('Ledger', { route: 'Ledger', label: 'Back to Ledger' })}
+            />
             <Stack.Screen name="IssueShares" component={IssueSharesScreen} options={topBar('Ledger')} />
             <Stack.Screen name="TransferShares" component={TransferSharesScreen} options={topBar('Ledger')} />
             <Stack.Screen name="TransferPreparation" component={TransferPreparationScreen} options={topBar('Ledger')} />

@@ -37,7 +37,6 @@ export function useLedgerStyles() {
       fill: { flex: 1, minWidth: 0 },
       text: { ...text, color: theme.colors.text.primary },
       muted: { ...text, color: theme.colors.text.muted },
-      strong: { fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
       title: { ...text, fontFamily: theme.fontFamily.medium, color: theme.colors.text.primary },
       small: { fontFamily: theme.fontFamily.regular, fontSize: 12, lineHeight: 16, color: theme.colors.text.muted },
       hidden: { display: 'none' as const },

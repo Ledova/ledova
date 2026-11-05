@@ -133,7 +133,7 @@ section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
-action and the bell. Representative authority's and an authority request's top bars show a back
+action and the bell. Representative authority's, an authority request's and a share class's top bars show a back
 arrow in place of the menu button, as on the web ([back arrow](#navigation)); the other pages have
 no back button yet
 ([#1547](https://github.com/Ledova/ledova/issues/1547)), so the app leaves out the web's title-row way
@@ -156,7 +156,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   and, below `sm`, puts each label above its value; the app's `Rows` hold `Fact`s, which do so by
   default, left-aligned, with `mono` for a recorded wallet. With `inline`, a web `Row` or an app `Fact`
   keeps its label on the left and its value on the right at every width, a long value wrapping right-aligned beside it;
-  an authority request's page uses it for every fact (owner, 5 November 2026). Breakdowns of figures (company ownership, a class's
+  an authority request's page uses it for every fact (owner, 5 November 2026), and a share class's page
+  for its summary figures, recorded rights and effective date. Breakdowns of figures (company ownership, a class's
   totals on the web, register setup's summary) and an award's chart legend keep their own layout,
   without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
@@ -533,8 +534,8 @@ Back to Settings because their sidebar links already provide navigation. Pages w
 show a back arrow (owner, 5 November 2026): `BackArrow`, named for screen readers "Back to" and the
 parent, at the start of the phone top bar in place of the menu button, and just before the title on
 wider screens, with no **Back to …** button in the page. So far Representative authority (Back to
-Account) and an authority request's page (Back to Representative authority) do, through `arrow` on
-their parents in `WEB_PARENTS`; [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the
+Account), an authority request's page (Back to Representative authority) and a share class's page
+(Back to Ledger) do, through `arrow` on their parents in `WEB_PARENTS`; [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the
 rest. Until then `Page` puts one useful parent link in the title row for a contextual task: Back to
 Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, and Back to
 Corrections for ledger maintenance.

@@ -86,9 +86,11 @@ dashboard's routes and guards do not apply.
 The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Every page shows
 the web's phone top bar (`TopBar`): the menu button, the page's title, its action (such as Switch
 company or Filters) and the notifications bell. Representative authority's bar shows a back arrow,
-Back to Account, in place of the menu button (`topBar` with a back target), which goes back or else
-opens Account, and an authority request's bar shows Back to Representative authority the same way;
-the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
+Back to Account, in place of the menu button (`topBar` with a back target). The arrow returns to the
+parent: it goes back to the parent when the parent is in the stack and otherwise opens the parent in
+the page's place, so a class opened from Dashboard's **Class details** also returns to Ledger. An
+authority request's bar shows Back to Representative authority and a share class's bar Back to Ledger
+the same way; the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
 its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
 anchored panel (`AnchoredPanel`) as `FilterPopover`. It has a Notifications header with **Mark all
@@ -264,10 +266,11 @@ shareholders, any authorised limit and a short note while its ledger is not open
 transfers wait or cannot be checked (`classFacts`); each row opens the class's page, which keeps the full notes. A company
 without classes shows No share classes yet. **Add share class**, below the card for someone whose appointment allows preparation, opens Set
 up your ledger. A class's page (`ShareClassScreen.tsx`, the class's name as its title) is the web's, read
-through the shared `useShareClass`: Summary with the class's code and type, Issued shares, Current
-shareholders, **Ledger opened** or not, the authorised shares, the non-transferable note and the
-waiting notes; Class rights (`ClassRights.tsx`, through the shared `useClassRights`) with the
-structured rights, Additional terms, the effective date, the documents with **Download**, the recorded
+through the shared `useShareClass`: Summary with the class's code and type, then Issued shares,
+Current shareholders and any authorised shares one line each, **Ledger not opened** while that
+applies, the non-transferable note and the waiting notes; Class rights (`ClassRights.tsx`, through the
+shared `useClassRights`) with the structured rights one line each, Additional terms, the effective
+date on one line, the documents with **Download**, the recorded
 line and **Show previous versions**, and **Edit** when the server names a current administration
 appointment, which opens the web's form in the card: the six rights groups with the fields their
 choice needs, Additional terms, the effective date typed as `YYYY-MM-DD` (UTC) and the documents, with
@@ -276,9 +279,8 @@ the shared `useMemberDocuments`) with the class's retained supporting files, eac
 holder and **Download**, and **Add documents** for someone who can prepare the register, choosing the
 holder from a searchable list and each file's category. Without register access to the company, both
 pages read nothing and point to Dashboard, and a class of another company is not in a register you can
-read. The web's **Back to Ledger** is left out, as these pages have no back button yet
-([#1547](https://github.com/Ledova/ledova/issues/1547)). Pulling down rereads
-either page while no form is open.
+read. The class page's top bar has the back arrow, Back to Ledger ([navigation](#navigation)). Pulling
+down rereads either page while no form is open.
 Issue shares (`IssueSharesScreen.tsx`) is the web's Issue shares at phone width for a register reader
 of the selected company, read through `useCompanyRegisters.ts`, the shared `useRegisterAllotments` and
 `useRegisterGrants`, and sent through the shared `useAllotmentForm`, `useGrantPreparation` and

@@ -758,14 +758,15 @@ person chosen.
 
 ### The Share class page
 
-Each class opens directly from its row on Ledger, titled with the class's name.
-Its Summary card shows the class's code, type, state and current register summary, followed by the
-company's optional
+Each class opens directly from its row on Ledger, titled with the class's name, with a back arrow to
+Ledger. Its Summary card shows the class's code and type, then its issued shares and current
+shareholders one line each, followed by the company's optional
 [Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,
 and its separate **Shareholder documents** section. Shareholder management stays on Shareholders and
 register downloads on Documents. The summary gives the authorised shares when the class has a limit
-other than the internal quantity guard, and says when the class is recorded as non-transferable. The
-mobile app's class page has the same Summary, Class rights with **Edit** and Shareholder documents with
+other than the internal quantity guard, says while the class's ledger is not opened, and says when the
+class is recorded as non-transferable. Each recorded right sits on one line beside its name (owner,
+5 November 2026). The mobile app's class page has the same Summary, Class rights with **Edit** and Shareholder documents with
 **Add documents**.
 
 The page no longer shows a class's chain state or offers its chain workflows: the owner removed the
