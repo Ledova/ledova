@@ -18,6 +18,7 @@ import {
   TECHNICAL_SHARE_LIMIT,
   formatDate,
   formatShortDate,
+  memberDocumentsKey,
   ownAppointmentsKey,
   ownershipCompaniesKey,
   registerClassesKey,
@@ -29,6 +30,7 @@ import {
   type CompanyTeamAppointment,
   type OwnCompanyAppointment,
   type OwnMemberRecord,
+  type OrderSubmissionOwner,
   type RegisterAllotment,
   type RegisterAllotmentDecideRequest,
   type RegisterAllotmentDecisionRequest,
@@ -55,14 +57,19 @@ import {
   type TokenCreate,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react-native';
+import { useState } from 'react';
 import type { AxiosInstance } from 'axios';
+import { File } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { MemberRecordsProvider } from '../../contexts';
 import { AppMenu } from '../../navigation/AppMenu';
 import { apiClient } from '../../services/apiClient';
-import { getSessionEpoch } from '../../services/sessionScope';
+import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
+import { FileField } from '../../components/register/RegisterFields';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
+import type { PickedDocument } from '../../services/documentCopies';
 import { REGISTER, awardFrom, vestingFrom } from '../../../../packages/shared/tests/fixtures/employee-awards';
 import {
   allotmentDecision,
@@ -97,6 +104,8 @@ import { InvitationScreen } from './InvitationScreen';
 
 const mockNavigate = jest.fn();
 const mockSetParams = jest.fn();
+const mockDeletedCopies = jest.fn<void, [string]>();
+const mockMissingCopies = new Set<string>();
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
@@ -134,14 +143,27 @@ jest.mock('expo-file-system', () => {
     }
   }
   class File extends Directory {
-    static pickFileAsync = async () => ({ uri: 'file:///picked/synthetic.pdf' });
-    type = 'application/pdf';
+    static pickFileAsync = jest.fn(async () => {
+      const file = new File('file:///cache/picked/synthetic.pdf');
+      mockMissingCopies.delete(file.uri);
+      return file;
+    });
+    get type() {
+      return this.uri.endsWith('.txt') ? 'text/plain' : 'application/pdf';
+    }
     size = 4;
     get name() {
       return this.uri.split('/').pop() ?? '';
     }
     create() {}
     write() {}
+    info() {
+      return { exists: !mockMissingCopies.has(this.uri) };
+    }
+    delete() {
+      mockDeletedCopies(this.uri);
+      mockMissingCopies.add(this.uri);
+    }
   }
   return { Directory, File, Paths: { cache: new Directory('file:///cache'), document: new Directory('file:///docs') } };
 });
@@ -511,7 +533,112 @@ const SECOND_ENTRY = {
 };
 
 it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, lists and opens an administered company’s overview with its paged shareholders, reads its team only with current administration and revokes only the confirmed appointment, opens a representative authority request from its list and revokes only that request’s appointment after its confirmation, establishes a pending request’s appointment only once its declaration is ticked, offers and reads company documents, shareholders and member access only with register access, prepares each document for only the chosen entry, class or company, reporting a share sheet that cannot open, lists the company’s shareholders and opens one, revokes only the confirmed person’s member access, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
+  function PickedFile({ shown }: { shown: boolean }) {
+    const [file, setFile] = useState<PickedDocument | null>(null);
+    return shown ? <FileField label="Retained file" value={file} onFile={setFile} disabled={false} /> : null;
+  }
+  const picker = jest.mocked(File.pickFileAsync);
+  const chosen = 'file:///cache/picked/synthetic.pdf';
+  const picked = await render(<PickedFile shown />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file. Choose file' }));
+  await screen.findByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' });
+  await picked.rerender(<PickedFile shown={false} />);
+  expect(mockDeletedCopies).not.toHaveBeenCalledWith(chosen);
+  await picked.rerender(<PickedFile shown />);
+  expect(screen.getByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' })).toBeTruthy();
+  let finishPick: (file: File) => void = () => undefined;
+  const delayedPick = () =>
+    new Promise<File>((resolve) => {
+      finishPick = resolve;
+    });
+  picker.mockImplementationOnce(delayedPick);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' }));
+  await picked.rerender(<PickedFile shown={false} />);
+  await act(async () => finishPick(new File(chosen)));
+  expect(mockDeletedCopies).not.toHaveBeenCalledWith(chosen);
+  await picked.rerender(<PickedFile shown />);
+  const replacementFile = new File('file:///cache/picked/replacement.pdf');
+  picker.mockResolvedValueOnce(replacementFile);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' }));
+  await screen.findByRole('button', { name: 'Retained file, replacement.pdf. Choose file' });
+  expect(mockDeletedCopies.mock.calls.filter(([uri]) => uri === chosen)).toHaveLength(1);
+  picker.mockImplementationOnce(delayedPick);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, replacement.pdf. Choose file' }));
+  await picked.rerender(<PickedFile shown={false} />);
+  const late = new File('file:///cache/picked/late.pdf');
+  await act(async () => finishPick(late));
+  expect(mockDeletedCopies).toHaveBeenCalledWith(late.uri);
+  expect(mockDeletedCopies).not.toHaveBeenCalledWith(replacementFile.uri);
+  await picked.rerender(<PickedFile shown />);
+  expect(screen.getByRole('button', { name: 'Retained file, replacement.pdf. Choose file' })).toBeTruthy();
+  const refusedFile = new File('file:///cache/picked/refused.txt');
+  picker.mockResolvedValueOnce(refusedFile);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, replacement.pdf. Choose file' }));
+  await waitFor(() => expect(mockDeletedCopies).toHaveBeenCalledWith(refusedFile.uri));
+  expect(mockDeletedCopies).toHaveBeenCalledWith(replacementFile.uri);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file. Choose file' }));
+  await screen.findByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' });
+  await act(async () => invalidateSessionScope());
+  expect(mockMissingCopies.has(chosen)).toBe(true);
+  await picked.unmount();
+
+  const firstOwner = { userUuid: 'scope-user', ownerAccountUuid: 'first-account' };
+  const otherOwner = { userUuid: 'scope-user', ownerAccountUuid: 'other-account' };
+  let currentScopeOwner: OrderSubmissionOwner | null = firstOwner;
+  const scopeOwner = () => currentScopeOwner;
+  const initialScope: {
+    owner: OrderSubmissionOwner | null;
+    requested: string | undefined;
+    available: boolean;
+    selection: string | null | undefined;
+  } = {
+    owner: firstOwner,
+    requested: 'company/first-record',
+    available: true,
+    selection: 'company',
+  };
+  const retained = await renderHook(
+    ({ owner, requested, available, selection }: typeof initialScope) =>
+      useRetainedScope(owner, scopeOwner, requested, available, selection),
+    {
+      initialProps: initialScope,
+    },
+  );
+  await retained.rerender({ ...initialScope, requested: undefined, available: false });
+  expect(retained.result.current.scope).toBe(initialScope.requested);
+  expect(retained.result.current.currentOwner()).toBeNull();
+  await retained.rerender(initialScope);
+  expect(retained.result.current.currentOwner()).toBe(firstOwner);
+  await retained.rerender({ ...initialScope, requested: 'fallback-company/other-record' });
+  expect(retained.result.current.scope).toBe(initialScope.requested);
+  expect(retained.result.current.available).toBe(false);
+  expect(retained.result.current.currentOwner()).toBeNull();
+  await retained.rerender({
+    ...initialScope,
+    requested: 'other-company/other-record',
+    selection: 'other-company',
+    available: false,
+  });
+  expect(retained.result.current.scope).toBeUndefined();
+  await retained.rerender({
+    ...initialScope,
+    requested: 'company/other-record',
+    selection: undefined,
+    available: false,
+  });
+  expect(retained.result.current.scope).toBeUndefined();
+  currentScopeOwner = otherOwner;
+  await retained.rerender({ ...initialScope, owner: otherOwner, available: false });
+  expect(retained.result.current.scope).toBeUndefined();
+  await retained.rerender({ ...initialScope, owner: otherOwner });
+  await act(async () => invalidateSessionScope());
+  expect(retained.result.current.currentOwner()).toBeNull();
+  await retained.rerender({ ...initialScope, owner: otherOwner, available: false });
+  expect(retained.result.current.scope).toBeUndefined();
+  await retained.unmount();
+
   const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
+  const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   let ownRecord: OwnMemberRecord = OWNED_RECORD;
@@ -527,6 +654,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let rights: ClassRightsRevision[] = [];
   let thirdHolder = false;
   let documentClasses = false;
+  let preferencesWait: Promise<void> | null = null;
+  let preferencesFailure = false;
+  let appointmentsWait: Promise<void> | null = null;
+  let loseVestingReply = false;
   const supportingDocuments: RegisterMemberDocument[] = [];
   let allotments: RegisterAllotment[] = [];
   let grants: RegisterGrant[] = [];
@@ -534,10 +665,17 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let corrections: RegisterCorrection[] = [];
   let imports: RegisterImport[] = [OPENING];
   api.get.mockReset().mockImplementation(async (url, config) => {
-    if (url === '/api/user-preferences/') return { data: preferences };
+    if (url === '/api/user-preferences/') {
+      if (preferencesWait) await preferencesWait;
+      if (preferencesFailure) throw new Error('Synthetic preferences refusal');
+      return { data: preferences };
+    }
     if (url === USER_PROFILE_ENDPOINTS.BASE) return page([PROFILE]);
     if (url === COMPANY_ENDPOINTS.BASE) return page(administered ? [ADMINISTERED] : []);
-    if (url === APPOINTMENTS) return page(appointed ? [own] : []);
+    if (url === APPOINTMENTS) {
+      if (appointmentsWait) await appointmentsWait;
+      return page(appointed ? [own] : []);
+    }
     if (url === `${APPOINTMENTS}team/`) return { data: [revoked ? { ...READER, ...REVOKED } : READER] };
     if (url === '/api/v1/company-authority/invitations/') return page([]);
     if (url === AUTHORITY_REQUESTS) return page([PENDING, ADMITTED]);
@@ -604,6 +742,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (awards.some((award) => url === URLS.REGISTER_AWARD(award.uuid)))
       return { data: awards.find((award) => url === URLS.REGISTER_AWARD(award.uuid)) };
     if (url === URLS.REGISTER_AWARD_VESTINGS) return page(vestings);
+    if (vestings.some((event) => url === URLS.REGISTER_AWARD_VESTING(event.uuid)))
+      return { data: vestings.find((event) => url === URLS.REGISTER_AWARD_VESTING(event.uuid)) };
     if (url === URLS.REGISTER_AWARD_ENDS || url === URLS.REGISTER_AWARD_VESTING_REVERSALS) return page([]);
     if (url === URLS.REGISTER_GRANTS) return page(grants);
     if (url === URLS.REGISTER_ALLOTMENTS) return page(allotments);
@@ -659,7 +799,21 @@ it('associates a member by invitation code, switches to their company on Dashboa
       return { data: { ...preview, entry: CERTIFIED.uuid, sequence: 13, pageCount: 1 } };
     if (url === URLS.REGISTER_INSPECTION_COPY(FOUNDERS.uuid)) return { data: preview };
     if (url === URLS.REGISTER_INSPECTION_COPIES(FOUNDERS.uuid)) return { data: { copies: [] } };
-    if (url === COMPANY_ENDPOINTS.PACKS(ADMINISTERED.uuid)) return { data: { packs: [] } };
+    if (url === COMPANY_ENDPOINTS.PACKS(ADMINISTERED.uuid))
+      return {
+        data: {
+          packs: [
+            {
+              digest: DIGEST,
+              recipient: 'Synthetic protected recipient',
+              instruction: 'Synthetic private instruction',
+              preparedAt: '2026-11-04T00:00:00Z',
+              preparedByName: PROFILE.fullName,
+              classes: 1,
+            },
+          ],
+        },
+      };
     if (url === URLS.OWNERSHIP) {
       const founders = { ...FOUNDERS, tokenType: 'ordinary', initialized: true, recordedAt: '2026-11-01T00:00:00Z' };
       const totals = { issuedSupply: '30', totalHolders: 26 };
@@ -748,6 +902,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
         availableShares: vesting.shares,
         unvestedRemainingShares: String(BigInt(award.shares) - BigInt(vesting.shares)),
       }));
+      if (loseVestingReply) {
+        loseVestingReply = false;
+        throw Object.assign(new Error('Synthetic lost vesting response'), { response: { status: 503 } });
+      }
       return { data: vesting };
     }
     if (url === URLS.REGISTER_ALLOTMENTS) {
@@ -1124,6 +1282,24 @@ it('associates a member by invitation code, switches to their company on Dashboa
       </ApiClientProvider>
     </QueryClientProvider>
   );
+  const pauseAccountRead = async () => {
+    let release: () => void = () => undefined;
+    preferencesWait = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let reading: Promise<void> = Promise.resolve();
+    await act(async () => {
+      reading = client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
+    });
+    await waitFor(() => expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.fetchStatus).toBe('fetching'));
+    return async () => {
+      await act(async () => {
+        preferencesWait = null;
+        release();
+        await reading;
+      });
+    };
+  };
   const dashboard = <DashboardScreen route={{ key: 'dashboard', name: 'Dashboard', params: undefined }} />;
   const view = await render(dashboard, { wrapper });
   await fireEvent.press(await screen.findByRole('button', { name: 'Accept invitation' }));
@@ -1378,6 +1554,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(await screen.findByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/ }));
   const revocations = () => api.post.mock.calls.filter(([url]) => url.endsWith('/revoke/'));
   expect(revocations()).toHaveLength(0);
+  const restoreTeam = await pauseAccountRead();
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Permanently revoke appointment' })).toBeNull());
+  await restoreTeam();
+  await screen.findByRole('button', { name: 'Permanently revoke appointment', disabled: false });
   await fireEvent.press(screen.getByRole('button', { name: 'Permanently revoke appointment' }));
   expect(revocations()).toEqual([[`${APPOINTMENTS}${READER.uuid}/revoke/`, {}, expect.anything()]]);
   expect(await screen.findByText('Revoked')).toBeTruthy();
@@ -1525,8 +1705,29 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.changeText(screen.getByLabelText('Shares in this event'), '10');
   await fireEvent.press(screen.getByRole('button', { name: 'Document. Choose file' }));
   await screen.findByRole('button', { name: 'Document, synthetic.pdf. Choose file' });
+  loseVestingReply = true;
+  await fireEvent.press(screen.getByRole('button', { name: 'Record vesting' }));
+  await screen.findByText(REGISTER_AWARD_COPY.VESTING_FAILED);
+  const pendingVesting = vestings[0].uuid;
+  const staleVestingAction = screen.getByRole('button', { name: 'Record vesting' }).props.onAccessibilityTap;
+  preferencesFailure = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
+  });
+  expect(await screen.findByText('Your account could not be loaded.')).toBeTruthy();
+  expect(screen.queryByLabelText('Shares in this event')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Record vesting' })).toBeNull();
+  await act(async () => staleVestingAction());
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_AWARD_VESTING(pendingVesting))).toHaveLength(0);
+  preferencesFailure = false;
+  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  await screen.findByRole('button', { name: 'Record vesting' });
+  expect(screen.getByLabelText('Shares in this event').props.value).toBe('10');
+  expect(screen.getByRole('button', { name: 'Document, synthetic.pdf. Choose file' })).toBeTruthy();
+  expect(mockMissingCopies.has('file:///cache/picked/synthetic.pdf')).toBe(false);
   await fireEvent.press(screen.getByRole('button', { name: 'Record vesting' }));
   expect(await screen.findByText('Vesting history')).toBeTruthy();
+  expect(api.get.mock.calls).toContainEqual([URLS.REGISTER_AWARD_VESTING(pendingVesting), expect.anything()]);
   expect(awardPosts().slice(1)).toEqual([
     [
       URLS.REGISTER_AWARD_VESTINGS,
@@ -1982,7 +2183,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ]);
   await view.rerender(awardPage);
   own = { ...ADMINISTRATION, capabilities: ['read_register'] };
-  const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
   await act(async () => {
     await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
   });
@@ -2083,6 +2283,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ]);
   thirdHolder = true;
   await act(async () => screen.getByTestId('share-class-scroll').props.refreshControl.props.onRefresh());
+  await waitFor(() =>
+    expect(
+      client.getQueryState([...memberDocumentsKey(owner, ADMINISTERED.uuid), '', FOUNDERS.uuid])?.error,
+    ).toBeNull(),
+  );
   await fireEvent.press(await screen.findByRole('button', { name: 'Add documents', disabled: false }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Shareholder: Synthetic Holder A' }));
   expect(screen.getByRole('radio', { name: 'Synthetic Holder C' })).toBeTruthy();
@@ -2125,6 +2330,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(await screen.findByRole('button', { name: 'Prepare inspection copy', disabled: false }));
   await fireEvent.changeText(screen.getByLabelText('Written instruction reference'), 'Synthetic instruction');
   await fireEvent.changeText(screen.getByLabelText('Recipient'), 'Synthetic recipient');
+  const restoreInspection = await pauseAccountRead();
+  await waitFor(() => expect(screen.queryByLabelText('Written instruction reference')).toBeNull());
+  expect(screen.queryByRole('button', { name: 'Preview inspection copy' })).toBeNull();
+  await restoreInspection();
+  expect((await screen.findByLabelText('Written instruction reference')).props.value).toBe('Synthetic instruction');
+  expect(screen.getByLabelText('Recipient').props.value).toBe('Synthetic recipient');
   await fireEvent.press(screen.getByRole('button', { name: 'Preview inspection copy' }));
   const copy = { name: 'Confirm and download inspection copy', disabled: false };
   await fireEvent.press(await screen.findByRole('button', copy));
@@ -2133,6 +2344,31 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(await screen.findByRole('button', { name: 'Prepare company pack', disabled: false }));
   await fireEvent.changeText(screen.getByLabelText('Pack instruction reference'), 'Synthetic pack instruction');
   await fireEvent.changeText(screen.getByLabelText('Pack recipient'), 'Synthetic pack recipient');
+  expect(await screen.findByText('For Synthetic protected recipient')).toBeTruthy();
+  const restorePack = await pauseAccountRead();
+  await waitFor(() => expect(screen.queryByLabelText('Pack instruction reference')).toBeNull());
+  expect(screen.queryByText('For Synthetic protected recipient')).toBeNull();
+  await restorePack();
+  expect((await screen.findByLabelText('Pack instruction reference')).props.value).toBe('Synthetic pack instruction');
+  const stalePackAction = screen.getByRole('button', { name: 'Prepare and download company pack' }).props
+    .onAccessibilityTap;
+  const beforePack = outputPosts().length;
+  own = { ...ADMINISTRATION, capabilities: ['read_register'] };
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+  });
+  expect(await screen.findByText('A current administrator appointment for this company is required.')).toBeTruthy();
+  expect(screen.queryByText('For Synthetic protected recipient')).toBeNull();
+  expect(screen.queryByText('Instruction: Synthetic private instruction')).toBeNull();
+  expect(screen.queryByLabelText('Pack recipient')).toBeNull();
+  await act(async () => stalePackAction());
+  expect(outputPosts()).toHaveLength(beforePack);
+  own = ADMINISTRATION;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+  });
+  expect((await screen.findByLabelText('Pack recipient')).props.value).toBe('Synthetic pack recipient');
+  expect(screen.getByLabelText('Pack instruction reference').props.value).toBe('Synthetic pack instruction');
   await fireEvent.press(screen.getByRole('button', { name: 'Prepare and download company pack' }));
   expect(await screen.findByText('The company pack was downloaded.')).toBeTruthy();
   const bytes = expect.objectContaining({ responseType: 'arraybuffer' });
@@ -2187,6 +2423,27 @@ it('associates a member by invitation code, switches to their company on Dashboa
       params: expect.objectContaining({ company: ADMINISTERED.uuid, member: HOLDER_A.member }),
     }),
   ]);
+  let finishAppointments: () => void = () => undefined;
+  appointmentsWait = new Promise<void>((resolve) => {
+    finishAppointments = resolve;
+  });
+  let rereadAppointments: Promise<void> = Promise.resolve();
+  await act(async () => {
+    rereadAppointments = client.refetchQueries(
+      { queryKey: ownAppointmentsKey(owner), exact: true },
+      { throwOnError: true },
+    );
+    rereadAppointments.catch(() => undefined);
+  });
+  await waitFor(() => expect(client.getQueryState(ownAppointmentsKey(owner))?.fetchStatus).toBe('fetching'));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull());
+  await act(async () => {
+    appointmentsWait = null;
+    finishAppointments();
+    await rereadAppointments;
+  });
+  expect(client.getQueryState(ownAppointmentsKey(owner))?.status).toBe('success');
+  await screen.findByRole('button', { name: 'Add documents', disabled: false });
   await fireEvent.press(screen.getByRole('button', { name: 'Add documents', disabled: false }));
   await settled();
   const sourceReads = () => api.get.mock.calls.filter(([url]) => /\/(holders|register-member-documents)\//.test(url));
