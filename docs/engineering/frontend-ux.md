@@ -159,7 +159,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   keeps its label on the left and its value on the right at every width, a long value wrapping right-aligned beside it;
   an authority request's page uses it for every fact (owner, 5 November 2026), and a share class's page
   for its summary figures, recorded rights and effective date, register setup for its review's figures and a class's
-  details, and an award's page for its short facts and figures. Breakdowns of figures (company ownership) and an award's chart legend keep their own layout,
+  details. Breakdowns of figures (company ownership) and an award's chart legend keep their own layout,
   without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines, an optional `figure` at the right of the
@@ -249,13 +249,17 @@ issued shares beneath as one line. Each row opens the award's own page, built li
 shareholder's page: the recipient as its title, the class as its lede, the back arrow and a compact
 **Recipient details**, then headed cards without chevrons: **Entitlement** (the chart, whose legend keys
 each colour and lists only non-zero parts, one line each at phone width, and the award's actions),
-**Agreement and vesting schedule**, with its date and address on one line each, **Vesting history** (the
-latest three events, with **Show all**, each a compact row: the shares vested with the date at the
-right, the recorded line, then its compact text actions), **Entitlement changes** and **Non-paid issues
-from this award**, each shown only when it has records, and one muted recorded line (owner,
-5 November 2026). Record vesting, End
-unissued rights and Correct a vesting event open their form inside the Entitlement card, keeping the
-agreement visible and hiding the other cards. While an action's outcome is uncertain the page reports
+**Agreement** (its date with **Download agreement** on one line, and the typed terms, schedule and
+recorded line behind **Show terms and vesting schedule**), **Vesting history** (the latest three events,
+with **Show all**, each a compact row: the shares vested with the date at the right, then **Download
+evidence** and, only while the event can be corrected, **Correct**), **Entitlement changes** (the shares
+ended or reversed with the date at the right, the reason beneath and **Download evidence**) and
+**Non-paid issues from this award**, which lists only issues still in progress; each of these last three
+shows only when it has records. The page shows what someone acts on and leaves the rest where it
+already lives (owner, 5 November 2026): the address on Recipient details, finished issues in the chart
+and on Issue shares, and who recorded each event in the Company pack. Record vesting, End unissued
+rights and Correct open their form inside the Entitlement card, keeping the agreement visible and hiding
+the other cards. While an action's outcome is uncertain the page reports
 held work, so leaving it is blocked as on Ledger.
 The app's Employee share scheme and an award's page have the same cards, rows, forms and states at
 phone width, the forms' fields stacked, and an award's top bar has the back arrow.

@@ -249,10 +249,11 @@ schedule), with its retry of an uncertain recording. A row opens the award's pag
 (`EmployeeAwardScreen.tsx`, the recipient as its title, the class as its lede and a compact
 **Recipient details** above it), read through the shared `useRegisterAward`, `useRegisterGrants` and the
 award's events, as on the web: Entitlement (the web's chart with **Record vesting** and **End unissued
-rights**), Agreement and vesting schedule with **Download agreement**, Vesting history (the latest
-three, with **Show all**, each a compact row with **Download vesting evidence** and **Correct a vesting
-event**, or why it can't be corrected), Entitlement changes with their downloads, the non-paid issues prepared from
-the award with their stage, and the recorded line. Recording vesting, ending rights and correcting a
+rights**), Agreement (its date with **Download agreement**, and the terms, schedule and recorded line
+behind **Show terms and vesting schedule**), Vesting history (the latest three, with **Show all**, each a
+compact row with **Download evidence** and, only while the event can be corrected, **Correct**),
+Entitlement changes with their downloads, and the non-paid issues still in progress with their stage.
+Recording vesting, ending rights and correcting a
 vesting open the web's forms in the Entitlement card (through the shared `useAwardVestingForm` and
 `useAwardAdjustmentForm`), and someone without preparation authority gets the web's read-only note
 instead of actions. Dates are typed as `YYYY-MM-DD` (UTC), and documents are picked as for

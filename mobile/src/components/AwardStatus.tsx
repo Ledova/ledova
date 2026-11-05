@@ -56,7 +56,7 @@ function useStyles() {
   }));
 }
 
-export function AwardStatus({ award, compact = false }: { award: Award; compact?: boolean }) {
+export function AwardStatus({ award, holdingNote = false }: { award: Award; holdingNote?: boolean }) {
   const styles = useStyles();
   if (!hasValidRegisterAwardTotals(award))
     return (
@@ -72,17 +72,9 @@ export function AwardStatus({ award, compact = false }: { award: Award; compact?
     { label: COPY.ENDED_UNVESTED, quantity: BigInt(award.endedUnvestedShares), look: styles.ended },
     { label: COPY.ENDED_VESTED, quantity: BigInt(award.endedVestedShares), look: styles.ended },
   ];
-  const notes = [
-    !compact &&
-      `${shareCount(award.remainingUnissuedShares)} ${award.remainingUnissuedShares === '1' ? 'remains' : 'remain'} unissued.`,
-    BigInt(award.issuedShares) > 0n && 'Issued award shares are already included in the holding.',
-  ].filter(Boolean);
   return (
     <View style={styles.status}>
-      <Text style={styles.muted}>
-        {shareCount(award.shares)} promised
-        {!compact && ` · ${formatShareCount(award.vestedShares)} company-recorded vested`}
-      </Text>
+      <Text style={styles.muted}>{shareCount(award.shares)} promised</Text>
       <View
         accessible
         accessibilityRole="image"
@@ -116,7 +108,9 @@ export function AwardStatus({ award, compact = false }: { award: Award; compact?
             </View>
           ))}
       </View>
-      {notes.length > 0 && <Text style={styles.note}>{notes.join(' ')}</Text>}
+      {holdingNote && BigInt(award.issuedShares) > 0n && (
+        <Text style={styles.note}>Issued award shares are already included in the holding.</Text>
+      )}
     </View>
   );
 }

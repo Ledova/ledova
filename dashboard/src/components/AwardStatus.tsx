@@ -9,7 +9,7 @@ export function AwardStatus({
   endedVestedShares,
   unvestedRemainingShares,
   remainingUnissuedShares,
-  compact = false,
+  holdingNote = false,
 }: {
   shares: string;
   vestedShares: string;
@@ -19,7 +19,7 @@ export function AwardStatus({
   endedVestedShares: string;
   unvestedRemainingShares: string;
   remainingUnissuedShares: string;
-  compact?: boolean;
+  holdingNote?: boolean;
 }) {
   if (
     !hasValidRegisterAwardTotals({
@@ -43,17 +43,9 @@ export function AwardStatus({
     { label: COPY.ENDED_VESTED, quantity: BigInt(endedVestedShares), look: 'bg-text-muted/70' },
   ];
   const shown = parts.filter((part) => part.quantity > 0n);
-  const notes = [
-    !compact &&
-      `${shareCount(remainingUnissuedShares)} ${remainingUnissuedShares === '1' ? 'remains' : 'remain'} unissued.`,
-    BigInt(issuedShares) > 0n && 'Issued award shares are already included in the holding.',
-  ].filter(Boolean);
   return (
     <div className="space-y-3">
-      <p className="text-sm text-text-muted">
-        {shareCount(shares)} promised
-        {!compact && ` · ${formatShareCount(vestedShares)} company-recorded vested`}
-      </p>
+      <p className="text-sm text-text-muted">{shareCount(shares)} promised</p>
       <div
         role="img"
         aria-label={`Award status: ${parts.map((part) => `${formatShareCount(String(part.quantity))} ${part.label.toLowerCase()}`).join(', ')}. ${shareCount(shares)} promised.`}
@@ -79,7 +71,9 @@ export function AwardStatus({
           </div>
         ))}
       </dl>
-      {notes.length > 0 && <p className="text-xs text-text-muted">{notes.join(' ')}</p>}
+      {holdingNote && BigInt(issuedShares) > 0n && (
+        <p className="text-xs text-text-muted">Issued award shares are already included in the holding.</p>
+      )}
     </div>
   );
 }

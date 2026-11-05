@@ -733,7 +733,7 @@ function MemberAwards({ record, token }: { record: OwnMemberRecord; token: strin
                 {record.classes.find(({ uuid }) => uuid === award.token)?.name ?? 'Employee award'} ·{' '}
                 {formatDate(award.termsOn)}
               </Text>
-              <AwardStatus award={award} compact />
+              <AwardStatus award={award} holdingNote />
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ expanded: shown }}

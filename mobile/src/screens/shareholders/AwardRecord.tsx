@@ -36,6 +36,7 @@ import {
   MoreToggle,
   Rows,
   Section,
+  ShowMore,
   Status,
 } from '../../components/Ledger';
 import { useThemedStyles } from '../../contexts';
@@ -47,16 +48,6 @@ import { AwardAdjustmentForm, AwardVestingForm } from './AwardForms';
 import { useShareholderStyles } from './useShareholderStyles';
 
 const LATEST_VESTINGS = 3;
-
-function Recorded({ at, by }: { at: string; by: string | null | undefined }) {
-  const look = useShareholderStyles();
-  return (
-    <Text style={look.small}>
-      Recorded {formatDateTime(at)}
-      {by ? ` by ${by}` : ''}
-    </Text>
-  );
-}
 
 export function AwardRecord({
   owner,
@@ -85,16 +76,7 @@ export function AwardRecord({
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const styles = useCompanyStyles();
   const look = useShareholderStyles();
-  const own = useThemedStyles((theme) => ({
-    facts: { gap: theme.spacing.xs },
-    reason: {
-      fontFamily: theme.fontFamily.regular,
-      fontSize: 12,
-      lineHeight: 16,
-      textAlign: 'right' as const,
-      color: theme.colors.text.muted,
-    },
-  }));
+  const own = useThemedStyles((theme) => ({ facts: { gap: theme.spacing.xs }, first: { paddingTop: 0 } }));
   const available = useRef(visible && !blocked);
   useLayoutEffect(() => {
     available.current = visible && !blocked;
@@ -113,7 +95,7 @@ export function AwardRecord({
     `${shareCount(vesting.shares)} dated ${formatDate(vesting.vestedOn)}`;
   const originalVesting = (uuid: string) => {
     const vesting = events.data?.find((event) => event.uuid === uuid);
-    return vesting ? vestingName(vesting) : 'An earlier vesting';
+    return vesting ? vestingName(vesting) : 'an earlier vesting';
   };
   const ends = useRegisterAwardEnds(owner, award.company, award.uuid, guard, orderSubmissionSession);
   const reversals = useRegisterAwardVestingReversals(owner, award.company, award.uuid, guard, orderSubmissionSession);
@@ -177,6 +159,7 @@ export function AwardRecord({
     download.isPending && download.variables?.kind === kind && download.variables?.uuid === uuid;
   const vestings = events.data ?? [];
   const changes = (ends.data?.length ?? 0) + (reversals.data?.length ?? 0);
+  const issuing = grants.filter((grant) => grant.stage !== 'applied' && grant.stage !== 'rejected');
   const recordVesting = BigInt(award.unvestedRemainingShares) > 0n;
   const endRights = BigInt(award.remainingUnissuedShares) > 0n;
   const issueVested = !blocked && eventReady && !formHeld && BigInt(award.availableShares) > 0n;
@@ -279,19 +262,9 @@ export function AwardRecord({
         </LoadError>
       )}
       {visible && (
-        <Section title="Agreement and vesting schedule">
-          <Rows>
-            <Fact label={COPY.TERMS_ON} inline>
-              {formatShortDate(award.termsOn)}
-            </Fact>
-            <Fact label={COPY.TERMS}>{award.terms}</Fact>
-            <Fact label={COPY.SCHEDULE}>{award.schedule}</Fact>
-            <Fact label="Residential address" inline>
-              {award.recipientResidentialAddress}
-            </Fact>
-          </Rows>
-          <Text style={look.muted}>{COPY.NOTE}</Text>
-          <Actions>
+        <Section title="Agreement">
+          <View style={look.line}>
+            <Text style={[look.muted, look.fill]}>Dated {formatShortDate(award.termsOn)}</Text>
             <Action
               compact
               label={busy() ? 'Downloading…' : 'Download agreement'}
@@ -299,8 +272,18 @@ export function AwardRecord({
               disabled={blocked || download.isPending}
               onPress={() => download.mutate(undefined)}
             />
-          </Actions>
+          </View>
           {download.isError && !download.variables && downloadFailure}
+          <ShowMore show="Show terms and vesting schedule" hide="Hide terms and vesting schedule">
+            <Rows>
+              <Fact label={COPY.TERMS}>{award.terms}</Fact>
+              <Fact label={COPY.SCHEDULE}>{award.schedule}</Fact>
+            </Rows>
+            <Text style={look.small}>
+              Recorded {formatDateTime(award.createdAt)}
+              {award.preparedByName ? ` by ${award.preparedByName}` : ''}
+            </Text>
+          </ShowMore>
         </Section>
       )}
       {visible && !formOpen && (
@@ -312,59 +295,42 @@ export function AwardRecord({
             vestings.length > 0 && (
               <Section title="Vesting history">
                 <Rows>
-                  {(allVestings ? vestings : vestings.slice(0, LATEST_VESTINGS)).map((event) => {
+                  {(allVestings ? vestings : vestings.slice(0, LATEST_VESTINGS)).map((event, index) => {
                     const remaining = remainingRegisterAwardVesting(event, reversals.data ?? []);
-                    const reverseReason = !eventReady
-                      ? null
-                      : BigInt(award.availableShares) === 0n
-                        ? 'No vested shares await issue, so this vesting can’t be corrected.'
-                        : remaining !== null && BigInt(remaining) === 0n
-                          ? 'This vesting event is already fully reversed.'
-                          : null;
+                    const correctable =
+                      appointment && BigInt(award.availableShares) > 0n && remaining !== null && BigInt(remaining) > 0n;
                     const name = vestingName(event);
                     return (
-                      <View key={event.uuid} style={look.row}>
-                        <View style={own.facts}>
-                          <View style={look.line}>
-                            <Text style={[look.title, look.fill]}>{shareCount(event.shares)} vested</Text>
-                            <Text style={[look.figure, look.title]}>{formatShortDate(event.vestedOn)}</Text>
-                          </View>
-                          <Recorded at={event.createdAt} by={event.preparedByName} />
+                      <View key={event.uuid} style={[look.row, index === 0 && own.first]}>
+                        <View style={look.line}>
+                          <Text style={[look.title, look.fill]}>{shareCount(event.shares)} vested</Text>
+                          <Text style={[look.figure, look.title]}>{formatShortDate(event.vestedOn)}</Text>
                         </View>
                         <Actions compact>
                           <Action
                             compact
-                            label={busy('vesting', event.uuid) ? 'Downloading…' : 'Download vesting evidence'}
-                            accessibilityLabel={`${busy('vesting', event.uuid) ? 'Downloading…' : 'Download vesting evidence'} (${name})`}
+                            label={busy('vesting', event.uuid) ? 'Downloading…' : 'Download evidence'}
+                            accessibilityLabel={`${busy('vesting', event.uuid) ? 'Downloading…' : 'Download evidence'} (${name})`}
                             disabled={blocked || download.isPending || !eventReady}
                             onPress={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
                           />
-                          {appointment && (
+                          {correctable && (
                             <Action
                               compact
-                              label={COPY.REVERSE}
-                              accessibilityLabel={`${COPY.REVERSE} (${name})`}
-                              disabled={
-                                blocked ||
-                                !eventReady ||
-                                formHeld ||
-                                BigInt(award.availableShares) === 0n ||
-                                remaining === null ||
-                                BigInt(remaining) === 0n
-                              }
+                              label="Correct"
+                              accessibilityLabel={`Correct (${name})`}
+                              disabled={blocked || !eventReady || formHeld}
                               onPress={() => {
                                 try {
                                   recordGuard();
                                 } catch {
                                   return;
                                 }
-                                if (remaining !== null)
-                                  setAdjusting({ appointment, vesting: event.uuid, vestingLabel: name });
+                                setAdjusting({ appointment, vesting: event.uuid, vestingLabel: name });
                               }}
                             />
                           )}
                         </Actions>
-                        {appointment && reverseReason && <Text style={own.reason}>{reverseReason}</Text>}
                       </View>
                     );
                   })}
@@ -386,52 +352,44 @@ export function AwardRecord({
             changes > 0 && (
               <Section title="Entitlement changes">
                 <Rows>
-                  {ends.data.map((event) => (
-                    <View key={event.uuid} style={look.row}>
-                      <Rows>
-                        <Fact label={COPY.ENDED_UNVESTED} inline>
-                          {shareCount(event.unvestedShares)}
-                        </Fact>
-                        <Fact label={COPY.ENDED_VESTED} inline>
-                          {shareCount(event.vestedShares)}
-                        </Fact>
-                        <Fact label={COPY.COMPANY_EVENT_ON} inline>
-                          {formatShortDate(event.companyEventOn)}
-                        </Fact>
-                        <Fact label={COPY.REASON}>{event.reason}</Fact>
-                      </Rows>
-                      <Recorded at={event.createdAt} by={event.preparedByName} />
+                  {ends.data.map((event, index) => (
+                    <View key={event.uuid} style={[look.row, index === 0 && own.first]}>
+                      <View style={own.facts}>
+                        <View style={look.line}>
+                          <Text style={[look.title, look.fill]}>
+                            {shareCount(String(BigInt(event.unvestedShares) + BigInt(event.vestedShares)))} ended
+                          </Text>
+                          <Text style={[look.figure, look.title]}>{formatShortDate(event.companyEventOn)}</Text>
+                        </View>
+                        <Text style={look.small}>{event.reason}</Text>
+                      </View>
                       <Actions>
                         <Action
                           compact
-                          label={busy('end', event.uuid) ? 'Downloading…' : 'Download entitlement evidence'}
-                          accessibilityLabel={`${busy('end', event.uuid) ? 'Downloading…' : 'Download entitlement evidence'} (${formatDate(event.companyEventOn)})`}
+                          label={busy('end', event.uuid) ? 'Downloading…' : 'Download evidence'}
+                          accessibilityLabel={`${busy('end', event.uuid) ? 'Downloading…' : 'Download evidence'} (rights ended ${formatDate(event.companyEventOn)})`}
                           disabled={blocked || download.isPending || !eventReady}
                           onPress={() => download.mutate({ kind: 'end', uuid: event.uuid })}
                         />
                       </Actions>
                     </View>
                   ))}
-                  {reversals.data.map((event) => (
-                    <View key={event.uuid} style={look.row}>
-                      <Rows>
-                        <Fact label={COPY.REVERSED_SHARES} inline>
-                          {shareCount(event.reversedShares)}
-                        </Fact>
-                        <Fact label="Original vesting" inline>
-                          {originalVesting(event.vesting)}
-                        </Fact>
-                        <Fact label={COPY.COMPANY_EVENT_ON} inline>
-                          {formatShortDate(event.companyEventOn)}
-                        </Fact>
-                        <Fact label={COPY.REASON}>{event.reason}</Fact>
-                      </Rows>
-                      <Recorded at={event.createdAt} by={event.preparedByName} />
+                  {reversals.data.map((event, index) => (
+                    <View key={event.uuid} style={[look.row, ends.data.length + index === 0 && own.first]}>
+                      <View style={own.facts}>
+                        <View style={look.line}>
+                          <Text style={[look.title, look.fill]}>{shareCount(event.reversedShares)} reversed</Text>
+                          <Text style={[look.figure, look.title]}>{formatShortDate(event.companyEventOn)}</Text>
+                        </View>
+                        <Text style={look.small}>
+                          From {originalVesting(event.vesting)} · {event.reason}
+                        </Text>
+                      </View>
                       <Actions>
                         <Action
                           compact
-                          label={busy('reversal', event.uuid) ? 'Downloading…' : 'Download correction evidence'}
-                          accessibilityLabel={`${busy('reversal', event.uuid) ? 'Downloading…' : 'Download correction evidence'} (${formatDate(event.companyEventOn)})`}
+                          label={busy('reversal', event.uuid) ? 'Downloading…' : 'Download evidence'}
+                          accessibilityLabel={`${busy('reversal', event.uuid) ? 'Downloading…' : 'Download evidence'} (correction ${formatDate(event.companyEventOn)})`}
                           disabled={blocked || download.isPending || !eventReady}
                           onPress={() => download.mutate({ kind: 'reversal', uuid: event.uuid })}
                         />
@@ -445,13 +403,12 @@ export function AwardRecord({
               </Section>
             )
           )}
-          {grants.length > 0 && (
+          {issuing.length > 0 && (
             <Section title="Non-paid issues from this award">
               <Rows>
-                {grants.map((grant) => {
+                {issuing.map((grant) => {
                   const prepared = formatShortDate(grant.createdAt);
-                  const stage =
-                    grant.stage === 'applied' ? 'Shares issued' : (GRANT_COPY.STAGES[grant.stage] ?? grant.stage);
+                  const stage = GRANT_COPY.STAGES[grant.stage] ?? grant.stage;
                   return (
                     <LinkRow
                       key={grant.uuid}
@@ -473,7 +430,6 @@ export function AwardRecord({
               </Rows>
             </Section>
           )}
-          <Recorded at={award.createdAt} by={award.preparedByName} />
         </>
       )}
     </>

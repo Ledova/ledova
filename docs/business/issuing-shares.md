@@ -243,8 +243,8 @@ and vesting schedule. The company records each vesting event itself; the schedul
 and a date passing creates no vesting, approval, issue or holding. Shares reach the register only
 through a separate approved grant that references the award.
 
-The company and employee see the original promise, net vested, permanently issued, ended and
-remaining quantities. The web chart keeps the original promise as its total, including ended rights:
+The company and employee see the original promise and a chart that keeps it as the total, including
+ended rights, split into unvested, vested-but-unissued, issued and ended shares. Behind them:
 
 | Quantity                  | Meaning                                                                        |
 | ------------------------- | ------------------------------------------------------------------------------ |
@@ -260,9 +260,9 @@ On the web, **Shareholders → Employee scheme** shows the selected class's awar
 recipient with the shares promised at the right, then the agreement date and the shares vested and
 issued beneath (wide screens give Promised, Vested and Issued their own columns). Each row opens the award's own page, with
 a back arrow to Employee share scheme and **Recipient details** at the top. Its **Entitlement** card holds the
-chart and the award's actions, followed by **Agreement and vesting schedule**, **Vesting history** (the
-latest three events, with Show all), **Entitlement changes** and **Non-paid issues from this award**, each
-shown only when it has records.
+chart and the award's actions, followed by **Agreement** (its date and download, with the terms and
+vesting schedule one step away), **Vesting history** (the latest three events, with Show all), and
+**Entitlement changes** and **Non-paid issues from this award**, each shown only when it has records.
 Choose **Share class**, then the single **Record an employee award** action below its card to open preparation; Cancel or a successful save returns to
 the records. Preparation groups recipient and promised shares above Agreement and Vesting, side by side
 on wide screens and stacked on smaller ones. Preparation, vesting and entitlement-change forms keep Cancel beside their recording
@@ -287,16 +287,17 @@ sheet.
    Non-paid issue chosen. The grant form shows the recipient and available quantity, and is bound to
    the award's class, recipient and retained agreement. Upload the authority document, name the
    approving director and add any required acceptance. Preparing keeps you on Issue shares, with the
-   new issue among the class's records; approve, then choose Record issue. The award's page lists the
-   non-paid issues prepared from it, each with its stage and a link to its record on Ledger.
+   new issue among the class's records; approve, then choose Record issue. The award's page lists
+   its non-paid issues still in progress, each with its stage and a link to its record on Ledger. Once
+   issued, the shares count in the chart and the record stays on Issue shares.
 4. To reduce or end an entitlement, choose End unissued rights. Enter exactly how many unvested and/or
    vested-but-unissued rights the company ends, its event date, reason and evidence. Zero is allowed
    for either pool, but the total must be positive. Ledova applies no automatic leaver policy.
-5. To correct an erroneous vesting, choose Correct a vesting event beside the original event. Record a
+5. To correct an erroneous vesting, choose Correct beside the original event. Record a
    positive reversal quantity, company date, reason and evidence. Cumulative reversals cannot exceed
    that event or remove rights already issued or ended as vested. Additional vesting uses Record
-   vesting. Original entries remain visible. When an event can't be corrected, because no vested
-   shares await issue or it is already fully reversed, the page says why under the event's actions.
+   vesting. Original entries remain visible. Correct shows only while an event can be corrected:
+   vested shares must await issue and the event must not already be fully reversed.
 
 The linked issue reuses the exact fingerprinted agreement already retained for the award; no
 agreement upload is needed. Current company authority and the private file are checked again, and
