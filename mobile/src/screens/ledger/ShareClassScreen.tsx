@@ -17,14 +17,13 @@ import {
   useSubmissionOwner,
   useUserPreferences,
 } from '@ledova/shared';
-import { LoadError, Loading, Section, Status } from '../../components/Ledger';
+import { Fact, LoadError, Loading, Rows, Section, Status } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { ClassFigures } from './ClassFigures';
 import { ClassRights } from './ClassRights';
 import { ShareholderDocuments } from './ShareholderDocuments';
 import { useLedgerStyles } from './useLedgerStyles';
@@ -148,18 +147,23 @@ function ClassPage({ data, token }: { data: ShareClass; token: string }) {
             <Loading>Loading current ownership…</Loading>
           ) : (
             <View accessibilityLabel="Current ownership" style={look.stack}>
-              <ClassFigures
-                label="Current ownership figures"
-                issued={register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
-                holders={register.initialized ? formatShareCount(String(register.totalHolders)) : 'Not recorded'}
-              />
-              <Status tone={register.initialized ? 'done' : 'waiting'} muted>
-                {register.initialized ? 'Ledger opened' : 'Ledger not opened'}
-              </Status>
-              {listed.totalSupply !== TECHNICAL_SHARE_LIMIT && (
-                <Text style={look.muted}>
-                  Authorised shares · <Text style={look.strong}>{formatShareCount(listed.totalSupply)}</Text>
-                </Text>
+              <Rows>
+                <Fact inline label="Issued shares">
+                  {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
+                </Fact>
+                <Fact inline label="Current shareholders">
+                  {register.initialized ? formatShareCount(String(register.totalHolders)) : 'Not recorded'}
+                </Fact>
+                {listed.totalSupply !== TECHNICAL_SHARE_LIMIT && (
+                  <Fact inline label="Authorised shares">
+                    {formatShareCount(listed.totalSupply)}
+                  </Fact>
+                )}
+              </Rows>
+              {!register.initialized && (
+                <Status tone="waiting" muted>
+                  Ledger not opened
+                </Status>
               )}
               {!listed.isTransferable && (
                 <Text style={look.muted}>This share class is recorded as non-transferable.</Text>

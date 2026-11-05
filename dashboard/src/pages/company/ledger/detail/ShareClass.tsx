@@ -14,7 +14,7 @@ import {
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
-import { LoadError, Loading, Section, Status } from '@components/Ledger';
+import { LoadError, Loading, Row, Rows, Section, Status } from '@components/Ledger';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 import { ClassRights } from './ClassRights';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
@@ -115,30 +115,23 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
         ) : !register ? (
           <Loading>Loading current ownership…</Loading>
         ) : (
-          <section aria-label="Current ownership" className="space-y-4">
-            <dl className="grid grid-cols-2 gap-4">
-              <div className="min-w-0">
-                <dt className="text-xs text-text-muted">Issued shares</dt>
-                <dd className="mt-1 break-all text-xl font-medium tabular-nums">
-                  {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
-                </dd>
-              </div>
-              <div className="min-w-0">
-                <dt className="text-xs text-text-muted">Current shareholders</dt>
-                <dd className="mt-1 text-xl font-medium tabular-nums">
-                  {register.initialized ? formatShareCount(String(register.totalHolders)) : 'Not recorded'}
-                </dd>
-              </div>
-            </dl>
-            <p className="text-xs text-text-muted">
-              <Status tone={register.initialized ? 'done' : 'waiting'}>
-                {register.initialized ? 'Ledger opened' : 'Ledger not opened'}
-              </Status>
-            </p>
-            {token.totalSupply !== TECHNICAL_SHARE_LIMIT && (
-              <p className="text-sm text-text-muted">
-                Authorised shares ·{' '}
-                <span className="break-all font-medium text-text-primary">{formatShareCount(token.totalSupply)}</span>
+          <section aria-label="Current ownership" className="space-y-3">
+            <Rows>
+              <Row inline label="Issued shares">
+                {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
+              </Row>
+              <Row inline label="Current shareholders">
+                {register.initialized ? formatShareCount(String(register.totalHolders)) : 'Not recorded'}
+              </Row>
+              {token.totalSupply !== TECHNICAL_SHARE_LIMIT && (
+                <Row inline label="Authorised shares">
+                  {formatShareCount(token.totalSupply)}
+                </Row>
+              )}
+            </Rows>
+            {!register.initialized && (
+              <p className="text-xs text-text-muted">
+                <Status tone="waiting">Ledger not opened</Status>
               </p>
             )}
             {!token.isTransferable && (

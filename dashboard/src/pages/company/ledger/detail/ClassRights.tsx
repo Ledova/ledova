@@ -34,7 +34,7 @@ function RightsSummary({
       {structured && (
         <Rows>
           {structuredRightsRows(revision.attributes).map((row) => (
-            <Row key={row.label} label={row.label}>
+            <Row key={row.label} label={row.label} inline>
               <span className="whitespace-pre-wrap">{row.value}</span>
             </Row>
           ))}
@@ -49,7 +49,9 @@ function RightsSummary({
       {!structured && !terms && <p className="text-sm text-text-muted">No rights recorded.</p>}
       {revision.effectiveDate && (
         <Rows>
-          <Row label="Effective date">{formatDate(revision.effectiveDate)}</Row>
+          <Row label="Effective date" inline>
+            {formatDate(revision.effectiveDate)}
+          </Row>
         </Rows>
       )}
       {revision.documentReference && (
