@@ -129,7 +129,11 @@ export function SignedInNavigator() {
               options={topBar('Shareholders')}
             />
             <Stack.Screen name="EmployeeScheme" component={EmployeeSchemeScreen} options={topBar('Shareholders')} />
-            <Stack.Screen name="EmployeeAward" component={EmployeeAwardScreen} options={topBar('Shareholders')} />
+            <Stack.Screen
+              name="EmployeeAward"
+              component={EmployeeAwardScreen}
+              options={topBar('Shareholders', { route: 'EmployeeScheme', label: 'Back to Employee share scheme' })}
+            />
             <Stack.Screen name="MemberAccess" component={MemberAccessScreen} options={topBar('Shareholders')} />
             <Stack.Screen name="Certificates" component={CertificatesScreen} options={topBar('Documents')} />
             <Stack.Screen name="InspectionCopies" component={InspectionCopiesScreen} options={topBar('Documents')} />

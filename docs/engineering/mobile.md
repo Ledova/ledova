@@ -90,8 +90,8 @@ Back to Account, in place of the menu button (`topBar` with a back target). The 
 parent: it goes back to the parent when the parent is in the stack and otherwise opens the parent in
 the page's place, so a class opened from Dashboard's **Class details** also returns to Ledger, as on
 the web, while Android's Back and the iOS swipe return to the previous page. An
-authority request's bar shows Back to Representative authority, and a share class's and Set up your
-ledger's bars Back to Ledger, the same way; the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
+authority request's bar shows Back to Representative authority, a share class's and Set up your
+ledger's bars Back to Ledger, and an award's bar Back to Employee share scheme, the same way; the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
 its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
 anchored panel (`AnchoredPanel`) as `FilterPopover`. It has a Notifications header with **Mark all
@@ -105,10 +105,10 @@ with the person's name, the selected company as on the web, and Sign out, which 
 Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Ledger for Ledger,
 Issue shares, Transfer shares and Corrections with their preparations,
-Shareholders for Shareholders, a shareholder's page, its particulars change, Employee share scheme, an
-award's page and Member access, Documents for Certificates, Inspection copies and Company pack,
+Shareholders for Shareholders, a shareholder's page, its particulars change, Employee share scheme and
+Member access, Documents for Certificates, Inspection copies and Company pack,
 Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like
-the web's sidebar, it marks Employee scheme on an award's page, Transfer shares on a
+the web's sidebar, it marks Transfer shares on a
 transfer's preparation and Corrections on a correction's preparation. Choosing Dashboard
 returns to it. Ledger opens its overview, Shareholders its people list, Documents opens Certificates
 and Settings opens Profile.
@@ -246,12 +246,12 @@ someone who can prepare the register of an opened draft class, replaces the list
 class's people without a linked wallet whose particulars are retained, with **New person** first and its
 name and address, the promised shares, then Agreement (date, document and terms) and Vesting (the
 schedule), with its retry of an uncertain recording. A row opens the award's page
-(`EmployeeAwardScreen.tsx`, the recipient as its title, the class and agreement date as its lede and
+(`EmployeeAwardScreen.tsx`, the recipient as its title, the class as its lede and a compact
 **Recipient details** above it), read through the shared `useRegisterAward`, `useRegisterGrants` and the
 award's events, as on the web: Entitlement (the web's chart with **Record vesting** and **End unissued
 rights**), Agreement and vesting schedule with **Download agreement**, Vesting history (the latest
-three, with **Show all**, each with **Download vesting evidence** and **Correct a vesting event**, or
-why it can't be corrected), Entitlement changes with their downloads, the non-paid issues prepared from
+three, with **Show all**, each a compact row with **Download vesting evidence** and **Correct a vesting
+event**, or why it can't be corrected), Entitlement changes with their downloads, the non-paid issues prepared from
 the award with their stage, and the recorded line. Recording vesting, ending rights and correcting a
 vesting open the web's forms in the Entitlement card (through the shared `useAwardVestingForm` and
 `useAwardAdjustmentForm`), and someone without preparation authority gets the web's read-only note

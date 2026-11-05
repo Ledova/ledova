@@ -134,8 +134,8 @@ section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
-action and the bell. Representative authority's, an authority request's, a share class's and Set up your ledger's top bars
-show a back arrow in place of the menu button, as on the web ([back arrow](#navigation)); the other pages have
+action and the bell. Representative authority's, an authority request's, a share class's, Set up your ledger's and an
+award's top bars show a back arrow in place of the menu button, as on the web ([back arrow](#navigation)); the other pages have
 no back button yet
 ([#1547](https://github.com/Ledova/ledova/issues/1547)), so the app leaves out the web's title-row way
 back, and Android's Back and the iOS swipe return to the previous page. A tap on a
@@ -246,18 +246,19 @@ selected-file display and focus stable through entry reads, explicit retries and
 agreement date, then Promised, Vested and Issued quantities and the trailing arrow; on small screens the
 promised shares sit at the right of the recipient, with the short agreement date and the vested and
 issued shares beneath as one line. Each row opens the award's own page, built like a
-shareholder's page: the recipient as its title, the class and agreement date as its lede, **Back to
-Employee share scheme** and **Recipient details** in the heading, then headed cards without chevrons:
-**Entitlement** (the chart, whose legend keys each colour and lists only non-zero parts, and the
-award's actions), **Agreement and vesting schedule**, **Vesting
-history** (the latest three events, with **Show all**), **Entitlement changes** and **Non-paid issues
-from this award**, each shown only when it has records, and one muted recorded line. Record vesting, End
+shareholder's page: the recipient as its title, the class as its lede, the back arrow and a compact
+**Recipient details**, then headed cards without chevrons: **Entitlement** (the chart, whose legend keys
+each colour and lists only non-zero parts, one line each at phone width, and the award's actions),
+**Agreement and vesting schedule**, with its date and address on one line each, **Vesting history** (the
+latest three events, with **Show all**, each a compact row: the shares vested with the date at the
+right, the recorded line, then its compact text actions), **Entitlement changes** and **Non-paid issues
+from this award**, each shown only when it has records, and one muted recorded line (owner,
+5 November 2026). Record vesting, End
 unissued rights and Correct a vesting event open their form inside the Entitlement card, keeping the
 agreement visible and hiding the other cards. While an action's outcome is uncertain the page reports
 held work, so leaving it is blocked as on Ledger.
 The app's Employee share scheme and an award's page have the same cards, rows, forms and states at
-phone width, the forms' fields stacked; they leave out **Back to Employee share scheme**, as they have
-no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)).
+phone width, the forms' fields stacked, and an award's top bar has the back arrow.
 Inline vesting uses one named field group with the event quantity, date and document, short contextual
 labels and the same responsive grid. While an award editor is open, its footer owns the actions;
 hide unrelated record actions instead of leaving a disabled row above the form.
@@ -538,10 +539,10 @@ show a back arrow (owner, 5 November 2026): `BackArrow`, named for screen reader
 parent, at the start of the phone top bar in place of the menu button, and just before the title on
 wider screens, with no **Back to …** button in the page. So far Representative authority (Back to
 Account), an authority request's page (Back to Representative authority), a share class's page and
-Set up your ledger (Back to Ledger) do, through `arrow` on their parents in `WEB_PARENTS`; [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the
+Set up your ledger (Back to Ledger) and an award's page (Back to Employee share scheme) do, through
+`arrow` on their parents in `WEB_PARENTS`; [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the
 rest. Until then `Page` puts one useful parent link in the title row for a contextual task: Back to
-Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, and Back to
-Corrections for ledger maintenance.
+Shareholders on a shareholder's page and Back to Corrections for ledger maintenance.
 Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
 by name.
 

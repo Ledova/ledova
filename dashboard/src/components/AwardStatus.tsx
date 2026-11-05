@@ -68,9 +68,9 @@ export function AwardStatus({
           />
         ))}
       </div>
-      <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+      <dl className="grid grid-cols-1 gap-1 text-sm sm:grid-cols-3 sm:gap-3">
         {shown.map((part) => (
-          <div key={part.label} className="min-w-0">
+          <div key={part.label} className="flex min-w-0 items-baseline justify-between gap-3 sm:block">
             <dt className="flex items-center gap-2 text-text-muted">
               <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-sm ${part.look}`} />
               {part.label}

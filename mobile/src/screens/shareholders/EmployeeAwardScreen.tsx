@@ -13,7 +13,6 @@ import {
   awardVestingReversalsKey,
   awardVestingsKey,
   awardsKey,
-  formatDate,
   grantsKey,
   hasCurrentRegisterReadAuthority,
   registerKey,
@@ -27,7 +26,7 @@ import {
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
 } from '@ledova/shared';
-import { Action, LoadError, Loading } from '../../components/Ledger';
+import { Action, Actions, LoadError, Loading } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
@@ -201,20 +200,19 @@ function OwnAward({
     <Page
       testID="employee-award-scroll"
       title={shown ? shown.recipientName : TITLE}
-      lede={
-        shown && register
-          ? `Employee award · ${register.token.name} · ${register.token.symbol} · Agreement ${formatDate(shown.termsOn)}`
-          : undefined
-      }
+      lede={shown && register ? `Employee award · ${register.token.name} · ${register.token.symbol}` : undefined}
       links={
         shown &&
         !held &&
         !editing && (
-          <Action
-            label="Recipient details"
-            accessibilityLabel={`Recipient details (${shown.recipientName})`}
-            onPress={() => navigation.navigate('Shareholder', { company, member: shown.member })}
-          />
+          <Actions>
+            <Action
+              compact
+              label="Recipient details"
+              accessibilityLabel={`Recipient details (${shown.recipientName})`}
+              onPress={() => navigation.navigate('Shareholder', { company, member: shown.member })}
+            />
+          </Actions>
         )
       }
       refreshControl={

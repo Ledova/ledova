@@ -259,7 +259,7 @@ remaining quantities. The web chart keeps the original promise as its total, inc
 On the web, **Shareholders → Employee scheme** shows the selected class's awards as compact rows: the
 recipient with the shares promised at the right, then the agreement date and the shares vested and
 issued beneath (wide screens give Promised, Vested and Issued their own columns). Each row opens the award's own page, with
-**Back to Employee share scheme** and **Recipient details** at the top. Its **Entitlement** card holds the
+a back arrow to Employee share scheme and **Recipient details** at the top. Its **Entitlement** card holds the
 chart and the award's actions, followed by **Agreement and vesting schedule**, **Vesting history** (the
 latest three events, with Show all), **Entitlement changes** and **Non-paid issues from this award**, each
 shown only when it has records.

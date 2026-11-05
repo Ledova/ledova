@@ -9,8 +9,6 @@ export const REGISTER_AWARD_COPY = {
   TERMS_ON: 'Agreement dated on',
   TERMS: 'Agreement terms',
   SCHEDULE: 'Recorded vesting schedule',
-  VESTING_SHARES: 'Shares vested in this event',
-  VESTED_ON: 'Company-recorded vesting date',
   ENDED_UNVESTED: 'Unvested rights ended',
   ENDED_VESTED: 'Vested rights ended',
   END: 'End unissued rights',
