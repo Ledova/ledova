@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCompanyToken, getCompanyTokenHolders } from '../services/company-tokens';
 import type { CompanyShareToken } from '../types';
@@ -12,7 +12,7 @@ export function shareClassKey(uuid: string) {
   return ['token', uuid];
 }
 
-export function useShareClass(uuid: string, session?: OrderSubmissionSession) {
+export function useShareClass(uuid: string, session?: OrderSubmissionSession, available = true) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
   const { owner, boundary } = useSubmissionOwner(session);
@@ -20,15 +20,23 @@ export function useShareClass(uuid: string, session?: OrderSubmissionSession) {
   if (view.owner !== owner) setView({ owner, generation: view.generation + 1 });
   const [readHolds, setReadHolds] = useState<Record<string, boolean>>({});
   const mounted = useRef(true);
+  const sourceAvailable = useRef(available);
+  useLayoutEffect(() => {
+    sourceAvailable.current = available;
+  }, [available]);
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
-  const guard = () => {
+  const accountGuard = () => {
     if (!mounted.current || !owner || boundary.get() !== owner)
       throw createUserFriendlyError('Your signed-in account changed. Reopen the share class.');
+  };
+  const guard = () => {
+    accountGuard();
+    if (!sourceAvailable.current) throw createUserFriendlyError('Your company access could not be confirmed.');
   };
   const tokenKey = [...shareClassKey(uuid), owner?.userUuid, owner?.ownerAccountUuid];
   const company = queryClient.getQueryData<CompanyShareToken>(tokenKey)?.companyUuid ?? '';
@@ -50,7 +58,7 @@ export function useShareClass(uuid: string, session?: OrderSubmissionSession) {
   const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: guard });
   const token = useQuery({
     queryKey: tokenKey,
-    enabled: !!uuid && !!owner,
+    enabled: available && !!uuid && !!owner,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     queryFn: async () => {
@@ -67,7 +75,7 @@ export function useShareClass(uuid: string, session?: OrderSubmissionSession) {
       return data;
     },
   });
-  const enabled = !!owner && token.isSuccess;
+  const enabled = available && !!owner && token.isSuccess;
   const register = useQuery({
     queryKey: [...tokenKey, 'holders'],
     enabled,
@@ -89,6 +97,7 @@ export function useShareClass(uuid: string, session?: OrderSubmissionSession) {
   return {
     owner,
     guard,
+    accountGuard,
     tokenKey,
     readingPaused,
     holdReads,

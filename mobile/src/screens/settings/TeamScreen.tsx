@@ -17,11 +17,13 @@ import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
+import { RegisterAccess } from '../../components/RegisterAccess';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
 import { AppointmentRecord, RevokeAppointmentModal, useTeamStyles } from './Appointments';
 import { AcceptInvitationForm, TeamInvitationForm } from './TeamForms';
 
@@ -30,7 +32,22 @@ const LEDE = 'Manage company appointments and invitations.';
 export function TeamScreen({ route }: { route?: RouteProp<SignedInStackParamList, 'Team'> }) {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
   const preferences = useUserPreferences();
-  if (!owner || preferences.isError)
+  const { directory, company: selected, companySelection } = useMemberRecordsState();
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    companySelection ??
+      selected?.uuid ??
+      (directory.hasError || directory.isLoading || directory.isRefreshing ? undefined : ''),
+    (!companySelection || selected?.uuid === companySelection) &&
+      !preferences.isError &&
+      !preferences.isFetching &&
+      !directory.hasError &&
+      !directory.isLoading &&
+      !directory.isRefreshing,
+    companySelection,
+  );
+  if (!owner || scope.scope === undefined)
     return (
       <Page testID="team-scroll" title="Team">
         <AccountCheck />
@@ -38,9 +55,11 @@ export function TeamScreen({ route }: { route?: RouteProp<SignedInStackParamList
     );
   return (
     <OwnTeam
-      key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}`}
+      key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}`}
       owner={owner}
       currentOwner={boundary.get}
+      available={scope.available}
+      companyUuid={scope.scope}
       accept={!!route?.params?.accept}
     />
   );
@@ -49,10 +68,14 @@ export function TeamScreen({ route }: { route?: RouteProp<SignedInStackParamList
 function OwnTeam({
   owner,
   currentOwner,
+  available,
+  companyUuid,
   accept,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
+  companyUuid: string;
   accept: boolean;
 }) {
   const theme = useAppTheme();
@@ -67,8 +90,9 @@ function OwnTeam({
     owner,
     currentOwner,
     editing: task !== null,
-    company: selected?.uuid ?? '',
-    companyName: selected?.name,
+    available,
+    company: companyUuid,
+    companyName: selected?.uuid === companyUuid ? selected.name : undefined,
     session: orderSubmissionSession,
   });
   const {
@@ -106,7 +130,7 @@ function OwnTeam({
     setTask(null);
   };
   const invitationSource = source ?? (draftSource?.uuid === sourceId ? draftSource : null);
-  const sourceReady = own.isSuccess && !own.isFetching && !!source;
+  const sourceReady = available && own.isSuccess && !own.isFetching && !!source;
   const choosing = directory.isLoading || (!selected && companies.length > 0);
   const accountStatus = own.isError ? (
     <LoadError retry={() => own.refetch()} busy={own.isFetching}>
@@ -121,6 +145,8 @@ function OwnTeam({
       testID="team-scroll"
       title="Team"
       lede={LEDE}
+      available={available}
+      unavailable={<RegisterAccess owner={owner} />}
       refreshControl={
         <RefreshControl
           testID="team-refresh"
@@ -281,7 +307,7 @@ function OwnTeam({
           {error}
         </Text>
       )}
-      <RevokeAppointmentModal team={teamState} />
+      <RevokeAppointmentModal team={teamState} available={available} />
     </Page>
   );
 }

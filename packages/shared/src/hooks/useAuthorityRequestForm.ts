@@ -90,6 +90,7 @@ export function useAuthorityRequestForm({
     }
   };
   return {
+    file,
     setFile,
     requested,
     setRequested,

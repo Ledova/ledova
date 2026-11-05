@@ -9,6 +9,7 @@ import {
   useClassRegister,
   useErrorSummary,
   useSubmissionOwner,
+  useUserPreferences,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -17,6 +18,8 @@ import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { FilterPopover } from '../../components/FilterPopover';
 import { Action, Fact, FormActions, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
+import { RegisterAccess } from '../../components/RegisterAccess';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
 import { Field } from '../../components/register/RegisterFields';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
@@ -31,15 +34,30 @@ const LEDE = 'Prepare a copy of the register for someone who requests one.';
 
 export function InspectionCopiesScreen() {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company } = useMemberRecordsState();
+  const { directory, companies, company, companySelection } = useMemberRecordsState();
+  const preferences = useUserPreferences();
   const choosing = directory.isLoading || (!company && companies.length > 0);
-  if (owner && company?.canReadRegister && !directory.hasError && !choosing)
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    companySelection ?? company?.uuid,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      !!company?.canReadRegister &&
+      (!companySelection || company.uuid === companySelection) &&
+      !directory.hasError &&
+      !choosing &&
+      !directory.isRefreshing,
+    companySelection,
+  );
+  if (owner && scope.scope)
     return (
       <CompanyInspectionCopies
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company.uuid}`}
+        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}`}
         owner={owner}
         currentOwner={boundary.get}
-        company={company.uuid}
+        company={scope.scope}
+        available={scope.available}
       />
     );
   return (
@@ -63,35 +81,51 @@ function CompanyInspectionCopies({
   owner,
   currentOwner,
   company,
+  available,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
   company: string;
+  available: boolean;
 }) {
   const theme = useAppTheme();
   const styles = useCompanyStyles();
   const [chosen, setChosen] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [formBusy, setFormBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const source = useClassRegister(owner, currentOwner, company, chosen, 'inspection', orderSubmissionSession);
-  if (chosen && source.sourceReady && !source.options.some((item) => item.uuid === chosen)) setChosen(null);
-  const selected = source.options.find((item) => item.uuid === source.token);
-  const register = source.sourceReady ? source.register.data : undefined;
+  const source = useClassRegister(
+    owner,
+    currentOwner,
+    company,
+    chosen,
+    'inspection',
+    orderSubmissionSession,
+    available,
+  );
+  if (!open && chosen && source.sourceReady && !source.options.some((item) => item.uuid === chosen)) setChosen(null);
+  const [retained, setRetained] = useState<TokenHoldersResponse | undefined>();
+  if (source.ready && source.register.data !== retained) setRetained(source.register.data);
+  const register = source.ready ? source.register.data : retained?.token.uuid === source.token ? retained : undefined;
   const retry = () => source.retry().catch(() => undefined);
   return (
     <Page
       testID="inspection-copies-scroll"
       title={TITLE}
       lede={LEDE}
+      available={available}
+      unavailable={<RegisterAccess owner={owner} />}
       titleAction={
-        source.sourceReady && source.options.length > 1 ? (
+        available && source.sourceReady && source.options.length > 1 ? (
           <FilterPopover>
             {(close) => (
               <SelectField
                 label="Share class"
                 options={source.options.map((item) => ({ value: item.uuid, label: `${item.name} · ${item.symbol}` }))}
                 value={source.token}
+                disabled={open}
                 onChange={(token) => {
+                  if (open) return;
                   close();
                   setChosen(token);
                 }}
@@ -105,7 +139,7 @@ function CompanyInspectionCopies({
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing || open) return;
+            if (!available || refreshing || open) return;
             setRefreshing(true);
             void retry().finally(() => setRefreshing(false));
           }}
@@ -116,25 +150,44 @@ function CompanyInspectionCopies({
         <LoadError retry={retry} busy={source.isRefreshing}>
           The register could not be loaded.
         </LoadError>
-      ) : !source.sourceReady ? (
+      ) : !source.sourceReady || (!register && source.options.length > 0) ? (
         <Loading>Loading the register…</Loading>
-      ) : source.options.length === 0 ? null : !selected || !register ? (
-        <Loading>Loading the register…</Loading>
-      ) : (
-        <>
+      ) : null}
+      {open && !source.ready && (
+        <View>
+          <Text style={styles.muted}>Current share-class access must be confirmed before continuing.</Text>
+          <FormActions>
+            <Action
+              label="Cancel"
+              accessibilityLabel="Cancel (inspection copy)"
+              disabled={formBusy}
+              onPress={() => setOpen(false)}
+            />
+          </FormActions>
+        </View>
+      )}
+      {register && (
+        <View
+          style={[{ gap: theme.spacing.md }, !source.ready && { display: 'none' }]}
+          accessibilityElementsHidden={!source.ready}
+          importantForAccessibility={source.ready ? 'auto' : 'no-hide-descendants'}
+        >
           <Text style={styles.muted}>
-            {selected.name} · {selected.symbol}
+            {register.token.name} · {register.token.symbol}
           </Text>
           <Section title="Inspection copy">
             <ClassInspectionCopy
+              key={register.token.uuid}
               owner={owner}
               register={register}
               guard={source.guard}
               sourceReady={source.ready}
+              open={open}
+              onBusyChange={setFormBusy}
               onOpenChange={setOpen}
             />
           </Section>
-        </>
+        </View>
       )}
     </Page>
   );
@@ -145,12 +198,16 @@ function ClassInspectionCopy({
   register,
   guard,
   sourceReady,
+  open,
+  onBusyChange,
   onOpenChange,
 }: {
   owner: OrderSubmissionOwner;
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady: boolean;
+  open: boolean;
+  onBusyChange: (busy: boolean) => void;
   onOpenChange: (open: boolean) => void;
 }) {
   const client = useQueryClient();
@@ -158,10 +215,11 @@ function ClassInspectionCopy({
     <>
       <InspectionCopyHistory owner={owner} token={register.token.uuid} guard={guard} enabled={sourceReady} />
       <InspectionForm
-        key={JSON.stringify([register, sourceReady])}
         register={register}
         guard={guard}
         sourceReady={sourceReady}
+        open={open}
+        onBusyChange={onBusyChange}
         onOpenChange={onOpenChange}
         onPrepared={() => void client.invalidateQueries({ queryKey: inspectionCopiesKey(owner, register.token.uuid) })}
       />
@@ -173,22 +231,21 @@ function InspectionForm({
   register,
   guard,
   sourceReady,
+  open,
+  onBusyChange,
   onOpenChange,
   onPrepared,
 }: {
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady: boolean;
+  open: boolean;
+  onBusyChange: (busy: boolean) => void;
   onOpenChange: (open: boolean) => void;
   onPrepared: () => void;
 }) {
   const styles = useCompanyStyles();
   const look = useDocumentStyles();
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    onOpenChange(open);
-    return () => onOpenChange(false);
-  }, [onOpenChange, open]);
   const { draft, setDraft, target, setTarget, busy, error, downloaded, problems, blocked, preview, download } =
     useClassInspectionCopy({
       register,
@@ -198,11 +255,15 @@ function InspectionForm({
       files: SHARE_SHEET_FILES,
       session: orderSubmissionSession,
     });
+  useEffect(() => {
+    onBusyChange(!!busy);
+    return () => onBusyChange(false);
+  }, [busy, onBusyChange]);
   const checks = useErrorSummary(problems);
   if (!open)
     return (
       <FormActions>
-        <Action label="Prepare inspection copy" disabled={blocked} onPress={() => setOpen(true)} />
+        <Action label="Prepare inspection copy" disabled={blocked} onPress={() => onOpenChange(true)} />
       </FormActions>
     );
   return (
@@ -265,7 +326,7 @@ function InspectionForm({
           disabled={!!busy}
           onPress={() => {
             Keyboard.dismiss();
-            setOpen(false);
+            onOpenChange(false);
           }}
         />
         {target && <Action label="Edit request" disabled={blocked} onPress={() => setTarget(null)} />}

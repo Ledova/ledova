@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCompanyTeam, getCompanyTeamInvitations, revokeCompanyAppointment } from '../services/company-authority';
 import type { CompanyTeamAppointment, OwnCompanyAppointment } from '../types';
@@ -25,6 +25,7 @@ export function useCompanyTeam({
   companyName: selectedName,
   editing = false,
   ownOnly = false,
+  available = true,
   session,
 }: {
   owner: OrderSubmissionOwner;
@@ -33,12 +34,13 @@ export function useCompanyTeam({
   companyName?: string;
   editing?: boolean;
   ownOnly?: boolean;
+  available?: boolean;
   session?: OrderSubmissionSession;
 }) {
   const apiClient = useApiClient();
   const client = useQueryClient();
   const mounted = useRef(true);
-  const guard = useCallback(() => {
+  const accountGuard = useCallback(() => {
     if (
       !mounted.current ||
       currentOwner() !== owner ||
@@ -46,6 +48,14 @@ export function useCompanyTeam({
     )
       throw new Error('Your signed-in account changed. Reopen company team.');
   }, [client, currentOwner, owner]);
+  const sourceAvailable = useRef(available);
+  useLayoutEffect(() => {
+    sourceAvailable.current = available;
+  }, [available]);
+  const guard = useCallback(() => {
+    accountGuard();
+    if (!sourceAvailable.current) throw new Error('Your company access could not be confirmed.');
+  }, [accountGuard]);
   const ownKey = ownAppointmentsKey(owner);
   const invitationKey = teamInvitationsKey(owner);
   const [sourceId, setSourceId] = useState('');
@@ -68,10 +78,10 @@ export function useCompanyTeam({
     };
   }, []);
   const refreshReady = !editing && !formBusy && !revoking && !confirmation;
-  const own = useOwnAppointments(owner, guard, { queryKey: ownKey, timing: {}, enabled: refreshReady, session });
+  const own = useOwnAppointments(owner, accountGuard, { queryKey: ownKey, timing: {}, enabled: refreshReady, session });
   const invitations = useQuery({
     queryKey: invitationKey,
-    enabled: refreshReady && !ownOnly,
+    enabled: available && refreshReady && !ownOnly,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     queryFn: () =>
@@ -101,7 +111,7 @@ export function useCompanyTeam({
   const teamKey = companyTeamKey(owner, company);
   const team = useQuery({
     queryKey: teamKey,
-    enabled: !!company && canAdmin && refreshReady && !ownOnly,
+    enabled: available && !!company && canAdmin && refreshReady && !ownOnly,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     queryFn: async () => {
@@ -116,7 +126,7 @@ export function useCompanyTeam({
       return result.data;
     },
   });
-  const disabled = formBusy || revoking;
+  const disabled = !available || formBusy || revoking;
   const close = () => {
     ticket.current = null;
     setConfirmation(null);

@@ -21,6 +21,7 @@ import { Fact, LoadError, Loading, Rows, Section, Status } from '../../component
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -34,15 +35,29 @@ type ShareClass = ReturnType<typeof useShareClass>;
 
 export function ShareClassScreen({ route }: { route: RouteProp<SignedInStackParamList, 'ShareClass'> }) {
   const { company, token } = route.params;
-  const { owner } = useSubmissionOwner(orderSubmissionSession);
+  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
+  const preferences = useUserPreferences();
   const { directory, companies } = useMemberRecordsState();
   const readable = companies.some((row) => row.uuid === company && row.canReadRegister);
-  if (owner && readable && !directory.hasError && !directory.isLoading)
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    `${company}/${token}`,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      readable &&
+      !directory.hasError &&
+      !directory.isLoading &&
+      !directory.isRefreshing,
+  );
+  if (owner && scope.scope !== undefined)
     return (
       <OwnShareClass
         key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company}/${token}`}
         company={company}
         token={token}
+        available={scope.available}
+        currentOwner={scope.currentOwner}
       />
     );
   return (
@@ -52,19 +67,39 @@ export function ShareClassScreen({ route }: { route: RouteProp<SignedInStackPara
   );
 }
 
-function OwnShareClass({ company, token }: { company: string; token: string }) {
+function OwnShareClass({
+  company,
+  token,
+  available,
+  currentOwner,
+}: {
+  company: string;
+  token: string;
+  available: boolean;
+  currentOwner: () => ReturnType<typeof useSubmissionOwner>['owner'];
+}) {
   const look = useLedgerStyles();
-  const data = useShareClass(token, orderSubmissionSession);
+  const data = useShareClass(token, orderSubmissionSession, available);
   if (data.token.data && data.token.data.companyUuid !== company)
     return (
       <Page testID="share-class-scroll" title={TITLE}>
         <Text style={look.muted}>This share class is not in a register you can read.</Text>
       </Page>
     );
-  return <ClassPage data={data} token={token} />;
+  return <ClassPage data={data} token={token} available={available} currentOwner={currentOwner} />;
 }
 
-function ClassPage({ data, token }: { data: ShareClass; token: string }) {
+function ClassPage({
+  data,
+  token,
+  available,
+  currentOwner,
+}: {
+  data: ShareClass;
+  token: string;
+  available: boolean;
+  currentOwner: () => ReturnType<typeof useSubmissionOwner>['owner'];
+}) {
   const theme = useAppTheme();
   const look = useLedgerStyles();
   const client = useQueryClient();
@@ -75,7 +110,7 @@ function ClassPage({ data, token }: { data: ShareClass; token: string }) {
   const listed = data.token.data;
   const rights = useClassRights(
     token,
-    data.token.isSuccess && data.token.fetchStatus === 'idle',
+    available && data.token.isSuccess && data.token.fetchStatus === 'idle',
     listed?.companyUuid,
     SHARE_SHEET_FILES,
     randomUUID,
@@ -87,6 +122,7 @@ function ClassPage({ data, token }: { data: ShareClass; token: string }) {
   }, [rights.editor, rights.pending, rights.busy, holdReads]);
   const onDocumentsHeld = useCallback((held: boolean) => holdReads('member-documents', held), [holdReads]);
   const registerReady =
+    available &&
     !!preferences.preferences &&
     preferencesRead?.status === 'success' &&
     preferences.fetchStatus === 'idle' &&
@@ -110,14 +146,16 @@ function ClassPage({ data, token }: { data: ShareClass; token: string }) {
   return (
     <Page
       testID="share-class-scroll"
-      title={listed?.name ?? TITLE}
+      title={available ? (listed?.name ?? TITLE) : TITLE}
+      available={available}
+      unavailable={<RegisterAccess owner={owner} />}
       refreshControl={
         <RefreshControl
           testID="share-class-refresh"
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing || data.readingPaused) return;
+            if (!available || refreshing || data.readingPaused) return;
             setRefreshing(true);
             void refresh().finally(() => setRefreshing(false));
           }}
@@ -189,7 +227,11 @@ function ClassPage({ data, token }: { data: ShareClass; token: string }) {
           readsPaused={data.readingPaused}
           onHeldChange={onDocumentsHeld}
           owner={owner}
-          guard={data.guard}
+          accountGuard={data.accountGuard}
+          guard={() => {
+            if (currentOwner() !== owner) throw new Error('Your company access could not be confirmed.');
+            data.guard();
+          }}
           company={listed.companyUuid}
           token={listed.uuid}
           sourceReady={registerReady}

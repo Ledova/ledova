@@ -275,6 +275,7 @@ export function useAllotmentForm({
     setMember,
     fields,
     setFields,
+    files,
     setFiles,
     busy,
     held,

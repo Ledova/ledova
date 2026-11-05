@@ -168,6 +168,7 @@ function OwnShareholderDocuments({ onHeldChange, title = 'Shareholder documents'
                   />
                   <FileField
                     label="File"
+                    value={document.file}
                     hint={UPLOAD_RULE.HINT}
                     disabled={locked}
                     onFile={(file) =>

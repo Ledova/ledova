@@ -34,6 +34,7 @@ export function AuthorityRequestForm({
     legend: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
   }));
   const {
+    file,
     setFile,
     requested,
     setRequested,
@@ -106,6 +107,7 @@ export function AuthorityRequestForm({
       />
       <FileField
         label="Supporting document"
+        value={file}
         disabled={unavailable}
         onFile={(file) => change(() => setFile(file && { uri: file.uri, name: file.name, type: file.type }))}
       />

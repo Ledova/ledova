@@ -62,22 +62,23 @@ export function useShareholder(
   company: string,
   member: string,
   session?: OrderSubmissionSession,
+  { available = true, accountGuard = guard }: { available?: boolean; accountGuard?: () => void } = {},
 ) {
   const apiClient = useApiClient();
-  const classes = useRegisterClasses(owner, guard, session);
+  const classes = useRegisterClasses(owner, accountGuard, session, available);
   const listed = (classes.data ?? []).filter((item) => item.companyUuid === company);
   const tokens = listed.map(({ uuid }) => uuid);
-  const registers = useRegisters(owner, tokens, guard, session);
-  const particulars = usePeople(owner, tokens[0] ?? '', guard, tokens.length > 0, session);
+  const registers = useRegisters(owner, tokens, guard, session, available);
+  const particulars = usePeople(owner, tokens[0] ?? '', guard, available && tokens.length > 0, session);
   const entries = useQuery({
     queryKey: [...registerEntriesKey(owner), 'member', member, ...tokens],
-    enabled: tokens.length > 0,
+    enabled: available && tokens.length > 0,
     queryFn: () => readMemberEntries(apiClient, tokens, member, guard, session),
     ...READ_TIMING,
   });
   const awards = useQuery({
     queryKey: [...registerKey(owner), 'member-awards', company, member],
-    enabled: tokens.length > 0,
+    enabled: available && tokens.length > 0,
     queryFn: async () => {
       const rows = await readEveryPage(async (page) => {
         guard();

@@ -14,10 +14,23 @@ type PageProps = Pick<
   links?: ReactNode;
   lede?: string;
   held?: boolean;
+  available?: boolean;
+  unavailable?: ReactNode;
   children?: ReactNode;
 };
 
-export function Page({ ref, title, titleAction, links, lede, held = false, children, ...scroll }: PageProps) {
+export function Page({
+  ref,
+  title,
+  titleAction,
+  links,
+  lede,
+  held = false,
+  available = true,
+  unavailable,
+  children,
+  ...scroll
+}: PageProps) {
   const inFrame = useContext(InSignedInFrame);
   const navigation =
     useNavigation<NavigationProp<ParamListBase, string, string | undefined, NavigationState, FrameOptions>>();
@@ -32,6 +45,8 @@ export function Page({ ref, title, titleAction, links, lede, held = false, child
       gap: theme.spacing.md,
     },
     framed: { paddingTop: theme.spacing.md },
+    stack: { gap: theme.spacing.md },
+    hidden: { display: 'none' as const },
     titleRow: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
@@ -76,7 +91,20 @@ export function Page({ ref, title, titleAction, links, lede, held = false, child
           {ledeText}
         </View>
       )}
-      {children}
+      {unavailable === undefined ? (
+        children
+      ) : (
+        <>
+          {!available && unavailable}
+          <View
+            style={[styles.stack, !available && styles.hidden]}
+            accessibilityElementsHidden={!available}
+            importantForAccessibility={available ? 'auto' : 'no-hide-descendants'}
+          >
+            {children}
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }

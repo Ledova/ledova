@@ -249,10 +249,19 @@ any deadline beneath. **Invite a member** replaces them with the web's form, cho
 searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
 access to the company, each of these pages reads nothing and points to Dashboard. Pulling down rereads
 each of them while no form or action is open. Unlike the web, which keeps a held save on its page,
-leaving an app page drops that save's retry, so adding the person, sending the invitation, recording
-the award or its vesting, adding shareholder documents, saving a register setup, or preparing or
-deciding a share issue, transfer, correction or copied opening again could record it twice; an
-app-wide fix is planned.
+leaving an app page still drops that save's retry, so repeating an unresolved add, invitation,
+award, document save or register instruction can record it twice. Navigation protection remains
+planned under #1464.
+
+Team, an employee award, a shareholder, a share class, Company pack and Inspection copies keep
+an existing form mounted during a same-account access reread or failure. `useRetainedScope.ts` in
+`mobile/src/hooks` retains only the confirmed company/record scope under the exact account and
+session epoch. `Page` hides private content and its accessibility tree while showing the access
+status in the same frame; actions and private reads stay blocked by live guards. A changed account,
+session, explicit company selection or record discards the old form; losing access alone keeps it hidden. Current appointment reads remain account-bound,
+so a failed company-access reread can recover. Other mutation pages still need this treatment.
+Company pack and Inspection copies key forms by their source identity, not transient readiness or
+an entire register snapshot, and keep their drafts while their sources are rechecked.
 Employee share scheme (`EmployeeSchemeScreen.tsx`) is the web's view at phone width for a register
 reader of the selected company, read through `useCompanyRegisters.ts` and the shared
 `useRegisterAwards`: one share class's card, titled with the class (oldest first by default, and **Share
@@ -591,23 +600,22 @@ source copies and shareholder documents, a share transfer's
 instrument and authority, and a correction's authority document are picked with
 `expo-file-system`'s own picker (`File.pickFileAsync`,
 through `FileField`), so no picker module returns. On iOS it hands over a copy in the temporary
-folder's `-Inbox` folder, deleted when another file replaces it, the form goes (its request recorded,
-the form cancelled or the page left) or the session changes; a closed authority request form keeps it
-with its draft, and register setup keeps each copy its draft still holds, including on another step, in
-a closed shareholder or during review, until the page goes. On Android it hands
+folder's `-Inbox` folder. Each form owns its selected file value, so hiding or remounting a field
+keeps the file and its name. Replaced, refused and late picks are discarded; accepted copies stay
+in the existing session registry until the session changes or the next app start. On Android it hands
 over the chosen document itself, which the app never deletes, named from its address. As on the web,
 a file whose name ends in a PDF, PNG or JPEG extension that doesn't match its type is refused. Any
 other name, with no extension, as Android's names from an address usually are, or ending in something
 else, such as `Payslip 04.11.2026`, becomes `document` with its type's extension from the shared
 `UPLOAD_TYPES` (`uploadType` reads the extension).
 
-For one release, each app start and session change still delete the copies an earlier build's
-picker and uploads left behind (`sweepEarlierUploadCopies` in
+Each app start and session change delete app-owned upload copies, including ones an earlier build's
+picker left behind (`sweepEarlierUploadCopies` in
 `mobile/src/services/documentCopies.ts`): the picker's UUID-named files in the cache's
 `DocumentPicker` folder, the old `ledova-upload-copies-v1` copies and, on iOS, the files in the
 temporary folder's `-Inbox` folders, which also clears any evidence copy left there. It deletes only
 files inside the app's own cache or, on iOS, temporary folder, and needs only `expo-file-system`. The
-release after that removes it.
+cleanup also covers a process that stopped before its session cleanup ran.
 
 ## Document view copies
 

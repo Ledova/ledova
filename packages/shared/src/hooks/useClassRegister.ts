@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { READ_TIMING } from '../constants/api';
 import { getCompanyTokenHolders } from '../services/company-tokens';
@@ -20,6 +20,7 @@ export function useClassRegister(
   requested: string | null,
   purpose: keyof typeof PAGES,
   session?: OrderSubmissionSession,
+  available = true,
 ) {
   const apiClient = useApiClient();
   const client = useQueryClient();
@@ -31,8 +32,19 @@ export function useClassRegister(
     },
     [client, currentOwner, owner, purpose],
   );
+  const sourceAvailable = useRef(available);
+  useLayoutEffect(() => {
+    sourceAvailable.current = available;
+  }, [available]);
+  const sourceGuard = useMemo(
+    () => () => {
+      accountGuard();
+      if (!sourceAvailable.current) throw new Error('Your company access could not be confirmed.');
+    },
+    [accountGuard],
+  );
   const appointments = useOwnAppointments(owner, accountGuard, { session });
-  const classes = useRegisterClasses(owner, accountGuard, session);
+  const classes = useRegisterClasses(owner, accountGuard, session, available);
   const options = classes.data?.filter((item) => item.companyUuid === company) ?? [];
   const token = useMemo(
     () => requested ?? classes.data?.find((item) => item.companyUuid === company)?.uuid ?? '',
@@ -40,7 +52,7 @@ export function useClassRegister(
   );
   const guard = useMemo(
     () => () => {
-      accountGuard();
+      sourceGuard();
       const authority = client.getQueryState<OwnCompanyAppointment[]>(ownAppointmentsKey(owner));
       const source = client.getQueryState<CompanyShareTokenListItem[]>(registerClassesKey(owner));
       if (
@@ -53,9 +65,10 @@ export function useClassRegister(
       )
         throw new Error('Your current company and share class access could not be confirmed.');
     },
-    [accountGuard, client, company, owner, token],
+    [sourceGuard, client, company, owner, token],
   );
   const sourceReady =
+    available &&
     classes.isSuccess &&
     !classes.isFetching &&
     appointments.isSuccess &&
@@ -82,7 +95,7 @@ export function useClassRegister(
     guard,
     register,
     sourceReady,
-    ready: sourceReady && register.isSuccess && !register.isFetching,
+    ready: sourceReady && options.some((item) => item.uuid === token) && register.isSuccess && !register.isFetching,
     hasError: classes.isError || appointments.isError || register.isError,
     isRefreshing: classes.isFetching || appointments.isFetching || register.isFetching,
     retry: async () => {

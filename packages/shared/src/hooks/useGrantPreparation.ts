@@ -320,6 +320,7 @@ export function useGrantPreparation({
     setReason,
     acceptanceRequired,
     setAcceptanceRequired,
+    files,
     setFiles,
     busy,
     held,

@@ -235,6 +235,7 @@ function CorrectionForm({
       />
       <FileField
         label={COPY.AUTHORITY_DOCUMENT}
+        value={draft.file}
         hint={COPY.AUTHORITY_DOCUMENT_NOTE}
         disabled={busy}
         error={checks.field('file').error}

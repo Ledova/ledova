@@ -200,5 +200,5 @@ export function useAwardVestingForm({
       }
     }
   };
-  return { shares, setShares, vestedOn, setVestedOn, setFile, busy, held, error, today, problems, submit };
+  return { shares, setShares, vestedOn, setVestedOn, file, setFile, busy, held, error, today, problems, submit };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Keyboard, RefreshControl, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -8,12 +8,15 @@ import {
   useCompanyPackAuthority,
   useErrorSummary,
   useSubmissionOwner,
+  useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Action, FormActions, LoadError, Loading, Outcome, Section, ShowMore } from '../../components/Ledger';
 import { Page } from '../../components/Page';
+import { RegisterAccess } from '../../components/RegisterAccess';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
 import { Field } from '../../components/register/RegisterFields';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -27,16 +30,30 @@ const LEDE = 'Prepare a package of the company’s records.';
 
 export function CompanyPackScreen() {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company } = useMemberRecordsState();
+  const { directory, companies, company, companySelection } = useMemberRecordsState();
+  const preferences = useUserPreferences();
   const choosing = directory.isLoading || (!company && companies.length > 0);
-  if (owner && company?.canReadRegister && !directory.hasError && !choosing)
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    companySelection ?? company?.uuid,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      !!company?.canReadRegister &&
+      (!companySelection || company.uuid === companySelection) &&
+      !directory.hasError &&
+      !choosing &&
+      !directory.isRefreshing,
+    companySelection,
+  );
+  if (owner && scope.scope)
     return (
       <OwnCompanyPack
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company.uuid}`}
+        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}`}
         owner={owner}
         currentOwner={boundary.get}
-        company={company.uuid}
-        sourceReady={!directory.isRefreshing}
+        company={scope.scope}
+        sourceReady={scope.available}
       />
     );
   return (
@@ -83,18 +100,22 @@ function OwnCompanyPack({
     guard,
     company,
     session: orderSubmissionSession,
+    available: sourceReady,
   });
+  const formReady = sourceReady && !!appointment;
   return (
     <Page
       testID="company-pack-scroll"
       title={TITLE}
       lede={LEDE}
+      available={sourceReady}
+      unavailable={<RegisterAccess owner={owner} />}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing || open) return;
+            if (!sourceReady || refreshing || open) return;
             setRefreshing(true);
             void Promise.all([
               appointments.refetch(),
@@ -109,24 +130,28 @@ function OwnCompanyPack({
           <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
             Your appointments could not be loaded.
           </LoadError>
-        ) : appointment ? (
-          <>
-            <CompanyPackHistory owner={owner} company={company} guard={check} enabled={sourceReady} />
-            <PackForm
-              key={JSON.stringify([company, appointment.uuid, sourceReady])}
-              company={company}
-              appointment={appointment.uuid}
-              guard={check}
-              sourceReady={sourceReady}
-              onOpenChange={setOpen}
-              onPrepared={() => void client.invalidateQueries({ queryKey: companyPacksKey(owner, company) })}
-            />
-          </>
-        ) : appointments.isSuccess && !appointments.isFetching ? (
+        ) : appointments.isSuccess && !appointments.isFetching && !appointment ? (
           <Text style={styles.muted}>A current administrator appointment for this company is required.</Text>
-        ) : (
+        ) : !appointment ? (
           <Loading>Loading your appointments…</Loading>
-        )}
+        ) : null}
+        <View
+          style={[{ gap: theme.spacing.md }, !formReady && { display: 'none' }]}
+          accessibilityElementsHidden={!formReady}
+          importantForAccessibility={formReady ? 'auto' : 'no-hide-descendants'}
+        >
+          <CompanyPackHistory owner={owner} company={company} guard={check} enabled={formReady} />
+          <PackForm
+            key={company}
+            company={company}
+            appointment={appointment?.uuid ?? ''}
+            guard={check}
+            sourceReady={formReady}
+            open={open}
+            onOpenChange={setOpen}
+            onPrepared={() => void client.invalidateQueries({ queryKey: companyPacksKey(owner, company) })}
+          />
+        </View>
       </Section>
     </Page>
   );
@@ -137,6 +162,7 @@ function PackForm({
   appointment,
   guard,
   sourceReady,
+  open,
   onOpenChange,
   onPrepared,
 }: {
@@ -144,16 +170,12 @@ function PackForm({
   appointment: string;
   guard: () => void;
   sourceReady: boolean;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
   onPrepared: () => void;
 }) {
   const styles = useCompanyStyles();
   const look = useDocumentStyles();
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    onOpenChange(open);
-    return () => onOpenChange(false);
-  }, [onOpenChange, open]);
   const { instruction, setInstruction, recipient, setRecipient, busy, error, downloaded, problems, download } =
     useCompanyPack({
       company,
@@ -168,7 +190,7 @@ function PackForm({
   if (!open)
     return (
       <FormActions>
-        <Action label="Prepare company pack" disabled={busy || !sourceReady} onPress={() => setOpen(true)} />
+        <Action label="Prepare company pack" disabled={busy || !sourceReady} onPress={() => onOpenChange(true)} />
       </FormActions>
     );
   return (
@@ -215,7 +237,7 @@ function PackForm({
           disabled={busy}
           onPress={() => {
             Keyboard.dismiss();
-            setOpen(false);
+            onOpenChange(false);
           }}
         />
         <Action
