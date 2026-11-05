@@ -64,23 +64,43 @@ export function Rows({ children }: { children: ReactNode }) {
 export function Fact({
   label,
   mono = false,
+  inline = false,
   children,
 }: {
   label: string;
   mono?: boolean;
+  inline?: boolean;
   children: string | ReactElement;
 }) {
   const styles = useThemedStyles((theme) => ({
     fact: { gap: theme.spacing.xs, paddingVertical: theme.spacing.smd },
+    inline: {
+      flexDirection: 'row' as const,
+      alignItems: 'flex-start' as const,
+      justifyContent: 'space-between' as const,
+      gap: theme.spacing.md,
+    },
+    end: { flexShrink: 1, textAlign: 'right' as const },
+    shrink: { flexShrink: 1 },
     label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.muted },
     value: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.primary },
     mono: { fontFamily: theme.fontFamily.mono },
   }));
   const text = typeof children === 'string';
   return (
-    <View accessible={text} accessibilityLabel={text ? `${label}: ${children}` : undefined} style={styles.fact}>
+    <View
+      accessible={text}
+      accessibilityLabel={text ? `${label}: ${children}` : undefined}
+      style={[styles.fact, inline && styles.inline]}
+    >
       <Text style={styles.label}>{label}</Text>
-      {text ? <Text style={[styles.value, mono && styles.mono]}>{children}</Text> : children}
+      {text ? (
+        <Text style={[styles.value, mono && styles.mono, inline && styles.end]}>{children}</Text>
+      ) : inline ? (
+        <View style={styles.shrink}>{children}</View>
+      ) : (
+        children
+      )}
     </View>
   );
 }

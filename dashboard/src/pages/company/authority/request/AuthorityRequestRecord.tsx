@@ -53,18 +53,28 @@ export function AuthorityRequestRecord({
     <>
       <Section title="Request">
         <Rows>
-          <Row label="Status">
+          <Row inline label="Status">
             <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
               {authorityRequestStatus(request)}
             </Status>
           </Row>
-          <Row label="Requested expiry">
+          <Row inline label="Requested expiry">
             {request.requestedExpiresAt ? formatDateTime(request.requestedExpiresAt) : 'No requested expiry'}
           </Row>
-          <Row label="Requested actions">{requestScopeLabels(request.requestedCapabilities)}</Row>
-          <Row label="Requested delegation">{requestScopeLabels(request.delegatableCapabilities)}</Row>
-          <Row label="Submitted">{formatDateTime(request.createdAt)}</Row>
-          {request.withdrawnAt && <Row label="Withdrawn">{formatDateTime(request.withdrawnAt)}</Row>}
+          <Row inline label="Requested actions">
+            {requestScopeLabels(request.requestedCapabilities)}
+          </Row>
+          <Row inline label="Requested delegation">
+            {requestScopeLabels(request.delegatableCapabilities)}
+          </Row>
+          <Row inline label="Submitted">
+            {formatDateTime(request.createdAt)}
+          </Row>
+          {request.withdrawnAt && (
+            <Row inline label="Withdrawn">
+              {formatDateTime(request.withdrawnAt)}
+            </Row>
+          )}
         </Rows>
         <p className="text-sm text-text-muted">{request.verificationMessage}</p>
         {request.status === 'pending' && (
@@ -126,15 +136,29 @@ export function AuthorityRequestRecord({
       {appointment && (
         <Section title="Appointment">
           <Rows>
-            <Row label="Appointment status">{APPOINTMENT_STATUS_LABELS[appointment.status]}</Row>
-            <Row label="Current company authority">{appointment.isEffective ? 'Current' : 'Not current'}</Row>
-            <Row label="Admitted">{formatDateTime(appointment.createdAt)}</Row>
-            <Row label="Appointed actions">{requestScopeLabels(appointment.capabilities)}</Row>
-            <Row label="Appointed delegation">{requestScopeLabels(appointment.delegatableCapabilities)}</Row>
-            <Row label="Appointment expiry">
+            <Row inline label="Appointment status">
+              {APPOINTMENT_STATUS_LABELS[appointment.status]}
+            </Row>
+            <Row inline label="Current company authority">
+              {appointment.isEffective ? 'Current' : 'Not current'}
+            </Row>
+            <Row inline label="Admitted">
+              {formatDateTime(appointment.createdAt)}
+            </Row>
+            <Row inline label="Appointed actions">
+              {requestScopeLabels(appointment.capabilities)}
+            </Row>
+            <Row inline label="Appointed delegation">
+              {requestScopeLabels(appointment.delegatableCapabilities)}
+            </Row>
+            <Row inline label="Appointment expiry">
               {appointment.expiresAt ? formatDateTime(appointment.expiresAt) : 'No expiry'}
             </Row>
-            {appointment.revokedAt && <Row label="Revoked">{formatDateTime(appointment.revokedAt)}</Row>}
+            {appointment.revokedAt && (
+              <Row inline label="Revoked">
+                {formatDateTime(appointment.revokedAt)}
+              </Row>
+            )}
           </Rows>
           <MoreToggle
             open={declarationShown}
