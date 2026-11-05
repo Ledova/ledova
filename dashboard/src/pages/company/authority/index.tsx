@@ -63,7 +63,7 @@ function OwnAuthorityRequests({
     requestAnimationFrame(() => opener.current?.focus());
   };
   return (
-    <Page back={{ arrow: true }} lede="Manage your own company appointment and its authorisation declaration.">
+    <Page lede="Manage your own company appointment and its authorisation declaration.">
       <Outcome>{recorded && `Request recorded. ${recorded.verificationMessage}`}</Outcome>
       <div hidden={preparing}>
         <Section title="Authority requests">

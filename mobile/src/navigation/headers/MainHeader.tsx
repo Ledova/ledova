@@ -152,20 +152,22 @@ export function TopBar({
           <NotificationsButton onOpen={onNotifications} expanded={notificationsOpen} unreadCount={unreadCount} />
         </View>
       </View>
-      <AppMenu
-        visible={open}
-        current={current}
-        route={route}
-        onClose={() => setOpen(false)}
-        onSelect={(target) => {
-          setOpen(false);
-          navigation.reset(
-            target === 'Dashboard'
-              ? { index: 0, routes: [{ name: 'Dashboard' }] }
-              : { index: 1, routes: [{ name: 'Dashboard' }, { name: target }] },
-          );
-        }}
-      />
+      {!back && (
+        <AppMenu
+          visible={open}
+          current={current}
+          route={route}
+          onClose={() => setOpen(false)}
+          onSelect={(target) => {
+            setOpen(false);
+            navigation.reset(
+              target === 'Dashboard'
+                ? { index: 0, routes: [{ name: 'Dashboard' }] }
+                : { index: 1, routes: [{ name: 'Dashboard' }, { name: target }] },
+            );
+          }}
+        />
+      )}
     </View>
   );
 }

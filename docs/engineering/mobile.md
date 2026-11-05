@@ -106,7 +106,7 @@ Shareholders for Shareholders, a shareholder's page, its particulars change, Emp
 award's page and Member access, Documents for Certificates, Inspection copies and Company pack,
 Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like
 the web's sidebar, it marks Account on
-Representative authority and its requests, Employee scheme on an award's page, Transfer shares on a
+an authority request's page, Employee scheme on an award's page, Transfer shares on a
 transfer's preparation and Corrections on a correction's preparation. Choosing Dashboard
 returns to it. Ledger opens its overview, Shareholders its people list, Documents opens Certificates
 and Settings opens Profile.
@@ -278,7 +278,8 @@ the shared `useMemberDocuments`) with the class's retained supporting files, eac
 holder and **Download**, and **Add documents** for someone who can prepare the register, choosing the
 holder from a searchable list and each file's category. Without register access to the company, both
 pages read nothing and point to Dashboard, and a class of another company is not in a register you can
-read. The web's **Back to Ledger** is left out, as the app has no back buttons. Pulling down rereads
+read. The web's **Back to Ledger** is left out, as these pages have no back button yet
+([#1547](https://github.com/Ledova/ledova/issues/1547)). Pulling down rereads
 either page while no form is open.
 Issue shares (`IssueSharesScreen.tsx`) is the web's Issue shares at phone width for a register reader
 of the selected company, read through `useCompanyRegisters.ts`, the shared `useRegisterAllotments` and
