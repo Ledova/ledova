@@ -40,11 +40,10 @@ export function InspectionCopiesScreen() {
   const scope = useRetainedScope(
     owner,
     boundary.get,
-    companySelection ?? company?.uuid,
+    company?.uuid,
     !preferences.isError &&
       !preferences.isFetching &&
       !!company?.canReadRegister &&
-      (!companySelection || company.uuid === companySelection) &&
       !directory.hasError &&
       !choosing &&
       !directory.isRefreshing,

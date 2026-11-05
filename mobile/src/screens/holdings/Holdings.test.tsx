@@ -62,6 +62,7 @@ import { useState } from 'react';
 import type { AxiosInstance } from 'axios';
 import { File } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { MemberRecordsProvider } from '../../contexts';
 import { AppMenu } from '../../navigation/AppMenu';
@@ -281,6 +282,7 @@ const LINKS = [
   },
 ];
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
+const TEAM_INVITATIONS = '/api/v1/company-authority/invitations/';
 const ADMINISTRATION: OwnCompanyAppointment = {
   uuid: '28282828-2828-4828-8828-282828282828',
   company: ADMINISTERED.uuid,
@@ -677,7 +679,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
       return page(appointed ? [own] : []);
     }
     if (url === `${APPOINTMENTS}team/`) return { data: [revoked ? { ...READER, ...REVOKED } : READER] };
-    if (url === '/api/v1/company-authority/invitations/') return page([]);
+    if (url === TEAM_INVITATIONS) return page([]);
     if (url === AUTHORITY_REQUESTS) return page([PENDING, ADMITTED]);
     if (url === URLS.REGISTER) {
       const company = (config?.params as { company_uuid?: string } | undefined)?.company_uuid;
@@ -838,6 +840,16 @@ it('associates a member by invitation code, switches to their company on Dashboa
   });
   api.post.mockReset().mockImplementation(async (url, value) => {
     const body = value as Record<string, string>;
+    if (url === `${TEAM_INVITATIONS}accept/`) {
+      appointed = true;
+      own = {
+        ...ADMINISTRATION,
+        source: 'invitation',
+        declarationText: COMPANY_AUTHORITY_DECLARATION,
+        declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION,
+      };
+      return { data: own };
+    }
     if (url === URLS.MEMBER_INVITATION_PREVIEW) {
       const other = body.code === OTHER_CODE;
       return {
@@ -1300,6 +1312,70 @@ it('associates a member by invitation code, switches to their company on Dashboa
       });
     };
   };
+  const companyChoiceKey = `ledova.company.${owner.userUuid}.${owner.ownerAccountUuid}`;
+  await AsyncStorage.removeItem(companyChoiceKey);
+  const acceptOfficerPage = (
+    <TeamScreen route={{ key: 'accept-first-officer', name: 'Team', params: { accept: true } }} />
+  );
+  const companyOfficerPage = (
+    <TeamScreen route={{ key: 'accept-first-officer', name: 'Team', params: { accept: false } }} />
+  );
+  const officer = await render(<TeamScreen />, { wrapper });
+  await waitFor(() => expect(mockSetParams).toHaveBeenLastCalledWith({ accept: true }));
+  await officer.rerender(acceptOfficerPage);
+  await fireEvent.changeText(await screen.findByLabelText('Invitation code'), MEMBER_CODE);
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation', disabled: false }));
+  const officerReceipt = `Appointment recorded for ${ADMINISTERED.name}.`;
+  await screen.findByText(officerReceipt);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.getByText(officerReceipt)).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Done', disabled: false }));
+  expect(mockSetParams).toHaveBeenLastCalledWith({ accept: false });
+  await officer.rerender(companyOfficerPage);
+  await screen.findByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/, disabled: false });
+  expect(await AsyncStorage.getItem(companyChoiceKey)).toBeNull();
+  expect(api.post.mock.calls).toContainEqual([
+    `${TEAM_INVITATIONS}accept/`,
+    { code: MEMBER_CODE, declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION, acceptDeclaration: true },
+    expect.anything(),
+  ]);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await officer.unmount();
+  client.clear();
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
+  await AsyncStorage.setItem(companyChoiceKey, ELSEWHERE_COMPANY);
+  const deniedCompanyOfficer = await render(acceptOfficerPage, { wrapper });
+  await fireEvent.changeText(await screen.findByLabelText('Invitation code'), OTHER_CODE);
+  expect(screen.queryByRole('button', { name: /^Revoke appointment \(/ })).toBeNull();
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation', disabled: false }));
+  await screen.findByText(officerReceipt);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.getByText(officerReceipt)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^Revoke appointment \(/ })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Done', disabled: false }));
+  expect(mockSetParams).toHaveBeenLastCalledWith({ accept: false });
+  await deniedCompanyOfficer.rerender(companyOfficerPage);
+  await screen.findByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/, disabled: false });
+  expect(await AsyncStorage.getItem(companyChoiceKey)).toBe(ELSEWHERE_COMPANY);
+  expect(api.post.mock.calls.filter(([url]) => url === `${TEAM_INVITATIONS}accept/`)).toHaveLength(2);
+  expect(api.post.mock.calls).toContainEqual([
+    `${TEAM_INVITATIONS}accept/`,
+    { code: OTHER_CODE, declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION, acceptDeclaration: true },
+    expect.anything(),
+  ]);
+  await deniedCompanyOfficer.unmount();
+  await AsyncStorage.removeItem(companyChoiceKey);
+  client.clear();
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
+  appointed = false;
+  own = ADMINISTRATION;
+  api.get.mockClear();
+  api.post.mockClear();
+  mockSetParams.mockClear();
   const dashboard = <DashboardScreen route={{ key: 'dashboard', name: 'Dashboard', params: undefined }} />;
   const view = await render(dashboard, { wrapper });
   await fireEvent.press(await screen.findByRole('button', { name: 'Accept invitation' }));

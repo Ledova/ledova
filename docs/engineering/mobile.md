@@ -433,7 +433,9 @@ issued, with the web's rows, wording, loading, empty and failure states. The Tea
 own administration appointment for that company; otherwise it says that authority is required.
 Accepting and inviting replace the page with the web's inline form, and the invitation keeps its
 draft when closed. Team opens on accepting at once from Account's **Company officer invitation**, and
-for someone with no appointments who owns no company once their appointments load. The capabilities are
+for someone with no appointments who owns no company once their appointments load. Acceptance is an
+account task, independent of the selected company's access. It keeps its receipt while the first
+company loads; **Done** opens the current company's Team. The capabilities are
 checkboxes, the invitation deadline and appointment expiry are typed as `YYYY-MM-DD` (UTC) with the
 web's checks, and the one-time code shows once as selectable text to copy. **Revoke appointment**
 asks first in the web's dialog. Pulling down rereads the page while no form or revocation is open.
