@@ -1,9 +1,8 @@
-import { FIELD_LIMITS } from '@ledova/shared';
+import { COMPANY_TYPES, FIELD_LIMITS } from '@ledova/shared';
 import { ERROR_BANNER_CLASS, AuthCard, AuthInput, AuthDivider, authFieldClass, AuthSubmit } from '@components/auth';
 import { Field, Label, Description, Select } from '@headlessui/react';
 import { BuildingsIcon, WarningIcon, CaretDownIcon } from '@phosphor-icons/react';
 import { ICON_MD } from '@components/iconSizes';
-import { COMPANY_TYPES } from '@pages/signup/shared/constants';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useFieldErrorSummary } from '@hooks/useErrorSummary';
 import { Failure } from '@components/Ledger';

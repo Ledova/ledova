@@ -7,7 +7,8 @@ team invitations and appointments, company information, and activation. It is wr
 for company representatives, support staff and anyone learning how company authority is established. The representative declares their own authority and Ledova does
 not verify it ([self-declaration decision](../decisions.md#company-representative-verification));
 who holds which capability is in [company capabilities](README.md#company-capabilities). All of it
-happens on the web, and the mobile app also has the web's [Team](#team-invitations-and-appointments),
+happens on the web, and the mobile app also has [company signup](#company-signup), the web's
+[Team](#team-invitations-and-appointments),
 [Representative authority](#representative-authority-requests) and [Activation](#activation), and
 shows a company's administrators and register readers its ownership overview, its
 [Ledger](register.md#the-register-page) with each [share class's page](register.md#the-share-class-page),
@@ -30,7 +31,7 @@ shows a company's administrators and register readers its ownership overview, it
 
 ## Company signup
 
-Company signup and the representative's initial authority finish in one flow on the web
+Company signup and the representative's initial authority finish in one flow on web and mobile
 ([combined signup decision](../decisions.md#combined-company-signup-and-initial-authority),
 as amended the [same day](../decisions.md#simple-signup-documents-and-team-after-registration)).
 Ledova does not look the company up in the ABR or any other register, at signup or at
@@ -45,8 +46,9 @@ Ledova does not look the company up in the ABR or any other register, at signup 
    its users, and accepts the Terms of Service (version 2026-10-14, which state the company's
    responsibilities) on the company's behalf. No file, checkbox or delegation choice is needed. If
    your instance requires a verified identity for representatives and yours is not verified yet,
-   choose **Verify your identity** here first; **Complete company setup** waits until the check
-   passes.
+   **Complete company setup** waits until the check passes. The web offers **Verify your identity**
+   here. The app currently reports the requirement; its native provider journey is tracked separately
+   in [#1562](https://github.com/Ledova/ledova/issues/1562).
 5. Choose **Complete company setup**. This records your acceptance of that declaration, keeps a
    no-file authority request and admits it. Signup completes only once your initial appointment is
    confirmed.
@@ -71,10 +73,11 @@ setup tasks; completed tasks disappear ([the Dashboard](README.md#the-app-at-a-g
 
 Resuming an unfinished signup:
 
-- An unfinished account can sign in again. On the web, a company account with saved personal
+- An unfinished account can sign in again. On web and mobile, a company account with saved personal
   details returns to Company details with its saved company; other accounts resume at the account
   type step.
-- Before choosing **Complete company setup**, you can change your email from **Your account**
+- On the web, before choosing **Complete company setup**, you can change your email from
+  **Your account**
   ([changing your email](participants.md#going-back-and-changing-your-email)). Signup starts
   again, and your draft company stays with your account and reappears at Company details.
 - A retry must settle the retained authority request and the Terms outcome before completion. It

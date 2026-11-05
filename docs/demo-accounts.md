@@ -150,8 +150,8 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
 
 ## Current handover — 5 November 2026
 
-Nothing is in flight: `main` holds everything, with no open pull request, other branch or worktree,
-and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before starting it.
+Claude released its claims on #1464 and #1453 in the handover. Codex continues #1464 with native
+company signup; check GitHub for current claims and pull requests before starting another increment.
 
 **Where things stand:**
 
@@ -171,11 +171,14 @@ and neither #1464 nor #1453 is claimed. Check GitHub and claim an issue before s
     particulars were simplified further (#1557–#1559).
   - [#1547](https://github.com/Ledova/ledova/issues/1547) made the back arrow the only way back on
     every page with a parent (#1560).
+  - #1464's phase 5 now gives the app the company-representative choice, Company details and the
+    combined company/authority/Terms review, reusing saved details and interrupted-request recovery.
+    A configured identity requirement still blocks completion; the owner kept the native provider
+    journey separate under [#1562](https://github.com/Ledova/ledova/issues/1562).
 
 **What's next, in order:**
 
 1. [#1464](https://github.com/Ledova/ledova/issues/1464):
-   - Phase 5, sign-up for company accounts. The app still tells them it is for shareholders.
    - A shareholder's supporting Documents section in the app.
    - Keeping held saves across leaving a page in the app, where leaving drops a retry, so a repeated
      add or invite could duplicate.

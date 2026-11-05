@@ -75,13 +75,24 @@ Metro resolutions from `App.tsx` and from a shared hook disagree. Run
 `mobile/src/navigation` declares the root stack with sign-in and sign-up (`AppNavigator`, which
 always opens at sign-in: a stored session is never resumed without a typed or biometric sign-in, and
 sign-in clears the query cache on focus) and `SignupCompletionGate`. The gate returns an unfinished
-account to sign-up, or, for a company account, to a notice that the app is for shareholders with
-only Sign out; once the app has opened, it stays mounted while the account and profile reread, so a
+account to Account type, or a company account with saved personal details to Company details;
+once the app has opened, it stays mounted while the account and profile reread, so a
 pull to refresh keeps the screen and any unfinished work. A failed profile refresh keeps them too
 while a confirmed profile exists. Without one, or when the preferences recheck fails, the gate shows
-its error, and a failed sign-in check returns to Sign in. Sign-up's first step sets
-the individual role, then pre-screening, personal details, financial profile and review follow; the
-dashboard's routes and guards do not apply.
+its error, and a failed sign-in check returns to Sign in. After email verification, Account type
+offers **Individual investor** or **Company representative**. An investor continues through
+pre-screening, personal details, financial profile and review; a representative continues through
+personal details, Company details and **Complete company setup**. The dashboard's routes and guards
+do not apply.
+
+Company details uses `useSignupCompanyRegistration`, and review uses `useSignupReview` and
+`useSignupCompanyAuthority`, with the native session and request keys. They reuse saved company
+details, retain the authority request and Terms outcome across interrupted replies, and finish
+only after a current administrator appointment is confirmed. Company types come from
+`packages/shared/src/constants/business/company-types.ts` on both clients. A required representative
+identity check still blocks completion: the app reports that requirement but does not yet start
+the provider's identity journey. The owner kept that journey separate under
+[#1562](https://github.com/Ledova/ledova/issues/1562).
 
 The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Every page shows
 the web's phone top bar (`TopBar`): the menu button, the page's title, its action (such as Switch

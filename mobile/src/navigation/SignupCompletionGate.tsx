@@ -29,7 +29,14 @@ export function SignupCompletionGate() {
     if (!auth.isAuthenticated) {
       navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
     } else if (!waiting && !failed && userProfile && !userProfile.isSignupCompleted) {
-      navigation.reset({ index: 0, routes: [{ name: isCompany ? 'ShareholdersOnly' : 'AccountType' }] });
+      navigation.reset({
+        index: 0,
+        routes: [{
+          name: isCompany && (userProfile.fullName?.trim().split(/\s+/).length ?? 0) > 1
+            ? 'CompanyRegistration'
+            : 'AccountType',
+        }],
+      });
     }
   }, [auth.isAuthenticated, auth.isLoading, auth.isFetching, waiting, failed, userProfile, isCompany, navigation]);
   if (completed || kept) return <SignedInNavigator />;

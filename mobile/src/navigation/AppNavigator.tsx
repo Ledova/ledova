@@ -9,7 +9,7 @@ import { UserProfileScreen } from '../screens/signup/user-profile';
 import { FinancialProfileScreen } from '../screens/signup/financial-profile';
 import { ReviewScreen } from '../screens/signup/review';
 import { AccountTypeScreen } from '../screens/signup/account-type';
-import { ShareholdersOnlyScreen } from '../screens/signup/shareholders-only';
+import { CompanyRegistrationScreen } from '../screens/signup/company-registration';
 import { SignupCompletionGate } from './SignupCompletionGate';
 import type { SignedInStackParamList } from './SignedInNavigator';
 import { useAppTheme } from '../contexts';
@@ -22,7 +22,7 @@ export type RootStackParamList = {
   PreScreening: undefined;
   UserProfile: undefined;
   FinancialProfile: undefined;
-  ShareholdersOnly: undefined;
+  CompanyRegistration: undefined;
   Review: undefined;
   MainApp: NavigatorScreenParams<SignedInStackParamList> | undefined;
 };
@@ -118,8 +118,8 @@ export const AppNavigator = () => {
           }}
         />
         <Stack.Screen
-          name="ShareholdersOnly"
-          component={ShareholdersOnlyScreen}
+          name="CompanyRegistration"
+          component={CompanyRegistrationScreen}
           options={{
             headerShown: false,
           }}

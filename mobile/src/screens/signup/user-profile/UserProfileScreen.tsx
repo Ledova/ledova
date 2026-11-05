@@ -8,12 +8,14 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { UserIcon, WarningCircleIcon, HouseIcon, PhoneIcon } from 'phosphor-react-native';
 import { CountrySelector } from './components/CountrySelector';
+import { useRole } from '../../../hooks/useRole';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { parseDateString, formatDateToString, useSignupUserProfile } from '@ledova/shared';
 
 export function UserProfileScreen() {
   const theme = useAppTheme();
+  const { isCompany, isLoading: roleLoading } = useRole();
   const styles = useThemedStyles((theme) => ({
     container: {
       flex: 1,
@@ -199,15 +201,15 @@ export function UserProfileScreen() {
 
   const handleContinue = async () => {
     await handleSubmit(() => {
-      navigation.navigate('FinancialProfile');
+      navigation.navigate(isCompany ? 'CompanyRegistration' : 'FinancialProfile');
     });
   };
 
   const handleBack = () => {
-    navigation.navigate('PreScreening');
+    navigation.navigate(isCompany ? 'AccountType' : 'PreScreening');
   };
 
-  if (isLoading) {
+  if (isLoading || roleLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
