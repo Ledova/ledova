@@ -9,6 +9,7 @@ import {
   DESTINATIONS,
   authorityRequestStatus,
   formatDate,
+  formatShortDate,
   useAuthorityRequests,
   useSubmissionOwner,
   type OrderSubmissionOwner,
@@ -82,14 +83,16 @@ function OwnAuthorityRequests({
                     to={requestPath(request.uuid)}
                     label={request.companyIdentityRaw.name}
                     context={`authority request submitted ${formatDate(request.createdAt)}, ${authorityRequestStatus(request).toLowerCase()}`}
-                    aside={
-                      <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
-                        {authorityRequestStatus(request)}
-                      </Status>
+                    figure={
+                      <span className="max-w-[45%] shrink-0 self-start">
+                        <Status tone={AUTHORITY_REQUEST_TONES.get(request.status) ?? 'closed'}>
+                          {authorityRequestStatus(request)}
+                        </Status>
+                      </span>
                     }
                   >
                     <span className="block text-xs text-text-muted">
-                      ACN {request.companyIdentityRaw.acn} · submitted {formatDate(request.createdAt)}
+                      ACN {request.companyIdentityRaw.acn} · submitted {formatShortDate(request.createdAt)}
                     </span>
                   </LinkRow>
                 </li>

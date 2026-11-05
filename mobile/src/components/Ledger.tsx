@@ -188,7 +188,7 @@ export function LinkRow({
   label: string;
   onPress: () => void;
   accessibilityLabel?: string;
-  figure?: string;
+  figure?: string | ReactElement;
   aside?: ReactNode;
   children?: ReactNode;
 }) {
@@ -204,6 +204,7 @@ export function LinkRow({
     line: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: theme.spacing.smd },
     fill: { flex: 1, minWidth: 0 },
     figure: { flexShrink: 0, textAlign: 'right' as const },
+    status: { flexShrink: 0, maxWidth: '45%' as const },
     label: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
   }));
   return (
@@ -217,7 +218,11 @@ export function LinkRow({
         {figure ? (
           <View style={styles.line}>
             <Text style={[styles.label, styles.fill]}>{label}</Text>
-            <Text style={[styles.label, styles.figure]}>{figure}</Text>
+            {typeof figure === 'string' ? (
+              <Text style={[styles.label, styles.figure]}>{figure}</Text>
+            ) : (
+              <View style={styles.status}>{figure}</View>
+            )}
           </View>
         ) : (
           <Text style={styles.label}>{label}</Text>

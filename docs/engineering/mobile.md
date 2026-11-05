@@ -402,9 +402,10 @@ web's checks, and the one-time code shows once as selectable text to copy. **Rev
 asks first in the web's dialog. Pulling down rereads the page while no form or revocation is open.
 Your appointments' **Representative authority**, shown as on the web to a company account that owns a company,
 opens the web's Representative authority page (`AuthorityScreen.tsx`), read and sent through the
-shared `useAuthorityRequests` and `useAuthorityRequestForm`: Authority requests, each a row with the
-company, its ACN and submission date and the request's status, then **Request authority**, which
-replaces the list with the web's New authority request form (`AuthorityRequestForm.tsx`) for the
+shared `useAuthorityRequests` and `useAuthorityRequestForm`: Authority requests, each a compact
+row with the company and the request's status, then its ACN and short submission date, then
+**Request authority**, which replaces the list with the web's New authority request form
+(`AuthorityRequestForm.tsx`) for the
 selected company when it is a draft the person owns, and otherwise the web's notice to choose a
 company on Dashboard. The capabilities are checkboxes, the expiry is typed as `YYYY-MM-DD` (UTC)
 with the web's check, and **Choose file** picks the supporting document through `expo-file-system`'s
