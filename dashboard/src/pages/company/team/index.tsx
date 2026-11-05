@@ -1,7 +1,7 @@
 import { SelectField } from '@components/SelectField';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { Section, LoadError, Loading, Failure } from '@components/Ledger';
-import { FormActions, Page, PageAction } from '@components/Page';
+import { Actions, FormActions, Page, PageAction } from '@components/Page';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
@@ -103,15 +103,6 @@ function OwnTeam({
   };
   const invitationSource = source ?? (draftSource?.uuid === sourceId ? draftSource : null);
   const sourceReady = own.isSuccess && !own.isFetching && !!source;
-  const taskHeading = (name: 'accept' | 'invite', title: string) => (
-    <h2
-      ref={task === name ? heading : undefined}
-      tabIndex={-1}
-      className="break-words font-display text-xl tracking-[-0.01em] text-text-primary focus:outline-none"
-    >
-      {title}
-    </h2>
-  );
   const accountStatus = own.isError ? (
     <LoadError retry={() => own.refetch()} busy={own.isFetching}>
       Your appointments could not be loaded.
@@ -127,7 +118,7 @@ function OwnTeam({
             Your appointments could not be loaded.
           </LoadError>
         )}
-        <Section title="Team">
+        <Section title="Appointments">
           {!companyName && !own.isPending && !own.isFetching && !own.isError && <CompanyContextNotice />}
           {company &&
             (own.isFetching ? (
@@ -162,7 +153,7 @@ function OwnTeam({
               </p>
             ))}
         </Section>
-        <div className="flex flex-wrap justify-end gap-2">
+        <Actions>
           <PageAction
             ref={inviteOpener}
             label="Invite a company user"
@@ -175,7 +166,7 @@ function OwnTeam({
               setTask('invite');
             }}
           />
-        </div>
+        </Actions>
         <Section title="Invitations you issued">
           {invitations.isPending ? (
             <Loading>Loading your invitations…</Loading>
@@ -203,7 +194,7 @@ function OwnTeam({
       <div hidden={!task} className="space-y-5">
         {task === 'invite' && accountStatus}
         <div hidden={task !== 'accept'}>
-          <Section title="Accept a company invitation" header={taskHeading('accept', 'Accept a company invitation')}>
+          <Section title="Accept a company invitation" headingRef={task === 'accept' ? heading : undefined}>
             <AcceptInvitationForm
               disabled={disabled || task !== 'accept'}
               guard={guard}
@@ -217,7 +208,7 @@ function OwnTeam({
           </Section>
         </div>
         <div hidden={task !== 'invite'}>
-          <Section title="Invite a company user" header={taskHeading('invite', 'Invite a company user')}>
+          <Section title="Invite a company user" headingRef={task === 'invite' ? heading : undefined}>
             <SelectField
               label="Delegating appointment"
               options={[

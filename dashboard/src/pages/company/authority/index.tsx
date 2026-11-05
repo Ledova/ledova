@@ -3,7 +3,7 @@ import { generatePath, useLocation } from 'react-router-dom';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { LinkRow, Outcome, Section, LoadError, Loading, Status } from '@components/Ledger';
-import { FormActions, Page, PageAction } from '@components/Page';
+import { Actions, FormActions, Page, PageAction } from '@components/Page';
 import {
   AUTHORITY_REQUEST_TONES,
   DESTINATIONS,
@@ -135,7 +135,7 @@ function OwnAuthorityRequests({
         </Section>
       </div>
       {!preparing && (
-        <div className="flex flex-wrap justify-end gap-2">
+        <Actions>
           <PageAction
             ref={opener}
             label="Request authority"
@@ -145,7 +145,7 @@ function OwnAuthorityRequests({
               setPreparing(true);
             }}
           />
-        </div>
+        </Actions>
       )}
     </Page>
   );

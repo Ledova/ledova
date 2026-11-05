@@ -37,7 +37,7 @@ the task, `FormSteps` sits at its top, each step has a small heading unless it w
 register setup, and one primary action ends the step.
 Register setup's card is titled with the class being set up, and a recorded ledger shows its state as a `Status`.
 Company information, authority records and company team use this workspace frame too.
-Team is the selected company's page: its team, **Invite a company user** and the invitations you
+Team is the selected company's page: its Appointments, **Invite a company user** and the invitations you
 issued (owner, 5 November 2026). Inviting replaces the collection with one focused inline task, a
 card titled **Invite a company user** that retains its mounted editors and drafts. Accepting a
 company invitation is the same kind of task, **Accept a company invitation**, opened at once from Account's
@@ -119,8 +119,9 @@ nonzero lifecycle quantities, each label above its number, with the full breakdo
 **Show award details**. An award that has issued shares notes that they are already included in the
 holding (owner, 3 November 2026). The Dashboard contains the overview and read-only
 awards; requests, documents and record-management actions stay on their focused pages.
-Profile holds Personal information, with **Edit** to open its form, and Company details for a company
-administrator; it shows no company's recorded particulars.
+Profile holds Personal information, with **Edit details** to open its form, and Company details for a company
+administrator, with **Edit company**. Both use one-line rows with the action as compact text at the right edge;
+Profile shows no company's recorded particulars.
 Share history and certificate tracking belong in Documents.
 Section spacing is scoped to
 the frame; sign-up keeps its own presentation.
@@ -334,10 +335,11 @@ preparation uses the existing labelled summary rows for share movements, company
 ledger date, recording time and PDF page count after preview. No manual certificate reference is
 needed: the server records the exact-entry request when the file is generated. Keep one
 right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when nothing is editable.
-Inspection copy and Company pack open from their preparation actions; privacy and source guidance stays with the opened form
-or download. Inspection copy shows editable request fields before preview and captured summary rows afterwards.
-Both cards list what was prepared straight beneath their title, without a second heading: "For" the
-recipient, then one muted line, then the instruction. A copy's line has the short request date, any
+**Prepared copies** and **Prepared packs** list what was prepared, with **Prepare inspection copy** or
+**Prepare company pack** beneath the card as the page's primary action. It opens **New inspection copy** or **New company
+pack** as a card of its own; privacy and source guidance stays with the opened form or download. A new inspection copy
+shows editable request fields before preview and captured summary rows afterwards.
+Each prepared record reads "For" the recipient, then one muted line, then the instruction. A copy's line has the short request date, any
 late delivery and who prepared it when; a pack's has who prepared it when and its share-class count.
 An empty list reads **No inspection copies prepared yet.** or **No company packs prepared yet.**
 Correction and particulars forms use the same
@@ -579,8 +581,9 @@ confirmation) or pressed, and comes in four forms:
 - **A submit button** (`type="submit"`) ends every page form, inside `FormActions`: a rule, then one
   right-aligned row with any plain actions first and the primary submit last. The form's own submit
   handler does the work, so Enter in a field submits the form unless the submit button is disabled.
-  Mobile's `FormActions` draws the same rule and row; its `Actions` is that row without the rule, for
-  an action that stands on its own.
+  Mobile's `FormActions` draws the same rule and row. `Actions`, on both platforms, is that row without
+  the rule, for an action that stands on its own: a collection's primary action beneath its cards, or a
+  card's compact text action.
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
   Add share class, a shareholder's Details, Issue shares to them. While a
   held Ledger action blocks leaving, `disabled` shows it as a disabled action instead.

@@ -47,24 +47,39 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
       ) : (
         <>
           <Rows>
-            {!isEditing && <Fact label="Full name">{userProfile.fullName || 'Not provided'}</Fact>}
-            <Fact label="Email">{userProfile.email || 'Not provided'}</Fact>
             {!isEditing && (
-              <Fact label="Phone">
+              <Fact label="Full name" inline>
+                {userProfile.fullName || 'Not provided'}
+              </Fact>
+            )}
+            <Fact label="Email" inline>
+              {userProfile.email || 'Not provided'}
+            </Fact>
+            {!isEditing && (
+              <Fact label="Phone" inline>
                 {userProfile.phoneNumber
                   ? `${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()
                   : 'Not provided'}
               </Fact>
             )}
-            <Fact label="Date of birth">{formatDate(userProfile.dateOfBirth, 'Not provided')}</Fact>
-            {!isEditing && <Fact label="Address">{userProfile.residentialAddress || 'Not provided'}</Fact>}
-            <Fact label="Citizenship">{userProfile.citizenshipCountryName || 'Not provided'}</Fact>
+            <Fact label="Date of birth" inline>
+              {formatDate(userProfile.dateOfBirth, 'Not provided')}
+            </Fact>
+            {!isEditing && (
+              <Fact label="Address" inline>
+                {userProfile.residentialAddress || 'Not provided'}
+              </Fact>
+            )}
+            <Fact label="Citizenship" inline>
+              {userProfile.citizenshipCountryName || 'Not provided'}
+            </Fact>
           </Rows>
           {savedFor !== null && savedFor === ownerKey && <Outcome>Your personal details were saved.</Outcome>}
           {!isEditing && (
-            <FormActions>
+            <Actions>
               <Action
-                label="Edit"
+                compact
+                label="Edit details"
                 disabled={blocked}
                 onPress={() => {
                   setFullName(userProfile.fullName || '');
@@ -76,7 +91,7 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
                   setEditing({ source: sourceKey, owner: ownerKey });
                 }}
               />
-            </FormActions>
+            </Actions>
           )}
         </>
       )}

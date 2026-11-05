@@ -13,10 +13,12 @@ import {
 } from '@ledova/shared';
 import {
   Action,
+  Fact,
   FormActions,
   LinkRow,
   LoadError,
   Loading,
+  Rows,
   Section,
   ShowMore,
   Status,
@@ -40,13 +42,6 @@ function useActivationStyles() {
       stack: { gap: theme.spacing.md },
       hidden: { display: 'none' as const },
       loading: { alignItems: 'center' as const, justifyContent: 'center' as const, paddingVertical: 80 },
-      status: {
-        flexDirection: 'row' as const,
-        alignItems: 'center' as const,
-        justifyContent: 'space-between' as const,
-        gap: theme.spacing.md,
-      },
-      value: { flexShrink: 1 },
       event: {
         flexDirection: 'row' as const,
         alignItems: 'center' as const,
@@ -108,6 +103,7 @@ function CompanyActivation({ read, choosing }: { read: Read; choosing: boolean }
       ref={scroll}
       testID="activation-scroll"
       title="Activation"
+      lede="Activation records your declaration and identity check. It does not issue shares."
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
@@ -136,16 +132,11 @@ function CompanyActivation({ read, choosing }: { read: Read; choosing: boolean }
               <CompanyContextNotice />
             ) : (
               <Section title="Activation status">
-                <Text style={styles.muted}>
-                  Company information is provided by the company. Activation records your declaration and, where your
-                  instance requires it, your verified identity. It does not issue shares or approve a wallet.
-                </Text>
-                <View accessible accessibilityLabel={`Status: ${company.statusDisplay}`} style={look.status}>
-                  <Text style={styles.muted}>Status</Text>
-                  <View style={look.value}>
+                <Rows>
+                  <Fact label="Status" inline>
                     <Status tone={COMPANY_STATUS_TONES.get(company.status) ?? 'closed'}>{company.statusDisplay}</Status>
-                  </View>
-                </View>
+                  </Fact>
+                </Rows>
                 {events.length > 0 && (
                   <ShowMore show="Show the historical record" hide="Hide the historical record">
                     <View>

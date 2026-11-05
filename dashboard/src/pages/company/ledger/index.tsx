@@ -698,20 +698,18 @@ function OwnRegister({
                     }
                   >
                     {readable && (
-                      <Section title="Inspection copy">
-                        <ClassInspectionCopy
-                          owner={owner}
-                          register={register}
-                          guard={guard}
-                          sourceReady={
-                            sourceReady &&
-                            documents === 'inspection-copies' &&
-                            selectedToken === register.token.uuid &&
-                            (!documentTask || documentTask === `inspection/${register.token.uuid}`)
-                          }
-                          onEditingChange={documentEditing}
-                        />
-                      </Section>
+                      <ClassInspectionCopy
+                        owner={owner}
+                        register={register}
+                        guard={guard}
+                        sourceReady={
+                          sourceReady &&
+                          documents === 'inspection-copies' &&
+                          selectedToken === register.token.uuid &&
+                          (!documentTask || documentTask === `inspection/${register.token.uuid}`)
+                        }
+                        onEditingChange={documentEditing}
+                      />
                     )}
                   </div>
                 </div>

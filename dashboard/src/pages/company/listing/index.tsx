@@ -2,7 +2,7 @@ import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
 import { DESTINATIONS, awaitsActivation, useCompanyActivation, useCompanySelection } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
-import { ShowMore, LinkRow, Section, Timeline, type TimelineEvent, Failure } from '@components/Ledger';
+import { ShowMore, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent, Failure } from '@components/Ledger';
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -48,7 +48,10 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
         .sort((a, b) => a.at.localeCompare(b.at))
     : [];
   return (
-    <Page loading={read.isLoading}>
+    <Page
+      loading={read.isLoading}
+      lede="Activation records your declaration and identity check. It does not issue shares."
+    >
       <div hidden={!!action.preview} className="space-y-5">
         {action.busy && (
           <p role="status" className="text-sm text-text-muted">
@@ -62,16 +65,11 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
         ) : (
           <>
             <Section title="Activation status">
-              <p className="text-sm text-text-muted">
-                Company information is provided by the company. Activation records your declaration and, where your
-                instance requires it, your verified identity. It does not issue shares or approve a wallet.
-              </p>
-              <dl className="flex items-center justify-between gap-4 text-sm">
-                <dt className="text-text-muted">Status</dt>
-                <dd className="text-text-primary">
+              <Rows>
+                <Row label="Status" inline>
                   <CompanyStatusMark status={company.status} label={company.statusDisplay} />
-                </dd>
-              </dl>
+                </Row>
+              </Rows>
               {events.length > 0 && (
                 <ShowMore show="Show the historical record" hide="Hide the historical record">
                   <Timeline events={events} />

@@ -13,7 +13,7 @@ import {
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
-import { Action, FormActions, LoadError, Loading, Outcome, Section, ShowMore } from '../../components/Ledger';
+import { Action, Actions, FormActions, LoadError, Loading, Outcome, Section, ShowMore } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { useRetainedScope } from '../../hooks/useRetainedScope';
@@ -23,7 +23,6 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { CompanyPackHistory } from './OutputHistory';
-import { useDocumentStyles } from './useDocumentStyles';
 
 const TITLE = 'Company pack';
 const LEDE = 'Prepare a package of the company’s records.';
@@ -102,6 +101,11 @@ function OwnCompanyPack({
     available: sourceReady,
   });
   const formReady = sourceReady && !!appointment;
+  const retained = {
+    style: [{ gap: theme.spacing.md }, !formReady && { display: 'none' as const }],
+    accessibilityElementsHidden: !formReady,
+    importantForAccessibility: formReady ? ('auto' as const) : ('no-hide-descendants' as const),
+  };
   return (
     <Page
       testID="company-pack-scroll"
@@ -124,7 +128,7 @@ function OwnCompanyPack({
         />
       }
     >
-      <Section title="Company pack">
+      <Section title="Prepared packs">
         {appointments.isError ? (
           <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
             Your appointments could not be loaded.
@@ -134,24 +138,22 @@ function OwnCompanyPack({
         ) : !appointment ? (
           <Loading>Loading your appointments…</Loading>
         ) : null}
-        <View
-          style={[{ gap: theme.spacing.md }, !formReady && { display: 'none' }]}
-          accessibilityElementsHidden={!formReady}
-          importantForAccessibility={formReady ? 'auto' : 'no-hide-descendants'}
-        >
+        <View {...retained}>
           <CompanyPackHistory owner={owner} company={company} guard={check} enabled={formReady} />
-          <PackForm
-            key={company}
-            company={company}
-            appointment={appointment?.uuid ?? ''}
-            guard={check}
-            sourceReady={formReady}
-            open={open}
-            onOpenChange={setOpen}
-            onPrepared={() => void client.invalidateQueries({ queryKey: companyPacksKey(owner, company) })}
-          />
         </View>
       </Section>
+      <View {...retained}>
+        <PackForm
+          key={company}
+          company={company}
+          appointment={appointment?.uuid ?? ''}
+          guard={check}
+          sourceReady={formReady}
+          open={open}
+          onOpenChange={setOpen}
+          onPrepared={() => void client.invalidateQueries({ queryKey: companyPacksKey(owner, company) })}
+        />
+      </View>
     </Page>
   );
 }
@@ -174,7 +176,6 @@ function PackForm({
   onPrepared: () => void;
 }) {
   const styles = useCompanyStyles();
-  const look = useDocumentStyles();
   const { instruction, setInstruction, recipient, setRecipient, busy, error, downloaded, problems, download } =
     useCompanyPack({
       company,
@@ -188,15 +189,17 @@ function PackForm({
   const checks = useErrorSummary(problems);
   if (!open)
     return (
-      <FormActions>
-        <Action label="Prepare company pack" disabled={busy || !sourceReady} onPress={() => onOpenChange(true)} />
-      </FormActions>
+      <Actions>
+        <Action
+          primary
+          label="Prepare company pack"
+          disabled={busy || !sourceReady}
+          onPress={() => onOpenChange(true)}
+        />
+      </Actions>
     );
   return (
-    <View style={look.form}>
-      <Text accessibilityRole="header" style={look.heading}>
-        New company pack
-      </Text>
+    <Section title="New company pack">
       <Text style={styles.muted}>
         This company ZIP includes residential addresses and private records. Current company administration, a written
         instruction and a named recipient are required; the captured records and generation time are retained.
@@ -250,6 +253,6 @@ function PackForm({
           }}
         />
       </FormActions>
-    </View>
+    </Section>
   );
 }
