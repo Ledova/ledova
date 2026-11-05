@@ -1105,8 +1105,9 @@ by a local helper or a browser `toLocale…` call:
   the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
   page, Employee share scheme and Certificates at phone width, Member access, prepared inspection
   copies, appointments and issued invitations, Account details' Member since, Activation's
-  historical record, authority requests, Set up your ledger's records and an award's page use
-  `formatShortDate`, "20 Oct 2026", read the same way.
+  historical record, authority requests, Set up your ledger's record date and shareholder rows, and an
+  award's agreement and event dates use `formatShortDate`, "20 Oct 2026", read the same way; allotment
+  details and an award's Original vesting keep `formatDate`.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the
   same in the browser and the app. It builds the text from the date's own fields with three-letter
   month names, so no engine's joining word ("at") or month abbreviation ("Sept") reaches the screen.

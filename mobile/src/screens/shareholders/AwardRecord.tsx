@@ -331,7 +331,7 @@ export function AwardRecord({
                           </View>
                           <Recorded at={event.createdAt} by={event.preparedByName} />
                         </View>
-                        <Actions>
+                        <Actions compact>
                           <Action
                             compact
                             label={busy('vesting', event.uuid) ? 'Downloading…' : 'Download vesting evidence'}

@@ -361,13 +361,14 @@ function useActionsStyles() {
       justifyContent: 'flex-end' as const,
       gap: theme.spacing.sm,
     },
+    compact: { rowGap: theme.spacing.lg },
     ruled: { paddingTop: theme.spacing.md, borderTopWidth: 1, borderTopColor: theme.colors.border.subtle },
   }));
 }
 
-export function Actions({ children }: { children: ReactNode }) {
+export function Actions({ compact = false, children }: { compact?: boolean; children: ReactNode }) {
   const styles = useActionsStyles();
-  return <View style={styles.actions}>{children}</View>;
+  return <View style={[styles.actions, compact && styles.compact]}>{children}</View>;
 }
 
 export function LoadError({
