@@ -87,8 +87,8 @@ The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame.
 the web's phone top bar (`TopBar`): the menu button, the page's title, its action (such as Switch
 company or Filters) and the notifications bell. Representative authority's bar shows a back arrow,
 Back to Account, in place of the menu button (`topBar` with a back target), which goes back or else
-opens Account; the other pages have no back button yet
-([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
+opens Account, and an authority request's bar shows Back to Representative authority the same way;
+the other pages have no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
 its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
 anchored panel (`AnchoredPanel`) as `FilterPopover`. It has a Notifications header with **Mark all
@@ -105,8 +105,7 @@ Issue shares, Transfer shares and Corrections with their preparations, and Set u
 Shareholders for Shareholders, a shareholder's page, its particulars change, Employee share scheme, an
 award's page and Member access, Documents for Certificates, Inspection copies and Company pack,
 Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like
-the web's sidebar, it marks Account on
-an authority request's page, Employee scheme on an award's page, Transfer shares on a
+the web's sidebar, it marks Employee scheme on an award's page, Transfer shares on a
 transfer's preparation and Corrections on a correction's preparation. Choosing Dashboard
 returns to it. Ledger opens its overview, Shareholders its people list, Documents opens Certificates
 and Settings opens Profile.
@@ -421,8 +420,8 @@ right (`inline` `Fact`s), the declaration and Terms for an admin request still p
 ([document view copies](#document-view-copies)), **Withdraw request** and **Establish appointment**
 while pending, and **Revoke appointment**. Withdrawing and revoking ask first in the web's dialogs.
 Pulling down rereads the requests while no request form is open and no action is running.
-Its top bar's back arrow returns to Account. The request page leaves out the web's Back to
-Representative authority; Android's Back and the iOS swipe return to the previous page.
+Its top bar's back arrow returns to Account, and the request page's returns to Representative
+authority; Android's Back and the iOS swipe also return to the previous page.
 Activation (`ActivationScreen.tsx`) is the web's page at phone width, through the shared
 `useCompanySelection`, limited to personal administration of the selected company, and
 `useCompanyActivation`: Activation status with the company's status on one line, wrapping when

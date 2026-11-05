@@ -85,7 +85,7 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent & { arrow?: 
   companyListing: { destination: 'settings', back: false },
   userProfile: { destination: 'settings', back: false },
   companyAuthority: { destination: 'settings', view: 'account', arrow: true },
-  companyAuthorityRequest: { destination: 'companyAuthority' },
+  companyAuthorityRequest: { destination: 'companyAuthority', arrow: true },
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
   companyRegisterParticulars: { destination: 'companyRegister', view: 'corrections' },
 };

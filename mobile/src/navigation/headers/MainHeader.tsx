@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
 import { ArrowLeftIcon, BellIcon } from 'phosphor-react-native';
-import type { NavigationProp } from '@react-navigation/native';
+import { CommonActions, type NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../contexts';
 import { useAnchor, type Anchor } from '../../components/AnchoredPanel';
@@ -97,7 +97,7 @@ export function TopBar({
   title: string | undefined;
   action: ReactNode;
   current: Section;
-  back?: { route: MenuRoute; label: string };
+  back?: { route: string; label: string };
   onNotifications: (anchor: Anchor) => void;
   notificationsOpen: boolean;
   unreadCount: number;
@@ -127,7 +127,9 @@ export function TopBar({
         {back ? (
           <BackButton
             label={back.label}
-            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate(back.route))}
+            onPress={() =>
+              navigation.canGoBack() ? navigation.goBack() : navigation.dispatch(CommonActions.navigate(back.route))
+            }
           />
         ) : (
           <MenuButton expanded={open} onPress={() => setOpen(true)} />

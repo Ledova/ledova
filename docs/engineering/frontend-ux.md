@@ -128,8 +128,9 @@ section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
-action and the bell. Representative authority's top bar shows a back arrow in place of the menu
-button, as on the web ([back arrow](#navigation)); the other pages have no back button yet
+action and the bell. Representative authority's and an authority request's top bars show a back
+arrow in place of the menu button, as on the web ([back arrow](#navigation)); the other pages have
+no back button yet
 ([#1547](https://github.com/Ledova/ledova/issues/1547)), so the app leaves out the web's title-row way
 back, and Android's Back and the iOS swipe return to the previous page. A tap on a
 control acts at once, even while the keyboard is up.
@@ -525,10 +526,10 @@ and the web parent overrides give each contextual task its parent. Direct Settin
 Back to Settings because their sidebar links already provide navigation. Pages with a parent are to
 show a back arrow (owner, 5 November 2026): `BackArrow`, named for screen readers "Back to" and the
 parent, at the start of the phone top bar in place of the menu button, and just before the title on
-wider screens, with no **Back to …** button in the page. So far only Representative authority (Back
-to Account) does, through `arrow` on its parent in `WEB_PARENTS`;
-[#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the rest. Until then `Page` puts one useful parent link in the title row for a
-contextual task: Back to Representative authority on an authority request's page, Back to
+wider screens, with no **Back to …** button in the page. So far Representative authority (Back to
+Account) and an authority request's page (Back to Representative authority) do, through `arrow` on
+their parents in `WEB_PARENTS`; [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the
+rest. Until then `Page` puts one useful parent link in the title row for a contextual task: Back to
 Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, and Back to
 Corrections for ledger maintenance.
 Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
