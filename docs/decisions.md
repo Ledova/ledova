@@ -2232,6 +2232,13 @@ asked for a better approach. The owner chose "Split Team and Account"
   company's owner.
 - Account's **Company officer invitation** row shows for everyone and opens Team's accept form.
 
+**Back arrow, decided on 5 November 2026.** On the compact Representative authority page, the owner
+found the web's in-page **Back to Account** button out of place and asked for one navigation pattern:
+a small back icon in the top bar instead of buttons in the page. Of the placements proposed, the owner
+chose a back arrow at the start of the top bar, in place of the menu button, on web and app, and on
+wider web screens just before the page title. It is delivered on Representative authority first;
+[#1547](https://github.com/Ledova/ledova/issues/1547) brings it to every other page with a parent.
+
 ## The signed-in app
 
 The web layout below is superseded by the [12 October dashboard decision](#ownership-dashboard-and-compact-sidebar).

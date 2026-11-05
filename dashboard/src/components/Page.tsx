@@ -1,9 +1,11 @@
 import { useContext, useEffect, useId, useState, type MouseEvent, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, type To } from 'react-router-dom';
+import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { PageActionsTarget, PageBack, PageTitle, type PageBackLink } from './PageTitle';
 import { InSignedInFrame } from './InSignedInFrame';
 import { PhoneBar } from './PhoneBar';
+import { ICON_MD } from './iconSizes';
 
 interface PageProps {
   actions?: ReactNode;
@@ -35,7 +37,8 @@ export function Page({
   const tabTitle = documentTitle ?? title;
   const bar = useContext(PhoneBar);
   const inBar = inFrame && bar.phone;
-  const { setTitle } = bar;
+  const { setTitle, setBack } = bar;
+  const arrow = link.arrow && link.to && link.label ? { to: link.to, label: link.label, state: link.state } : null;
   useEffect(() => {
     if (!tabTitle) return;
     document.title = `${tabTitle} · Ledova`;
@@ -48,6 +51,11 @@ export function Page({
     setTitle(title);
     return () => setTitle(null);
   }, [inBar, title, setTitle]);
+  useEffect(() => {
+    if (!inBar || !link.arrow || !link.to || !link.label) return;
+    setBack({ to: link.to, label: link.label, state: link.state });
+    return () => setBack(null);
+  }, [inBar, link.arrow, link.to, link.label, link.state, setBack]);
   const heading = (className: string) => (
     <h1 tabIndex={-1} aria-describedby={lede ? ledeId : undefined} className={className}>
       {title}
@@ -58,7 +66,8 @@ export function Page({
       {lede}
     </p>
   );
-  const backLink = link.to && link.label && <PageLink to={link.to} state={link.state} label={link.label} />;
+  const backLink = !arrow && link.to && link.label && <PageLink to={link.to} state={link.state} label={link.label} />;
+  const desktopHeading = heading('font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none');
 
   return (
     <PageActionsTarget.Provider value={inBar ? bar.actions : actionsTarget}>
@@ -76,7 +85,14 @@ export function Page({
         ) : (
           <header>
             <div className="flex min-h-16 flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2">
-              {heading('font-display text-3xl tracking-[-0.01em] text-text-primary focus:outline-none')}
+              {arrow ? (
+                <div className="flex min-w-0 items-center gap-2">
+                  <BackArrow link={arrow} className="-ml-2" />
+                  {desktopHeading}
+                </div>
+              ) : (
+                desktopHeading
+              )}
               <div ref={setActionsTarget} className="flex flex-wrap items-center gap-2 empty:hidden">
                 {backLink}
                 {links}
@@ -95,6 +111,19 @@ export function Page({
         )}
       </div>
     </PageActionsTarget.Provider>
+  );
+}
+
+export function BackArrow({ link, className = '' }: { link: PageBackLink; className?: string }) {
+  return (
+    <Link
+      to={link.to}
+      state={link.state}
+      aria-label={link.label}
+      className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary ${className}`}
+    >
+      <ArrowLeftIcon size={ICON_MD} />
+    </Link>
   );
 }
 

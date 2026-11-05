@@ -3,14 +3,18 @@ import { useLocation } from 'react-router-dom';
 import { Dialog, DialogPanel, Transition, TransitionChild } from '@headlessui/react';
 import { ListIcon, XIcon } from '@phosphor-icons/react';
 import { NotificationBell } from './NotificationBell';
+import { BackArrow } from './Page';
+import type { PageBackLink } from './PageTitle';
 import { Sidebar } from './Sidebar';
 import { ICON_MD } from './iconSizes';
 
 export function MobileHeader({
   title,
+  back,
   actionsRef,
 }: {
   title: string | null;
+  back: PageBackLink | null;
   actionsRef: (element: HTMLDivElement | null) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -28,16 +32,20 @@ export function MobileHeader({
   return (
     <>
       <div className="flex h-14 items-center gap-2 border-b border-border-subtle bg-surface-base px-2 sm:px-4">
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary"
-          aria-label="Open navigation"
-          aria-haspopup="dialog"
-          aria-expanded={isOpen}
-        >
-          <ListIcon size={ICON_MD} />
-        </button>
+        {back ? (
+          <BackArrow link={back} />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary"
+            aria-label="Open navigation"
+            aria-haspopup="dialog"
+            aria-expanded={isOpen}
+          >
+            <ListIcon size={ICON_MD} />
+          </button>
+        )}
         <p
           aria-hidden="true"
           className="min-w-0 flex-1 truncate font-display text-xl tracking-[-0.01em] text-text-primary"

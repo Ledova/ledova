@@ -128,8 +128,10 @@ section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
-action and the bell; no page has a back button, so the app leaves out the web's title-row way back,
-such as Back to Account, and Android's Back and the iOS swipe return to the previous page. A tap on a
+action and the bell. Representative authority's top bar shows a back arrow in place of the menu
+button, as on the web ([back arrow](#navigation)); the other pages have no back button yet
+([#1547](https://github.com/Ledova/ledova/issues/1547)), so the app leaves out the web's title-row way
+back, and Android's Back and the iOS swipe return to the previous page. A tap on a
 control acts at once, even while the keyboard is up.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
@@ -241,8 +243,8 @@ unissued rights and Correct a vesting event open their form inside the Entitleme
 agreement visible and hiding the other cards. While an action's outcome is uncertain the page reports
 held work, so leaving it is blocked as on Ledger.
 The app's Employee share scheme and an award's page have the same cards, rows, forms and states at
-phone width, the forms' fields stacked; they leave out **Back to Employee share scheme**, as the app has
-no back buttons.
+phone width, the forms' fields stacked; they leave out **Back to Employee share scheme**, as they have
+no back button yet ([#1547](https://github.com/Ledova/ledova/issues/1547)).
 Inline vesting uses one named field group with the event quantity, date and document, short contextual
 labels and the same responsive grid. While an award editor is open, its footer owns the actions;
 hide unrelated record actions instead of leaving a disabled row above the form.
@@ -448,9 +450,9 @@ The Dashboard selects company context; there is no workspace or role selector. K
 company below the person's name in the sidebar footer and preserve its context in task links. Both
 names use small text (`text-xs`), retain stored capitalization and stay on one truncated line with
 the full name in a title. Below `lg`, where the sidebar is a drawer, the top bar holds the menu
-button, the page's title and its actions, then the bell (`PhoneBar`); the page keeps its `h1` for
-screen readers and starts with its back link, any `links` (such as an award's Recipient details) and its
-lede. The bar names no company. Dark theme sits beside Sign out in
+button (or a page's [back arrow](#navigation), where it has one), the page's title and its actions,
+then the bell (`PhoneBar`); the page keeps its `h1` for screen readers and starts with any other back
+link, any `links` (such as an award's Recipient details) and its lede. The bar names no company. Dark theme sits beside Sign out in
 the sidebar's footer at every width. The navigation scrolls between the fixed
 brand header and footer.
 Do not repeat the current company name as a passive heading, subtitle or card label in signed-in
@@ -518,11 +520,15 @@ company-centred explorer for all relationships, without a separate Your shares n
 Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme shows as Employee
 scheme, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
-Back to Settings because their sidebar links already provide navigation. `Page` puts one useful parent
-link in the title row for a contextual task: Back to Account on Representative authority, Back to
-Representative authority on an authority request's page, Back to Shareholders on a shareholder's
-page, Back to Employee share scheme on an award's page, and Back to Corrections for ledger
-maintenance.
+Back to Settings because their sidebar links already provide navigation. Pages with a parent are to
+show a back arrow (owner, 5 November 2026): `BackArrow`, named for screen readers "Back to" and the
+parent, at the start of the phone top bar in place of the menu button, and just before the title on
+wider screens, with no **Back to …** button in the page. So far only Representative authority (Back
+to Account) does, through `arrow` on its parent in `WEB_PARENTS`;
+[#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the rest. Until then `Page` puts one useful parent link in the title row for a
+contextual task: Back to Representative authority on an authority request's page, Back to
+Shareholders on a shareholder's page, Back to Employee share scheme on an award's page, and Back to
+Corrections for ledger maintenance.
 Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
 by name. Register setup has none, on purpose
 ([decisions](../decisions.md#manual-register-setup-shares-before-shareholders)).

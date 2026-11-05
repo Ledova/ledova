@@ -84,8 +84,11 @@ the individual role, then pre-screening, personal details, financial profile and
 dashboard's routes and guards do not apply.
 
 The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Every page shows
-the web's phone top bar (`TopBar`), never a back button: the menu button, the page's title, its
-action (such as Switch company or Filters) and the notifications bell. Inside the frame `Page` sets
+the web's phone top bar (`TopBar`): the menu button, the page's title, its action (such as Switch
+company or Filters) and the notifications bell. Representative authority's bar shows a back arrow,
+Back to Account, in place of the menu button (`topBar` with a back target), which goes back or else
+opens Account; the other pages have no back button yet
+([#1547](https://github.com/Ledova/ledova/issues/1547)). Inside the frame `Page` sets
 the title and action as the screen's `title` and `action` options (`FrameOptions`) and starts with
 its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
 anchored panel (`AnchoredPanel`) as `FilterPopover`. It has a Notifications header with **Mark all
@@ -103,7 +106,7 @@ Shareholders for Shareholders, a shareholder's page, its particulars change, Emp
 award's page and Member access, Documents for Certificates, Inspection copies and Company pack,
 Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like
 the web's sidebar, it marks Account on
-Representative authority and its requests, Employee scheme on an award's page, Transfer shares on a
+an authority request's page, Employee scheme on an award's page, Transfer shares on a
 transfer's preparation and Corrections on a correction's preparation. Choosing Dashboard
 returns to it. Ledger opens its overview, Shareholders its people list, Documents opens Certificates
 and Settings opens Profile.
@@ -275,7 +278,8 @@ the shared `useMemberDocuments`) with the class's retained supporting files, eac
 holder and **Download**, and **Add documents** for someone who can prepare the register, choosing the
 holder from a searchable list and each file's category. Without register access to the company, both
 pages read nothing and point to Dashboard, and a class of another company is not in a register you can
-read. The web's **Back to Ledger** is left out, as the app has no back buttons. Pulling down rereads
+read. The web's **Back to Ledger** is left out, as these pages have no back button yet
+([#1547](https://github.com/Ledova/ledova/issues/1547)). Pulling down rereads
 either page while no form is open.
 Issue shares (`IssueSharesScreen.tsx`) is the web's Issue shares at phone width for a register reader
 of the selected company, read through `useCompanyRegisters.ts`, the shared `useRegisterAllotments` and
@@ -416,8 +420,8 @@ Request and Appointment cards, the declaration and Terms for an admin request st
 ([document view copies](#document-view-copies)), **Withdraw request** and **Establish appointment**
 while pending, and **Revoke appointment**. Withdrawing and revoking ask first in the web's dialogs.
 Pulling down rereads the requests while no request form is open and no action is running.
-The web's title-row way back, Back to Account and Back to Representative authority, is left out, as the
-app has no back buttons; Android's Back and the iOS swipe return to the previous page.
+Its top bar's back arrow returns to Account. The request page leaves out the web's Back to
+Representative authority; Android's Back and the iOS swipe return to the previous page.
 Activation (`ActivationScreen.tsx`) is the web's page at phone width, through the shared
 `useCompanySelection`, limited to personal administration of the selected company, and
 `useCompanyActivation`: Activation status with the company's status on one line, wrapping when

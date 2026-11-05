@@ -8,6 +8,7 @@ export interface PageBackLink {
   to: To;
   label: string;
   state?: unknown;
+  arrow?: boolean;
 }
 
 export const PageBack = createContext<PageBackLink | undefined>(undefined);

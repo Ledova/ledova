@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { TouchableOpacity, View, Text } from 'react-native';
-import { BellIcon } from 'phosphor-react-native';
+import { ArrowLeftIcon, BellIcon } from 'phosphor-react-native';
 import type { NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../contexts';
@@ -66,12 +66,28 @@ function NotificationsButton({
   );
 }
 
+function BackButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const theme = useAppTheme();
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={2}
+      style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <ArrowLeftIcon size={theme.icon.sizes.md} color={theme.colors.text.muted} />
+    </TouchableOpacity>
+  );
+}
+
 export function TopBar({
   navigation,
   route,
   title,
   action,
   current,
+  back,
   onNotifications,
   notificationsOpen,
   unreadCount,
@@ -81,6 +97,7 @@ export function TopBar({
   title: string | undefined;
   action: ReactNode;
   current: Section;
+  back?: { route: MenuRoute; label: string };
   onNotifications: (anchor: Anchor) => void;
   notificationsOpen: boolean;
   unreadCount: number;
@@ -107,7 +124,14 @@ export function TopBar({
           paddingHorizontal: theme.spacing.sm,
         }}
       >
-        <MenuButton expanded={open} onPress={() => setOpen(true)} />
+        {back ? (
+          <BackButton
+            label={back.label}
+            onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate(back.route))}
+          />
+        ) : (
+          <MenuButton expanded={open} onPress={() => setOpen(true)} />
+        )}
         <Text
           accessibilityRole="header"
           numberOfLines={1}
@@ -128,20 +152,22 @@ export function TopBar({
           <NotificationsButton onOpen={onNotifications} expanded={notificationsOpen} unreadCount={unreadCount} />
         </View>
       </View>
-      <AppMenu
-        visible={open}
-        current={current}
-        route={route}
-        onClose={() => setOpen(false)}
-        onSelect={(target) => {
-          setOpen(false);
-          navigation.reset(
-            target === 'Dashboard'
-              ? { index: 0, routes: [{ name: 'Dashboard' }] }
-              : { index: 1, routes: [{ name: 'Dashboard' }, { name: target }] },
-          );
-        }}
-      />
+      {!back && (
+        <AppMenu
+          visible={open}
+          current={current}
+          route={route}
+          onClose={() => setOpen(false)}
+          onSelect={(target) => {
+            setOpen(false);
+            navigation.reset(
+              target === 'Dashboard'
+                ? { index: 0, routes: [{ name: 'Dashboard' }] }
+                : { index: 1, routes: [{ name: 'Dashboard' }, { name: target }] },
+            );
+          }}
+        />
+      )}
     </View>
   );
 }
