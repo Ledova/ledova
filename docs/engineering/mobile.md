@@ -107,7 +107,7 @@ with the person's name, the selected company as on the web, and Sign out, which 
 Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Ledger for Ledger,
 Issue shares, Transfer shares and Corrections with their preparations,
-Shareholders for Shareholders, a shareholder's page, its particulars change, Employee share scheme and
+Shareholders for Shareholders, a shareholder's page, Employee share scheme and
 Member access, Documents for Certificates, Inspection copies and Company pack,
 Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Like
 the web's sidebar, it marks Transfer shares on a
