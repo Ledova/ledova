@@ -504,8 +504,8 @@ function OwnRegister({
           />
         </div>
       )}
-      {scope && ((includeEmptyCompanies && ownershipReady) || personHeld) && (
-        <div hidden={view !== 'shareholders'} className="flex flex-col gap-4 sm:gap-5 md:gap-6">
+      {scope && (includeEmptyCompanies || personHeld) && (
+        <div hidden={view !== 'shareholders' || !ownershipReady} className="flex flex-col gap-4 sm:gap-5 md:gap-6">
           <CompanyPeople
             key={scope.company.uuid}
             owner={owner}
@@ -513,8 +513,8 @@ function OwnRegister({
             registers={scope.registers}
             company={scope.company.uuid}
             blocked={held}
-            sourceReady={sourceReady}
-            visible={view === 'shareholders'}
+            sourceReady={ownershipReady}
+            visible={view === 'shareholders' && ownershipReady}
             onHeldChange={setPersonHeld}
           />
         </div>

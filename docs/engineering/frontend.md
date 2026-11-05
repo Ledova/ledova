@@ -492,9 +492,11 @@ operation are separate from idle page freshness. Authentication verification alo
 so user preferences still recheck the signed-in identity on focus and reconnect. While a recheck of
 the same account runs, the frame stays, and the web API client refuses every write until it finishes
 ([API client](#frontend-rules)). Pages whose records wait for the recheck show a loading line meanwhile,
-such as the Ledger's "Loading the register…" or "Loading your account…" on member records. Work held
-above that line survives; work inside it does not: an unsaved Add person form on Shareholders and
-Certificates' unapplied filter choices are lost. The activation hook also closes an open review as
+such as the Ledger's "Loading the register…" or "Loading your account…" on member records. Shareholders'
+Add person controller stays mounted for the same account and company, with its private fields, rows
+and header controls hidden until ownership is confirmed again. Changing account or company discards
+that scope's draft. Certificates' unapplied filter choices are still lost when its list is replaced.
+The activation hook also closes an open review as
 soon as a recheck starts, because its checks need a settled session, so the review must be prepared
 again. A failed
 check or a changed account withholds
