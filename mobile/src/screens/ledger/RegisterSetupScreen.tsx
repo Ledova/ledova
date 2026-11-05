@@ -49,6 +49,7 @@ import { Choices, Field } from '../../components/register/RegisterFields';
 import { useMemberRecordsState, useThemedStyles } from '../../contexts';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
 import { ImportForm } from './ImportForm';
 import { useLedgerStyles } from './useLedgerStyles';
 
@@ -91,6 +92,17 @@ export function RegisterSetupScreen({ route }: { route: RouteProp<SignedInStackP
   const preferences = useUserPreferences();
   const { directory, companies } = useMemberRecordsState();
   const readable = companies.some((row) => row.uuid === company && row.canReadRegister);
+  const access = useRetainedScope(
+    owner,
+    boundary.get,
+    `${company}/${token ?? 'new'}/${record ?? ''}`,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      readable &&
+      !directory.hasError &&
+      !directory.isLoading &&
+      !directory.isRefreshing,
+  );
   const open = (place: Opener) => {
     Keyboard.dismiss();
     const listed = !!navigation.getState()?.routes.some(({ name }) => name === place);
@@ -113,13 +125,15 @@ export function RegisterSetupScreen({ route }: { route: RouteProp<SignedInStackP
     onPrepared: (prepared, saved) => navigation.setParams({ token: prepared, record: saved }),
     onFinished: () => navigation.popTo('Dashboard'),
   };
-  if (owner && !preferences.isError && readable && !directory.hasError && !directory.isLoading) {
+  if (owner && access.scope !== undefined) {
     const scope = `${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company}`;
     return token ? (
       <OwnImport
-        key={`${scope}/${token}`}
+        key={`${scope}/${token}/${record ?? ''}`}
         owner={owner}
-        currentOwner={boundary.get}
+        currentOwner={access.currentOwner}
+        accountOwner={boundary.get}
+        available={access.available}
         company={company}
         token={token}
         record={record}
@@ -129,7 +143,9 @@ export function RegisterSetupScreen({ route }: { route: RouteProp<SignedInStackP
       <NewClassSetup
         key={scope}
         owner={owner}
-        currentOwner={boundary.get}
+        currentOwner={access.currentOwner}
+        accountOwner={boundary.get}
+        available={access.available}
         company={company}
         onContinue={(started) => navigation.setParams({ token: started, record: undefined })}
         {...flow}
@@ -147,12 +163,16 @@ export function RegisterSetupScreen({ route }: { route: RouteProp<SignedInStackP
 function NewClassSetup({
   owner,
   currentOwner,
+  accountOwner,
+  available,
   company,
   onContinue,
   ...flow
 }: Flow & {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  accountOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
   onContinue: (token: string) => void;
 }) {
@@ -163,8 +183,9 @@ function NewClassSetup({
     null,
   );
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const appointments = useOwnAppointments(owner, guard, { session: orderSubmissionSession });
-  const classes = useRegisterClasses(owner, guard, orderSubmissionSession);
+  const accountGuard = useMemo(() => ownerGuard(owner, accountOwner), [owner, accountOwner]);
+  const appointments = useOwnAppointments(owner, accountGuard, { session: orderSubmissionSession });
+  const classes = useRegisterClasses(owner, accountGuard, orderSubmissionSession, available);
   const chosen = (appointments.data ?? [])
     .filter(
       (appointment) =>
@@ -175,8 +196,15 @@ function NewClassSetup({
     .map((appointment) => ({ uuid: appointment.company, name: appointment.companyName }))[0];
   const steps = chosen && appointments.data ? registerSteps(appointments.data, chosen.uuid) : null;
   const anchor = classes.data?.find((token) => token.companyUuid === chosen?.uuid)?.uuid;
-  const members = usePeople(owner, anchor ?? '', guard, !!anchor && !!steps?.prepare, orderSubmissionSession);
+  const members = usePeople(
+    owner,
+    anchor ?? '',
+    guard,
+    available && !!anchor && !!steps?.prepare,
+    orderSubmissionSession,
+  );
   const ready =
+    available &&
     classes.isSuccess &&
     !classes.isFetching &&
     appointments.isSuccess &&
@@ -193,7 +221,7 @@ function NewClassSetup({
       retained.steps.prepare?.uuid !== steps.prepare?.uuid)
   )
     setRetained({ company: chosen, steps });
-  const context = held ? retained : chosen && steps ? { company: chosen, steps } : null;
+  const context = held || !ready ? retained : chosen && steps ? { company: chosen, steps } : retained;
   const current = useRef({ steps, ready });
   useLayoutEffect(() => {
     current.current = { steps, ready };
@@ -230,18 +258,27 @@ function NewClassSetup({
       throw createUserFriendlyError('Your company or authority changed. Reopen this action.');
   };
   let content: ReactNode;
-  if ((!held || !context) && (classes.isError || appointments.isError || members.isError))
+  if (classes.isError || appointments.isError || members.isError)
     content = (
       <LoadError retry={retry} busy={classes.isFetching || appointments.isFetching || members.isFetching}>
         The register or your appointments could not be loaded.
       </LoadError>
     );
   else if (!context && (!classes.data || !appointments.data)) content = <Loading>Loading the register…</Loading>;
+  else if (appointments.isSuccess && !appointments.isFetching && !steps?.prepare)
+    content = <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>;
   else if (!context) content = <CompanyContextNotice />;
   else if (!context.steps.prepare) content = <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>;
   return (
-    <Page testID="register-setup-scroll" title={TITLE}>
-      {content ?? (
+    <Page
+      testID="register-setup-scroll"
+      title={TITLE}
+      available={available && ready && !!context}
+      unavailable={
+        !available ? <RegisterAccess owner={owner} /> : (content ?? <Loading>Loading the register…</Loading>)
+      }
+    >
+      {context && (
         <FreshClass
           key={`${owner.userUuid}/${context!.company.uuid}`}
           owner={owner}
@@ -413,6 +450,8 @@ type Retained = {
 function OwnImport({
   owner,
   currentOwner,
+  accountOwner,
+  available,
   company,
   token,
   record,
@@ -420,6 +459,8 @@ function OwnImport({
 }: Flow & {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  accountOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
   token: string;
   record?: string;
@@ -430,13 +471,14 @@ function OwnImport({
   const [held, setHeld] = useState(false);
   const [retained, setRetained] = useState<Retained | null>(null);
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
-  const classes = useRegisterClasses(owner, guard, orderSubmissionSession);
-  const appointments = useOwnAppointments(owner, guard, { session: orderSubmissionSession });
+  const accountGuard = useMemo(() => ownerGuard(owner, accountOwner), [owner, accountOwner]);
+  const classes = useRegisterClasses(owner, accountGuard, orderSubmissionSession, available);
+  const appointments = useOwnAppointments(owner, accountGuard, { session: orderSubmissionSession });
   const listed = classes.data?.find((item) => item.uuid === token);
   const companyMatches = !listed || listed.companyUuid === company;
   const steps =
     companyMatches && listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
-  const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
+  const readable = available && !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, token, guard, readable, orderSubmissionSession);
   const members = usePeople(owner, token, guard, readable, orderSubmissionSession);
   const register = useImportRegister(owner, token, readable, guard, orderSubmissionSession);
@@ -451,7 +493,8 @@ function OwnImport({
   const fetching =
     classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching || members.isFetching;
   const stale = classes.isError || appointments.isError || register.isError || imports.isError || members.isError;
-  const fresh = !fetching && !stale && !!listed && readable && !!register.data && !!imports.data && !!members.data;
+  const fresh =
+    available && !fetching && !stale && !!listed && readable && !!register.data && !!imports.data && !!members.data;
   const mirrorAllowed = register.data?.initialized || register.data?.token.status === 'draft';
   const correctable =
     mirrorAllowed &&
@@ -508,7 +551,7 @@ function OwnImport({
   if (!companyMatches) content = notice('This share class is not in a register you can read.');
   else if (!held && fresh && record && !saved)
     content = notice('This saved snapshot is not in the selected share class.');
-  else if (!retained || (!held && (!fresh || !canOpen))) {
+  else if (!retained || !fresh || !canOpen) {
     if (stale)
       content = (
         <LoadError retry={retry} busy={fetching}>
@@ -549,8 +592,15 @@ function OwnImport({
     else content = <Loading>Loading the register…</Loading>;
   }
   return (
-    <Page testID="register-setup-scroll" title={TITLE}>
-      {content ?? (
+    <Page
+      testID="register-setup-scroll"
+      title={TITLE}
+      available={available && fresh && canOpen && companyMatches && (!record || !!saved)}
+      unavailable={
+        !available ? <RegisterAccess owner={owner} /> : (content ?? <Loading>Loading the register…</Loading>)
+      }
+    >
+      {retained && (
         <ImportForm
           key={`${token}/${retained!.correction?.uuid ?? 'new'}/${retained!.saved?.uuid ?? 'draft'}`}
           owner={owner}

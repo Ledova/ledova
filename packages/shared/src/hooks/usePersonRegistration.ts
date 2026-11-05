@@ -18,6 +18,7 @@ export function usePersonRegistration({
   owner,
   company,
   guard,
+  accountGuard = guard,
   sourceReady,
   onHeldChange,
   newKey,
@@ -26,6 +27,7 @@ export function usePersonRegistration({
   owner: OrderSubmissionOwner;
   company: string;
   guard: () => void;
+  accountGuard?: () => void;
   sourceReady: boolean;
   onHeldChange: (held: boolean) => void;
   newKey: () => string;
@@ -64,7 +66,7 @@ export function usePersonRegistration({
     if (!ready.current) throw createUserFriendlyError('The current company could not be confirmed. Try again.');
   };
   const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: check });
-  const appointments = useOwnAppointments(owner, guard, { enabled: sourceReady, session });
+  const appointments = useOwnAppointments(owner, accountGuard, { enabled: sourceReady, session });
   const readable =
     sourceReady &&
     appointments.isSuccess &&

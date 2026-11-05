@@ -35,18 +35,22 @@ export function useParticularsMember(
   guard: () => void,
   member: string,
   session?: OrderSubmissionSession,
+  { available = true, accountGuard = guard }: { available?: boolean; accountGuard?: () => void } = {},
 ) {
   const apiClient = useApiClient();
-  const classes = useRegisterClasses(owner, guard, session);
-  const appointments = useOwnAppointments(owner, guard, { session });
+  const classes = useRegisterClasses(owner, accountGuard, session, available);
+  const appointments = useOwnAppointments(owner, accountGuard, { session });
   const editing = classes.data && appointments.data ? editingCompanies(classes.data, appointments.data) : [];
   const registers = useQueries({
-    queries: editing.map((company) => registersQuery(apiClient, owner, company.classes, guard, session)),
+    queries: editing.map((company) => ({
+      ...registersQuery(apiClient, owner, company.classes, guard, session),
+      enabled: available && company.classes.length > 0,
+    })),
   });
   const people = useQueries({
     queries: editing.map((company) => ({
       queryKey: peopleKey(owner, company.classes[0] ?? ''),
-      enabled: company.classes.length > 0,
+      enabled: available && company.classes.length > 0,
       queryFn: () => readPeople(apiClient, company.classes[0] ?? '', guard, session),
       ...READ_TIMING,
       refetchOnMount: 'always' as const,

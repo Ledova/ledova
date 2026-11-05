@@ -32,6 +32,7 @@ export function useInvestorIssues({
   company,
   register,
   guard,
+  accountGuard,
   sourceReady,
   onHeldChange,
   issueMember,
@@ -47,6 +48,7 @@ export function useInvestorIssues({
   company: string;
   register: TokenHoldersResponse;
   guard: () => void;
+  accountGuard: () => void;
   sourceReady: boolean;
   onHeldChange: (held: boolean) => void;
   issueMember?: string;
@@ -68,7 +70,7 @@ export function useInvestorIssues({
   const writeReady = useRef(false);
   const sourceAvailable = useRef(sourceReady);
   const privateAvailable = useRef(false);
-  const appointments = useOwnAppointments(owner, guard, { session: orderSubmissionSession });
+  const appointments = useOwnAppointments(owner, accountGuard, { session: orderSubmissionSession });
   const readable =
     appointments.isSuccess && !appointments.isFetching && hasCurrentRegisterReadAuthority(appointments.data, company);
   useLayoutEffect(() => {

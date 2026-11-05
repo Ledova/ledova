@@ -32,6 +32,7 @@ import { useLedgerStyles } from './useLedgerStyles';
 export function useNonPaidIssues({
   owner,
   guard,
+  accountGuard,
   register,
   company,
   sourceReady,
@@ -47,6 +48,7 @@ export function useNonPaidIssues({
 }: {
   owner: OrderSubmissionOwner;
   guard: () => void;
+  accountGuard: () => void;
   register: TokenHoldersResponse;
   company: string;
   sourceReady: boolean;
@@ -67,7 +69,7 @@ export function useNonPaidIssues({
   useLayoutEffect(() => {
     source.current = sourceReady;
   }, [sourceReady]);
-  const appointments = useOwnAppointments(owner, guard, { session: orderSubmissionSession });
+  const appointments = useOwnAppointments(owner, accountGuard, { session: orderSubmissionSession });
   const readable = hasCurrentRegisterReadAuthority(appointments.isSuccess ? appointments.data : [], company);
   const check = useMemo(
     () => () => {

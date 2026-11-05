@@ -177,17 +177,18 @@ current claims and pull requests before starting another increment.
     journey separate under [#1562](https://github.com/Ledova/ledova/issues/1562).
   - A shareholder's page in the app now has the web's supporting Documents section, reusing the
     class page's document controls with the person fixed and a choice of their share classes.
-  - Team, employee awards, shareholders, share classes, Company pack and Inspection copies retain
-    their existing forms during same-account access rereads. Private content and actions wait for
-    confirmed access; account/session, explicit company-selection or record changes discard the old draft. Picked files
-    are controlled by their form and survive a field hiding, with cleanup on session change/startup.
+  - Company registry forms retain their state during same-account access rereads: Team, shareholder
+    and member access tasks, the employee scheme, Ledger tasks and setup, and document exports.
+    Private content and actions wait for confirmed access; account/session, explicit company-selection
+    or record changes discard the old draft. Picked files are controlled by their form and survive a
+    field hiding, with cleanup on session change/startup.
 
 **What's next, in order:**
 
 1. [#1464](https://github.com/Ledova/ledova/issues/1464):
    - Keep held saves across leaving a page in the app, where leaving drops a retry, so a repeated
-     add or invite could duplicate. Extend same-account form retention beyond the six pages above
-     to the remaining Ledger/setup, access and people-list workflows.
+     add or invite could duplicate. Retained state now survives access rereads; destructive navigation
+     still needs its own guard and confirmed-success exit handling.
    - The other follow-ups: the review findings on #1529, and, in the issue's comments, the failed
      recipients read on Issue shares to them and the untested guards after preparing a transfer or
      setup.

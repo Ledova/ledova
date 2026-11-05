@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, Text, View } from 'react-native';
 import { useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -30,6 +30,7 @@ import { PersonSelect } from '../../components/PersonSelect';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { Field, FileField } from '../../components/register/RegisterFields';
 import { useMemberRecordsState } from '../../contexts';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { DATE, FormNote, FormSteps } from './IssueForms';
@@ -80,12 +81,25 @@ export function TransferPreparationScreen({
   const preferences = useUserPreferences();
   const { directory, companies } = useMemberRecordsState();
   const readable = companies.some((row) => row.uuid === company && row.canReadRegister);
-  if (owner && !preferences.isError && readable && !directory.hasError && !directory.isLoading)
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    `${company}/${token}/${fromMember ?? ''}`,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      readable &&
+      !directory.hasError &&
+      !directory.isLoading &&
+      !directory.isRefreshing,
+  );
+  if (owner && scope.scope !== undefined)
     return (
       <OwnTransfer
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company}/${token}`}
+        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}`}
         owner={owner}
-        currentOwner={boundary.get}
+        currentOwner={scope.currentOwner}
+        accountOwner={boundary.get}
+        available={scope.available}
         company={company}
         token={token}
         fromMember={fromMember ?? ''}
@@ -101,12 +115,16 @@ export function TransferPreparationScreen({
 function OwnTransfer({
   owner,
   currentOwner,
+  accountOwner,
+  available,
   company,
   token,
   fromMember,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  accountOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
   token: string;
   fromMember: string;
@@ -120,22 +138,72 @@ function OwnTransfer({
     },
     [owner, currentOwner],
   );
-  const classes = useRegisterClasses(owner, guard, orderSubmissionSession);
-  const appointments = useOwnAppointments(owner, guard, { session: orderSubmissionSession });
+  const accountGuard = useMemo(
+    () => () => {
+      if (accountOwner() !== owner) throw new Error('Your signed-in account changed. Reopen the register.');
+    },
+    [owner, accountOwner],
+  );
+  const classes = useRegisterClasses(owner, accountGuard, orderSubmissionSession, available);
+  const appointments = useOwnAppointments(owner, accountGuard, { session: orderSubmissionSession });
   const listed = classes.data?.find((item) => item.uuid === token);
   const companyMatches = listed?.companyUuid === company;
   const appointment =
     companyMatches && appointments.data ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
-  const registers = useRegisters(owner, companyMatches ? [token] : [], guard, orderSubmissionSession);
+  const registers = useRegisters(owner, companyMatches ? [token] : [], guard, orderSubmissionSession, available);
   const register = registers.data?.[0];
-  const members = usePeople(owner, token, guard, !!appointment, orderSubmissionSession);
+  const members = usePeople(owner, token, guard, available && !!appointment, orderSubmissionSession);
   const busy = classes.isFetching || appointments.isFetching || registers.isFetching || members.isFetching;
   const stale = classes.isError || appointments.isError || registers.isError || members.isError;
+  const supported = !!register?.initialized && register.token.status === 'draft';
+  const fresh =
+    available &&
+    !busy &&
+    !stale &&
+    classes.isSuccess &&
+    appointments.isSuccess &&
+    registers.isSuccess &&
+    members.isSuccess &&
+    companyMatches &&
+    !!appointment &&
+    supported;
+  const [context, setContext] = useState<{
+    listed: NonNullable<typeof listed>;
+    appointment: NonNullable<typeof appointment>;
+    members: NonNullable<typeof members.data>;
+  } | null>(null);
+  if (
+    fresh &&
+    listed &&
+    appointment &&
+    members.data &&
+    (!context ||
+      (context.appointment.uuid === appointment.uuid &&
+        (context.listed !== listed || context.members !== members.data)))
+  )
+    setContext({ listed, appointment: context?.appointment ?? appointment, members: members.data });
+  const live = useRef({ ready: false, appointment: '' });
+  useLayoutEffect(() => {
+    live.current = {
+      ready: fresh,
+      appointment: appointment?.uuid ?? '',
+    };
+  });
+  const expectedAppointment = context?.appointment.uuid;
+  const formGuard = useMemo(
+    () => () => {
+      guard();
+      if (!live.current.ready || live.current.appointment !== expectedAppointment)
+        throw new Error('Your preparation appointment changed. Reopen this form.');
+    },
+    [guard, expectedAppointment],
+  );
+  const formReady = fresh && appointment?.uuid === context?.appointment.uuid;
   const retry = () => {
     void classes.refetch();
     void appointments.refetch();
-    if (companyMatches) void registers.refetch();
-    if (appointment) void members.refetch();
+    if (companyMatches && available) void registers.refetch();
+    if (appointment && available) void members.refetch();
   };
   const toTransfers = (params: SignedInStackParamList['TransferShares']) => {
     Keyboard.dismiss();
@@ -148,47 +216,56 @@ function OwnTransfer({
       The register or your appointments could not be loaded.
     </LoadError>
   );
-  let content: ReactNode;
-  if (!classes.data || !appointments.data) content = stale ? failure : <Loading>Loading the register…</Loading>;
+  let status: ReactNode;
+  if (stale) status = failure;
+  else if (!classes.data || !appointments.data || busy) status = <Loading>Loading the register…</Loading>;
   else if (!listed || !companyMatches)
-    content = <Text style={look.muted}>This share class is not in a register you can read.</Text>;
-  else if (!appointment) content = <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>;
-  else if (!register || !members.data) content = stale ? failure : <Loading>Loading the register…</Loading>;
-  else if (!register.initialized || register.token.status !== 'draft')
-    content = (
+    status = <Text style={look.muted}>This share class is not in a register you can read.</Text>;
+  else if (!appointment) status = <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>;
+  else if (!register || !members.data) status = <Loading>Loading the register…</Loading>;
+  else if (!supported)
+    status = (
       <Text style={look.muted}>
         This transfer requires an opened register for a draft share class without a deployed contract.
       </Text>
     );
-  else
-    content = (
-      <Section title="Non-paid transfer">
-        {stale && failure}
-        <TransferForm
-          owner={owner}
-          guard={guard}
-          company={company}
-          token={token}
-          classLabel={`${listed.name} (${listed.symbol})`}
-          people={peopleFrom(members.data)}
-          appointment={appointment}
-          blocked={stale || busy}
-          onRefused={retry}
-          initialFrom={fromMember}
-          onHeldChange={setHeld}
-          onCancel={() => toTransfers({ company, token })}
-          onPrepared={(record) => toTransfers({ company, token, record, outcome: COPY.PREPARED })}
-        />
-      </Section>
-    );
+  else if (context && appointment.uuid !== context.appointment.uuid)
+    status = <Text style={look.muted}>Your preparation appointment changed. Reopen this form.</Text>;
   return (
     <Page
       testID="transfer-preparation-scroll"
       title={TITLE}
       held={held}
-      lede={companyMatches && listed && appointment ? `${listed.name} (${listed.symbol})` : undefined}
+      available={available}
+      unavailable={<RegisterAccess owner={owner} />}
+      lede={formReady && listed ? `${listed.name} (${listed.symbol})` : undefined}
     >
-      {content}
+      {!formReady && status}
+      {context && (
+        <View
+          style={!formReady && look.hidden}
+          accessibilityElementsHidden={!formReady}
+          importantForAccessibility={formReady ? 'auto' : 'no-hide-descendants'}
+        >
+          <Section title="Non-paid transfer">
+            <TransferForm
+              owner={owner}
+              guard={formGuard}
+              company={company}
+              token={token}
+              classLabel={`${context.listed.name} (${context.listed.symbol})`}
+              people={peopleFrom(context.members)}
+              appointment={context.appointment}
+              blocked={!formReady}
+              onRefused={retry}
+              initialFrom={fromMember}
+              onHeldChange={setHeld}
+              onCancel={() => toTransfers({ company, token })}
+              onPrepared={(record) => toTransfers({ company, token, record, outcome: COPY.PREPARED })}
+            />
+          </Section>
+        </View>
+      )}
     </Page>
   );
 }

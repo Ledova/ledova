@@ -32,6 +32,7 @@ import {
   useRegisterEntries,
   useRegisterImports,
   useSubmissionOwner,
+  useUserPreferences,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type RecordRow,
@@ -45,6 +46,8 @@ import { Page } from '../../components/Page';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
+import { useRetainedScope } from '../../hooks/useRetainedScope';
+import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ClassEntries } from './ClassEntries';
@@ -61,16 +64,30 @@ type Landing = SignedInStackParamList['Corrections'];
 
 export function CorrectionsScreen({ route }: { route: RouteProp<SignedInStackParamList, 'Corrections'> }) {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company } = useMemberRecordsState();
+  const { directory, companies, company, companySelection } = useMemberRecordsState();
+  const preferences = useUserPreferences();
   const choosing = directory.isLoading || (!company && companies.length > 0);
-  if (owner && company?.canReadRegister && !directory.hasError && !choosing)
+  const scope = useRetainedScope(
+    owner,
+    boundary.get,
+    company?.uuid,
+    !preferences.isError &&
+      !preferences.isFetching &&
+      !!company?.canReadRegister &&
+      !directory.hasError &&
+      !choosing &&
+      !directory.isRefreshing,
+    companySelection,
+  );
+  if (owner && scope.scope)
     return (
       <CompanyCorrections
-        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company.uuid}`}
+        key={`${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${scope.scope}`}
         owner={owner}
         currentOwner={boundary.get}
-        company={company.uuid}
-        landing={route.params?.company === company.uuid ? route.params : undefined}
+        company={scope.scope}
+        available={scope.available}
+        landing={route.params?.company === scope.scope ? route.params : undefined}
       />
     );
   return (
@@ -93,11 +110,13 @@ export function CorrectionsScreen({ route }: { route: RouteProp<SignedInStackPar
 function CompanyCorrections({
   owner,
   currentOwner,
+  available,
   company,
   landing,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
+  available: boolean;
   company: string;
   landing: Landing;
 }) {
@@ -107,21 +126,19 @@ function CompanyCorrections({
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const page = useRef<ScrollView>(null);
   const content = useRef<View>(null!);
-  const source = useCompanyRegisters(owner, currentOwner, company, TITLE);
+  const source = useCompanyRegisters(owner, currentOwner, company, TITLE, available);
   const [chosen, setChosen] = useState(landing?.token ?? '');
   const [answered, setAnswered] = useState(landing);
   const [busy, setBusy] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [kept, setKept] = useState<TokenHoldersResponse[]>([]);
   const refreshClass = useRef<() => Promise<unknown>>(async () => undefined);
   const refreshParticulars = useRef<() => Promise<unknown>>(async () => undefined);
   if (landing !== answered) {
     setAnswered(landing);
     if (landing?.token && !busy) setChosen(landing.token);
   }
-  if (source.registers && source.registers.length > 0 && source.registers !== kept) setKept(source.registers);
-  const registers = source.registers ?? (busy ? kept : []);
+  const registers = source.registers ?? [];
   const register = registers.find(({ token }) => token.uuid === chosen) ?? registers[0];
   const toTop = useCallback(() => page.current?.scrollTo({ y: 0, animated: false }), []);
   const focusRecord = useCallback((record: View) => {
@@ -150,8 +167,24 @@ function CompanyCorrections({
       testID="corrections-scroll"
       title={TITLE}
       lede={LEDE}
+      available={available && source.sourceReady}
+      unavailable={
+        !available ? (
+          <RegisterAccess owner={owner} />
+        ) : source.accountError ? (
+          <LoadError retry={source.retryAccount} busy={source.isRefreshing}>
+            Your account could not be loaded.
+          </LoadError>
+        ) : source.hasError || source.invalid ? (
+          <LoadError retry={source.retry} busy={source.isRefreshing}>
+            The register could not be loaded.
+          </LoadError>
+        ) : (
+          <Loading>Loading the register…</Loading>
+        )
+      }
       titleAction={
-        source.sourceReady && registers.length > 1 && register ? (
+        available && source.sourceReady && registers.length > 1 && register ? (
           <FilterPopover>
             {(close) => (
               <SelectField
@@ -178,7 +211,7 @@ function CompanyCorrections({
           refreshing={refreshing}
           tintColor={theme.colors.interactive.active}
           onRefresh={() => {
-            if (refreshing || busy) return;
+            if (!available || refreshing || busy) return;
             setRefreshing(true);
             void Promise.all([source.retry(), refreshRecords()])
               .catch(() => undefined)
@@ -210,6 +243,7 @@ function CompanyCorrections({
           company={company}
           register={register}
           guard={source.guard}
+          accountGuard={source.accountGuard}
           sourceReady={source.sourceReady}
           landing={landing?.token === register.token.uuid ? landing : undefined}
           refreshRef={refreshClass}
@@ -231,6 +265,7 @@ function CompanyCorrections({
           company={company}
           registers={registers}
           guard={source.guard}
+          accountGuard={source.accountGuard}
           sourceReady={source.sourceReady}
           hidden={reviewing}
           refreshRef={refreshParticulars}
@@ -245,6 +280,7 @@ function ClassCorrections({
   company,
   register,
   guard,
+  accountGuard,
   sourceReady,
   landing,
   refreshRef,
@@ -259,6 +295,7 @@ function ClassCorrections({
   company: string;
   register: TokenHoldersResponse;
   guard: () => void;
+  accountGuard: () => void;
   sourceReady: boolean;
   landing: Landing;
   refreshRef: RefObject<() => Promise<unknown>>;
@@ -277,7 +314,7 @@ function ClassCorrections({
   useLayoutEffect(() => {
     source.current = sourceReady;
   }, [sourceReady]);
-  const appointments = useOwnAppointments(owner, guard, { session: orderSubmissionSession });
+  const appointments = useOwnAppointments(owner, accountGuard, { session: orderSubmissionSession });
   const readable = appointments.isSuccess && hasCurrentRegisterReadAuthority(appointments.data, company);
   const check = useMemo(
     () => () => {
