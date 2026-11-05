@@ -134,8 +134,8 @@ section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
-action and the bell. Representative authority's, an authority request's, a share class's, Set up your ledger's and an
-award's top bars show a back arrow in place of the menu button, as on the web ([back arrow](#navigation)); the other pages have
+action and the bell. Representative authority's, an authority request's, a share class's, Set up your ledger's, an
+award's and a particulars change's top bars show a back arrow in place of the menu button, as on the web ([back arrow](#navigation)); the other pages have
 no back button yet
 ([#1547](https://github.com/Ledova/ledova/issues/1547)), so the app leaves out the web's title-row way
 back, and Android's Back and the iOS swipe return to the previous page. A tap on a
@@ -543,12 +543,12 @@ show a back arrow (owner, 5 November 2026): `BackArrow`, named for screen reader
 parent, at the start of the phone top bar in place of the menu button, and just before the title on
 wider screens, with no **Back to …** button in the page. So far Representative authority (Back to
 Account), an authority request's page (Back to Representative authority), a share class's page and
-Set up your ledger (Back to Ledger) and an award's page (Back to Employee share scheme) do, through
-`arrow` on their parents in `WEB_PARENTS`; [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the
+Set up your ledger (Back to Ledger), an award's page (Back to Employee share scheme) and a particulars
+change do, through `arrow` on their parents in `WEB_PARENTS`. Once a particulars change has found its
+shareholder, its arrow goes back to that shareholder by name, and until then to Corrections.
+[#1547](https://github.com/Ledova/ledova/issues/1547) brings it to the
 rest. Until then `Page` puts one useful parent link in the title row for a contextual task: Back to
 Shareholders on a shareholder's page and Back to Corrections for ledger maintenance.
-Once a particulars change has found its shareholder, its contextual link goes back to that shareholder
-by name.
 
 A way back to a Ledger class or task carries the place it means, built by `registerPlace`
 (`dashboard/src/pages/company/ledger/shared/registerPlace.ts`): a correction returns to that

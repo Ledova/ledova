@@ -91,7 +91,7 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent & { arrow?: 
   companyRegisterImport: { destination: 'companyRegister', arrow: true },
   companyRegisterAward: { destination: 'companyRegister', view: 'awards', arrow: true },
   companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
-  companyRegisterParticulars: { destination: 'companyRegister', view: 'corrections' },
+  companyRegisterParticulars: { destination: 'companyRegister', view: 'corrections', arrow: true },
 };
 
 function viewName(key: DestinationKey, view: string): string | undefined {

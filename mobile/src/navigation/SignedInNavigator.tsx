@@ -76,7 +76,10 @@ export function SignedInNavigator() {
   const { unreadCount } = useNotifications();
   const closeNotifications = useCallback(() => setNotificationsAnchor(null), []);
   useFollowPush(closeNotifications);
-  const topBar = (current: Section, back?: { route: keyof SignedInStackParamList; label: string }) => ({
+  const topBar = (
+    current: Section,
+    back?: { route: keyof SignedInStackParamList; label: string; keepParams?: boolean },
+  ) => ({
     headerShown: true,
     header: ({ navigation, route, options }: NativeStackHeaderProps) => (
       <TopBar
@@ -85,7 +88,7 @@ export function SignedInNavigator() {
         title={options.title}
         action={(options as FrameOptions).action}
         current={current}
-        back={back}
+        back={back && { ...back, params: back.keepParams ? route.params : undefined }}
         onNotifications={setNotificationsAnchor}
         notificationsOpen={!!notificationsAnchor}
         unreadCount={unreadCount}
@@ -126,7 +129,7 @@ export function SignedInNavigator() {
             <Stack.Screen
               name="ShareholderParticulars"
               component={ParticularsScreen}
-              options={topBar('Shareholders')}
+              options={topBar('Shareholders', { route: 'Shareholder', label: 'Back to shareholder', keepParams: true })}
             />
             <Stack.Screen name="EmployeeScheme" component={EmployeeSchemeScreen} options={topBar('Shareholders')} />
             <Stack.Screen

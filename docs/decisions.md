@@ -2238,8 +2238,8 @@ a small back icon in the top bar instead of buttons in the page. Of the placemen
 chose a back arrow at the start of the top bar, in place of the menu button, on web and app, and on
 wider web screens just before the page title. It is delivered on Representative authority first,
 then, at the owner's request while making each compact, on an authority request's page, a share
-class's page, an award's page and Set up your ledger, which lost its in-page return button on
-[14 October](#manual-register-setup-shares-before-shareholders) and keeps none;
+class's page, an award's page, a particulars change and Set up your ledger, which lost its in-page
+return button on [14 October](#manual-register-setup-shares-before-shareholders) and keeps none;
 [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to every other page with a parent.
 
 **Simpler award page, decided on 5 November 2026.** After the compact pass the owner found much of an
@@ -2248,6 +2248,12 @@ what is available elsewhere. The page now keeps what someone acts on, on web and
 the agreement's date and download, vesting and entitlement changes as short rows, and only the issues
 still in progress. The typed terms and schedule sit behind a disclosure, the address stays on Recipient
 details, finished issues stay on Issue shares and who recorded each event stays in the Company pack.
+
+**Simpler Change particulars, decided on 5 November 2026.** The owner approved the same treatment for a
+particulars change: the form alone, started with the current name and address, under a shorter
+introduction. The card repeating those details is gone, except for a member who keeps them in their
+own profile and so has no form, and the page no longer states the rule on which particulars win. That
+rule stays in [the register guide](business/register.md#changing-a-members-particulars).
 
 ## The signed-in app
 
