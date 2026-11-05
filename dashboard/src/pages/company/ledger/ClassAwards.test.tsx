@@ -853,6 +853,7 @@ it('retains original award, vesting and linked issue preparations through interr
     expect(within(screen.getByText('Issued from award').parentElement!).getByText('10 shares')).toBeTruthy(),
   );
   expect(within(screen.getByText('Vested, awaiting issue').parentElement!).getByText('90 shares')).toBeTruthy();
+  expect(screen.queryByRole('heading', { name: 'Non-paid issues from this award' })).toBeNull();
   preparedView.unmount();
   const beforeClosedPoll = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_GRANTS).length;
   await act(async () => vi.advanceTimersByTimeAsync(60_000));
@@ -962,7 +963,7 @@ it('retains original award, vesting and linked issue preparations through interr
   expect(submissions(URLS.REGISTER_AWARD_ENDS)).toEqual([endRequest]);
   appointments = [APPOINTMENT];
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(OWNER) }));
-  const correct = await screen.findByRole('button', { name: new RegExp(`^${COPY.REVERSE}`) });
+  const correct = await screen.findByRole('button', { name: /^Correct \(/ });
   await waitFor(() => expect((correct as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(correct);
   fireEvent.change(screen.getByLabelText(COPY.REVERSED_SHARES), { target: { value: '10' } });

@@ -1812,8 +1812,8 @@ On 20 October 2026 the owner approved the
 "I approve the #1168 design as drafted: Issue shares with Investor issue and Non-paid issue, two
 record lists, and awards listing their non-paid issues." Register's one task, Issue shares, asks
 which kind of issue, shows that form in place, and lists the class's investor and non-paid issues
-under it. Each award lists the non-paid issues prepared from it. Tokenised classes keep their chain
-issues in Share class settings. That part is superseded for the web by the
+under it. Each award lists the non-paid issues prepared from it (since 5 November 2026, only those
+still in progress). Tokenised classes keep their chain issues in Share class settings. That part is superseded for the web by the
 [31 October decision](#wallets-removed-from-the-web-app): the web app has no chain issues.
 
 On 21 October 2026 the owner approved the revised structure under
@@ -2241,6 +2241,13 @@ then, at the owner's request while making each compact, on an authority request'
 class's page, an award's page and Set up your ledger, which lost its in-page return button on
 [14 October](#manual-register-setup-shares-before-shareholders) and keeps none;
 [#1547](https://github.com/Ledova/ledova/issues/1547) brings it to every other page with a parent.
+
+**Simpler award page, decided on 5 November 2026.** After the compact pass the owner found much of an
+award's page neither relevant nor useful and asked for a significantly simpler page that doesn't repeat
+what is available elsewhere. The page now keeps what someone acts on, on web and app: the entitlement,
+the agreement's date and download, vesting and entitlement changes as short rows, and only the issues
+still in progress. The typed terms and schedule sit behind a disclosure, the address stays on Recipient
+details, finished issues stay on Issue shares and who recorded each event stays in the Company pack.
 
 ## The signed-in app
 

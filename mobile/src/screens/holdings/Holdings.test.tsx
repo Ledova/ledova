@@ -1479,7 +1479,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(mockNavigate).toHaveBeenCalledWith('EmployeeAward', awarded);
   const awardPage = <EmployeeAwardScreen route={{ key: 'awarded', name: 'EmployeeAward', params: awarded }} />;
   await view.rerender(awardPage);
-  expect(await screen.findByText('40 shares promised · 0 company-recorded vested')).toBeTruthy();
+  expect(await screen.findByText('40 shares promised')).toBeTruthy();
   await fireEvent.press(await screen.findByRole('button', { name: 'Record vesting', disabled: false }));
   await fireEvent.changeText(screen.getByLabelText('Shares in this event'), '10');
   await fireEvent.press(screen.getByRole('button', { name: 'Document. Choose file' }));
@@ -1524,6 +1524,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByText('Needs a decision · 1')).toBeTruthy();
   expect(screen.getByLabelText('Status: Prepared')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Record issue/ })).toBeNull();
+  expect(screen.getByRole('button', { name: /^Review and approve \(grant for Synthetic Holder B / })).toBeTruthy();
   const grant = grants[0];
   expect(issuePosts()).toEqual([
     [
@@ -1550,7 +1551,18 @@ it('associates a member by invitation code, switches to their company on Dashboa
       expect.anything(),
     ],
   ]);
-  await fireEvent.press(screen.getByRole('button', { name: /^Review and approve \(grant for Synthetic Holder B / }));
+  await view.rerender(awardPage);
+  await fireEvent.press(
+    await screen.findByRole('button', {
+      name: /^10 shares, prepared .+ \(issue from the award for Synthetic Holder B\), Prepared$/,
+    }),
+  );
+  const issueRecord = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, record: grant.uuid };
+  expect(mockNavigate).toHaveBeenLastCalledWith('IssueShares', issueRecord);
+  await view.rerender(<IssueSharesScreen route={{ key: 'record', name: 'IssueShares', params: issueRecord }} />);
+  await fireEvent.press(
+    await screen.findByRole('button', { name: /^Review and approve \(grant for Synthetic Holder B / }),
+  );
   expect(await screen.findByText('Approval alone does not issue shares.')).toBeTruthy();
   await fireEvent.press(await screen.findByRole('button', { name: 'Approve', disabled: false }));
   expect(await screen.findByLabelText('Status: Approved')).toBeTruthy();
@@ -1928,26 +1940,15 @@ it('associates a member by invitation code, switches to their company on Dashboa
     [URLS.REGISTER_IMPORT_DECIDE(opened.uuid), decided('apply'), expect.anything()],
   ]);
   await view.rerender(awardPage);
-  await fireEvent.press(
-    await screen.findByRole('button', {
-      name: /^10 shares, prepared .+ \(issue from the award for Synthetic Holder B\), Shares issued$/,
-    }),
-  );
-  expect(mockNavigate).toHaveBeenLastCalledWith('IssueShares', {
-    company: ADMINISTERED.uuid,
-    token: FOUNDERS.uuid,
-    record: grant.uuid,
-  });
   own = { ...ADMINISTRATION, capabilities: ['read_register'] };
   const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
   await act(async () => {
     await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
   });
   expect(await screen.findByText(REGISTER_AWARD_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  expect(screen.getByText('40 shares promised · 10 company-recorded vested')).toBeTruthy();
-  expect(
-    screen.queryByRole('button', { name: /^(Record vesting|End unissued rights|Correct a vesting event)/ }),
-  ).toBeNull();
+  expect(screen.getByText('40 shares promised')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Record vesting|End unissued rights|Correct)/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^10 shares, prepared/ })).toBeNull();
   await view.rerender(scheme);
   expect(await screen.findByText(REGISTER_AWARD_COPY.READ_ONLY_NOTE)).toBeTruthy();
   expect(screen.queryByRole('button', { name: REGISTER_AWARD_COPY.PREPARE })).toBeNull();

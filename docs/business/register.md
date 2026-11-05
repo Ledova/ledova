@@ -687,7 +687,7 @@ shareholder's page.
 
 The Employee share scheme view, Employee scheme under Shareholders, shows one class's
 [awards](issuing-shares.md#employee-awards-and-vesting) at a time, chosen with Share class,
-each listing the non-paid issues prepared from it; Documents holds each class's inspection copy,
+each listing its non-paid issues still in progress; Documents holds each class's inspection copy,
 unsigned certificate preparation and the company pack as compact choices, opening one preparation
 form at a time. The mobile app's Employee scheme shows the same view and each award's page for a
 register reader of the selected company ([employee awards](issuing-shares.md#employee-awards-and-vesting)).

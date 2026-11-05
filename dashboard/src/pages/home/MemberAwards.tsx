@@ -21,7 +21,7 @@ export function MemberAwards({ record, token }: { record: OwnMemberRecord; token
               {record.classes.find(({ uuid }) => uuid === award.token)?.name ?? 'Employee award'} ·{' '}
               {formatDate(award.termsOn)}
             </h3>
-            <AwardStatus {...award} compact />
+            <AwardStatus {...award} holdingNote />
             <ShowMore show="Show award details" hide="Hide award details">
               <div className="space-y-2 text-sm text-text-muted">
                 <p>{award.terms}</p>
