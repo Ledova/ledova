@@ -7,11 +7,14 @@ import {
   type Company,
   type OwnCompanyAppointment,
   ownAppointmentsKey,
+  IDENTITY_VERIFICATION_ENDPOINTS,
+  IDENTITY_VERIFICATION_QUERY_KEY,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CompanyProfile } from '@pages/settings/CompanyProfile';
+import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 import CompanyTeamPage from './team';
 import { APPOINTMENT, companyRecord, renderCompanyPage } from '../../testSupport/company';
 
@@ -55,7 +58,7 @@ afterEach(() => {
   else Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
 });
 
-it('shows focused company details without share classes, and keeps team drafts across closing', async () => {
+it('shows focused company details, keeps team drafts and retries unavailable identity status', async () => {
   show();
   await screen.findByText(company.name);
   expect(screen.getByText(/Company information is provided by the company/)).toBeTruthy();
@@ -155,4 +158,38 @@ it('shows focused company details without share classes, and keeps team drafts a
   const acceptHeading = await screen.findByRole('heading', { name: 'Accept a company invitation' });
   await waitFor(() => expect(document.activeElement).toBe(acceptHeading));
   expect(screen.getByLabelText('Invitation code')).toBeTruthy();
+
+  cleanup();
+  client.clear();
+  client.setQueryDefaults(IDENTITY_VERIFICATION_QUERY_KEY, { retryDelay: 0 });
+  let statusUnavailable = true;
+  let verified = false;
+  api.get.mockImplementation(async (url: string) => {
+    if (url === IDENTITY_VERIFICATION_ENDPOINTS.STATUS) {
+      if (statusUnavailable) throw new Error('Identity provider is unavailable');
+      return { data: { isVerified: verified, status: verified ? 'completed' : 'init' } };
+    }
+    throw new Error(`Unexpected identity request: ${url}`);
+  });
+  renderCompanyPage(client, <IdentityVerificationModal isOpen onClose={vi.fn()} />, 'Account', {
+    entry: '/settings#account',
+    path: '*',
+  });
+  await screen.findByText('Your identity verification status could not be loaded.');
+  expect(screen.queryByRole('button', { name: 'Start verification' })).toBeNull();
+  statusUnavailable = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  await screen.findByRole('button', { name: 'Start verification' });
+  expect(screen.queryByText(/financial regulations/)).toBeNull();
+
+  statusUnavailable = true;
+  await act(async () => client.refetchQueries({ queryKey: IDENTITY_VERIFICATION_QUERY_KEY, exact: true }));
+  await screen.findByText('Your identity verification status could not be loaded.');
+  expect(screen.queryByRole('button', { name: 'Start verification' })).toBeNull();
+  statusUnavailable = false;
+  verified = true;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  await screen.findByRole('heading', { name: 'Already verified' });
+  expect(screen.queryByRole('button', { name: 'Start verification' })).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
 });

@@ -37,7 +37,7 @@ export function useIdentityVerification() {
     },
   });
 
-  const status = statusQuery.data;
+  const status = statusQuery.isSuccess ? statusQuery.data : undefined;
   const { isVerified, isRejected, showPendingBanner, showOnHoldBanner, showRejectedBanner, showRetryBanner, showForm } =
     readIdentityVerification(status, justSubmitted);
 
@@ -128,12 +128,15 @@ export function useIdentityVerification() {
   return {
     status,
     isLoadingStatus: statusQuery.isLoading,
+    isFetchingStatus: statusQuery.isFetching,
+    statusUnavailable: statusQuery.isError,
+    retryStatus: statusQuery.refetch,
 
     showPendingBanner,
     showOnHoldBanner,
     showRejectedBanner,
     showRetryBanner,
-    showForm,
+    showForm: statusQuery.isSuccess && showForm,
 
     isVerified,
     sdkActive,
