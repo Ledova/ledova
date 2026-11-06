@@ -498,12 +498,15 @@ such as the Ledger's "Loading the register…" or "Loading your account…" on m
 Add person controller stays mounted for the same account and company, with its private fields, rows
 and header controls hidden until ownership is confirmed again. Changing account or company discards
 that scope's draft. While the Certificates page remains mounted, its unapplied filters also survive
-same-account/company directory and class-access checks, including failed or paused reads, with private rows and header controls hidden until
-access is confirmed. Account, company or company-reader/member-only access changes reset the choices;
-certificate source changes still retire previews. Leaving or unmounting the page resets its draft.
-The activation hook also closes an open review as
-soon as a recheck starts, because its checks need a settled session, so the review must be prepared
-again. A failed
+same-account/company directory and class-access checks, including failed or paused reads. Its private
+rows and header controls stay hidden until access is confirmed. Account, company or
+company-reader/member-only access changes reset the choices; certificate source changes still retire
+previews. Leaving or unmounting the page resets its draft.
+Activation keeps its reviewed target and declaration mounted but hidden during a same-account
+company-access recheck, including a failed read followed by Retry. Confirmation still requires settled
+current reads; a changed company, mandate, revision or declaration discards the review. The shared
+hook exposes the retained target separately from its currently usable preview; native screens retain
+their existing gated-preview rendering. A failed
 check or a changed account withholds
 private content, including after an account changes in another tab. Mobile clears its cache whenever
 the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload or identity

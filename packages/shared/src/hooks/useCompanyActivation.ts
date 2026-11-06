@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { awaitsActivation } from '../constants';
 import { activateCompany } from '../services/companies';
-import type { Company, CompanyActivate } from '../types';
+import type { Company, CompanyActivate, CompanyListItem } from '../types';
 import { createUserFriendlyError, failureStatus, failureSentence } from '../utils/errors';
 import { isUuid } from '../utils/validation';
-import { ownCompaniesKey, type useCompanySelection } from './useCompanySelection';
+import { canPersonallyAdministerCompany, ownCompaniesKey, type useCompanySelection } from './useCompanySelection';
 import { useApiClient } from './useApiClient';
 import { OWN_APPOINTMENTS_QUERY_KEY } from './useOwnAppointments';
+import { AUTH_QUERY_KEY } from './useAuth';
+import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 
 type Selection = ReturnType<typeof useCompanySelection>;
 type Preview = {
@@ -52,9 +54,16 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const accessKeys = [AUTH_QUERY_KEY, USER_PREFERENCES_QUERY_KEY, read.companiesKey];
+  const settled = (key: readonly unknown[]) => {
+    const state = client.getQueryState(key);
+    return state?.status === 'success' && state.fetchStatus === 'idle' && !state.isInvalidated;
+  };
+  const ready = () => [...accessKeys, read.companyKey].every(settled);
   const current = () => {
     if (!mounted.current || !read.companyUuid)
       throw createUserFriendlyError('This activation is closed. Reopen it before continuing.');
+    if (!ready()) throw createUserFriendlyError('Refresh company information before continuing.');
     read.assertCurrent(read.companyUuid, 'personal');
     const company = client.getQueryData<Company>(read.companyKey);
     if (!company || company.uuid !== read.companyUuid) throw createUserFriendlyError('The selected company changed.');
@@ -78,18 +87,31 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
       retry.current = null;
     };
   }, []);
-  useEffect(() =>
-    client.getQueryCache().subscribe(() => {
+  useEffect(() => {
+    const validate = () => {
       const target = confirmation.current;
       if (!target) return;
+      if (!accessKeys.every(settled)) return;
+      const listed = client
+        .getQueryData<CompanyListItem[]>(read.companiesKey)
+        ?.find((item) => item.uuid === target.company);
+      if (
+        listed &&
+        canPersonallyAdministerCompany(listed) &&
+        (!read.companyUuid || (read.companyUuid === target.company && !ready()))
+      )
+        return;
       try {
         guard(target);
       } catch {
         confirmation.current = null;
         if (mounted.current) setPreview(null);
       }
-    }),
-  );
+    };
+    const unsubscribe = client.getQueryCache().subscribe(validate);
+    validate();
+    return unsubscribe;
+  });
   const open = async () => {
     if (pending.current) return;
     pending.current = true;
@@ -128,7 +150,7 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
     }
   };
   const confirm = async (target: Preview) => {
-    if (pending.current || confirmation.current !== target) return;
+    if (pending.current || confirmation.current !== target || !ready()) return;
     pending.current = true;
     setBusy(true);
     setError(null);
@@ -184,11 +206,19 @@ export function useCompanyActivation(read: Selection, newKey: () => string) {
   };
   const company = read.company;
   const activation = read.canPersonalAdmin ? company?.activation : null;
+  let visible = false;
+  if (preview && read.canPersonalAdmin && ready()) {
+    try {
+      guard(preview);
+      visible = true;
+    } catch {}
+  }
   return {
-    preview: read.canPersonalAdmin ? preview : null,
+    preview: visible ? preview : null,
+    retainedPreview: preview,
     busy,
     error,
-    canActivate: !!activation?.appointment && !!company && awaitsActivation(company) && !busy,
+    canActivate: !!activation?.appointment && !!company && awaitsActivation(company) && !busy && ready(),
     open,
     confirm,
     cancel: () => {
