@@ -6,6 +6,7 @@ import { ICON_MD } from '@components/iconSizes';
 import { useIdentityVerification } from '@hooks/useIdentityVerification';
 import { Modal, ModalActions } from '@components/Modal';
 import { PageAction } from '@components/Page';
+import { LoadError } from '@components/Ledger';
 
 interface IdentityVerificationModalProps {
   isOpen: boolean;
@@ -54,6 +55,9 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
   const {
     status,
     isLoadingStatus,
+    isFetchingStatus,
+    statusUnavailable,
+    retryStatus,
     isVerified,
     showPendingBanner,
     showOnHoldBanner,
@@ -85,7 +89,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
     }
   }, [isOpen, resetState]);
 
-  const canStart = showForm && !isLoadingStatus && !sdkActive && !formUrl;
+  const canStart = showForm && !statusUnavailable && !isLoadingStatus && !sdkActive && !formUrl;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Identity verification" size="lg" fullHeight={!!formUrl}>
@@ -97,6 +101,12 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
               {isLaunching ? 'Preparing verification…' : 'Loading your verification status…'}
             </p>
           </div>
+        )}
+
+        {statusUnavailable && (
+          <LoadError retry={() => void retryStatus()} busy={isFetchingStatus}>
+            Your identity verification status could not be loaded.
+          </LoadError>
         )}
 
         {isVerified && (
@@ -159,9 +169,7 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
         )}
 
         {canStart && !isLaunching && (
-          <p className="text-sm text-text-muted">
-            Verify your identity to comply with financial regulations and unlock full account features.
-          </p>
+          <p className="text-sm text-text-muted">Use your identity document to complete this check.</p>
         )}
 
         {showForm && !isLoadingStatus && !formUrl && <div id="sumsub-profile-websdk-container"></div>}
