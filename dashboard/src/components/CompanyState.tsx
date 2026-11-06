@@ -15,20 +15,18 @@ export function CompanyStatusMark({ status, label }: { status: CompanyStatus; la
 
 export function CompanyReadNotice({
   read,
-  label = 'Company information',
 }: {
   read: { error: unknown; isRefreshing: boolean; refetch: () => unknown };
-  label?: string;
 }) {
   if (read.error)
     return (
       <LoadError retry={read.refetch} busy={read.isRefreshing}>
-        {label} could not be loaded.
+        Company information could not be loaded.
       </LoadError>
     );
   return read.isRefreshing ? (
     <p role="status" className="text-sm text-text-muted">
-      Refreshing {label.toLowerCase()}…
+      Refreshing company information…
     </p>
   ) : null;
 }

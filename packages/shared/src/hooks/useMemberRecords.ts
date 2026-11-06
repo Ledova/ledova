@@ -230,7 +230,6 @@ export function useMemberRecords(
     retry,
     loading: list.isPending,
     readFailed,
-    failure: error,
     error: error ?? (readFailed ? 'Your current member records could not be read. Refresh before continuing.' : null),
     refresh: () => {
       if (live.current && boundary.get() === owner) setError(null);

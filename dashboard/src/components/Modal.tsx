@@ -10,7 +10,6 @@ interface ModalProps {
   showFooter?: boolean;
   cancelLabel?: string;
   confirmLabel?: string;
-  onCancel?: () => void;
   onConfirm?: () => void;
   confirmDisabled?: boolean;
   busy?: boolean;
@@ -81,7 +80,6 @@ export function Modal({
   showFooter = false,
   cancelLabel = 'Cancel',
   confirmLabel = 'Confirm',
-  onCancel,
   onConfirm,
   confirmDisabled = false,
   busy = false,
@@ -128,7 +126,7 @@ export function Modal({
 
                 {showFooter && (
                   <ModalActions>
-                    <PageAction label={cancelLabel} onClick={onCancel ?? onClose} disabled={busy} />
+                    <PageAction label={cancelLabel} onClick={onClose} disabled={busy} />
                     {formId ? (
                       <PageAction
                         type="submit"

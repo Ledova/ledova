@@ -120,7 +120,6 @@ export function useSignupPreScreening() {
     generalError,
     isLoading,
     isSubmitting,
-    existingProfileUuid,
     isFormValid,
     setFieldValue,
     handleSubmit,
