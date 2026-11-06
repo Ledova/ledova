@@ -514,7 +514,7 @@ export function SignUpScreen() {
                   <Text style={styles.signInText}>
                     Already have an account?{' '}
                     <Text style={styles.signInLink} onPress={() => !isLoading && navigation.navigate('SignIn')}>
-                      Sign In
+                      Sign in
                     </Text>
                   </Text>
                 </View>

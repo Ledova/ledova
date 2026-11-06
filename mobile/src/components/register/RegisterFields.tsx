@@ -206,14 +206,12 @@ export function Choices<T extends string>({
   value,
   onChange,
   disabled = false,
-  error,
 }: {
   legend: string;
   options: readonly (readonly [T, string])[];
   value: T | '';
   onChange: (value: T) => void;
   disabled?: boolean;
-  error?: string | null;
 }) {
   const styles = useCompanyStyles();
   const look = useThemedStyles((theme) => ({
@@ -255,7 +253,6 @@ export function Choices<T extends string>({
               key={option}
               accessibilityRole="radio"
               accessibilityState={{ checked, disabled }}
-              accessibilityHint={error ?? undefined}
               disabled={disabled}
               hitSlop={4}
               onPress={() => onChange(option)}
@@ -267,7 +264,6 @@ export function Choices<T extends string>({
           );
         })}
       </View>
-      {!!error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
 }

@@ -76,7 +76,7 @@ function ErrorFallback({ message, onRetry }: { message?: string; onRetry: () => 
       <Text style={styles.title}>Something went wrong</Text>
       <Text style={styles.message}>{message || 'An unexpected error occurred'}</Text>
       <TouchableOpacity style={styles.button} onPress={onRetry}>
-        <Text style={styles.buttonText}>Try Again</Text>
+        <Text style={styles.buttonText}>Try again</Text>
       </TouchableOpacity>
     </View>
   );

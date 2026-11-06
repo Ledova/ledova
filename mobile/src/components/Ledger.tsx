@@ -202,14 +202,12 @@ export function LinkRow({
   onPress,
   accessibilityLabel,
   figure,
-  aside,
   children,
 }: {
   label: string;
   onPress: () => void;
   accessibilityLabel?: string;
   figure?: string | ReactElement;
-  aside?: ReactNode;
   children?: ReactNode;
 }) {
   const theme = useAppTheme();
@@ -249,7 +247,6 @@ export function LinkRow({
         )}
         {children}
       </View>
-      {aside}
       <CaretRightIcon size={CARET_SIZE} color={theme.colors.text.muted} />
     </Pressable>
   );

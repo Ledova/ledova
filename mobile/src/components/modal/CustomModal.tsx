@@ -21,49 +21,6 @@ export function useDialogInsets() {
   return useContext(SafeAreaInsetsContext) ?? initialWindowMetrics?.insets ?? NO_INSETS;
 }
 
-export function useDialogStyles() {
-  return useThemedStyles((theme) => ({
-    text: {
-      fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.sm,
-      lineHeight: 21,
-      color: theme.colors.text.primary,
-    },
-    muted: {
-      fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.sm,
-      lineHeight: 21,
-      color: theme.colors.text.muted,
-    },
-    heading: {
-      fontFamily: theme.fontFamily.medium,
-      fontSize: theme.fontSize.sm,
-      lineHeight: 21,
-      color: theme.colors.text.primary,
-    },
-    error: {
-      fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.sm,
-      lineHeight: 21,
-      color: theme.colors.status.error.text,
-    },
-    group: { gap: theme.spacing.xs },
-    line: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: theme.spacing.sm },
-    lineText: { flex: 1 },
-    field: {
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.raised,
-      paddingHorizontal: theme.spacing.smd,
-      paddingVertical: theme.spacing.smd,
-      fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.primary,
-    },
-  }));
-}
-
 export function ModalActions({ children }: { children: ReactNode }) {
   const styles = useThemedStyles((theme) => ({
     row: {
@@ -86,14 +43,7 @@ interface CustomModalProps {
   dismissLabel?: string;
   refreshControl?: ReactElement<RefreshControlProps>;
   scrollRef?: Ref<ScrollView>;
-  showFooter?: boolean;
-  showCancelButton?: boolean;
-  onCancel?: () => void;
   actions?: ReactNode;
-  confirmLabel?: string;
-  onConfirm?: () => void;
-  confirmDisabled?: boolean;
-  confirmLoading?: boolean;
   contentKey?: Key;
 }
 
@@ -106,14 +56,7 @@ export function CustomModal({
   dismissLabel = 'Close dialog',
   refreshControl,
   scrollRef,
-  showFooter = false,
-  showCancelButton = true,
-  onCancel,
   actions,
-  confirmLabel = 'Confirm',
-  onConfirm,
-  confirmDisabled = false,
-  confirmLoading = false,
   contentKey,
 }: CustomModalProps) {
   const insets = useDialogInsets();
@@ -185,20 +128,10 @@ export function CustomModal({
               >
                 {children}
               </ScrollView>
-              {(showFooter || actions !== undefined) && (
+              {actions !== undefined && (
                 <ModalActions>
-                  {showCancelButton && (
-                    <Action label="Cancel" disabled={busy || confirmLoading} onPress={onCancel ?? close} />
-                  )}
+                  <Action label="Cancel" disabled={busy} onPress={close} />
                   {actions}
-                  {onConfirm && (
-                    <Action
-                      label={confirmLoading ? 'Loading...' : confirmLabel}
-                      primary
-                      disabled={confirmDisabled || confirmLoading}
-                      onPress={onConfirm}
-                    />
-                  )}
                 </ModalActions>
               )}
             </View>

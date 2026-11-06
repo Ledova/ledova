@@ -240,7 +240,7 @@ export function ReviewScreen() {
           <View style={styles.errorContainer}>
             <Text style={styles.errorTitle}>Error Loading Data</Text>
             <Text style={styles.errorMessage}>{error}</Text>
-            <PrimaryButton onPress={retryLoad}>Try Again</PrimaryButton>
+            <PrimaryButton onPress={retryLoad}>Try again</PrimaryButton>
           </View>
         </SafeAreaView>
       </GradientBackground>
@@ -448,7 +448,7 @@ export function ReviewScreen() {
           </View>
 
           <TouchableOpacity style={styles.backSection} onPress={handleBack} disabled={busy}>
-            <Text style={styles.backLink}>Go Back</Text>
+            <Text style={styles.backLink}>Go back</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>

@@ -188,7 +188,7 @@ export function EmailConfirmationScreen() {
                   weight={theme.icon.weights.regular}
                 />
               </View>
-              <Text style={styles.title}>Verify Your Email</Text>
+              <Text style={styles.title}>Verify your email</Text>
             </View>
 
             <View style={styles.formContainer}>
@@ -215,9 +215,9 @@ export function EmailConfirmationScreen() {
               )}
 
               <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Verification Code</Text>
+                <Text style={styles.label}>Verification code</Text>
                 <TextInput
-                  accessibilityLabel="Verification Code"
+                  accessibilityLabel="Verification code"
                   style={styles.codeInput}
                   placeholder="000000"
                   placeholderTextColor={theme.colors.form.placeholder}
@@ -263,7 +263,7 @@ export function EmailConfirmationScreen() {
               </Text>
               <Text style={styles.actionsText}>
                 <Text style={styles.actionLink} onPress={() => !isLoading && navigation.navigate('SignUp')}>
-                  Go Back
+                  Go back
                 </Text>
               </Text>
             </View>

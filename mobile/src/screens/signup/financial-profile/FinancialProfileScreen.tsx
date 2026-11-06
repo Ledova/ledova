@@ -304,7 +304,7 @@ export function FinancialProfileScreen() {
           />
           <Text style={styles.errorStateTitle}>Unable to Load Profile</Text>
           <Text style={styles.errorStateMessage}>{generalError}</Text>
-          <PrimaryButton onPress={retryLoad}>Try Again</PrimaryButton>
+          <PrimaryButton onPress={retryLoad}>Try again</PrimaryButton>
         </View>
       </SafeAreaView>
     );
@@ -323,7 +323,7 @@ export function FinancialProfileScreen() {
                   weight={theme.icon.weights.regular}
                 />
               </View>
-              <Text style={styles.title}>Financial Profile</Text>
+              <Text style={styles.title}>Financial profile</Text>
               <Text style={styles.subtitle}>AML/CTF compliance information</Text>
             </View>
 
@@ -450,7 +450,7 @@ export function FinancialProfileScreen() {
             <View style={styles.backSection}>
               <Text style={styles.backText}>
                 <Text style={styles.backLink} onPress={() => !isSubmitting && handleBack()}>
-                  Go Back
+                  Go back
                 </Text>
               </Text>
             </View>

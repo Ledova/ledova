@@ -231,7 +231,7 @@ export function UserProfileScreen() {
           />
           <Text style={styles.errorStateTitle}>Unable to Load Profile</Text>
           <Text style={styles.errorStateMessage}>{generalError}</Text>
-          <PrimaryButton onPress={retryLoad}>Try Again</PrimaryButton>
+          <PrimaryButton onPress={retryLoad}>Try again</PrimaryButton>
         </View>
       </SafeAreaView>
     );
@@ -250,7 +250,7 @@ export function UserProfileScreen() {
                   weight={theme.icon.weights.regular}
                 />
               }
-              title="Personal Details"
+              title="Personal details"
             />
 
             <View style={styles.formContainer}>
@@ -379,7 +379,7 @@ export function UserProfileScreen() {
             <View style={styles.backSection}>
               <Text style={styles.backText}>
                 <Text style={styles.backLink} onPress={() => !isSubmitting && handleBack()}>
-                  Go Back
+                  Go back
                 </Text>
               </Text>
             </View>
