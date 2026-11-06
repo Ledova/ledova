@@ -1,4 +1,4 @@
-import { AuthLayout, AuthHeader, AuthDivider, AuthSubmit } from '@components/auth';
+import { AuthLayout, AuthHeader, AuthDivider, AuthSubmit, AuthBack } from '@components/auth';
 import { SIGNUP_PATHS, SITE_PATHS } from '@utils/paths';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -9,9 +9,10 @@ import { COMPANY_TYPES, formatPhoneWithCountryCode, formatSourceOfFunds, formatI
 import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
 
-import { Section } from '@components/Ledger';
+import { Section, Row, Rows } from '@components/Ledger';
 import { SITE_URL } from '@utils/siteUrl';
 import { LoadingState } from '@pages/signup/shared/LoadingState';
+import { ErrorState } from '@pages/signup/shared/ErrorState';
 
 function displayCompanyType(companyType: string | undefined) {
   return COMPANY_TYPES.find((type) => type.value === companyType)?.label ?? companyType ?? '';
@@ -50,21 +51,7 @@ export default function SignupReview() {
     return <LoadingState message="Loading your answers…" />;
   }
 
-  if (error) {
-    return (
-      <AuthLayout>
-        <div className="flex flex-col items-center justify-center py-8">
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-error-light mb-2">Error loading data</h3>
-            <p className="text-error-light">{error}</p>
-            <button type="button" onClick={retryLoad} className="mt-4 font-semibold text-brand-light underline">
-              Try again
-            </button>
-          </div>
-        </div>
-      </AuthLayout>
-    );
-  }
+  if (error) return <ErrorState message={error} onRetry={retryLoad} />;
 
   const { userProfile, financialProfile } = data;
 
@@ -85,24 +72,19 @@ export default function SignupReview() {
       <div className="space-y-4">
         <Section title="Personal information">
           {userProfile ? (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-text-muted">Full name:</span>
-                <span className="text-sm text-text-primary font-medium">{userProfile.fullName}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-text-muted">Phone:</span>
-                <span className="text-sm text-text-primary font-medium">
-                  {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
-                </span>
-              </div>
-              <div className="flex justify-between items-start gap-4">
-                <span className="text-sm text-text-muted">Residential address:</span>
-                <span className="min-w-0 whitespace-pre-wrap break-words text-right text-sm text-text-primary font-medium">
+            <Rows>
+              <Row label="Full name" inline>
+                {userProfile.fullName}
+              </Row>
+              <Row label="Phone" inline>
+                {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
+              </Row>
+              <Row label="Residential address" inline>
+                <span className="whitespace-pre-wrap break-words">
                   {userProfile.residentialAddress || 'Not provided'}
                 </span>
-              </div>
-            </div>
+              </Row>
+            </Rows>
           ) : (
             <p className="text-sm text-text-muted">No personal information found.</p>
           )}
@@ -111,28 +93,22 @@ export default function SignupReview() {
         {isCompany ? (
           <Section title="Company information">
             {company ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-muted">Company name:</span>
-                  <span className="text-sm text-text-primary font-medium">{company.name}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-muted">ACN:</span>
-                  <span className="text-sm text-text-primary font-medium">{company.acn}</span>
-                </div>
+              <Rows>
+                <Row label="Company name" inline>
+                  {company.name}
+                </Row>
+                <Row label="ACN" inline>
+                  {company.acn}
+                </Row>
                 {company.abn && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-muted">ABN:</span>
-                    <span className="text-sm text-text-primary font-medium">{company.abn}</span>
-                  </div>
+                  <Row label="ABN" inline>
+                    {company.abn}
+                  </Row>
                 )}
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-muted">Type:</span>
-                  <span className="text-sm text-text-primary font-medium">
-                    {displayCompanyType(company.companyType)}
-                  </span>
-                </div>
-              </div>
+                <Row label="Type" inline>
+                  {displayCompanyType(company.companyType)}
+                </Row>
+              </Rows>
             ) : (
               <p className="text-sm text-text-muted">No company information found.</p>
             )}
@@ -140,44 +116,31 @@ export default function SignupReview() {
         ) : (
           <Section title="Financial profile">
             {financialProfile ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-text-muted">Source of funds:</span>
-                  <span className="text-sm text-text-primary font-medium">
-                    {formatSourceOfFunds(financialProfile.sourceOfFunds)}
-                  </span>
-                </div>
+              <Rows>
+                <Row label="Source of funds" inline>
+                  {formatSourceOfFunds(financialProfile.sourceOfFunds)}
+                </Row>
                 {financialProfile.sourceOfFundsOtherText && (
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-text-muted">Source (Other):</span>
-                    <span className="text-sm text-text-primary font-medium text-right max-w-[200px]">
-                      {financialProfile.sourceOfFundsOtherText}
-                    </span>
-                  </div>
+                  <Row label="Source (Other)" inline>
+                    {financialProfile.sourceOfFundsOtherText}
+                  </Row>
                 )}
                 {financialProfile.intendedUse && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-muted">Intended use:</span>
-                    <span className="text-sm text-text-primary font-medium">
-                      {formatIntendedUse(financialProfile.intendedUse)}
-                    </span>
-                  </div>
+                  <Row label="Intended use" inline>
+                    {formatIntendedUse(financialProfile.intendedUse)}
+                  </Row>
                 )}
                 {financialProfile.intendedUseOtherText && (
-                  <div className="flex justify-between items-start">
-                    <span className="text-sm text-text-muted">Intended use (Other):</span>
-                    <span className="text-sm text-text-primary font-medium text-right max-w-[200px]">
-                      {financialProfile.intendedUseOtherText}
-                    </span>
-                  </div>
+                  <Row label="Intended use (Other)" inline>
+                    {financialProfile.intendedUseOtherText}
+                  </Row>
                 )}
                 {financialProfile.occupation && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-text-muted">Occupation:</span>
-                    <span className="text-sm text-text-primary font-medium">{financialProfile.occupation}</span>
-                  </div>
+                  <Row label="Occupation" inline>
+                    {financialProfile.occupation}
+                  </Row>
                 )}
-              </div>
+              </Rows>
             ) : (
               <p className="text-sm text-text-muted">No financial profile found.</p>
             )}
@@ -281,14 +244,7 @@ export default function SignupReview() {
 
       <div className="text-center">
         <p className="text-sm text-text-subtle">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={isSubmitting || isResettingAuthority}
-            className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Go back
-          </button>
+          <AuthBack onClick={handleBack} disabled={isSubmitting || isResettingAuthority} />
         </p>
       </div>
 

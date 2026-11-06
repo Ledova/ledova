@@ -5,19 +5,17 @@ interface ErrorStateProps {
   message?: string;
   retryLabel?: string;
   onRetry: () => void;
-  className?: string;
 }
 
 export function ErrorState({
   title = 'Error loading data',
   message = 'We encountered an issue while loading required data.',
-  retryLabel = 'Retry',
+  retryLabel = 'Try again',
   onRetry,
-  className = '',
 }: ErrorStateProps) {
   return (
     <AuthLayout>
-      <div className={`mx-auto w-full max-w-md py-8 text-center ${className}`}>
+      <div className="mx-auto w-full max-w-md py-8 text-center">
         <h2 className="text-lg font-light mb-4 text-error-light">{title}</h2>
         <p className="text-text-muted mb-4">{message}</p>
         <button

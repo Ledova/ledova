@@ -1,13 +1,16 @@
 import type { ReactNode } from 'react';
+import { useTabTitle } from '@hooks/useTabTitle';
 
 interface AuthHeaderProps {
   title: ReactNode;
+  documentTitle?: string;
   icon?: ReactNode;
   children?: ReactNode;
   review?: boolean;
 }
 
-export function AuthHeader({ title, icon, children, review = false }: AuthHeaderProps) {
+export function AuthHeader({ title, documentTitle, icon, children, review = false }: AuthHeaderProps) {
+  useTabTitle(documentTitle ?? (typeof title === 'string' ? title : undefined));
   return (
     <div className={review ? 'text-center mb-8' : 'text-center mb-6'}>
       {icon && (
