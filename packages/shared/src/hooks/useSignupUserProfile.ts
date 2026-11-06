@@ -239,7 +239,6 @@ export function useSignupUserProfile() {
     generalError,
     isLoading,
     isSubmitting,
-    existingProfileUuid,
     formValidation,
     selectedCountry,
     countries: COUNTRIES,

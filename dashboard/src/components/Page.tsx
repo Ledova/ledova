@@ -131,7 +131,6 @@ export function PageActions({ children }: { children: ReactNode }) {
 }
 
 interface ActionContent {
-  icon?: ReactNode;
   label: string;
   context?: string;
   primary?: boolean;
@@ -142,7 +141,6 @@ type PageActionProps = ActionContent & {
   ref?: Ref<HTMLButtonElement>;
   describedBy?: string;
   destructive?: boolean;
-  pressed?: boolean;
   busy?: boolean;
   busyLabel?: string;
   disabled?: boolean;
@@ -151,7 +149,6 @@ type PageActionProps = ActionContent & {
 const ACTION_LOOKS = {
   primary: 'border-brand-mid bg-brand-mid text-white hover:bg-brand',
   destructive: 'border-error bg-error text-white hover:bg-error-dark',
-  pressed: 'border-brand-mid text-brand-light hover:bg-surface-tertiary',
   plain: 'border-border text-text-primary hover:bg-surface-tertiary',
 };
 
@@ -161,10 +158,9 @@ const actionClass = (look: string) =>
 const COMPACT_ACTION =
   'relative inline-flex w-fit items-center gap-2 whitespace-nowrap text-sm font-medium text-brand-light after:absolute after:inset-x-0 after:-inset-y-3 hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline';
 
-function ActionText({ icon, label, context }: Omit<ActionContent, 'primary' | 'compact'>) {
+function ActionText({ label, context }: Omit<ActionContent, 'primary' | 'compact'>) {
   return (
     <>
-      {icon}
       <span>{label}</span>
       {context && (
         <>
@@ -178,14 +174,12 @@ function ActionText({ icon, label, context }: Omit<ActionContent, 'primary' | 'c
 
 export function PageAction({
   ref,
-  icon,
   label,
   context,
   describedBy,
   primary = false,
   compact = false,
   destructive = false,
-  pressed,
   busy = false,
   busyLabel,
   disabled = false,
@@ -193,13 +187,7 @@ export function PageAction({
   form,
   onClick,
 }: PageActionProps) {
-  const look = destructive
-    ? ACTION_LOOKS.destructive
-    : primary
-      ? ACTION_LOOKS.primary
-      : pressed
-        ? ACTION_LOOKS.pressed
-        : ACTION_LOOKS.plain;
+  const look = destructive ? ACTION_LOOKS.destructive : primary ? ACTION_LOOKS.primary : ACTION_LOOKS.plain;
   return (
     <button
       ref={ref}
@@ -207,11 +195,10 @@ export function PageAction({
       form={form}
       onClick={onClick}
       disabled={disabled || busy}
-      aria-pressed={pressed}
       aria-describedby={describedBy}
       className={compact ? COMPACT_ACTION : actionClass(look)}
     >
-      <ActionText icon={icon} label={busy && busyLabel ? busyLabel : label} context={context} />
+      <ActionText label={busy && busyLabel ? busyLabel : label} context={context} />
     </button>
   );
 }
@@ -224,7 +211,6 @@ interface PageLinkProps extends ActionContent {
 }
 
 export function PageLink({
-  icon,
   label,
   context,
   primary = false,
@@ -237,7 +223,6 @@ export function PageLink({
   if (disabled)
     return (
       <PageAction
-        icon={icon}
         label={label}
         context={context}
         primary={primary}
@@ -253,7 +238,7 @@ export function PageLink({
       onClick={onClick}
       className={compact ? COMPACT_ACTION : actionClass(primary ? ACTION_LOOKS.primary : ACTION_LOOKS.plain)}
     >
-      <ActionText icon={icon} label={label} context={context} />
+      <ActionText label={label} context={context} />
     </Link>
   );
 }

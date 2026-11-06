@@ -177,7 +177,6 @@ function GroupLink({
 function NavGroup({
   icon: Icon,
   label,
-  title,
   to,
   state,
   active,
@@ -188,7 +187,6 @@ function NavGroup({
 }: {
   icon: Icon;
   label: string;
-  title?: string;
   to: string;
   state?: unknown;
   active: boolean;
@@ -215,7 +213,6 @@ function NavGroup({
         <GroupLink
           to={to}
           state={state}
-          title={title}
           current={current}
           blocked={blocked}
           onNavigate={onNavigate}

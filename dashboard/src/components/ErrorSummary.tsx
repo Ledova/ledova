@@ -19,12 +19,10 @@ function focusField(id: string) {
 export function ErrorSummary({
   attempt,
   problems,
-  className,
   claim,
 }: {
   attempt: number;
   problems: Listed[];
-  className?: string;
   claim?: (attempt: number) => boolean;
 }) {
   const summary = useRef<HTMLDivElement>(null);
@@ -33,12 +31,7 @@ export function ErrorSummary({
   }, [attempt, claim]);
   if (problems.length === 0) return null;
   return (
-    <div
-      ref={summary}
-      role="alert"
-      tabIndex={-1}
-      className={`space-y-1 text-sm text-error-light outline-none${className ? ` ${className}` : ''}`}
-    >
+    <div ref={summary} role="alert" tabIndex={-1} className="space-y-1 text-sm text-error-light outline-none">
       <p>Before continuing:</p>
       <ul className="list-disc space-y-1 pl-5">
         {problems.map(({ id, message }) => (

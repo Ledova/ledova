@@ -1,6 +1,6 @@
-export function AuthDivider({ className = 'relative my-6' }: { className?: string }) {
+export function AuthDivider() {
   return (
-    <div className={className}>
+    <div className="relative my-6">
       <div className="absolute inset-0 flex items-center">
         <div className="w-full border-t border-border"></div>
       </div>

@@ -186,7 +186,6 @@ export function useSignupFinancialProfile() {
     generalError,
     isLoading,
     isSubmitting,
-    existingProfileUuid,
     userProfileId,
     setFieldValue,
     toggleSourceOfFunds,
