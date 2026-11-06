@@ -810,7 +810,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   clients over `useClassRegister` beside it (the class list, the person's appointments with current
   register-read authority, and the selected class's register), and `useClassCertificate` previews
   and downloads one entry's certificate; the shared `isCertificateEntry`, `canPrepareCertificate` and
-  `CERTIFICATE_STATES` decide which rows are listed and preparable. The app's Certificates screen
+  `certificateStatus` decide which rows are listed and preparable. The app's Certificates screen
   renders the same records at phone width ([navigation](mobile.md#navigation)).
 - Certificates reads the member's records through an owner-bound member-records controller.
   Choosing a class on Certificates reads that class's own entries. Active web reads follow

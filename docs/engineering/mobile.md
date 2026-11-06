@@ -175,19 +175,19 @@ member-records state, reporting acceptance only once the server does. Documents,
 person may read (`canReadRegister`) it is the web's company view (`CompanyCertificates.tsx`), read
 through the shared `useCompanyCertificates` with the app's session and no member record: Certificate
 records for one share class, each issue or transfer newest first in the web's two-line rows: its
-shareholders and changes, then the kind, class, entry and short date (and ledger date), with
+shareholders and changes, then the kind, class and short date (and ledger date), with
 **Certificate:** None due, the entry was reversed on a reversed entry and a compact **Prepare
 certificate** beneath one that can be prepared. Filters holds the web's drafts, Share class
 when there is more than one, Shareholder and Certificate status, with **Clear**, which keeps the class,
 and **Apply**; the server filters the whole history before paging, and **Load more register entries**
 reads the next page, a failed one leaving the list marked incomplete. **Prepare certificate** opens the
 web's form in its row, hiding the other rows and holding the filters (`ClassCertificate.tsx`, through
-the shared `useClassCertificate`): the share movements, company date, entry, ledger date and
+the shared `useClassCertificate`): the share movements, company date, ledger date and
 recording time, **Preview**, which adds the PDF's page count, then **Download PDF**, which shares the
 unsigned certificate ([document view copies](#document-view-copies)). For anyone else it is the member's own
 entries in one share class, newest first. For a member with more than one class, Filters opens the
 web's panel under its button (`FilterPopover`) with Share class and Apply. Each record shows the
-shareholder and change, the entry and its date (and ledger date), with no action. A class the member
+kind and class with the change, then its date (and ledger date), with no action. A class the member
 is not recorded in says so, as does a company that records neither register access nor a member
 record for the person; a failed read offers Try again.
 Inspection copies (`InspectionCopiesScreen.tsx`) is the web's page for a register reader of the

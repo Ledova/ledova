@@ -550,6 +550,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
   });
   await waitFor(() => expect(screen.queryByText('+10 ORD shares')).toBeNull());
+  expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
   expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   expect(screen.queryByRole('img', { name: /Your issued shares by class/ })).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
