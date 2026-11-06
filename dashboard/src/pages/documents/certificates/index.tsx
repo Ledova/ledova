@@ -46,7 +46,7 @@ export default function CertificatesPage() {
     !context.directory.isLoading &&
     !context.directory.isRefreshing;
   const access = company?.canReadRegister ? 'company' : personal ? 'personal' : null;
-  const [retained, setRetained] = useState({ scope, access });
+  const [retained, setRetained] = useState({ scope, access: confirmed ? access : null });
   if (retained.scope !== scope || (confirmed && retained.access !== access))
     setRetained({ scope, access: confirmed ? access : null });
   const currentAccess = confirmed ? access : retained.scope === scope ? retained.access : null;
