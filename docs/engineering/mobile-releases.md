@@ -282,14 +282,14 @@ Biometric sign-in is offered only while biometrics are enrolled and a gated copy
 token is stored: Sign in then shows a face-scan icon instead of a key, and tapping it with both
 fields empty starts it. Sign-out and account deletion remove the copy
 ([secret storage](mobile.md#secret-storage)), so test by relaunching. Start from a fresh install, or
-turn `<type> Sign in` on and then off in Settings (sign-out keeps the setting, so a typed sign-in
+turn `<type> sign-in` on and then off in Settings (sign-out keeps the setting, so a typed sign-in
 skips the Enable alert), and keep App Lock off, since backgrounding during a prompt can add an
 unlock screen. On Android enrol a strong (Class 3) biometric: only that opens the gated copy, and a
 phone with weaker face unlock says Face ID but needs the fingerprint. `<type>` is Face ID with face
 hardware, Touch ID with only a fingerprint, and Biometrics otherwise.
 
-1. Sign in with email and password and tap Enable on `Enable <type> Sign in?`, or turn on
-   `<type> Sign in` in Settings. Android's Keystore prompts
+1. Sign in with email and password and tap Enable on `Enable <type> sign-in?`, or turn on
+   `<type> sign-in` in Settings. Android's Keystore prompts
    `Authenticate to keep biometric sign in`; iOS writes silently.
 2. Without signing out, force-quit and relaunch: expect the face-scan icon. Tap Sign in with both
    fields empty and pass the biometric prompt (Android: `Sign in with <type>`; iOS may first show

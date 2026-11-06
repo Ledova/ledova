@@ -1045,10 +1045,9 @@ This section covers how a form reports a problem: when it is submitted, and when
     to a field, and lists the problems current at the time. Its shareholder editor lists the problems
     with the shareholder being edited. A summary link focuses the control the field's label points
     to, or else the field's first control, including Headless UI checkboxes and radios.
-  - **Sign-in and sign-up** keep the rules in their hooks: sign-up's in `packages/shared`, which
-    mobile shares, and sign-in's in the dashboard's own `useSignIn`
-    (`dashboard/src/pages/signin/useSignIn.ts`). The hook reports its field errors when the form
-    is submitted, and the server's come back the same way.
+  - **Sign-in and sign-up** keep the rules in `packages/shared`, which both clients use: sign-up's
+    hooks and `useSignInForm` for sign-in. The hook reports its field errors when the form is
+    submitted, and the server's come back the same way.
     `useFieldErrorSummary` lists them in the same summary, which takes focus after each submit.
     Pre-screening's four declarations are checked by the page, since its hook reports only one
     sentence.

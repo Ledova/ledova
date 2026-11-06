@@ -11,6 +11,7 @@ import {
   invitationCodeFrom,
   isInvitationCode,
   ownMemberRecordsKey,
+  isConfirmedInvitation,
   previewMemberInvitation,
   type UserFriendlyError,
 } from '@ledova/shared';
@@ -38,15 +39,7 @@ export function InvitationScreen() {
     retry: false,
     queryFn: async () => {
       const { data } = await previewMemberInvitation(apiClient, code, orderSubmissionSession.requestConfig());
-      if (
-        !data.company?.uuid ||
-        !data.company.name ||
-        !data.member?.uuid ||
-        !data.member.name ||
-        !data.intendedEmail ||
-        !data.acceptanceDeadline ||
-        !['pending', 'accepted'].includes(data.status)
-      )
+      if (!isConfirmedInvitation(data))
         throw new Error('This invitation could not be confirmed. Check the code and try again.');
       return data;
     },

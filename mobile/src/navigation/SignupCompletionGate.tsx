@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { useAuth, useUserPreferences } from '@ledova/shared';
+import { useAuth, useUserPreferences, useRole } from '@ledova/shared';
 import { PrimaryButton } from '../components/buttons';
 import { useAppTheme } from '../contexts';
-import { useRole } from '../hooks/useRole';
 import { useUserProfile } from '../hooks/useUserProfile';
 import type { RootStackParamList } from './AppNavigator';
 import { SignedInNavigator } from './SignedInNavigator';

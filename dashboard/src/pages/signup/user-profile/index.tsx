@@ -5,9 +5,8 @@ import { UserIcon } from '@phosphor-icons/react';
 import { LoadingState } from '@pages/signup/shared/LoadingState';
 import { ErrorState } from '@pages/signup/shared/ErrorState';
 import { UserProfileForm } from './UserProfileForm';
-import { useRole } from '@hooks/useRole';
+import { useRole, useSignupUserProfile } from '@ledova/shared';
 
-import { useSignupUserProfile } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 
 export default function SignupUserProfile() {

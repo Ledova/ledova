@@ -6,6 +6,7 @@ import {
   acceptMemberInvitation,
   failureSentence,
   isInvitationCode,
+  isConfirmedInvitation,
   previewMemberInvitation,
   useAuth,
   useSubmissionOwner,
@@ -84,15 +85,7 @@ export function useMemberInvitation(typed = '') {
       const response = await previewMemberInvitation(apiClient, code, { signal, ledovaSubmissionGuard: guard });
       guard();
       const data = response.data;
-      if (
-        !data.company?.uuid ||
-        !data.company.name ||
-        !data.member?.uuid ||
-        !data.member.name ||
-        !data.intendedEmail ||
-        !data.acceptanceDeadline ||
-        !['pending', 'accepted'].includes(data.status)
-      )
+      if (!isConfirmedInvitation(data))
         throw new Error('The invitation details could not be confirmed. Reopen the invitation email.');
       return data;
     },

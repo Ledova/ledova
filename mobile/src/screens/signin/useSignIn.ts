@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { readSignInError, signin, FormErrors, SigninRequest, useAuth } from '@ledova/shared';
+import { signin, useAuth, useSignInForm } from '@ledova/shared';
 import { apiClient, isRefreshRefusal, rotateRefreshToken, UserFriendlyError } from '../../services/apiClient';
 import { storeTokens } from '../../services/tokenStorage';
 import { notificationsService } from '../../services/notificationsService';
@@ -7,42 +6,7 @@ import { notificationsService } from '../../services/notificationsService';
 export const useSignIn = () => {
   const { refetch: refetchAuth } = useAuth();
 
-  const [form, setForm] = useState<SigninRequest>({
-    email: '',
-    password: '',
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [generalError, setGeneralError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const setFieldValue = (field: keyof SigninRequest, value: string) => {
-    setForm({
-      ...form,
-      [field]: value,
-    });
-    setErrors({});
-    setGeneralError(null);
-  };
-
-  const togglePassword = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
-
-    if (!form.email.trim()) {
-      newErrors.email = ['Email is required'];
-    }
-
-    if (!form.password.trim()) {
-      newErrors.password = ['Password is required'];
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const { validateForm, showFailure, setGeneralError, setIsLoading, ...state } = useSignInForm();
 
   const completeSignIn = async (onSuccess?: () => void) => {
     await refetchAuth();
@@ -65,21 +29,7 @@ export const useSignIn = () => {
       await completeSignIn(onSuccess);
       return true;
     } catch (err: unknown) {
-      setErrors({});
-      setGeneralError(null);
-
-      if (err && typeof err === 'object' && 'isUserFriendly' in err) {
-        const userFriendlyError = err as UserFriendlyError;
-        setGeneralError(userFriendlyError.message);
-        return false;
-      }
-
-      const reading = readSignInError(err);
-      if (reading.fieldErrors) {
-        setErrors(reading.fieldErrors as FormErrors);
-        return false;
-      }
-      setGeneralError(reading.generalError ?? null);
+      showFailure(err);
       return false;
     }
   };
@@ -94,7 +44,7 @@ export const useSignIn = () => {
     setIsLoading(true);
 
     try {
-      await performLogin(form.email, form.password, onSuccess);
+      await performLogin(state.form.email, state.form.password, onSuccess);
     } finally {
       setIsLoading(false);
     }
@@ -123,13 +73,7 @@ export const useSignIn = () => {
   };
 
   return {
-    form,
-    errors,
-    generalError,
-    isLoading,
-    showPassword,
-    setFieldValue,
-    togglePassword,
+    ...state,
     handleSubmit,
     loginWithRefreshToken,
     setGeneralError,

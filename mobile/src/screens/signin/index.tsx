@@ -220,11 +220,11 @@ export function SignInScreen() {
     await handleSubmit(async () => {
       if (biometricsAvailable && !biometricLoginEnabled) {
         Alert.alert(
-          `Enable ${biometricType} Sign in?`,
+          `Enable ${biometricType} sign-in?`,
           `Would you like to use ${biometricType} to sign in next time?`,
           [
             {
-              text: 'Not Now',
+              text: 'Not now',
               style: 'cancel',
               onPress: navigateToMainApp,
             },

@@ -13,12 +13,12 @@ import {
   type CompanyTeamAppointment,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
+  useRole,
 } from '@ledova/shared';
 import { Action, Actions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { useRole } from '../../hooks/useRole';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 

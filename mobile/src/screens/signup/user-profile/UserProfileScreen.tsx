@@ -8,10 +8,9 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { UserIcon, WarningCircleIcon, HouseIcon, PhoneIcon } from 'phosphor-react-native';
 import { CountrySelector } from './components/CountrySelector';
-import { useRole } from '../../../hooks/useRole';
+import { useRole, parseDateString, formatDateToString, useSignupUserProfile } from '@ledova/shared';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { parseDateString, formatDateToString, useSignupUserProfile } from '@ledova/shared';
 
 export function UserProfileScreen() {
   const theme = useAppTheme();
