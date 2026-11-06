@@ -1063,7 +1063,8 @@ This section covers how a form reports a problem: when it is submitted, and when
     such as without company authority or with nothing changed, and the page says why. An unchanged
     retry of an interrupted request is not checked again.
   - **Shared wording.** A rule both clients apply has one sentence in `packages/shared`: a new
-    password (`PASSWORD_PROBLEMS`, which sign-up's shared hook gives both) and an invitation code
+    password (`PASSWORD_PROBLEMS`, which sign-up's shared hook and `changePasswordProblems` give both) and an
+    invitation code
     (`INVITATION_CODE_PROBLEM`, used by team invitations on both clients and mobile's Invitation
     screen).
     A pasted code is trimmed before its length limit applies; web member invitations use email links

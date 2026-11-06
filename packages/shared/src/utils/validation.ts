@@ -22,6 +22,14 @@ export function newPasswordProblem(password: string): string | null {
   return !lengthValid ? PASSWORD_PROBLEMS.LENGTH : !notNumeric ? PASSWORD_PROBLEMS.NUMERIC : null;
 }
 
+export function changePasswordProblems(current: string, next: string, confirm: string) {
+  return {
+    currentPassword: !current && PASSWORD_PROBLEMS.CURRENT,
+    newPassword: newPasswordProblem(next),
+    newPasswordConfirm: next !== confirm && PASSWORD_PROBLEMS.MATCH,
+  };
+}
+
 export function formatVerificationToken(token: string): string {
   return token.trim().replace(/[^0-9]/g, '');
 }

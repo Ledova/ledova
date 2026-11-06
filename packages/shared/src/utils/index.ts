@@ -24,6 +24,7 @@ export {
   isNumericOnly,
   validatePassword,
   PASSWORD_PROBLEMS,
+  changePasswordProblems,
   newPasswordProblem,
   formatVerificationToken,
   validateEmailConfirmation,

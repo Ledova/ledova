@@ -13,7 +13,7 @@ export function RegisterAccess({ owner }: { owner: OrderSubmissionOwner | null }
     <LoadError retry={directory.retry} busy={directory.isRefreshing}>
       Your company access could not be confirmed.
     </LoadError>
-  ) : directory.isLoading ? (
+  ) : directory.isLoading || directory.isRefreshing || preferences.isFetching ? (
     <Loading>Loading the register…</Loading>
   ) : (
     <CompanyContextNotice />
