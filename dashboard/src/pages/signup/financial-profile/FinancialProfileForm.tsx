@@ -1,4 +1,13 @@
-import { ERROR_BANNER_CLASS, AuthCard, AuthInput, authFieldClass, AuthDivider, AuthSubmit } from '@components/auth';
+import {
+  AuthCard,
+  AuthInput,
+  authFieldClass,
+  AuthDivider,
+  AuthSubmit,
+  AuthAlert,
+  AuthBack,
+  AuthField,
+} from '@components/auth';
 import React from 'react';
 import {
   FIELD_LIMITS,
@@ -7,14 +16,10 @@ import {
   SOURCE_OF_FUNDS_OPTIONS,
   INTENDED_USE_OPTIONS,
 } from '@ledova/shared';
-import { ICON_MD } from '@components/iconSizes';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useFieldErrorSummary } from '@hooks/useErrorSummary';
-import { Field, Label, Description } from '@headlessui/react';
-import { WarningIcon } from '@phosphor-icons/react';
 import RadioGroupField from './RadioGroupField';
 import CheckboxGroupField from './CheckboxGroupField';
-import { Failure } from '@components/Ledger';
 
 interface FinancialProfileFormProps {
   form: FinancialProfileFormState;
@@ -60,18 +65,7 @@ export function FinancialProfileForm({
       <AuthCard>
         <form noValidate onSubmit={submit} className="space-y-6">
           <ErrorSummary {...reported.summary} />
-          {generalError && (
-            <div className={ERROR_BANNER_CLASS}>
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <WarningIcon size={ICON_MD} className="text-error-light" />
-                </div>
-                <div className="ml-3">
-                  <Failure>{generalError}</Failure>
-                </div>
-              </div>
-            </div>
-          )}
+          {generalError && <AuthAlert>{generalError}</AuthAlert>}
 
           <CheckboxGroupField
             id={funds.id}
@@ -83,8 +77,7 @@ export function FinancialProfileForm({
           />
 
           {form.sourceOfFunds.includes('other') && (
-            <Field id={fundsOther.id} className="space-y-2">
-              <Label className="block text-sm font-medium text-text-body">Please specify your source of funds</Label>
+            <AuthField id={fundsOther.id} label="Please specify your source of funds" error={fundsOther.error}>
               <AuthInput
                 type="text"
                 name="sourceOfFundsOtherText"
@@ -96,10 +89,7 @@ export function FinancialProfileForm({
                 invalid={!!fundsOther.error}
                 disabled={isSubmitting}
               />
-              {fundsOther.error && (
-                <Description className="text-error-light text-xs mt-1">{fundsOther.error}</Description>
-              )}
-            </Field>
+            </AuthField>
           )}
 
           <RadioGroupField
@@ -112,8 +102,7 @@ export function FinancialProfileForm({
           />
 
           {form.intendedUse === 'other' && (
-            <Field id={useOther.id} className="space-y-2">
-              <Label className="block text-sm font-medium text-text-body">Please specify your intended use</Label>
+            <AuthField id={useOther.id} label="Please specify your intended use" error={useOther.error}>
               <AuthInput
                 type="text"
                 name="intendedUseOtherText"
@@ -125,12 +114,10 @@ export function FinancialProfileForm({
                 invalid={!!useOther.error}
                 disabled={isSubmitting}
               />
-              {useOther.error && <Description className="text-error-light text-xs mt-1">{useOther.error}</Description>}
-            </Field>
+            </AuthField>
           )}
 
-          <Field id={occupation.id} className="space-y-2">
-            <Label className="block text-sm font-medium text-text-body">What is your occupation?</Label>
+          <AuthField id={occupation.id} label="What is your occupation?" error={occupation.error}>
             <AuthInput
               type="text"
               name="occupation"
@@ -142,12 +129,9 @@ export function FinancialProfileForm({
               invalid={!!occupation.error}
               disabled={isSubmitting}
             />
-            {occupation.error && (
-              <Description className="text-error-light text-xs mt-1">{occupation.error}</Description>
-            )}
-          </Field>
+          </AuthField>
 
-          <AuthSubmit busy={isSubmitting} busyLabel="Saving…" onClick={submit}>
+          <AuthSubmit busy={isSubmitting} busyLabel="Saving…">
             Continue
           </AuthSubmit>
         </form>
@@ -158,14 +142,7 @@ export function FinancialProfileForm({
       <div className="text-center">
         {onBack && (
           <p className="text-sm text-text-subtle">
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={isSubmitting}
-              className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Go back
-            </button>
+            <AuthBack onClick={onBack} disabled={isSubmitting} />
           </p>
         )}
       </div>

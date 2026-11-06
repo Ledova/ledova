@@ -1,10 +1,9 @@
-import { AuthLayout, AuthHeader, AuthDivider } from '@components/auth';
+import { AuthLayout, AuthHeader, AuthDivider, AuthAlert, AuthBack } from '@components/auth';
 import { SIGNUP_PATH, SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
-import { UserIcon, BuildingsIcon, WarningIcon } from '@phosphor-icons/react';
+import { UserIcon, BuildingsIcon } from '@phosphor-icons/react';
 import { useSignupAccountType } from '@ledova/shared';
-import { ICON_LG, ICON_MD } from '@components/iconSizes';
-import { Failure } from '@components/Ledger';
+import { ICON_LG } from '@components/iconSizes';
 
 type AccountRole = 'investor' | 'company';
 
@@ -54,15 +53,8 @@ export default function SignupAccountType() {
       </AuthHeader>
 
       {error && (
-        <div className="mb-4 bg-error-subtle border border-error-dark rounded-lg p-4">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <WarningIcon size={ICON_MD} className="text-error-light" />
-            </div>
-            <div className="ml-3">
-              <Failure>{error}</Failure>
-            </div>
-          </div>
+        <div className="mb-4">
+          <AuthAlert>{error}</AuthAlert>
         </div>
       )}
 
@@ -94,14 +86,7 @@ export default function SignupAccountType() {
 
       <div className="text-center">
         <p className="text-sm text-text-subtle">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={isSubmitting}
-            className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50"
-          >
-            Go back
-          </button>
+          <AuthBack onClick={handleBack} disabled={isSubmitting} />
         </p>
       </div>
     </AuthLayout>

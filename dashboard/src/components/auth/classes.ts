@@ -11,6 +11,9 @@ export const AUTH_INPUT_CLASS =
 
 export const ERROR_BANNER_CLASS = 'bg-error-subtle border border-error-dark rounded-lg p-4';
 
+export const AUTH_LINK_CLASS =
+  'font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+
 export const authFieldBorder = (error: unknown, background = true, focus = 'focus:ring-border-focus') =>
   error
     ? background

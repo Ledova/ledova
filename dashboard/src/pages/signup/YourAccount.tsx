@@ -1,16 +1,15 @@
-import { AuthLayout, ERROR_BANNER_CLASS, AuthHeader, AuthCard, AuthInput, AuthSubmit } from '@components/auth';
+import { AuthLayout, AuthHeader, AuthCard, AuthInput, AuthSubmit, AuthAlert, AuthField } from '@components/auth';
 import { SIGNUP_PATHS } from '@utils/paths';
 import { clearSessionQueries } from '@utils/session';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { Field, Label, Description } from '@headlessui/react';
-import { EnvelopeIcon, LockIcon, UserIcon, WarningIcon } from '@phosphor-icons/react';
+import { Description } from '@headlessui/react';
+import { EnvelopeIcon, LockIcon, UserIcon } from '@phosphor-icons/react';
 import { FIELD_LIMITS, useSignupRestart } from '@ledova/shared';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { ICON_MD } from '@components/iconSizes';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useFieldErrorSummary } from '@hooks/useErrorSummary';
-import { Failure } from '@components/Ledger';
 
 export function YourAccount() {
   const navigate = useNavigate();
@@ -55,47 +54,34 @@ export function YourAccount() {
       <AuthCard>
         <form noValidate onSubmit={handleContinue} className="space-y-6">
           <ErrorSummary {...reported.summary} />
-          {generalError && (
-            <div className={ERROR_BANNER_CLASS}>
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <WarningIcon size={ICON_MD} className="text-error-light" />
-                </div>
-                <div className="ml-3">
-                  <Failure>{generalError}</Failure>
-                </div>
-              </div>
-            </div>
-          )}
+          {generalError && <AuthAlert>{generalError}</AuthAlert>}
 
-          <Field id={emailField.id} className="space-y-2">
-            <Label className="block text-sm font-medium text-text-body">Email</Label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <EnvelopeIcon size={ICON_MD} className="text-text-subtle" />
-              </div>
-              <AuthInput
-                type="email"
-                name="email"
-                maxLength={FIELD_LIMITS.EMAIL}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                required
-                invalid={!!emailField.error}
-                disabled={isSubmitting}
-              />
-            </div>
-            {emailField.error ? (
-              <Description className="text-error-light text-sm mt-1">{emailField.error}</Description>
-            ) : (
+          <AuthField
+            id={emailField.id}
+            label="Email"
+            icon={<EnvelopeIcon size={ICON_MD} className="text-text-subtle" />}
+            error={emailField.error}
+            below={
+              !emailField.error &&
               !changed && (
                 <Description className="text-text-muted text-sm mt-1">
                   Verified. Continue to keep your progress.
                 </Description>
               )
-            )}
-          </Field>
+            }
+          >
+            <AuthInput
+              type="email"
+              name="email"
+              maxLength={FIELD_LIMITS.EMAIL}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              required
+              invalid={!!emailField.error}
+              disabled={isSubmitting}
+            />
+          </AuthField>
 
           {changed && (
             <>
@@ -104,50 +90,42 @@ export function YourAccount() {
                 type, eligibility answers, and personal and financial details. A company you have already saved stays
                 with your account.
               </p>
-              <Field id={confirmField.id} className="space-y-2">
-                <Label className="block text-sm font-medium text-text-body">Confirm new email</Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <EnvelopeIcon size={ICON_MD} className="text-text-subtle" />
-                  </div>
-                  <AuthInput
-                    type="email"
-                    name="confirmEmail"
-                    maxLength={FIELD_LIMITS.EMAIL}
-                    value={confirmEmail}
-                    onChange={(e) => setConfirmEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    invalid={!!confirmField.error}
-                    disabled={isSubmitting}
-                  />
-                </div>
-                {confirmField.error && (
-                  <Description className="text-error-light text-sm mt-1">{confirmField.error}</Description>
-                )}
-              </Field>
-              <Field id={passwordField.id} className="space-y-2">
-                <Label className="block text-sm font-medium text-text-body">Current password</Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <LockIcon size={ICON_MD} className="text-text-subtle" />
-                  </div>
-                  <AuthInput
-                    type="password"
-                    name="currentPassword"
-                    maxLength={FIELD_LIMITS.PASSWORD}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    invalid={!!passwordField.error}
-                    disabled={isSubmitting}
-                  />
-                </div>
-                {passwordField.error && (
-                  <Description className="text-error-light text-sm mt-1">{passwordField.error}</Description>
-                )}
-              </Field>
+              <AuthField
+                id={confirmField.id}
+                label="Confirm new email"
+                icon={<EnvelopeIcon size={ICON_MD} className="text-text-subtle" />}
+                error={confirmField.error}
+              >
+                <AuthInput
+                  type="email"
+                  name="confirmEmail"
+                  maxLength={FIELD_LIMITS.EMAIL}
+                  value={confirmEmail}
+                  onChange={(e) => setConfirmEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  invalid={!!confirmField.error}
+                  disabled={isSubmitting}
+                />
+              </AuthField>
+              <AuthField
+                id={passwordField.id}
+                label="Current password"
+                icon={<LockIcon size={ICON_MD} className="text-text-subtle" />}
+                error={passwordField.error}
+              >
+                <AuthInput
+                  type="password"
+                  name="currentPassword"
+                  maxLength={FIELD_LIMITS.PASSWORD}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  invalid={!!passwordField.error}
+                  disabled={isSubmitting}
+                />
+              </AuthField>
             </>
           )}
 

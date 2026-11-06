@@ -6,6 +6,7 @@ import { PageActionsTarget, PageBack, PageTitle, type PageBackLink } from './Pag
 import { InSignedInFrame } from './InSignedInFrame';
 import { PhoneBar } from './PhoneBar';
 import { ICON_MD } from './iconSizes';
+import { useTabTitle } from '@hooks/useTabTitle';
 
 interface PageProps {
   actions?: ReactNode;
@@ -39,13 +40,7 @@ export function Page({
   const inBar = inFrame && bar.phone;
   const { setTitle, setBack } = bar;
   const arrow = link.to && link.label ? { to: link.to, label: link.label, state: link.state } : null;
-  useEffect(() => {
-    if (!tabTitle) return;
-    document.title = `${tabTitle} · Ledova`;
-    return () => {
-      document.title = 'Ledova';
-    };
-  }, [tabTitle]);
+  useTabTitle(tabTitle);
   useEffect(() => {
     if (!inBar || !title) return;
     setTitle(title);
