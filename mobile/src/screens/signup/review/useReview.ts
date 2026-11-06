@@ -2,8 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 
-import { AUTH_QUERY_KEY, useSignupReview, USER_PROFILES_QUERY_KEY } from '@ledova/shared';
-import { useRole } from '../../../hooks/useRole';
+import { AUTH_QUERY_KEY, useSignupReview, USER_PROFILES_QUERY_KEY, useRole } from '@ledova/shared';
 import { orderSubmissionSession } from '../../../services/orderSubmissions';
 import { randomUUID } from 'expo-crypto';
 

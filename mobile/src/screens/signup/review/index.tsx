@@ -436,7 +436,7 @@ export function ReviewScreen() {
                 fullWidth
                 style={styles.completeButton}
               >
-                {isCompany ? 'Complete company setup' : 'Complete Signup'}
+                {isCompany ? 'Complete company setup' : 'Complete signup'}
               </PrimaryButton>
             </View>
           </View>

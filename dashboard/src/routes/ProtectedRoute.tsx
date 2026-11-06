@@ -1,8 +1,7 @@
 import { useContext, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { canOpen, landingFor, useAuth, type Audience } from '@ledova/shared';
+import { canOpen, landingFor, useAuth, type Audience, useRole } from '@ledova/shared';
 
-import { useRole } from '@hooks/useRole';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { InSignedInFrame } from '@components/InSignedInFrame';
 import { Page } from '@components/Page';

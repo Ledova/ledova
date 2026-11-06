@@ -55,7 +55,7 @@ jest.mock('../../../navigation/SignedInNavigator', () => ({
       .requireActual<typeof import('react')>('react')
       .createElement(jest.requireActual<typeof import('react-native')>('react-native').Text, null, 'Completed account'),
 }));
-jest.mock('../../../hooks/useRole', () => ({
+jest.mock('../../../../../packages/shared/src/hooks/useRole', () => ({
   useRole: () => ({ role: mockCompany ? 'company' : 'investor', isCompany: mockCompany, isLoading: false }),
 }));
 jest.mock('../../../hooks/useUserProfile', () => ({
@@ -186,7 +186,7 @@ it('completes individual signup only through explicit Terms acceptance, resumes 
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   const first = await render(<ReviewScreen />, { wrapper });
-  expect(first.getByRole('button', { name: 'Complete Signup' })).toBeEnabled();
+  expect(first.getByRole('button', { name: 'Complete signup' })).toBeEnabled();
   expect(first.getByText('Residential address:')).toBeTruthy();
   expect(first.getByText(mockResidentialAddress, { normalizer: (value) => value }).props.children).toBe(
     mockResidentialAddress,
@@ -194,16 +194,16 @@ it('completes individual signup only through explicit Terms acceptance, resumes 
   expect(first.queryByRole('checkbox')).toBeNull();
   expect(first.getByText(/By completing signup, you accept the/)).toBeTruthy();
   expect(mockComplete).not.toHaveBeenCalled();
-  await fireEvent.press(first.getByRole('button', { name: 'Complete Signup' }));
+  await fireEvent.press(first.getByRole('button', { name: 'Complete signup' }));
   await first.findByText('The response was interrupted. Try again.');
   expect(mockReset).not.toHaveBeenCalled();
   await first.unmount();
 
   const resumed = await render(<ReviewScreen />, { wrapper });
-  expect(resumed.getByRole('button', { name: 'Complete Signup' })).toBeEnabled();
+  expect(resumed.getByRole('button', { name: 'Complete signup' })).toBeEnabled();
   expect(resumed.queryByRole('checkbox')).toBeNull();
   expect(mockComplete).toHaveBeenCalledTimes(1);
-  await fireEvent.press(resumed.getByRole('button', { name: 'Complete Signup' }));
+  await fireEvent.press(resumed.getByRole('button', { name: 'Complete signup' }));
   await waitFor(() => expect(mockReset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'MainApp' }] }));
   expect(mockComplete).toHaveBeenCalledTimes(2);
   await resumed.unmount();

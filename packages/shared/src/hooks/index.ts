@@ -2,6 +2,8 @@ export { ApiClientProvider, useApiClient } from './useApiClient';
 export type { ApiClientProviderProps } from './useApiClient';
 export { AUTH_QUERY_KEY, useAuth, AUTH_QUERY_ROOT } from './useAuth';
 export { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
+export { useRole } from './useRole';
+export { useSignInForm } from './useSignInForm';
 export { useIdentityVerificationStatus, IDENTITY_VERIFICATION_QUERY_KEY } from './useIdentityVerificationStatus';
 export { useFinancialProfile, FINANCIAL_PROFILES_QUERY_KEY } from './useFinancialProfile';
 export { useNotifications } from './useNotifications';

@@ -3,8 +3,7 @@ import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 
-import { AUTH_QUERY_KEY, canOpen, landingFor, useSignupReview, USER_PROFILES_QUERY_KEY } from '@ledova/shared';
-import { useRole } from '@hooks/useRole';
+import { AUTH_QUERY_KEY, canOpen, landingFor, useSignupReview, USER_PROFILES_QUERY_KEY, useRole } from '@ledova/shared';
 
 export const useReview = () => {
   const navigate = useNavigate();

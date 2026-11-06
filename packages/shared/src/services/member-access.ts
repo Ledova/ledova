@@ -43,6 +43,14 @@ export const sendMemberInvitationEmail = (
 ) => api.post<MemberInvitationEmailed>(URLS.MEMBER_INVITATION_SEND_EMAIL, data, config);
 export const previewMemberInvitation = (api: AxiosInstance, code: string, config: AxiosRequestConfig = {}) =>
   api.post<MemberInvitationPreview>(URLS.MEMBER_INVITATION_PREVIEW, { code }, config);
+export const isConfirmedInvitation = (data: MemberInvitationPreview) =>
+  !!data.company?.uuid &&
+  !!data.company.name &&
+  !!data.member?.uuid &&
+  !!data.member.name &&
+  !!data.intendedEmail &&
+  !!data.acceptanceDeadline &&
+  ['pending', 'accepted'].includes(data.status);
 export const getMemberInvitations = (api: AxiosInstance, company: string, page = 1, config: AxiosRequestConfig = {}) =>
   api.get<PaginatedResponse<MemberInvitation>>(URLS.MEMBER_INVITATIONS, { ...config, params: { company, page } });
 export const acceptMemberInvitation = (

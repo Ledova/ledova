@@ -21,7 +21,7 @@ export default function CompanyAuthorityPage() {
   const { owner, boundary } = useSubmissionOwner();
   if (!owner)
     return (
-      <Page narrow>
+      <Page>
         <AccountCheck />
       </Page>
     );

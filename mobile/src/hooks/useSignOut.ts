@@ -31,7 +31,7 @@ export function useSignOut() {
       setSigningOut(false);
       if (!retired) {
         Alert.alert(
-          'Sign-Out Warning',
+          'Sign-out warning',
           'You are signed out, but this device could not confirm that your saved sign-in was removed. If Ledova opens signed in, sign out again.',
         );
       }

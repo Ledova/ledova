@@ -1,9 +1,8 @@
 import { invitationDestination } from '@utils/memberInvitation';
 import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 import { Navigate, Outlet } from 'react-router-dom';
-import { canOpen, landingFor, useAuth } from '@ledova/shared';
+import { canOpen, landingFor, useAuth, useRole } from '@ledova/shared';
 
-import { useRole } from '@hooks/useRole';
 import { useSignupFinished } from '@hooks/useSignupFinished';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { AccountUnavailable, SessionUnavailable } from './AccountUnavailable';
