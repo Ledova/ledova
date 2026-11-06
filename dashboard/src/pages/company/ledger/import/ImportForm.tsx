@@ -386,7 +386,7 @@ export function ImportForm({
                           onClick={() => void loadPreview()}
                         />
                       )}
-                      {!recovery && (
+                      {(!recovery || deciding) && (
                         <PageAction
                           label={kind === 'approve' && !steps.apply ? 'Record review' : 'Confirm'}
                           busy={running === 'confirm' || (autoApply && deciding)}
@@ -423,7 +423,7 @@ export function ImportForm({
           <PageAction label="Recover saved records" disabled={busy} onClick={() => void prepare(true)} />
         </div>
       )}
-      {recovery && (
+      {recovery && !deciding && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">
             The confirmation result is uncertain. Recover the original request before continuing.
