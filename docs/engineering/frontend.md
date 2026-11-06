@@ -420,8 +420,10 @@ refresh (sign-up completion a fresh profile too) before navigating, as sign-in d
 read the profile once, before any form, and a later recheck cannot take away a step being filled in.
 A failed refresh keeps the review step open with its error and a retry
 ([company signup](../business/companies.md#company-signup)). Sign-in and sign-up share the
-header, card, divider, input and field styles in `dashboard/src/components/auth/`, retaining the
-review header's spacing and each form's existing field variants.
+header, card, divider, alert, labelled field (`AuthField`), input, **Go back** and link styles in
+`dashboard/src/components/auth/`, retaining the review header's spacing. Their review step uses the
+page kit's `Rows`, and a read failure on any step uses `signup/shared/ErrorState.tsx`. `AuthHeader`
+sets the tab title the way `Page` does, through `hooks/useTabTitle.ts`.
 
 ## The signed-in frame
 

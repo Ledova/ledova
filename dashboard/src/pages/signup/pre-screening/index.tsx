@@ -1,8 +1,8 @@
-import { AuthLayout, ERROR_BANNER_CLASS, AuthHeader, AuthCard, AuthDivider, AuthSubmit } from '@components/auth';
+import { AuthLayout, AuthHeader, AuthCard, AuthDivider, AuthSubmit, AuthAlert, AuthBack } from '@components/auth';
 import { SIGNUP_PATHS } from '@utils/paths';
 import { useNavigate } from 'react-router-dom';
 import { Checkbox, Description, Field, Label } from '@headlessui/react';
-import { ShieldCheckIcon, WarningIcon, CheckCircleIcon } from '@phosphor-icons/react';
+import { ShieldCheckIcon, CheckCircleIcon } from '@phosphor-icons/react';
 import { LoadingState } from '@pages/signup/shared/LoadingState';
 import { ErrorState } from '@pages/signup/shared/ErrorState';
 
@@ -10,7 +10,6 @@ import { useSignupPreScreening } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
-import { Failure } from '@components/Ledger';
 
 export default function SignupPreScreening() {
   const navigate = useNavigate();
@@ -97,18 +96,7 @@ export default function SignupPreScreening() {
       <AuthCard>
         <form noValidate onSubmit={handleContinue} className="space-y-6">
           <ErrorSummary {...checks.summary} />
-          {generalError && (
-            <div className={ERROR_BANNER_CLASS}>
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <WarningIcon size={ICON_MD} className="text-error-light" />
-                </div>
-                <div className="ml-3">
-                  <Failure>{generalError}</Failure>
-                </div>
-              </div>
-            </div>
-          )}
+          {generalError && <AuthAlert>{generalError}</AuthAlert>}
 
           {declarations.map((declaration) => {
             const check = checks.field(declaration.key);
@@ -143,14 +131,7 @@ export default function SignupPreScreening() {
 
       <div className="text-center">
         <p className="text-sm text-text-subtle">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={isSubmitting}
-            className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Go back
-          </button>
+          <AuthBack onClick={handleBack} disabled={isSubmitting} />
         </p>
       </div>
     </AuthLayout>

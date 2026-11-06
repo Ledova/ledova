@@ -1,21 +1,22 @@
 import {
-  ERROR_BANNER_CLASS,
   AuthCard,
   AuthInput,
   authFieldBorder,
   AuthDivider,
   authFieldClass,
   AuthSubmit,
+  AuthAlert,
+  AuthBack,
+  AuthField,
 } from '@components/auth';
-import { Field, Label, Textarea, Description } from '@headlessui/react';
-import { UserIcon, HouseIcon, PhoneIcon, WarningIcon, CalendarIcon } from '@phosphor-icons/react';
+import { Textarea } from '@headlessui/react';
+import { UserIcon, HouseIcon, PhoneIcon, CalendarIcon } from '@phosphor-icons/react';
 import { CountrySelector } from './CountrySelector';
 import { FIELD_LIMITS, utcToday } from '@ledova/shared';
 import type { FormErrors, UserProfileFormValidation, CountryData, UserProfileFormData } from '@ledova/shared';
 import { ICON_MD } from '@components/iconSizes';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useFieldErrorSummary } from '@hooks/useErrorSummary';
-import { Failure } from '@components/Ledger';
 
 interface UserProfileFormProps {
   form: UserProfileFormData;
@@ -60,69 +61,51 @@ export function UserProfileForm({
       <AuthCard>
         <form noValidate onSubmit={submit} className="space-y-6">
           <ErrorSummary {...reported.summary} />
-          {generalError && (
-            <div className={ERROR_BANNER_CLASS}>
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <WarningIcon size={ICON_MD} className="text-error-light" />
-                </div>
-                <div className="ml-3">
-                  <Failure>{generalError}</Failure>
-                </div>
-              </div>
-            </div>
-          )}
+          {generalError && <AuthAlert>{generalError}</AuthAlert>}
 
-          <Field id={fullName.id} className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Full name</Label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <UserIcon size={ICON_MD} className="text-text-subtle" />
-              </div>
-              <AuthInput
-                type="text"
-                name="fullName"
-                maxLength={FIELD_LIMITS.PROFILE_NAME}
-                value={form.fullName}
-                onChange={(e) => setFieldValue('fullName', e.target.value)}
-                className={authFieldClass(
-                  (formValidation && !formValidation.fullName.isValid && form.fullName) || errors.fullName,
-                  'pl-10 pr-3',
-                )}
-                placeholder="John Doe"
-                required
-                invalid={!!fullName.error}
-                disabled={isSubmitting}
-              />
-            </div>
-            {fullName.error && <Description className="text-error-light text-xs mt-1">{fullName.error}</Description>}
-          </Field>
+          <AuthField
+            id={fullName.id}
+            label="Full name"
+            icon={<UserIcon size={ICON_MD} className="text-text-subtle" />}
+            error={fullName.error}
+          >
+            <AuthInput
+              type="text"
+              name="fullName"
+              maxLength={FIELD_LIMITS.PROFILE_NAME}
+              value={form.fullName}
+              onChange={(e) => setFieldValue('fullName', e.target.value)}
+              className={authFieldClass(
+                (formValidation && !formValidation.fullName.isValid && form.fullName) || errors.fullName,
+                'pl-10 pr-3',
+              )}
+              placeholder="John Doe"
+              required
+              invalid={!!fullName.error}
+              disabled={isSubmitting}
+            />
+          </AuthField>
 
-          <Field id={dateOfBirth.id} className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Date of birth</Label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <CalendarIcon size={ICON_MD} className="text-text-subtle" />
-              </div>
-              <AuthInput
-                type="date"
-                max={utcToday()}
-                name="dateOfBirth"
-                value={form.dateOfBirth || ''}
-                onChange={(e) => setFieldValue('dateOfBirth', e.target.value)}
-                className={authFieldClass(errors.dateOfBirth, 'pl-10 pr-3')}
-                required
-                invalid={!!dateOfBirth.error}
-                disabled={isSubmitting}
-              />
-            </div>
-            {dateOfBirth.error && (
-              <Description className="text-error-light text-xs mt-1">{dateOfBirth.error}</Description>
-            )}
-          </Field>
+          <AuthField
+            id={dateOfBirth.id}
+            label="Date of birth"
+            icon={<CalendarIcon size={ICON_MD} className="text-text-subtle" />}
+            error={dateOfBirth.error}
+          >
+            <AuthInput
+              type="date"
+              max={utcToday()}
+              name="dateOfBirth"
+              value={form.dateOfBirth || ''}
+              onChange={(e) => setFieldValue('dateOfBirth', e.target.value)}
+              className={authFieldClass(errors.dateOfBirth, 'pl-10 pr-3')}
+              required
+              invalid={!!dateOfBirth.error}
+              disabled={isSubmitting}
+            />
+          </AuthField>
 
-          <Field id={phoneNumber.id} className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Phone number</Label>
+          <AuthField id={phoneNumber.id} label="Phone number" error={phoneNumber.error}>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                 <PhoneIcon size={ICON_MD} className="text-text-subtle" />
@@ -156,16 +139,14 @@ export function UserProfileForm({
                 </div>
               </div>
             </div>
-            {phoneNumber.error && (
-              <Description className="text-error-light text-xs mt-1">{phoneNumber.error}</Description>
-            )}
-          </Field>
+          </AuthField>
 
-          <Field id={residentialAddress.id} className="space-y-1">
-            <Label className="block text-sm font-medium text-text-body">Residential address</Label>
-            <Description className="text-text-subtle text-xs">
-              Include street number, city, state and postcode
-            </Description>
+          <AuthField
+            id={residentialAddress.id}
+            label="Residential address"
+            hint="Include street number, city, state and postcode"
+            error={residentialAddress.error}
+          >
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 pt-3 flex items-start pointer-events-none">
                 <HouseIcon size={ICON_MD} className="text-text-subtle" />
@@ -186,12 +167,9 @@ export function UserProfileForm({
                 disabled={isSubmitting}
               />
             </div>
-            {residentialAddress.error && (
-              <Description className="text-error-light text-xs mt-1">{residentialAddress.error}</Description>
-            )}
-          </Field>
+          </AuthField>
 
-          <AuthSubmit busy={isSubmitting} busyLabel="Saving…" onClick={submit}>
+          <AuthSubmit busy={isSubmitting} busyLabel="Saving…">
             Continue
           </AuthSubmit>
         </form>
@@ -202,14 +180,7 @@ export function UserProfileForm({
       <div className="text-center">
         {onBack && (
           <p className="text-sm text-text-subtle">
-            <button
-              type="button"
-              onClick={onBack}
-              disabled={isSubmitting}
-              className="font-semibold text-brand-light hover:text-brand-subtle transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Go back
-            </button>
+            <AuthBack onClick={onBack} disabled={isSubmitting} />
           </p>
         )}
       </div>
