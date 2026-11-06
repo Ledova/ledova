@@ -2,7 +2,17 @@ import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
 import { DESTINATIONS, awaitsActivation, useCompanyActivation, useCompanySelection } from '@ledova/shared';
 import { FormActions, Page, PageAction } from '@components/Page';
-import { ShowMore, LinkRow, Row, Rows, Section, Timeline, type TimelineEvent, Failure } from '@components/Ledger';
+import {
+  ShowMore,
+  LinkRow,
+  Row,
+  Rows,
+  Section,
+  Timeline,
+  type TimelineEvent,
+  Failure,
+  Loading,
+} from '@components/Ledger';
 import { CheckboxField } from '@components/Field';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -18,22 +28,23 @@ export default function ListingPage() {
     personalOnly: true,
     selectedUuid: context ? (context.companyUuid ?? '') : undefined,
   });
-  return <CompanyActivation key={`${read.scopeKey}/${read.companyUuid ?? ''}`} read={read} />;
+  return <CompanyActivation key={`${read.scopeKey}/${context?.companyUuid ?? ''}`} read={read} />;
 }
 
 function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelection> }) {
   const context = useCompanyContext();
   const action = useCompanyActivation(read, () => crypto.randomUUID());
+  const target = action.retainedPreview;
   const { company } = read;
   const opener = useRef<HTMLButtonElement>(null);
   const reviewing = useRef(false);
   useEffect(() => {
-    if (action.preview) reviewing.current = true;
+    if (target) reviewing.current = true;
     else if (reviewing.current) {
       reviewing.current = false;
       opener.current?.focus();
     }
-  }, [action.preview]);
+  }, [target]);
   const events: TimelineEvent[] = company
     ? [
         ['Submitted', company.submittedAt],
@@ -49,10 +60,10 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
     : [];
   return (
     <Page
-      loading={read.isLoading}
+      loading={read.isLoading && !target}
       lede="Activation records your declaration and identity check. It does not issue shares."
     >
-      <div hidden={!!action.preview} className="space-y-5">
+      <div hidden={!!target} className="space-y-5">
         {action.busy && (
           <p role="status" className="text-sm text-text-muted">
             Checking activation…
@@ -110,15 +121,27 @@ function CompanyActivation({ read }: { read: ReturnType<typeof useCompanySelecti
           </Section>
         )}
       </div>
-      {action.preview && <ActivationConfirmation action={action} />}
+      {target &&
+        !action.preview &&
+        (read.error ? <CompanyReadNotice read={read} /> : <Loading>Checking current company access…</Loading>)}
+      {target && (
+        <div hidden={!action.preview}>
+          <ActivationConfirmation action={action} target={target} />
+        </div>
+      )}
       <Failure>{action.error}</Failure>
     </Page>
   );
 }
 
-function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompanyActivation> }) {
-  const target = action.preview!;
-  const [acceptance, setAcceptance] = useState<typeof action.preview>(null);
+function ActivationConfirmation({
+  action,
+  target,
+}: {
+  action: ReturnType<typeof useCompanyActivation>;
+  target: NonNullable<ReturnType<typeof useCompanyActivation>['retainedPreview']>;
+}) {
+  const [acceptance, setAcceptance] = useState<typeof action.retainedPreview>(null);
   const accepted = acceptance === target;
   const declaration = useErrorSummary({ accepted: !accepted && 'Accept the declaration for this company.' });
   const heading = useRef<HTMLHeadingElement>(null);
@@ -133,7 +156,7 @@ function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompa
         className="space-y-5"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!action.busy && declaration.check()) void action.confirm(target);
+          if (action.preview === target && !action.busy && declaration.check()) void action.confirm(target);
         }}
       >
         <Section title={target.name}>
@@ -143,13 +166,20 @@ function ActivationConfirmation({ action }: { action: ReturnType<typeof useCompa
             {...declaration.field('accepted')}
             label="I accept this declaration for this company."
             checked={accepted}
-            disabled={action.busy}
+            disabled={action.busy || action.preview !== target}
             onChange={(event) => setAcceptance(event.target.checked ? target : null)}
           />
         </Section>
         <FormActions>
           <PageAction label="Cancel" disabled={action.busy} onClick={action.cancel} />
-          <PageAction type="submit" label="Confirm activation" primary busy={action.busy} busyLabel="Activating…" />
+          <PageAction
+            type="submit"
+            label="Confirm activation"
+            primary
+            busy={action.busy}
+            busyLabel="Activating…"
+            disabled={action.preview !== target}
+          />
         </FormActions>
       </form>
     </div>
