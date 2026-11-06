@@ -1,5 +1,6 @@
 import {
   canPrepareCertificate,
+  certificateContext,
   formatDate,
   formatDateTime,
   formatRegisterChanges,
@@ -55,7 +56,7 @@ function CertificateRequest({ onEditingChange, ...source }: ClassCertificateSour
       ref={opener}
       compact
       label="Prepare certificate"
-      context={`entry ${source.entry.sequence}`}
+      context={certificateContext(source.entry)}
       disabled={!source.sourceReady || !source.register.initialized}
       onClick={() => setOpen(true)}
     />
@@ -78,10 +79,10 @@ function CertificateForm({
     sourceReady,
     files: BROWSER_FILES,
   });
-  const context = `unsigned certificate for entry ${entry.sequence}`;
+  const context = `unsigned certificate for ${certificateContext(entry)}`;
   return (
     <form
-      aria-label={`Unsigned certificate for entry ${entry.sequence}`}
+      aria-label={`Unsigned certificate for ${certificateContext(entry)}`}
       className="flex w-full flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
@@ -98,7 +99,6 @@ function CertificateForm({
           ))}
         </Row>
         <Row label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Row>
-        <Row label="Entry">{entry.sequence}</Row>
         <Row label="Ledger date">{formatDate(entry.effectiveOn)}</Row>
         <Row label="Recorded on">{formatDateTime(entry.recordedAt)}</Row>
         {target && <Row label="PDF pages">{target.preview.pageCount}</Row>}

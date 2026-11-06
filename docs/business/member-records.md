@@ -268,7 +268,7 @@ register, or a correction has since reversed the entry (the refusal names the co
 
 1. On the web or in the app, open **Documents** → **Certificates**, select the share class and
    choose **Prepare certificate** on the issue or transfer row.
-2. In the focused main-page form, choose **Preview**. Check the share class, share movements, entry number,
+2. In the focused main-page form, choose **Preview**. Check the share class, share movements,
    dates and PDF page count. Choose **Download PDF** to generate
    the unsigned file (the app hands it to the phone's share sheet), or **Cancel** to close the form. The download action records the requester
    and an instruction linked to the exact ledger entry automatically; no reference needs typing.

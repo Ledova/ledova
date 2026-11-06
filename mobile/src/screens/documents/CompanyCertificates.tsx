@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Keyboard, RefreshControl, Text, View } from 'react-native';
 import {
-  CERTIFICATE_STATES,
+  CERTIFICATE_NONE_DUE,
   CERTIFICATE_STATUSES,
   certificateFacts,
   certificateStatus,
@@ -188,10 +188,10 @@ function CertificateRecords({
                       </Text>
                     </View>
                   ))}
-                  <Text style={look.small}>{`${facts.entry} · ${facts.date}`}</Text>
+                  <Text style={look.small}>{`${facts.entry} · ${facts.dates}`}</Text>
                 </View>
                 {certificateStatus(entry) === 'reversed' && (
-                  <Text style={look.small}>Certificate: {CERTIFICATE_STATES.reversed}</Text>
+                  <Text style={look.small}>Certificate: {CERTIFICATE_NONE_DUE}</Text>
                 )}
                 <ClassCertificate
                   sourceKey={`${source.owner.userUuid}/${source.owner.ownerAccountUuid}`}

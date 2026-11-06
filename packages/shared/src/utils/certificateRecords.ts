@@ -10,10 +10,7 @@ export const CERTIFICATE_STATUSES = [
 
 export type CertificateStatus = (typeof CERTIFICATE_STATUSES)[number][0];
 
-export const CERTIFICATE_STATES: Record<Exclude<CertificateStatus, 'all'>, string> = {
-  can_prepare: 'Can prepare',
-  reversed: 'None due, the entry was reversed',
-};
+export const CERTIFICATE_NONE_DUE = 'None due, the entry was reversed';
 
 export function certificateStatus(entry: { correctedBy?: unknown }): Exclude<CertificateStatus, 'all'> {
   return entry.correctedBy ? 'reversed' : 'can_prepare';
@@ -28,19 +25,25 @@ export function canPrepareCertificate(entry: Pick<RegisterEntry, 'kind' | 'seque
 }
 
 export function certificateFacts(
-  entry: { kind: string; sequence: number; companyEventOn?: string | null; effectiveOn: string },
+  entry: { kind: string; companyEventOn?: string | null; effectiveOn: string },
   symbol: string | undefined,
 ) {
   const kind = entry.kind.toLowerCase();
   const companyDated = ['issue', 'transfer'].includes(kind);
   const date = companyDated
-    ? formatShortDate(entry.companyEventOn, 'date not recorded')
+    ? formatShortDate(entry.companyEventOn, 'Date not recorded')
     : formatShortDate(entry.effectiveOn);
+  const ledgerDate =
+    companyDated && entry.effectiveOn !== entry.companyEventOn ? formatShortDate(entry.effectiveOn) : null;
   return {
-    entry: `${REGISTER_CORRECTION_COPY.ENTRY_KINDS[kind as RegisterEntryKind] ?? 'Register change'} · ${symbol ?? ''} · entry ${entry.sequence}`,
-    date:
-      companyDated && entry.effectiveOn !== entry.companyEventOn
-        ? `${date} · ledger date ${formatShortDate(entry.effectiveOn)}`
-        : date,
+    entry: `${REGISTER_CORRECTION_COPY.ENTRY_KINDS[kind as RegisterEntryKind] ?? 'Register change'} · ${symbol ?? ''}`,
+    date,
+    ledgerDate,
+    dates: ledgerDate ? `${date} · ledger date ${ledgerDate}` : date,
   };
+}
+
+export function certificateContext(entry: Pick<RegisterEntry, 'kind' | 'changes' | 'companyEventOn' | 'effectiveOn'>) {
+  const names = entry.changes.map((change) => change.name ?? 'Shareholder').join(' and ');
+  return `${names}, ${certificateFacts(entry, undefined).date}`;
 }

@@ -1506,7 +1506,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   ownRecord = MEMBER_RECORD;
   await view.rerender(certificatesPage);
-  expect(await screen.findByText(/^Transfer · ORD · entry 2 · /)).toBeTruthy();
+  expect(await screen.findByText(/^Transfer · ORD/)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Filters|Request certificate|Withdraw request|Share PDF/ })).toBeNull();
   await view.rerender(
     <CertificatesScreen
@@ -1517,7 +1517,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByText('Certificate records')).toBeNull();
   await view.rerender(certificatesPage);
   await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
-  expect(await screen.findByText(/^Transfer · ORD · entry 2 · /)).toBeTruthy();
+  expect(await screen.findByText(/^Transfer · ORD/)).toBeTruthy();
   const registerReads = () =>
     api.get.mock.calls.filter(
       ([url]) =>
@@ -1604,7 +1604,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
       ),
     );
   await view.rerender(<CertificatesScreen route={{ key: 'member', name: 'Certificates', params: undefined }} />);
-  expect(await screen.findByText(/^Transfer · ORD · entry 2 · /)).toBeTruthy();
+  expect(await screen.findByText(/^Transfer · ORD/)).toBeTruthy();
   expect(registerReads()).toHaveLength(0);
   expect(peopleReads()).toHaveLength(0);
   expect(outputPosts()).toHaveLength(0);
@@ -2464,9 +2464,17 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ]);
   thirdHolder = false;
   await view.rerender(<CertificatesScreen route={{ key: 'register', name: 'Certificates', params: undefined }} />);
-  await fireEvent.press(await screen.findByRole('button', { name: 'Prepare certificate (entry 13)', disabled: false }));
-  const certificate = { name: 'Download PDF (unsigned certificate for entry 13)', disabled: false };
-  const preview = { name: 'Preview (unsigned certificate for entry 13)' };
+  await fireEvent.press(
+    await screen.findByRole('button', {
+      name: 'Prepare certificate (Synthetic Holder 1, 26 Oct 2026)',
+      disabled: false,
+    }),
+  );
+  const certificate = {
+    name: 'Download PDF (unsigned certificate for Synthetic Holder 1, 26 Oct 2026)',
+    disabled: false,
+  };
+  const preview = { name: 'Preview (unsigned certificate for Synthetic Holder 1, 26 Oct 2026)' };
   const refusal = 'The certificate could not be downloaded. Refresh the preview and try again.';
   const shares = jest.mocked(Sharing.shareAsync);
   shares.mockRejectedValueOnce(new Error('Synthetic share sheet refusal'));
@@ -2637,7 +2645,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByText('synthetic.pdf')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
   await view.rerender(certificatesPage);
-  expect(await screen.findByText(/^Transfer · ORD · entry 2 · /)).toBeTruthy();
+  expect(await screen.findByText(/^Transfer · ORD/)).toBeTruthy();
   refused = true;
   await act(async () => {
     await client.refetchQueries({
@@ -2646,7 +2654,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     });
   });
   await waitFor(() => expect(screen.queryByText('Certificate records')).toBeNull());
-  expect(screen.queryByText(/^Transfer · ORD · entry 2 · /)).toBeNull();
+  expect(screen.queryByText(/^Transfer · ORD/)).toBeNull();
   expect(destinationOf({ type: 'publication', event: 'published', kind: 'meeting_notice' })).toBeUndefined();
   expect(destinationOf({ type: 'certificate', event: 'ready', company: MEMBER_RECORD.company.uuid })).toBeUndefined();
   const award = 'f5f5f5f5-f5f5-4f5f-8f5f-f5f5f5f5f5f5';

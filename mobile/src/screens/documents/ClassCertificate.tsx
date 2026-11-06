@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import {
   canPrepareCertificate,
+  certificateContext,
   formatDate,
   formatDateTime,
   formatRegisterChanges,
@@ -44,7 +45,7 @@ function CertificateRequest({ onEditingChange, ...source }: ClassCertificateSour
       <Action
         compact
         label="Prepare certificate"
-        accessibilityLabel={`Prepare certificate (entry ${source.entry.sequence})`}
+        accessibilityLabel={`Prepare certificate (${certificateContext(source.entry)})`}
         disabled={!source.sourceReady || !source.register.initialized}
         onPress={() => setOpen(true)}
       />
@@ -69,7 +70,7 @@ function CertificateForm({
     files: SHARE_SHEET_FILES,
     session: orderSubmissionSession,
   });
-  const context = `unsigned certificate for entry ${entry.sequence}`;
+  const context = `unsigned certificate for ${certificateContext(entry)}`;
   const action = target
     ? busy === 'download'
       ? 'Downloading…'
@@ -85,7 +86,6 @@ function CertificateForm({
       <Rows>
         <Fact label="Share movements">{formatRegisterChanges(entry.changes).join('\n')}</Fact>
         <Fact label="Company date">{formatDate(entry.companyEventOn, 'Not recorded')}</Fact>
-        <Fact label="Entry">{String(entry.sequence)}</Fact>
         <Fact label="Ledger date">{formatDate(entry.effectiveOn)}</Fact>
         <Fact label="Recorded on">{formatDateTime(entry.recordedAt)}</Fact>
         {target && <Fact label="PDF pages">{String(target.preview.pageCount)}</Fact>}

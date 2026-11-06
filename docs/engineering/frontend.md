@@ -794,11 +794,11 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   reader the company's certificate preparation and a member who is not one their own entries, in one
   class-selected list. Company rows and preparation require confirmed register access; member-only access
   never reads the full company register, and a register reader's view uses no member record.
-  `CertificateRecords.tsx` renders aligned rows with the shareholder or change, shares, entry and
-  date, and for a register reader the certificate's status (**Can prepare** or **None due, the
-  entry was reversed**) and a compact **Prepare certificate** at the row's end. Below `md` each row
-  takes two lines, using the shared `certificateFacts` as the app does, and only a reversed entry's
-  status shows, labelled **Certificate:**; rows don't expand. Each record keeps its class visible;
+  `CertificateRecords.tsx` renders aligned rows with the shareholder or change, shares, kind and
+  short date, and for a register reader a compact **Prepare certificate**, or **None due, the
+  entry was reversed**, at the row's end. Below `md` each row
+  takes two lines, using the shared `certificateFacts` as the app does, and a reversed entry's
+  status is labelled **Certificate:**; rows don't expand. Each record keeps its class visible;
   the page heading's top-right icon button with the accessible name and tooltip Filters opens
   `FilterPopover`. A register reader's panel holds draft class, shareholder search and certificate
   status; a member's holds only the class, and appears only when they have more than one. The

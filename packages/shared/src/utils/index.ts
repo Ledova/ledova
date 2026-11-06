@@ -141,9 +141,10 @@ export { classFacts, ownershipSummary } from './register-ownership';
 export { hasWholeShares, wholeShares } from './share-quantities';
 export { ownershipColorIndex, ownershipView, rankOwnershipClasses, type OwnershipClass } from './memberOwnership';
 export {
-  CERTIFICATE_STATES,
+  CERTIFICATE_NONE_DUE,
   CERTIFICATE_STATUSES,
   canPrepareCertificate,
+  certificateContext,
   certificateFacts,
   certificateStatus,
   isCertificateEntry,

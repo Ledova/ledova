@@ -136,12 +136,12 @@ function MemberCertificates({
                     <View key={`${token}/${entry.uuid}`} style={look.record}>
                       <View style={look.change}>
                         <View style={look.line}>
-                          <Text style={look.name}>{selected?.name ?? 'Shareholder'}</Text>
+                          <Text style={look.name}>{facts.entry}</Text>
                           <Text style={look.shares}>
                             {shareChange(entry.delta)} {item?.symbol} shares
                           </Text>
                         </View>
-                        <Text style={look.small}>{`${facts.entry} · ${facts.date}`}</Text>
+                        <Text style={look.small}>{facts.dates}</Text>
                       </View>
                     </View>
                   );

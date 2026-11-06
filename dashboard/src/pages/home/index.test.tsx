@@ -525,8 +525,9 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   const certificatesCard = (await screen.findByRole('heading', { name: 'Certificate records' })).closest('section')!;
   expect(await within(certificatesCard).findByText('+10 ORD shares')).toBeTruthy();
-  const certificateRow = within(certificatesCard).getByText(MEMBER_RECORD.name).closest('li')!;
-  expect(within(certificateRow).getByText('Not recorded')).toBeTruthy();
+  const certificateRow = within(certificatesCard).getByText('+10 ORD shares').closest('li')!;
+  expect(within(certificateRow).getByText(/^Issue · ORD/)).toBeTruthy();
+  expect(within(certificateRow).queryByText(MEMBER_RECORD.name)).toBeNull();
   expect(within(certificateRow).queryByText(/Certificate:|Can prepare|None due|Not applicable/)).toBeNull();
   expect(within(certificatesCard).queryByRole('button')).toBeNull();
   expect(screen.queryByRole('button', { name: /^Filters/ })).toBeNull();
@@ -543,12 +544,12 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(hiddenReads()).toBe(previousReads);
   fireEvent.click(screen.getByRole('link', { name: 'Documents' }));
   const finalRecords = await screen.findByRole('list', { name: 'Certificate records' });
-  expect(await within(finalRecords).findByText(MEMBER_RECORD.name)).toBeTruthy();
+  expect(await within(finalRecords).findByText('+10 ORD shares')).toBeTruthy();
   refused = true;
   await act(async () => {
     await client.refetchQueries({ queryKey: ['member-records', 'profile-one', 'account-one', 0], exact: true });
   });
-  await waitFor(() => expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull());
+  await waitFor(() => expect(screen.queryByText('+10 ORD shares')).toBeNull());
   expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
   expect(screen.queryByRole('img', { name: /Your issued shares by class/ })).toBeNull();
   expect(screen.queryByText(MEMBER_RECORD.residentialAddress)).toBeNull();
