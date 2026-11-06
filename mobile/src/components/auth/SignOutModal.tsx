@@ -1,6 +1,8 @@
 import React from 'react';
 import { Text } from 'react-native';
-import { CustomModal, useDialogStyles } from '../modal';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { Action } from '../Ledger';
+import { CustomModal } from '../modal';
 
 interface SignOutModalProps {
   visible: boolean;
@@ -10,18 +12,16 @@ interface SignOutModalProps {
 }
 
 export function SignOutModal({ visible, isLoading = false, onConfirm, onClose }: SignOutModalProps) {
-  const styles = useDialogStyles();
+  const styles = useCompanyStyles();
   return (
     <CustomModal
       visible={visible}
-      title="Sign Out"
+      title="Sign out"
       onClose={onClose}
       busy={isLoading}
-      showFooter={true}
-      confirmLabel="Sign Out"
-      onConfirm={onConfirm}
-      confirmLoading={isLoading}
-      confirmDisabled={isLoading}
+      actions={
+        <Action label={isLoading ? 'Signing out…' : 'Sign out'} primary disabled={isLoading} onPress={onConfirm} />
+      }
     >
       <Text style={styles.muted}>
         Are you sure you want to sign out? You will need to sign in again to access your account.

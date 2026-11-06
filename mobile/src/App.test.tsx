@@ -30,6 +30,6 @@ it('starts the real app at its signed-out sign-in screen after loading the bundl
   const view = await render(<App />);
   expect(await view.findByLabelText('Email')).toBeTruthy();
   expect(view.getByLabelText('Password')).toBeTruthy();
-  expect(view.getByRole('button', { name: 'Sign In' })).toBeTruthy();
+  expect(view.getByRole('button', { name: 'Sign in' })).toBeTruthy();
   expect(loadAsync).toHaveBeenCalledTimes(1);
 });

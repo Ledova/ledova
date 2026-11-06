@@ -220,7 +220,7 @@ export function SignInScreen() {
     await handleSubmit(async () => {
       if (biometricsAvailable && !biometricLoginEnabled) {
         Alert.alert(
-          `Enable ${biometricType} Sign In?`,
+          `Enable ${biometricType} Sign in?`,
           `Would you like to use ${biometricType} to sign in next time?`,
           [
             {
@@ -275,7 +275,7 @@ export function SignInScreen() {
                   weight={theme.icon.weights.regular}
                 />
               </View>
-              <Text style={styles.title}>Welcome Back</Text>
+              <Text style={styles.title}>Welcome back</Text>
             </View>
 
             <View style={styles.formContainer}>
@@ -349,7 +349,7 @@ export function SignInScreen() {
               </View>
 
               <PrimaryButton
-                accessibilityLabel="Sign In"
+                accessibilityLabel="Sign in"
                 onPress={handleSignIn}
                 loading={isLoading || biometricLoading}
                 fullWidth
@@ -361,7 +361,7 @@ export function SignInScreen() {
                   ) : (
                     <KeyIcon size={22} color={theme.colors.utility.white} weight="regular" />
                   )}
-                  <Text style={styles.signInButtonText}>Sign In</Text>
+                  <Text style={styles.signInButtonText}>Sign in</Text>
                 </View>
               </PrimaryButton>
             </View>
@@ -376,7 +376,7 @@ export function SignInScreen() {
               <Text style={styles.signUpText}>
                 Don&apos;t have an account?{' '}
                 <Text style={styles.getStartedLink} onPress={() => !isLoading && navigation.navigate('SignUp')}>
-                  Get Started
+                  Get started
                 </Text>
               </Text>
             </View>

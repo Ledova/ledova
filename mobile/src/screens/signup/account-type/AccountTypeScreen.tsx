@@ -154,7 +154,7 @@ export function AccountTypeScreen() {
 
           <View style={styles.footer}>
             <TouchableOpacity onPress={() => navigation.navigate('SignUp')} disabled={isSubmitting}>
-              <Text style={styles.backLink}>Go Back</Text>
+              <Text style={styles.backLink}>Go back</Text>
             </TouchableOpacity>
           </View>
         </View>

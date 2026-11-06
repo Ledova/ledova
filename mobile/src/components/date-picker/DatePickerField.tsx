@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  TouchableOpacity,
-  Platform,
-  Modal,
-  type StyleProp,
-  type TextStyle,
-  type ViewStyle,
-} from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, Platform, Modal } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { CalendarIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles, overlayColors } from '../../contexts';
@@ -23,9 +13,6 @@ interface DatePickerFieldProps {
   placeholder?: string;
   minimumDate?: Date;
   maximumDate?: Date;
-  labelStyle?: StyleProp<TextStyle>;
-  fieldStyle?: StyleProp<ViewStyle>;
-  textStyle?: StyleProp<TextStyle>;
   disabled?: boolean;
 }
 
@@ -36,9 +23,6 @@ export function DatePickerField({
   placeholder = 'DD/MM/YYYY',
   minimumDate,
   maximumDate,
-  labelStyle,
-  fieldStyle,
-  textStyle,
   disabled = false,
 }: DatePickerFieldProps) {
   const theme = useAppTheme();
@@ -135,21 +119,19 @@ export function DatePickerField({
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, labelStyle]}>{label}</Text>
+      <Text style={styles.label}>{label}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityValue={{ text: value ? formatDate(value) : placeholder }}
         accessibilityState={{ disabled, expanded: show }}
         disabled={disabled}
-        style={[styles.input, fieldStyle]}
+        style={styles.input}
         onPress={handlePress}
         onAccessibilityTap={handlePress}
       >
         <CalendarIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} weight={theme.icon.weights.regular} />
-        <Text style={[styles.inputText, textStyle, !value && styles.placeholder]}>
-          {value ? formatDate(value) : placeholder}
-        </Text>
+        <Text style={[styles.inputText, !value && styles.placeholder]}>{value ? formatDate(value) : placeholder}</Text>
       </Pressable>
 
       {Platform.OS === 'ios' ? (

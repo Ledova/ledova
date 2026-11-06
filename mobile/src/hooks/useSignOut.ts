@@ -26,8 +26,6 @@ export function useSignOut() {
       );
 
       queryClient.clear();
-      queryClient.removeQueries();
-      queryClient.resetQueries();
 
       navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
       setSigningOut(false);

@@ -223,7 +223,7 @@ export function PreScreeningScreen() {
           />
           <Text style={styles.errorStateTitle}>Unable to Load</Text>
           <Text style={styles.errorStateMessage}>{generalError}</Text>
-          <PrimaryButton onPress={retryLoad}>Try Again</PrimaryButton>
+          <PrimaryButton onPress={retryLoad}>Try again</PrimaryButton>
         </View>
       </SafeAreaView>
     );
@@ -242,7 +242,7 @@ export function PreScreeningScreen() {
                   weight={theme.icon.weights.regular}
                 />
               </View>
-              <Text style={styles.title}>Eligibility Check</Text>
+              <Text style={styles.title}>Eligibility check</Text>
               <Text style={styles.subtitle}>
                 Before we continue, please confirm the following requirements to comply with Australian regulations.
               </Text>
@@ -368,7 +368,7 @@ export function PreScreeningScreen() {
             <View style={styles.backSection}>
               <Text style={styles.backText}>
                 <Text style={styles.backLink} onPress={() => !isSubmitting && handleBack()}>
-                  Go Back
+                  Go back
                 </Text>
               </Text>
             </View>
