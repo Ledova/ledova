@@ -44,7 +44,8 @@ Shareholders' `PersonSelect.tsx` wraps. The signed-in
 member records state is a context (`mobile/src/contexts/MemberRecordsContext.tsx`), with its notices and
 pull to refresh in `mobile/src/components/MemberRecords.tsx`, and the account check, company notice
 and register access notice that several areas show (`AccountCheck.tsx`, `CompanyContextNotice.tsx`,
-`RegisterAccess.tsx`) in `components/`; Ledger and Shareholders read the selected company's classes and
+`RegisterAccess.tsx`) in `components/`. `RegisterAccess` shows loading while access is rechecked, and the notice
+only once the check settles. Ledger and Shareholders read the selected company's classes and
 holders through `hooks/useCompanyRegisters.ts`. Production screens import no other area's internals.
 Profile, operator, member, company list, appointment and company ownership reads, Team's reads
 and forms, Activation's company read and confirmation, representative authority's reads, actions
@@ -414,7 +415,8 @@ Activation. Profile, the `Settings` route, is the web's Personal
 information card: the person's details on one-line rows, and **Edit details** opens their form
 in the card. Pulling down refreshes the profile. Account (`Account`) has the web's four cards. Security
 shows the identity check status from the profile (the app has no identity check flow, so there is no
-**Review**), **Change** for the password, and the app's biometric sign-in and App lock switches, with
+**Review**), **Change** for the password, whose form applies the web's rules and shows the server's reply in the
+form, and the app's biometric sign-in and App lock switches, with
 **Biometric security is not available on this device.** beneath them only where that applies; Account
 details shows member since and last login in the same one-line rows; and Invitations' **Shareholder invitation** row has
 **Accept**, which opens the Member invitation page, and, as on the web, the **Company officer

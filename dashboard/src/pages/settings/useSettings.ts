@@ -2,18 +2,11 @@ import { clearSessionQueries } from '@utils/session';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  deleteAccount,
-  changePassword,
-  exportAccountData,
-  newPasswordProblem,
-  PASSWORD_PROBLEMS,
-  utcToday,
-} from '@ledova/shared';
+import { deleteAccount, changePassword, changePasswordProblems, exportAccountData, utcToday } from '@ledova/shared';
 import apiClient from '@services/apiClient';
 import { SIGNIN_PATH } from '@utils/paths';
 import { saveFile } from '@utils/saveFile';
-import { hasProblems, type Problems } from '@hooks/useErrorSummary';
+import { hasProblems } from '@hooks/useErrorSummary';
 
 export function useSettings() {
   const navigate = useNavigate();
@@ -58,11 +51,7 @@ export function useSettings() {
     passwordMutation.reset();
   }
 
-  const passwordProblems: Problems<'currentPassword' | 'newPassword' | 'newPasswordConfirm'> = {
-    currentPassword: !currentPassword && PASSWORD_PROBLEMS.CURRENT,
-    newPassword: newPasswordProblem(newPassword),
-    newPasswordConfirm: newPassword !== confirmPassword && PASSWORD_PROBLEMS.MATCH,
-  };
+  const passwordProblems = changePasswordProblems(currentPassword, newPassword, confirmPassword);
 
   function savePassword() {
     if (passwordMutation.isPending || hasProblems(passwordProblems)) return;

@@ -1,8 +1,15 @@
 import { useState, type ReactNode } from 'react';
 import { Alert, Text, TextInput, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import { VERIFICATION_TONES, formatDateTime, formatShortDate, getUserVerificationStatus } from '@ledova/shared';
-import { Action, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
+import {
+  PASSWORD_PROBLEMS,
+  VERIFICATION_TONES,
+  changePasswordProblems,
+  formatDateTime,
+  formatShortDate,
+  getUserVerificationStatus,
+} from '@ledova/shared';
+import { Action, Outcome, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useAppLock, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -69,6 +76,7 @@ export function AccountSettings() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [changed, setChanged] = useState(false);
   const [securityPending, setSecurityPending] = useState(false);
   const [securityError, setSecurityError] = useState<string | null>(null);
   const busy = settings.isChangingPassword;
@@ -107,26 +115,14 @@ export function AccountSettings() {
   };
   const savePassword = async () => {
     if (busy) return;
-    setError(null);
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setError('Fill in all password fields.');
+    const problem = Object.values(changePasswordProblems(currentPassword, newPassword, confirmPassword)).find(Boolean);
+    const failure = problem || (await settings.changeUserPassword(currentPassword, newPassword, confirmPassword));
+    if (failure) {
+      setError(failure);
       return;
     }
-    if (newPassword !== confirmPassword) {
-      setError('The new passwords do not match.');
-      return;
-    }
-    if (newPassword.length < 8) {
-      setError('Use at least 8 characters for the new password.');
-      return;
-    }
-    if (await settings.changeUserPassword(currentPassword, newPassword, confirmPassword)) {
-      setChanging(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setShowPasswords(false);
-    } else setError('Your password could not be changed. Check the details and try again.');
+    setChanged(true);
+    close();
   };
   return (
     <>
@@ -155,6 +151,7 @@ export function AccountSettings() {
                 onPress={() => {
                   if (busy) return;
                   setError(null);
+                  setChanged(false);
                   setChanging(true);
                 }}
               />
@@ -182,6 +179,7 @@ export function AccountSettings() {
             {securityError}
           </Text>
         )}
+        {changed && <Outcome>Your password was changed.</Outcome>}
       </Section>
       {userProfile && (
         <Section title="Account details">
@@ -260,7 +258,7 @@ export function AccountSettings() {
           disabled={busy}
           onPress={() => setShowPasswords(!showPasswords)}
         />
-        <Text style={styles.muted}>Use at least 8 characters for the new password.</Text>
+        <Text style={styles.muted}>{PASSWORD_PROBLEMS.LENGTH}</Text>
         {error && (
           <Text accessibilityRole="alert" style={styles.error}>
             {error}
@@ -291,8 +289,9 @@ export function AccountData() {
   const exportData = async () => {
     if (busy) return;
     setError(null);
-    if (await settings.exportData()) setModal(null);
-    else setError('Your data could not be exported. Try again.');
+    const failure = await settings.exportData();
+    if (failure) setError(failure);
+    else setModal(null);
   };
   const deleteAccount = async () => {
     if (busy) return;

@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import { deleteAccount, exportAccountData, changePassword } from '@ledova/shared';
+import { apiErrorSentence, deleteAccount, exportAccountData, changePassword } from '@ledova/shared';
 import { apiClient } from '../../services/apiClient';
 import { shareDocumentCopy } from '../../services/documentCopies';
 import { getSessionEpoch } from '../../services/sessionScope';
@@ -19,31 +19,14 @@ export function useSettings() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const changeUserPassword = useCallback(
-    async (currentPassword: string, newPassword: string, newPasswordConfirm: string): Promise<boolean> => {
+    async (currentPassword: string, newPassword: string, newPasswordConfirm: string): Promise<string | null> => {
       setIsChangingPassword(true);
       try {
-        await changePassword(apiClient, {
-          currentPassword,
-          newPassword,
-          newPasswordConfirm,
-        });
-
-        Alert.alert('Password Changed', 'Your password has been changed successfully.');
-        return true;
+        await changePassword(apiClient, { currentPassword, newPassword, newPasswordConfirm });
+        return null;
       } catch (error: unknown) {
-        const errorResponse = error as { response?: { data?: Record<string, string[]> } };
-        const errorData = errorResponse?.response?.data;
-
-        if (errorData?.current_password) {
-          Alert.alert('Error', errorData.current_password[0] || 'Current password is incorrect.');
-        } else if (errorData?.new_password) {
-          Alert.alert('Error', errorData.new_password[0] || 'Invalid new password.');
-        } else if (errorData?.new_password_confirm) {
-          Alert.alert('Error', errorData.new_password_confirm[0] || 'Passwords do not match.');
-        } else {
-          Alert.alert('Error', 'Unable to change password. Please try again later.');
-        }
-        return false;
+        const failed = 'Your password could not be changed. Try again.';
+        return apiErrorSentence(error, failed, failed);
       } finally {
         setIsChangingPassword(false);
       }
@@ -51,14 +34,11 @@ export function useSettings() {
     [],
   );
 
-  const exportData = useCallback(async (): Promise<boolean> => {
+  const exportData = useCallback(async (): Promise<string | null> => {
     const sessionEpoch = getSessionEpoch();
     setIsExporting(true);
     try {
-      if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert('Export Failed', 'Sharing is not available on this device.');
-        return false;
-      }
+      if (!(await Sharing.isAvailableAsync())) return 'Sharing is not available on this device.';
       await shareDocumentCopy(
         sessionEpoch,
         async () => {
@@ -72,12 +52,9 @@ export function useSettings() {
         (uri, type) =>
           Sharing.shareAsync(uri, { mimeType: type, UTI: 'public.json', dialogTitle: 'Ledova - Account Data Export' }),
       );
-      return true;
+      return null;
     } catch {
-      if (sessionEpoch === getSessionEpoch()) {
-        Alert.alert('Export Failed', 'Unable to export your data. Please try again later.');
-      }
-      return false;
+      return 'Your data could not be exported. Try again.';
     } finally {
       setIsExporting(false);
     }
@@ -88,7 +65,6 @@ export function useSettings() {
     try {
       await deleteAccount(apiClient);
     } catch {
-      Alert.alert('Delete Failed', 'Unable to delete your account. Please try again later.');
       setIsDeleting(false);
       return false;
     }
