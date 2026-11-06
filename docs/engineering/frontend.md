@@ -303,6 +303,8 @@ create-account page and a finished non-company account that opens a sign-up step
 to `/signup/company-registration` when the account may open company pages and its full name has more
 than one word, otherwise to `SIGNUP_RESUMES_AT`. A finished account opens the unified Dashboard.
 Pending member invitations take precedence. Sign-in navigates to `/`.
+After accepting or reopening an accepted member invitation, View my shares opens Dashboard
+with that invitation's company query, overriding the previously selected company.
 
 `ProtectedRoute` (`dashboard/src/routes/ProtectedRoute.tsx`) guards each signed-in route with its
 entry's audience:

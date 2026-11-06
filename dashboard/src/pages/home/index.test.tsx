@@ -166,7 +166,7 @@ it('invites and associates a walletless member, recovers one exact request and r
           member: { uuid: MEMBER_RECORD.member, name: MEMBER_RECORD.name },
           intendedEmail: 'member@example.test',
           acceptanceDeadline: '2026-10-28T00:00:00Z',
-          status: 'pending',
+          status: associated ? 'accepted' : 'pending',
         },
       };
       if (holdPreview) {
@@ -270,8 +270,22 @@ it('invites and associates a walletless member, recovers one exact request and r
   fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
   await waitFor(() => expect(associated).toBe(true));
   await screen.findByText(/Invitation accepted/);
+  expect(screen.getByRole('link', { name: 'View my shares' }).getAttribute('href')).toBe(
+    `/home?company=${MEMBER_RECORD.company.uuid}`,
+  );
+  await act(async () => client.refetchQueries({ queryKey: ['userProfiles'] }));
+  expect(screen.getByRole('link', { name: 'View my shares' }).getAttribute('href')).toBe(
+    `/home?company=${MEMBER_RECORD.company.uuid}`,
+  );
   expect(sessionStorage).toHaveLength(0);
   recipient.unmount();
+  window.history.replaceState({}, '', `/member-invitation#${MEMBER_CODE}`);
+  const acceptedInvitation = render(<MemberInvitationPage />, { wrapper });
+  await screen.findByText('This invitation has already been accepted.');
+  expect(screen.getByRole('link', { name: 'View my shares' }).getAttribute('href')).toBe(
+    `/home?company=${MEMBER_RECORD.company.uuid}`,
+  );
+  acceptedInvitation.unmount();
   await act(async () => {
     await client.refetchQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY });
   });

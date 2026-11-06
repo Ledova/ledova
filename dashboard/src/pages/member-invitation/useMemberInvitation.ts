@@ -40,7 +40,7 @@ export function useMemberInvitation(typed = '') {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ owner: typeof owner; message: string } | null>(null);
   const scope = useMemo(() => ({ owner, profileSource, id: crypto.randomUUID() }), [owner, profileSource]);
-  const [accepted, setAccepted] = useState<typeof owner>(null);
+  const [accepted, setAccepted] = useState<{ owner: typeof owner; company: string } | null>(null);
   const submitting = useRef(false);
   const live = useRef(false);
   useEffect(() => {
@@ -76,7 +76,7 @@ export function useMemberInvitation(typed = '') {
   };
   const preview = useQuery({
     queryKey: ['member-invitation-preview', scope.id, id],
-    enabled: ready && !!code && accepted !== owner,
+    enabled: ready && !!code && accepted?.owner !== owner,
     retry: false,
     gcTime: 0,
     queryFn: async ({ signal }) => {
@@ -119,7 +119,7 @@ export function useMemberInvitation(typed = '') {
         !data.current
       )
         throw new Error('The accepted invitation could not be confirmed. Retry this invitation.');
-      setAccepted(owner);
+      setAccepted({ owner, company: data.company });
       clearMemberInvitation();
       await client.invalidateQueries({ queryKey: ['member-records'] });
     } catch (error) {
@@ -138,7 +138,8 @@ export function useMemberInvitation(typed = '') {
     profile,
     setupRequired: !owner || (!!profile.userProfile && !profile.userProfile.isSignupCompleted),
     ready,
-    accepted: !!owner && accepted === owner,
+    accepted: !!owner && accepted?.owner === owner,
+    company: accepted?.owner === owner ? accepted.company : shown?.company.uuid,
     preview,
     shown,
     failure: currentFailure,
