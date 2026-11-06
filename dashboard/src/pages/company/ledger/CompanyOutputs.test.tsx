@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import {
+  certificateContext as entryContext,
   COMPANY_ENDPOINTS,
   COMPANY_TOKEN_ENDPOINTS,
   AUTH_QUERY_KEY,
@@ -100,14 +101,14 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   renderCompanyPage(client, <Outputs />, 'Register outputs');
   expect(await screen.findByText('For Synthetic pack recipient')).toBeTruthy();
   expect(screen.getByText('Instruction: SYNTHETIC-EARLIER-PACK')).toBeTruthy();
-  const certificateContext = `unsigned certificate for entry ${OUTPUT_ENTRY.sequence}`;
+  const certificateContext = `unsigned certificate for ${entryContext(OUTPUT_ENTRY)}`;
   fireEvent.click(screen.getByRole('button', { name: /Prepare certificate/ }));
   fireEvent.click(screen.getByRole('button', { name: `Cancel (${certificateContext})` }));
-  expect(screen.queryByRole('form', { name: `Unsigned certificate for entry ${OUTPUT_ENTRY.sequence}` })).toBeNull();
+  expect(screen.queryByRole('form', { name: `Unsigned certificate for ${entryContext(OUTPUT_ENTRY)}` })).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: /Prepare certificate/ }));
   const certificateForm = screen.getByRole('form', {
-    name: `Unsigned certificate for entry ${OUTPUT_ENTRY.sequence}`,
+    name: `Unsigned certificate for ${entryContext(OUTPUT_ENTRY)}`,
   });
   const certificateControls = within(certificateForm);
   expect(certificateControls.queryByRole('textbox')).toBeNull();
@@ -303,8 +304,8 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   expect(within(records).queryByText('You')).toBeNull();
   expect(within(records).getAllByText(MEMBER_RECORD.name)).toHaveLength(1);
   expect(within(records).getByText('Other shareholder')).toBeTruthy();
-  expect(within(records).getAllByText('Can prepare', { exact: true })).toHaveLength(2);
-  expect(within(records).getAllByText('Certificate:')).toHaveLength(2);
+  expect(within(records).getAllByRole('button', { name: /^Prepare certificate/ })).toHaveLength(2);
+  expect(within(records).queryByText('Can prepare')).toBeNull();
   expect(within(records).queryByText('Earlier shareholder')).toBeNull();
   expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
@@ -413,8 +414,8 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   records = await screen.findByRole('list', { name: 'Certificate records' });
   await within(records).findByText('Other shareholder');
   expect(within(records).getAllByRole('button', { name: /Prepare certificate/ })).toHaveLength(2);
-  fireEvent.click(screen.getByRole('button', { name: `Prepare certificate (entry ${OUTPUT_ENTRY.sequence})` }));
-  fireEvent.submit(screen.getByRole('form', { name: `Unsigned certificate for entry ${OUTPUT_ENTRY.sequence}` }));
+  fireEvent.click(screen.getByRole('button', { name: `Prepare certificate (${entryContext(OUTPUT_ENTRY)})` }));
+  fireEvent.submit(screen.getByRole('form', { name: `Unsigned certificate for ${entryContext(OUTPUT_ENTRY)}` }));
   await screen.findByRole('button', { name: `Download PDF (${certificateContext})` });
   await act(async () => setContext({ ...context, directory: { ...context.directory, isRefreshing: true } }));
   expect(screen.queryByRole('button', { name: `Download PDF (${certificateContext})` })).toBeNull();

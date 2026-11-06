@@ -54,7 +54,7 @@ async function ownShares(quantity: string) {
 
 async function certificateRecords() {
   const records = await screen.findByRole('list', { name: 'Certificate records' });
-  await within(records).findByText(MEMBER_RECORD.name);
+  await within(records).findAllByRole('listitem');
   return records;
 }
 

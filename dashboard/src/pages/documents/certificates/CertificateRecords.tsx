@@ -1,9 +1,8 @@
 import { useCallback, useState } from 'react';
 import {
-  CERTIFICATE_STATES,
+  CERTIFICATE_NONE_DUE,
   certificateFacts,
   certificateStatus,
-  formatDate,
   isCertificateEntry,
   shareChange,
   type CertificateFilterValues,
@@ -30,7 +29,7 @@ export type OwnCertificateSource = Pick<OwnMemberRecord, 'member' | 'name'> & { 
 type CertificateRecord = { uuid: string; company?: RegisterEntry; own?: OwnMemberEntry };
 
 const COMPANY_COLUMNS =
-  'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_10rem]';
+  'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_10rem]';
 const OWN_COLUMNS = 'md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]';
 
 export function CertificateRecords({
@@ -82,15 +81,10 @@ export function CertificateRecords({
         {ordered.length > 0 && !editing && (
           <div className={`${TABLE_HEADER_CLASS} hidden py-3 font-medium md:block`} aria-hidden="true">
             <div className={`grid gap-4 ${columns}`}>
-              <span>Shareholder</span>
+              <span>{company ? 'Shareholder' : 'Change'}</span>
               <span className="text-right">Shares</span>
               <span>Date</span>
-              {company && (
-                <>
-                  <span>Certificate</span>
-                  <span className="sr-only">Action</span>
-                </>
-              )}
+              {company && <span className="hidden text-right xl:block">Certificate</span>}
             </div>
           </div>
         )}
@@ -98,9 +92,10 @@ export function CertificateRecords({
           {ordered.map((row) => {
             const entry = row.company ?? row.own!;
             const facts = certificateFacts(entry, selectedClass?.symbol);
-            const changes = row.company?.changes ?? [{ member: own!.member, name: own!.name, shares: row.own!.delta }];
+            const changes = row.company?.changes ?? [
+              { member: own!.member, name: facts.entry, shares: row.own!.delta },
+            ];
             const focused = editing === row.uuid;
-            const companyDated = ['issue', 'transfer'].includes(entry.kind.toLowerCase());
             return (
               <li
                 key={`${selectedClass?.uuid}/${row.uuid}`}
@@ -116,48 +111,45 @@ export function CertificateRecords({
                       </span>
                     </span>
                   ))}
-                  <span className="block text-xs text-text-muted md:text-sm">
-                    {facts.entry}
-                    <span className="md:hidden"> · {facts.date}</span>
+                  <span className={`block text-xs text-text-muted md:text-sm ${row.company ? '' : 'md:hidden'}`}>
+                    {row.company && facts.entry}
+                    <span className="md:hidden">
+                      {row.company && ' · '}
+                      {facts.dates}
+                    </span>
                   </span>
                 </span>
                 <span className="hidden text-text-muted md:block">
-                  {companyDated ? formatDate(entry.companyEventOn, 'Not recorded') : formatDate(entry.effectiveOn)}
-                  {companyDated && entry.effectiveOn !== entry.companyEventOn && (
+                  {facts.date}
+                  {facts.ledgerDate && (
                     <span className="block">
-                      Ledger date <span className="whitespace-nowrap">{formatDate(entry.effectiveOn)}</span>
+                      Ledger date <span className="whitespace-nowrap">{facts.ledgerDate}</span>
                     </span>
                   )}
                 </span>
                 {company && row.company && (
-                  <>
-                    <span
-                      className={
-                        certificateStatus(row.company) === 'can_prepare'
-                          ? 'hidden text-text-muted md:block'
-                          : 'text-xs text-text-muted md:text-sm'
-                      }
-                    >
-                      <span className="md:sr-only">Certificate: </span>
-                      {CERTIFICATE_STATES[certificateStatus(row.company)]}
-                    </span>
-                    <div
-                      className={
-                        focused
-                          ? 'md:col-span-4 xl:col-span-5'
-                          : 'flex flex-wrap items-start justify-end gap-2 empty:hidden md:col-span-4 xl:col-span-1'
-                      }
-                    >
-                      <ClassCertificate
-                        sourceKey={`${company.owner.userUuid}/${company.owner.ownerAccountUuid}`}
-                        register={company.register}
-                        entry={row.company}
-                        guard={company.guard}
-                        sourceReady={company.sourceReady}
-                        onEditingChange={editingChange}
-                      />
-                    </div>
-                  </>
+                  <div
+                    className={
+                      focused
+                        ? 'md:col-span-3 xl:col-span-4'
+                        : 'flex flex-wrap items-start justify-end gap-2 empty:hidden md:col-span-3 xl:col-span-1'
+                    }
+                  >
+                    {certificateStatus(row.company) === 'reversed' && (
+                      <span className="mr-auto text-xs text-text-muted md:text-sm xl:mr-0 xl:text-right">
+                        <span className="md:sr-only">Certificate: </span>
+                        {CERTIFICATE_NONE_DUE}
+                      </span>
+                    )}
+                    <ClassCertificate
+                      sourceKey={`${company.owner.userUuid}/${company.owner.ownerAccountUuid}`}
+                      register={company.register}
+                      entry={row.company}
+                      guard={company.guard}
+                      sourceReady={company.sourceReady}
+                      onEditingChange={editingChange}
+                    />
+                  </div>
                 )}
               </li>
             );

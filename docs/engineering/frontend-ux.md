@@ -331,7 +331,7 @@ or match-count line. Fields are drafts until **Apply** updates the URL; **Clear*
 status while keeping the class. Filter the complete permitted history, not just loaded rows.
 Company pack stays at company scope. Each uses the existing workspace frame, cards, responsive
 field grid and action footer, opening one focused main-page preparation at a time. Certificate
-preparation uses the existing labelled summary rows for share movements, company date, entry number,
+preparation uses the existing labelled summary rows for share movements, company date,
 ledger date, recording time and PDF page count after preview. No manual certificate reference is
 needed: the server records the exact-entry request when the file is generated. Keep one
 right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when nothing is editable.
@@ -348,14 +348,12 @@ refresh controls.
 
 Certificates uses one list for the selected company and class. Register readers see the company's
 issue and transfer entries; a member who is not one sees only their own history. On wider screens
-each aligned row shows the shareholder or change, shares, kind, class and entry number, and the
-date (with the ledger date beneath when it differs); a register reader's row adds the certificate's
-status, **Can prepare** or **None due, the entry was reversed**, and **Prepare certificate** at the
-row's end. At phone width each entry takes two lines: the shareholder, or each party to a transfer,
-with the signed shares at the right, then the kind, class, entry number and short date in muted
-text, with the ledger date when it differs. A reversed entry adds **Certificate: None due, the entry
-was reversed**; an entry that can be prepared shows **Prepare certificate** beneath instead of
-repeating **Can prepare**. A member's empty class reads **No register entries for this class yet.**
+each aligned row shows the shareholder or each party to a transfer with their shares, the kind and class
+beneath, and the short date (with the ledger date beneath when it differs); a register reader's row ends with
+**Prepare certificate**, or **None due, the entry was reversed** when no certificate is due. At phone width each
+entry takes two lines: the same people and shares, then the kind, class and short date in muted text, with the
+ledger date when it differs. A member's own history doesn't repeat their name: the first line is the kind and
+class with the shares at the right. A member's empty class reads **No register entries for this class yet.**
 Rows don't expand.
 
 The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
@@ -1109,7 +1107,7 @@ by a local helper or a browser `toLocale…` call:
 
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
   the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
-  page, Employee share scheme, Certificates at phone width, Member access, prepared inspection
+  page, Employee share scheme, Certificates, Member access, prepared inspection
   copies, appointments and issued invitations, Account details' Member since, Activation's
   historical record, authority requests, Set up your ledger's record date and shareholder rows, and an
   award's agreement and event dates use `formatShortDate`, "20 Oct 2026", read the same way; allotment
