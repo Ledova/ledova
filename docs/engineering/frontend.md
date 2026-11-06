@@ -497,7 +497,11 @@ the same account runs, the frame stays, and the web API client refuses every wri
 such as the Ledger's "Loading the register…" or "Loading your account…" on member records. Shareholders'
 Add person controller stays mounted for the same account and company, with its private fields, rows
 and header controls hidden until ownership is confirmed again. Changing account or company discards
-that scope's draft. Certificates' unapplied filter choices are still lost when its list is replaced.
+that scope's draft. While the Certificates page remains mounted, its unapplied filters also survive
+same-account/company directory and class-access checks, including failed or paused reads. Its private
+rows and header controls stay hidden until access is confirmed. Account, company or
+company-reader/member-only access changes reset the choices; certificate source changes still retire
+previews. Leaving or unmounting the page resets its draft.
 Activation keeps its reviewed target and declaration mounted but hidden during a same-account
 company-access recheck, including a failed read followed by Retry. Confirmation still requires settled
 current reads; a changed company, mandate, revision or declaration discards the review. The shared
@@ -525,7 +529,7 @@ Every list follows these rules:
 
 - Web list filters use the UI-only `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`); pages retain their data and field state. Certificates
-  keeps Apply/Clear drafts until a session recheck replaces its list, while Shareholders' class filter
+  keeps Apply/Clear drafts through same-scope access rechecks while its page is mounted; Shareholders' class filter
   retains immediate selection. Shareholders keeps Search people inside
   its panel above the class selector, with its existing debounce, Clear and match counts.
   Every filter icon sits in the page heading's top-right actions, without a separate row or
@@ -788,7 +792,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   quantities above their full breakdown and terms in **Show award details**.
 - The Certificates page (`dashboard/src/pages/documents/certificates/index.tsx`) shows a register
   reader the company's certificate preparation and a member who is not one their own entries, in one
-  class-selected list. Company reads mount only with confirmed register access; member-only access
+  class-selected list. Company rows and preparation require confirmed register access; member-only access
   never reads the full company register, and a register reader's view uses no member record.
   `CertificateRecords.tsx` renders aligned rows with the shareholder or change, shares, entry and
   date, and for a register reader the certificate's status (**Can prepare** or **None due, the

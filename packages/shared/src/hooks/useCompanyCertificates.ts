@@ -18,9 +18,10 @@ export function useCompanyCertificates(
   requested: string | null,
   filters: CertificateFilterValues,
   session?: OrderSubmissionSession,
+  available = true,
 ) {
   const apiClient = useApiClient();
-  const source = useClassRegister(owner, currentOwner, company, requested, 'certificate', session);
+  const source = useClassRegister(owner, currentOwner, company, requested, 'certificate', session, available);
   const { token, guard, register } = source;
   const queryKey = [...entriesKey(owner, token), 'certificates', filters.search, filters.status];
   const history = useInfiniteQuery({
@@ -50,7 +51,10 @@ export function useCompanyCertificates(
   });
   const pages = useLaterPages(queryKey, history);
   const ready =
-    source.ready && !history.isPending && !pages.hasError && (!history.isFetching || history.isFetchingNextPage);
+    source.ready &&
+    !history.isPending &&
+    !pages.hasError &&
+    (history.fetchStatus === 'idle' || history.isFetchingNextPage);
   return {
     options: source.options,
     token,
@@ -66,7 +70,7 @@ export function useCompanyCertificates(
     ready,
     sourceReady: source.sourceReady,
     hasError: source.hasError || pages.hasError,
-    isRefreshing: source.isRefreshing || history.isFetching,
+    isRefreshing: source.isRefreshing || history.fetchStatus !== 'idle',
     retry: async () => {
       await source.retry();
       if (token) await history.refetch({ throwOnError: true });

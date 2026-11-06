@@ -4,6 +4,8 @@ import {
   CERTIFICATE_STATUSES,
   useCompanyCertificates,
   useSubmissionOwner,
+  useAuth,
+  useUserPreferences,
   type CertificateFilterValues,
   type CertificateStatus,
   type OrderSubmissionOwner,
@@ -21,6 +23,8 @@ export default function CertificatesPage() {
   const context = useCompanyContext();
   const { read } = useMemberWorkspace();
   const { owner, boundary } = useSubmissionOwner();
+  const authentication = useAuth();
+  const preferences = useUserPreferences();
   const query = new URLSearchParams(useLocation().search);
   const filters: CertificateFilterValues = {
     search: (query.get('q') ?? '').slice(0, 100),
@@ -28,12 +32,33 @@ export default function CertificatesPage() {
   };
   const company = context?.company;
   const personal = !!company && !company.canReadRegister && company.memberUuids.length > 0;
+  const companyUuid = context?.companyUuid ?? company?.uuid ?? '';
+  const scope = owner && companyUuid ? `${owner.userUuid}/${owner.ownerAccountUuid}/${companyUuid}` : '';
+  const confirmed =
+    !!owner &&
+    !authentication.isFetching &&
+    !preferences.isError &&
+    preferences.fetchStatus === 'idle' &&
+    !!context &&
+    context.directory.owner?.userUuid === owner.userUuid &&
+    context.directory.owner.ownerAccountUuid === owner.ownerAccountUuid &&
+    !context.directory.hasError &&
+    !context.directory.isLoading &&
+    !context.directory.isRefreshing;
+  const access = company?.canReadRegister ? 'company' : personal ? 'personal' : null;
+  const [retained, setRetained] = useState({ scope, access: confirmed ? access : null });
+  if (retained.scope !== scope || (confirmed && retained.access !== access))
+    setRetained({ scope, access: confirmed ? access : null });
+  const currentAccess = confirmed ? access : retained.scope === scope ? retained.access : null;
   const waitingForMember =
-    personal && (read.record?.company.uuid !== company?.uuid || read.selectedUuid !== read.record.uuid);
+    currentAccess === 'personal' &&
+    (read.record?.company.uuid !== companyUuid || read.selectedUuid !== read.record.uuid);
+  const available =
+    confirmed && (currentAccess !== 'personal' || (!read.readFailed && !read.loading && !waitingForMember));
   return (
     <PageTitle.Provider value="Certificates">
       <Page>
-        {personal && read.readFailed ? (
+        {currentAccess === 'personal' && read.readFailed ? (
           <LoadError retry={read.refresh} busy={read.refreshing}>
             Your member records could not be loaded.
           </LoadError>
@@ -41,30 +66,25 @@ export default function CertificatesPage() {
           <LoadError retry={context.directory.retry} busy={context.directory.isRefreshing}>
             Your company access could not be confirmed.
           </LoadError>
-        ) : !owner ||
-          context?.directory.isLoading ||
-          context?.directory.isRefreshing ||
-          (personal && read.loading) ||
-          waitingForMember ? (
+        ) : !available ? (
           <Loading>Loading certificate records…</Loading>
         ) : !company ? (
           <CompanyContextNotice />
-        ) : company.canReadRegister ? (
+        ) : !access ? (
+          <p className="text-sm text-text-muted">Your account has no certificate access for this company.</p>
+        ) : null}
+        {owner && companyUuid && currentAccess === 'company' ? (
           <CompanyCertificates
-            key={`${owner.userUuid}/${owner.ownerAccountUuid}/${company.uuid}`}
+            key={scope}
             owner={owner}
             currentOwner={boundary.get}
-            company={company.uuid}
+            company={companyUuid}
             filters={filters}
+            available={available}
           />
-        ) : personal ? (
-          <PersonalCertificates
-            key={`${owner.userUuid}/${owner.ownerAccountUuid}/${company.uuid}`}
-            company={company.uuid}
-          />
-        ) : (
-          <p className="text-sm text-text-muted">Your account has no certificate access for this company.</p>
-        )}
+        ) : owner && companyUuid && currentAccess === 'personal' ? (
+          <PersonalCertificates key={scope} company={companyUuid} available={available} />
+        ) : null}
       </Page>
     </PageTitle.Provider>
   );
@@ -75,66 +95,87 @@ function CompanyCertificates({
   currentOwner,
   company,
   filters,
+  available,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
   company: string;
   filters: CertificateFilterValues;
+  available: boolean;
 }) {
   const location = useLocation();
   const [editing, setEditing] = useState(false);
   const requested = new URLSearchParams(location.search).get('class');
-  const source = useCompanyCertificates(owner, currentOwner, company, requested, filters);
+  const source = useCompanyCertificates(owner, currentOwner, company, requested, filters, undefined, available);
   const selected = source.options.find((item) => item.uuid === source.token);
+  const readable = available && source.sourceReady;
+  const notice = source.hasError ? (
+    <LoadError retry={source.retry} busy={source.isRefreshing}>
+      Certificate records could not be loaded.
+    </LoadError>
+  ) : (
+    <Loading>Loading certificate records…</Loading>
+  );
   return (
-    <CertificateWorkspace classes={source.options} selected={selected} disabled={editing} filters={filters}>
-      {source.hasError ? (
-        <LoadError retry={source.retry} busy={source.isRefreshing}>
-          Certificate records could not be loaded.
-        </LoadError>
-      ) : !source.sourceReady ? (
-        <Loading>Loading certificate records…</Loading>
-      ) : requested && !selected ? (
-        <p className="text-sm text-text-muted">This share class is unavailable for the selected company.</p>
-      ) : selected && !source.ready ? (
-        <Loading>Loading certificate records…</Loading>
-      ) : (
-        <CertificateRecords
-          key={JSON.stringify([company, selected?.uuid, filters])}
-          onEditingChange={setEditing}
-          selectedClass={selected}
-          filters={filters}
-          company={
-            source.register && selected
-              ? {
-                  owner,
-                  register: source.register,
-                  entries: source.entries,
-                  guard: source.guard,
-                  sourceReady: source.ready && !source.more.failed && !source.more.loading,
-                  readReady: source.ready,
-                  more: source.more,
-                }
-              : undefined
-          }
-        />
-      )}
-    </CertificateWorkspace>
+    <>
+      {available && !readable && notice}
+      <CertificateWorkspace
+        classes={source.options}
+        selected={selected}
+        disabled={editing || !available}
+        filters={filters}
+        available={readable}
+      >
+        {!readable ? null : source.hasError ? (
+          notice
+        ) : requested && !selected ? (
+          <p className="text-sm text-text-muted">This share class is unavailable for the selected company.</p>
+        ) : selected && !source.ready ? (
+          <Loading>Loading certificate records…</Loading>
+        ) : (
+          <CertificateRecords
+            key={JSON.stringify([company, selected?.uuid, filters])}
+            onEditingChange={setEditing}
+            selectedClass={selected}
+            filters={filters}
+            company={
+              source.register && selected
+                ? {
+                    owner,
+                    register: source.register,
+                    entries: source.entries,
+                    guard: source.guard,
+                    sourceReady: source.ready && !source.more.failed && !source.more.loading,
+                    readReady: source.ready,
+                    more: source.more,
+                  }
+                : undefined
+            }
+          />
+        )}
+      </CertificateWorkspace>
+    </>
   );
 }
 
-function PersonalCertificates({ company }: { company: string }) {
+function PersonalCertificates({ company, available }: { company: string; available: boolean }) {
   const { read, held, token } = useMemberWorkspace();
   const location = useLocation();
   const requested = new URLSearchParams(location.search).get('class');
   const record = read.record?.company.uuid === company && read.selectedUuid === read.record.uuid ? read.record : null;
   const classes = record?.classes ?? [];
   const selected = classes.find((item) => item.uuid === (requested ?? token));
-  if (!record || (!requested && classes.length > 0 && !selected))
-    return <Loading>Loading your certificate records…</Loading>;
   return (
-    <CertificateWorkspace classes={classes} selected={selected} disabled={held} failure={read.error}>
-      {requested && !selected ? (
+    <CertificateWorkspace
+      classes={classes}
+      selected={selected}
+      disabled={held || !available}
+      failure={read.error}
+      available={available}
+    >
+      {!available ? null : !record || (!requested && classes.length > 0 && !selected) ? (
+        <Loading>Loading your certificate records…</Loading>
+      ) : requested && !selected ? (
         <p className="text-sm text-text-muted">Your account has no member record for this share class.</p>
       ) : selected && (token !== selected.uuid || !read.entriesReady) ? (
         <Loading>Loading your certificate records…</Loading>
@@ -160,6 +201,7 @@ function CertificateWorkspace({
   disabled,
   filters,
   failure,
+  available,
 }: {
   classes: CertificateClass[];
   selected?: CertificateClass;
@@ -167,27 +209,38 @@ function CertificateWorkspace({
   disabled: boolean;
   filters?: CertificateFilterValues;
   failure?: string | null;
+  available: boolean;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
   const requested = new URLSearchParams(location.search).get('class');
   useEffect(() => {
-    if (requested || !selected) return;
+    if (!available || requested || !selected) return;
     const query = new URLSearchParams(location.search);
     query.set('class', selected.uuid);
     navigate({ search: query.toString(), hash: location.hash }, { replace: true, state: location.state });
-  }, [requested, selected, location, navigate]);
+  }, [available, requested, selected, location, navigate]);
   return (
-    <Section title="Certificate records">
-      <PageActions>
-        <CertificateFilters classes={classes} selected={selected} applied={filters} disabled={disabled} />
-      </PageActions>
-      <Failure>{failure}</Failure>
-      {!filters || CERTIFICATE_STATUSES.some(([value]) => value === filters.status) ? (
-        children
-      ) : (
-        <Failure>This certificate status is unavailable. Choose a status or Clear in Filters.</Failure>
-      )}
-    </Section>
+    <div hidden={!available}>
+      <Section title="Certificate records">
+        <PageActions>
+          <div hidden={!available}>
+            <CertificateFilters
+              classes={classes}
+              selected={selected}
+              applied={filters}
+              disabled={disabled}
+              available={available}
+            />
+          </div>
+        </PageActions>
+        <Failure>{failure}</Failure>
+        {!filters || CERTIFICATE_STATUSES.some(([value]) => value === filters.status) ? (
+          children
+        ) : (
+          <Failure>This certificate status is unavailable. Choose a status or Clear in Filters.</Failure>
+        )}
+      </Section>
+    </div>
   );
 }

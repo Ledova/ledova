@@ -70,9 +70,9 @@ export function useClassRegister(
   const sourceReady =
     available &&
     classes.isSuccess &&
-    !classes.isFetching &&
+    classes.fetchStatus === 'idle' &&
     appointments.isSuccess &&
-    !appointments.isFetching &&
+    appointments.fetchStatus === 'idle' &&
     hasCurrentRegisterReadAuthority(appointments.data, company);
   const register = useQuery({
     queryKey: [...registerHoldersKey(owner), purpose, token],
@@ -95,9 +95,13 @@ export function useClassRegister(
     guard,
     register,
     sourceReady,
-    ready: sourceReady && options.some((item) => item.uuid === token) && register.isSuccess && !register.isFetching,
+    ready:
+      sourceReady &&
+      options.some((item) => item.uuid === token) &&
+      register.isSuccess &&
+      register.fetchStatus === 'idle',
     hasError: classes.isError || appointments.isError || register.isError,
-    isRefreshing: classes.isFetching || appointments.isFetching || register.isFetching,
+    isRefreshing: [classes, appointments, register].some((read) => read.fetchStatus !== 'idle'),
     retry: async () => {
       await appointments.refetch({ throwOnError: true });
       await classes.refetch({ throwOnError: true });

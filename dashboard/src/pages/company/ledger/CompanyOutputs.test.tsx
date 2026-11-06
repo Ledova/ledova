@@ -3,16 +3,27 @@
 import {
   COMPANY_ENDPOINTS,
   COMPANY_TOKEN_ENDPOINTS,
+  AUTH_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
   DESTINATIONS,
   registerKey,
+  registerClassesKey,
+  ownershipCompaniesKey,
+  useOwnershipCompanies,
+  type UserPreferences,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { OUTPUT_APPOINTMENT, OUTPUT_ENTRY, OUTPUT_PREVIEW, OUTPUT_REGISTER } from '../../../testSupport/company';
-import { MEMBER_RECORD, MEMBER_ENTRY, prepareCompanyClient, renderCompanyPage } from '../../../testSupport/company';
+import {
+  MEMBER_RECORD,
+  MEMBER_ENTRY,
+  companyRecord,
+  prepareCompanyClient,
+  renderCompanyPage,
+} from '../../../testSupport/company';
 import { ClassCertificate } from '../../documents/certificates/ClassCertificate';
 import { CompanyPack } from './CompanyPack';
 import CertificatesPage from '../../documents/certificates';
@@ -183,6 +194,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   prepareCompanyClient(client);
   let refusedHistory = false;
   let refusedMore = true;
+  let refusedClasses = false;
   const otherEntry = {
     ...OUTPUT_ENTRY,
     uuid: '55555555-5555-4555-8555-555555555555',
@@ -197,12 +209,17 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   };
   const page = (results: unknown[], next: string | null = null) => ({ data: { results, next, count: results.length } });
   api.get.mockImplementation(async (url, config) => {
+    if (url === COMPANY_ENDPOINTS.BASE)
+      return page([companyRecord({ uuid: MEMBER_RECORD.company.uuid, isOwner: false })]);
     if (url === '/api/v1/company-authority/appointments/') return page([OUTPUT_APPOINTMENT]);
-    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER)
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER) {
+      if (refusedClasses) throw new Error('Synthetic class access refusal');
       return page([
         { ...OUTPUT_REGISTER.token, companyUuid: MEMBER_RECORD.company.uuid, companyName: MEMBER_RECORD.company.name },
       ]);
+    }
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(OUTPUT_REGISTER.token.uuid)) return { data: OUTPUT_REGISTER };
+    if (url === certificate) return { data: OUTPUT_PREVIEW };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(OUTPUT_REGISTER.token.uuid)) {
       if (refusedHistory || (config.params.page === 2 && refusedMore)) throw new Error('Synthetic history refusal');
       const selected = [OUTPUT_ENTRY, otherEntry, olderEntry].filter((entry) => {
@@ -256,19 +273,31 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
       retry: async () => {},
     },
   };
-  renderCompanyPage(
-    client,
-    <MemberRecordsProvider>
-      <CompanyContext.Provider value={context}>
-        <CertificatesPage />
-      </CompanyContext.Provider>
-    </MemberRecordsProvider>,
-    'Certificates',
-    {
-      path: DESTINATIONS.certificates.path,
-      entry: `${DESTINATIONS.certificates.path}?company=${company.uuid}&class=${OUTPUT_REGISTER.token.uuid}`,
-    },
-  );
+  let setContext: (value: CompanyContextValue) => void = () => {};
+  function CertificatePage() {
+    const [current, update] = useState(context);
+    const directory = useOwnershipCompanies();
+    setContext = update;
+    return (
+      <MemberRecordsProvider>
+        <CompanyContext.Provider
+          value={{
+            ...current,
+            directory: {
+              ...current.directory,
+              isRefreshing: current.directory.isRefreshing || directory.isRefreshing,
+            },
+          }}
+        >
+          <CertificatesPage />
+        </CompanyContext.Provider>
+      </MemberRecordsProvider>
+    );
+  }
+  renderCompanyPage(client, <CertificatePage />, 'Certificates', {
+    path: DESTINATIONS.certificates.path,
+    entry: `${DESTINATIONS.certificates.path}?company=${company.uuid}&class=${OUTPUT_REGISTER.token.uuid}`,
+  });
   let records = await screen.findByRole('list', { name: 'Certificate records' });
   await waitFor(() => expect(within(records).getAllByRole('listitem')).toHaveLength(2));
   expect(within(records).queryByText('You')).toBeNull();
@@ -285,6 +314,74 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   expect(screen.queryByRole('searchbox', { name: 'Shareholder' })).toBeNull();
   expect(within(records).queryByText('Earlier shareholder')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: /^Filters/ }));
+  expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('Earlier');
+  await act(async () => setContext({ ...context, directory: { ...context.directory, isRefreshing: true } }));
+  expect(screen.queryByRole('searchbox', { name: 'Shareholder' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+  expect(screen.queryByText('Other shareholder')).toBeNull();
+  expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
+  await act(async () =>
+    setContext({ ...context, company: undefined, directory: { ...context.directory, hasError: true } }),
+  );
+  await screen.findByText('Your company access could not be confirmed.');
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+  expect(screen.queryByText('Other shareholder')).toBeNull();
+  await act(async () => setContext(context));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('Earlier');
+  expect((screen.getByRole('combobox', { name: 'Certificate status' }) as HTMLSelectElement).value).toBe('can_prepare');
+  await act(async () => {
+    void client.fetchQuery({
+      queryKey: AUTH_QUERY_KEY,
+      queryFn: () =>
+        new Promise((resolve) => {
+          release = () => resolve({ data: { valid: true } });
+        }),
+    });
+  });
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+  expect(screen.queryByText('Other shareholder')).toBeNull();
+  await act(async () => release!());
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('Earlier');
+  const companyRead = client.getQueryCache().find({
+    queryKey: ownershipCompaniesKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
+    exact: true,
+  })!;
+  await act(async () => companyRead.setState({ fetchStatus: 'paused' }));
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+  expect(screen.queryByText('Other shareholder')).toBeNull();
+  await act(async () => companyRead.setState({ fetchStatus: 'idle' }));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('Earlier');
+  const classRead = client.getQueryCache().find({
+    queryKey: registerClassesKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
+    exact: true,
+  })!;
+  await act(async () => classRead.setState({ fetchStatus: 'paused' }));
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+  expect(screen.queryByText('Other shareholder')).toBeNull();
+  await act(async () => classRead.setState({ fetchStatus: 'idle' }));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('Earlier');
+  refusedClasses = true;
+  await act(async () =>
+    client.refetchQueries({
+      queryKey: registerClassesKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
+      exact: true,
+    }),
+  );
+  await screen.findByText('Certificate records could not be loaded.');
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+  expect(screen.queryByText('Other shareholder')).toBeNull();
+  refusedClasses = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('Earlier');
   fireEvent.click(screen.getByRole('button', { name: 'Apply (certificate filters)' }));
   records = await screen.findByRole('list', { name: 'Certificate records' });
@@ -316,6 +413,49 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   records = await screen.findByRole('list', { name: 'Certificate records' });
   await within(records).findByText('Other shareholder');
   expect(within(records).getAllByRole('button', { name: /Prepare certificate/ })).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: `Prepare certificate (entry ${OUTPUT_ENTRY.sequence})` }));
+  fireEvent.submit(screen.getByRole('form', { name: `Unsigned certificate for entry ${OUTPUT_ENTRY.sequence}` }));
+  await screen.findByRole('button', { name: `Download PDF (${certificateContext})` });
+  await act(async () => setContext({ ...context, directory: { ...context.directory, isRefreshing: true } }));
+  expect(screen.queryByRole('button', { name: `Download PDF (${certificateContext})` })).toBeNull();
+  await act(async () => setContext(context));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  expect(screen.queryByRole('button', { name: `Download PDF (${certificateContext})` })).toBeNull();
+  expect(within(records).getAllByRole('button', { name: /Prepare certificate/ })).toHaveLength(2);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Shareholder' }), { target: { value: 'Old company draft' } });
+  await act(async () => setContext({ ...context, company: undefined, companyUuid: 'other-company' }));
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+  await act(async () => setContext(context));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('');
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Shareholder' }), { target: { value: 'Old access draft' } });
+  await act(async () => setContext({ ...context, company: { ...company, canReadRegister: false } }));
+  expect(screen.queryByText('Other shareholder')).toBeNull();
+  await act(async () => setContext(context));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('');
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Shareholder' }), { target: { value: 'Old account draft' } });
+  const preferences = client.getQueryData<{ data: UserPreferences }>(USER_PREFERENCES_QUERY_KEY)!;
+  await act(async () =>
+    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
+      data: {
+        ...preferences.data,
+        userProfile: 'another-profile',
+        userAccount: { ...preferences.data.userAccount!, uuid: 'another-account' },
+      },
+    }),
+  );
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+  expect(screen.queryByText('Other shareholder')).toBeNull();
+  await act(async () => client.setQueryData(USER_PREFERENCES_QUERY_KEY, preferences));
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('');
+  fireEvent.keyDown(screen.getByRole('searchbox', { name: 'Shareholder' }), { key: 'Escape' });
   fireEvent.click(screen.getByRole('button', { name: 'Load more register entries' }));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   await screen.findByText('More register entries could not be loaded. The list is incomplete.');
