@@ -6,11 +6,8 @@ import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  REGISTER_COPY,
   REGISTER_IMPORT_COPY,
-  TECHNICAL_SHARE_LIMIT,
   createUserFriendlyError,
-  formatShareCount,
   type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
   type RegisterImport,
@@ -231,12 +228,6 @@ function OwnImport({
             ['Class name', retained.listed.name],
             ['Class code', retained.listed.symbol],
             ['Class type', retained.listed.tokenTypeDisplay || 'Not recorded'],
-            [
-              'Technical share limit',
-              retained.listed.totalSupply === TECHNICAL_SHARE_LIMIT
-                ? REGISTER_COPY.QUANTITY_GUARD
-                : formatShareCount(retained.listed.totalSupply),
-            ],
           ].map(([label, value]) => (
             <Row key={label} label={label} inline>
               {value}

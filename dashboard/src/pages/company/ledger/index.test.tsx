@@ -1351,6 +1351,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let firstPreparation = true;
   let failNextPreview = false;
   let interruptNextApply = false;
+  let releaseInterruptedApply: (() => void) | undefined;
   let proposal: RegisterImport | undefined;
   let historyEntries: RegisterEntry[] = [];
   let historyCorrections: RegisterCorrection[] = [];
@@ -1640,6 +1641,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         opened = true;
         if (interruptNextApply) {
           interruptNextApply = false;
+          await new Promise<void>((resolve) => {
+            releaseInterruptedApply = resolve;
+          });
           throw new Error('Interrupted confirmation response');
         }
       }
@@ -2261,6 +2265,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const oneConfirm = await screen.findByRole('button', { name: 'Confirm' });
   await waitFor(() => expect((oneConfirm as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(oneConfirm);
+  await waitFor(() => expect(releaseInterruptedApply).toBeTypeOf('function'));
+  expect(screen.getByRole('button', { name: 'Confirming…' }).matches(':disabled')).toBe(true);
+  expect(screen.queryByText(/The confirmation result is uncertain/)).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Recover confirmation' })).toBeNull();
+  await act(async () => releaseInterruptedApply!());
   await screen.findByRole('button', { name: 'Recover confirmation' });
   await waitFor(() =>
     expect((screen.getByRole('button', { name: 'Recover confirmation' }) as HTMLButtonElement).disabled).toBe(false),
