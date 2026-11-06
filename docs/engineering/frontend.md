@@ -498,7 +498,7 @@ such as the Ledger's "Loading the register…" or "Loading your account…" on m
 Add person controller stays mounted for the same account and company, with its private fields, rows
 and header controls hidden until ownership is confirmed again. Changing account or company discards
 that scope's draft. While the Certificates page remains mounted, its unapplied filters also survive
-same-account/company access checks and failures, with private rows and header controls hidden until
+same-account/company directory and class-access checks, including failed or paused reads, with private rows and header controls hidden until
 access is confirmed. Account, company or company-reader/member-only access changes reset the choices;
 certificate source changes still retire previews. Leaving or unmounting the page resets its draft.
 The activation hook also closes an open review as

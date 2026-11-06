@@ -91,7 +91,7 @@ export function useOwnershipCompanies(session?: OrderSubmissionSession) {
     },
     ...READ_TIMING,
   });
-  const isRefreshing = companyRows.isFetching || appointments.isFetching || memberRows.isFetching;
+  const isRefreshing = [companyRows, appointments, memberRows].some((read) => read.fetchStatus !== 'idle');
   const hasError =
     preferences.isError ||
     companyRows.isError ||

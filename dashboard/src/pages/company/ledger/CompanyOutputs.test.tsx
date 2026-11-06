@@ -8,6 +8,8 @@ import {
   DESTINATIONS,
   registerKey,
   registerClassesKey,
+  ownershipCompaniesKey,
+  useOwnershipCompanies,
   type UserPreferences,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
@@ -15,7 +17,13 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { useState } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { OUTPUT_APPOINTMENT, OUTPUT_ENTRY, OUTPUT_PREVIEW, OUTPUT_REGISTER } from '../../../testSupport/company';
-import { MEMBER_RECORD, MEMBER_ENTRY, prepareCompanyClient, renderCompanyPage } from '../../../testSupport/company';
+import {
+  MEMBER_RECORD,
+  MEMBER_ENTRY,
+  companyRecord,
+  prepareCompanyClient,
+  renderCompanyPage,
+} from '../../../testSupport/company';
 import { ClassCertificate } from '../../documents/certificates/ClassCertificate';
 import { CompanyPack } from './CompanyPack';
 import CertificatesPage from '../../documents/certificates';
@@ -201,6 +209,8 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   };
   const page = (results: unknown[], next: string | null = null) => ({ data: { results, next, count: results.length } });
   api.get.mockImplementation(async (url, config) => {
+    if (url === COMPANY_ENDPOINTS.BASE)
+      return page([companyRecord({ uuid: MEMBER_RECORD.company.uuid, isOwner: false })]);
     if (url === '/api/v1/company-authority/appointments/') return page([OUTPUT_APPOINTMENT]);
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER) {
       if (refusedClasses) throw new Error('Synthetic class access refusal');
@@ -266,10 +276,19 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   let setContext: (value: CompanyContextValue) => void = () => {};
   function CertificatePage() {
     const [current, update] = useState(context);
+    const directory = useOwnershipCompanies();
     setContext = update;
     return (
       <MemberRecordsProvider>
-        <CompanyContext.Provider value={current}>
+        <CompanyContext.Provider
+          value={{
+            ...current,
+            directory: {
+              ...current.directory,
+              isRefreshing: current.directory.isRefreshing || directory.isRefreshing,
+            },
+          }}
+        >
           <CertificatesPage />
         </CompanyContext.Provider>
       </MemberRecordsProvider>
@@ -324,6 +343,17 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
   expect(screen.queryByText('Other shareholder')).toBeNull();
   await act(async () => release!());
+  records = await screen.findByRole('list', { name: 'Certificate records' });
+  fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+  expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('Earlier');
+  const companyRead = client.getQueryCache().find({
+    queryKey: ownershipCompaniesKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
+    exact: true,
+  })!;
+  await act(async () => companyRead.setState({ fetchStatus: 'paused' }));
+  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+  expect(screen.queryByText('Other shareholder')).toBeNull();
+  await act(async () => companyRead.setState({ fetchStatus: 'idle' }));
   records = await screen.findByRole('list', { name: 'Certificate records' });
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   expect((screen.getByRole('searchbox', { name: 'Shareholder' }) as HTMLInputElement).value).toBe('Earlier');

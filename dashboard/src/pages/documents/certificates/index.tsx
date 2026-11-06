@@ -108,7 +108,7 @@ function CompanyCertificates({
   const requested = new URLSearchParams(location.search).get('class');
   const source = useCompanyCertificates(owner, currentOwner, company, requested, filters, undefined, available);
   const selected = source.options.find((item) => item.uuid === source.token);
-  const readable = available && source.sourceReady && !source.sourcePaused;
+  const readable = available && source.sourceReady;
   const notice = source.hasError ? (
     <LoadError retry={source.retry} busy={source.isRefreshing}>
       Certificate records could not be loaded.
