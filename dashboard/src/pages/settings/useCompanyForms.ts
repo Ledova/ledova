@@ -94,7 +94,6 @@ export function useEditCompanyForm(props: FormProps) {
     setDraft,
     pendingRef,
     canChangeName,
-    changed,
     available,
     problems,
     save,

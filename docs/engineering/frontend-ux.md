@@ -572,8 +572,8 @@ fields and action buttons, keep their own focus rings.
 ## Actions
 
 `PageAction` (`dashboard/src/components/Page.tsx`) is the standard action on a signed-in page. It
-looks plain, primary (the one main action of its card or form), destructive (the confirm action of a
-confirmation) or pressed, and comes in four forms:
+looks plain, primary (the one main action of its card or form) or destructive (the confirm action of a
+confirmation), and comes in three forms:
 
 - **A button** runs its action on click.
 - **A submit button** (`type="submit"`) ends every page form, inside `FormActions`: a rule, then one
@@ -585,10 +585,8 @@ confirmation) or pressed, and comes in four forms:
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
   Add share class, a shareholder's Details, Issue shares to them. While a
   held Ledger action blocks leaving, `disabled` shows it as a disabled action instead.
-- **A toggle** (`pressed`, which sets `aria-pressed`) marks the chosen option where pressing applies
-  it at once.
 
-All four are at least 44 px tall below `sm`, so they are easy to tap on a phone; wider screens keep
+All three are at least 44 px tall below `sm`, so they are easy to tap on a phone; wider screens keep
 the compact size. `MoreToggle`'s "Show …" text links get a 44 px tap area from an `after:` overlay,
 which moves nothing.
 
@@ -617,7 +615,7 @@ way:
 A load error's Try again and recovery actions keep their label while they run; a form's submit
 button that also recovers an earlier attempt keeps its busy label. Icon buttons and register setup's
 Import placeholder keep their own controls, and dialog footers use the
-same order as `FormActions`. Mobile's `Action` has no busy, pressed or destructive form.
+same order as `FormActions`. Mobile's `Action` has no busy or destructive form.
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw
@@ -828,7 +826,7 @@ a list that grows with a company reads one page at a time, with its search and f
 server:
 
 - **Search box:** `ListSearch` (`dashboard/src/components/List.tsx`) is a labelled search field
-  with a hint naming what it searches and Clear while it holds text.
+  with Clear while it holds text.
   It searches 300 ms after typing stops. The server matches every typed word, ignoring case. While
   a search or filter applies, a polite status line counts the matches, such as "3 shareholders match
   your search" or "No shareholders match".
@@ -867,8 +865,7 @@ server:
   Keep their list semantics and editor lifetimes;
   focused editors remain unboxed. `Pager` under a paged table gives the rows shown, such as
   "1–25 of 1,240 requests", and Previous, the page number and Next when there is more than one
-  page. While new results load, the shown rows stay, dimmed and marked busy, and the pager says it
-  is loading.
+  page. While new results load, the shown rows stay, dimmed and marked busy.
 - **Feeds:** `LoadMore` ends a feed with "Load more notifications" (or
   entries and so on), which names its work while it runs. When a later page fails, the shown
   rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
@@ -967,8 +964,7 @@ Some messages keep their own form:
   **Allocation history** and **Documents** in ledger setup; an empty section requires no entry.
   Labels use the group's context instead of repeating its name: **Documents** contains **Category**
   and **File**, with a numbered accessible group name distinguishing each attachment.
-  Omitting a repeated optional marker does not make the field required. A sentence about one field is that field's hint, and an action
-  beside the label is its `aside`. Choices, the searchable pickers, the list search
+  Omitting a repeated optional marker does not make the field required. A sentence about one field is that field's hint. Choices, the searchable pickers, the list search
   and checkboxes that need no check keep their own controls, and sign-in and sign-up keep their own
   look on the same Headless parts.
 - **Limits.** A text field's `maxLength` comes from `FIELD_LIMITS`
@@ -1024,8 +1020,7 @@ Some messages keep their own form:
   expiry, and a representative authority request's expiry, are the end of the chosen UTC day; the
   deadline is bounded to the next 30 days.
 - **Other bases.** An inspection copy's request date is a Sydney date (`sydneyToday`).
-- **Helpers.** `isCalendarDate` checks a typed date, and `addCalendarDays` and `addCalendarYears`
-  move a valid one. An ESLint rule in `dashboard/eslint.config.js` refuses `toISOString()` sliced or
+- **Helpers.** `isCalendarDate` checks a typed date, and `addCalendarDays` moves a valid one. An ESLint rule in `dashboard/eslint.config.js` refuses `toISOString()` sliced or
   split into a date in the dashboard's source.
 
 ## Validation

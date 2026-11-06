@@ -46,14 +46,12 @@ export function Table({ caption, columns, children }: { caption: string; columns
 
 export function ListSearch({
   label,
-  hint,
   list,
   noun,
   count,
   filtered = false,
 }: {
   label: string;
-  hint?: string;
   list: ListParams<string>;
   noun: Noun;
   count: number | undefined;
@@ -76,7 +74,6 @@ export function ListSearch({
             maxLength={100}
             autoComplete="off"
             data-1p-ignore
-            aria-describedby={hint ? `${id}hint` : undefined}
             className={`${FIELD_BASE} min-h-11 sm:min-h-0 [&::-webkit-search-cancel-button]:hidden`}
             onChange={(event) => list.type(event.target.value)}
           />
@@ -91,11 +88,6 @@ export function ListSearch({
             />
           )}
         </div>
-        {hint && (
-          <p id={`${id}hint`} className="mt-1 text-xs text-text-muted">
-            {hint}
-          </p>
-        )}
       </div>
       <p role="status" className="text-sm text-text-muted">
         {count === undefined || !(list.search || filtered)
@@ -111,13 +103,11 @@ export function Pager({
   list,
   noun,
   count,
-  busy = false,
 }: {
   label: string;
   list: ListParams<string>;
   noun: Noun;
   count: number;
-  busy?: boolean;
 }) {
   if (count === 0) return null;
   const pages = Math.ceil(count / PAGE_SIZE);
@@ -125,11 +115,9 @@ export function Pager({
   const first = (page - 1) * PAGE_SIZE + 1;
   const last = Math.min(page * PAGE_SIZE, count);
   return (
-    <nav aria-label={label} aria-busy={busy} className="flex flex-wrap items-center justify-between gap-3">
+    <nav aria-label={label} className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm tabular-nums text-text-muted">
-        {busy
-          ? `Loading ${noun[1]}…`
-          : `${formatShareCount(String(first))}–${formatShareCount(String(last))} of ${counted(count, noun)}`}
+        {`${formatShareCount(String(first))}–${formatShareCount(String(last))} of ${counted(count, noun)}`}
       </p>
       {pages > 1 && (
         <div className="ml-auto flex flex-wrap items-center gap-2">

@@ -8,14 +8,12 @@ export function CompanyPicker({
   companies,
   value,
   onChange,
-  disabled = false,
 }: {
   label?: string;
   labelHidden?: boolean;
   companies: { uuid: string; name: string; detail?: string }[];
   value: string;
   onChange: (uuid: string) => void;
-  disabled?: boolean;
 }) {
   return (
     <SearchSelect
@@ -25,7 +23,6 @@ export function CompanyPicker({
       value={value}
       onChange={onChange}
       placeholder="Type a company name"
-      disabled={disabled}
       noun={COMPANIES}
       inline
     />

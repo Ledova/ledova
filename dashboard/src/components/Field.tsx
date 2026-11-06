@@ -21,7 +21,6 @@ export function Field({
   hint,
   error,
   optional = false,
-  aside,
   className,
   alert = false,
   children,
@@ -31,27 +30,16 @@ export function Field({
   hint?: ReactNode;
   error?: string | null;
   optional?: boolean;
-  aside?: ReactNode;
   className?: string;
   alert?: boolean;
   children: ReactNode;
 }) {
-  const name = (
-    <Label className="block">
-      {label}
-      {optional && ' (optional)'}
-    </Label>
-  );
   return (
     <HeadlessField id={id} className={className ? `${FIELD} ${className}` : FIELD}>
-      {aside ? (
-        <div className="flex items-center justify-between gap-2">
-          {name}
-          {aside}
-        </div>
-      ) : (
-        name
-      )}
+      <Label className="block">
+        {label}
+        {optional && ' (optional)'}
+      </Label>
       <Invalid.Provider value={!!error}>{children}</Invalid.Provider>
       {hint && <Description className="mt-1 text-sm text-text-muted">{hint}</Description>}
       {error && (
@@ -76,7 +64,6 @@ export function FileField({
   label,
   hint,
   error,
-  optional,
   showUploadHint = false,
   onFile,
   ...props
@@ -85,7 +72,6 @@ export function FileField({
   label: ReactNode;
   hint?: string;
   error?: string | null;
-  optional?: boolean;
   showUploadHint?: boolean;
   onFile: (file: File | null) => void;
 }) {
@@ -98,7 +84,6 @@ export function FileField({
       hint={showUploadHint ? (hint ? `${UPLOAD_RULE.HINT} ${hint}` : UPLOAD_RULE.HINT) : hint}
       error={refusal ?? error}
       alert={!!refusal}
-      optional={optional}
     >
       <div
         className={`${FIELD_CLASS} relative focus-within:border-brand-mid focus-within:ring-1 focus-within:ring-brand-mid has-[:disabled]:opacity-50`}

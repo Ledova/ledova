@@ -24,7 +24,7 @@ const INLINE_CALENDAR_DATES = {
   selector:
     "CallExpression[callee.object.callee.property.name='toISOString'][callee.property.name=/^(slice|split|substring|substr)$/]",
   message:
-    'Use utcToday, sydneyToday, isCalendarDate, addCalendarDays or addCalendarYears from @ledova/shared (docs/engineering/frontend-ux.md#forms).',
+    'Use utcToday, sydneyToday, isCalendarDate or addCalendarDays from @ledova/shared (docs/engineering/frontend-ux.md#forms).',
 };
 
 const LOCALE_FORMATTING = {

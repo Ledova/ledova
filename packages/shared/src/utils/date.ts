@@ -25,20 +25,10 @@ export function addCalendarDays(day: string, days: number): string {
   return new Date(Date.parse(`${day}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
 }
 
-export function addCalendarYears(day: string, years: number): string {
-  const moment = new Date(`${day}T00:00:00Z`);
-  moment.setUTCFullYear(moment.getUTCFullYear() + years);
-  return moment.toISOString().slice(0, 10);
-}
-
-export function formatDate(
-  dateString: string | null | undefined,
-  fallback: string = 'Never',
-  locale: string = 'en-AU',
-): string {
+export function formatDate(dateString: string | null | undefined, fallback: string = 'Never'): string {
   if (!dateString) return fallback;
   try {
-    return new Date(dateString).toLocaleDateString(locale, {
+    return new Date(dateString).toLocaleDateString('en-AU', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

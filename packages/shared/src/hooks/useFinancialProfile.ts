@@ -17,8 +17,6 @@ export function useFinancialProfile() {
   return {
     financialProfile: query.data?.data?.results?.[0] || null,
     isLoading: query.isLoading,
-    isError: query.isError,
     error: query.error,
-    refetch: query.refetch,
   };
 }

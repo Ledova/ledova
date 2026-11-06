@@ -1,6 +1,5 @@
 export {
   addCalendarDays,
-  addCalendarYears,
   formatDate,
   formatDateTime,
   formatShortDate,
@@ -11,7 +10,6 @@ export {
   utcToday,
 } from './date';
 export {
-  formatCryptoBalance,
   formatMoney,
   formatShareCount,
   shareChange,
