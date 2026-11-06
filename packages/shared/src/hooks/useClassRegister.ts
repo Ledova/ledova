@@ -95,6 +95,7 @@ export function useClassRegister(
     guard,
     register,
     sourceReady,
+    paused: classes.isPaused || appointments.isPaused || register.isPaused,
     ready: sourceReady && options.some((item) => item.uuid === token) && register.isSuccess && !register.isFetching,
     hasError: classes.isError || appointments.isError || register.isError,
     isRefreshing: classes.isFetching || appointments.isFetching || register.isFetching,

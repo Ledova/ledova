@@ -14,11 +14,13 @@ export function CertificateFilters({
   selected,
   applied,
   disabled,
+  available,
 }: {
   classes: CertificateClass[];
   selected?: CertificateClass;
   applied?: CertificateFilterValues;
   disabled: boolean;
+  available: boolean;
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -57,7 +59,11 @@ export function CertificateFilters({
     navigate({ search: query.toString(), hash: location.hash }, { state: location.state });
   };
   return (
-    <FilterPopover ref={toggle} resetKey={version} active={!!current.search || current.status !== 'all'}>
+    <FilterPopover
+      ref={toggle}
+      resetKey={`${version}/${available}`}
+      active={!!current.search || current.status !== 'all'}
+    >
       {(close) => (
         <>
           {classes.length > 1 && (
