@@ -1,6 +1,7 @@
 import { useContext, useState } from 'react';
 import {
   INVITATION_CODE_PROBLEM,
+  DESTINATIONS,
   failureSentence,
   failureStatus,
   formatDate,
@@ -30,6 +31,7 @@ export default function MemberInvitationPage() {
     setupRequired,
     ready,
     accepted,
+    company,
     preview,
     shown,
     failure,
@@ -140,8 +142,13 @@ export default function MemberInvitationPage() {
           !preferences.isFetching &&
           !preferences.isError &&
           !profile.profile.isError && <PageLink to={ROOT_PATH} label="Continue setup" primary />}
-        {ready && (accepted || shown?.status === 'accepted') && (
-          <PageLink to={ROOT_PATH} label="View my shares" onClick={clearMemberInvitation} primary />
+        {ready && company && (accepted || shown?.status === 'accepted') && (
+          <PageLink
+            to={`${DESTINATIONS.home.path}?${new URLSearchParams({ company })}`}
+            label="View my shares"
+            onClick={clearMemberInvitation}
+            primary
+          />
         )}
         {shown?.status === 'pending' && !accepted && (
           <PageAction
