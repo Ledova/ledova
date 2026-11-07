@@ -148,101 +148,85 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   same passwords, and every other record was added again through the API, so every record has its
   file. The walkthrough now runs from the main checkout, which holds its uploads.
 
-## Current handover — 5 November 2026
+## Current handover — 7 November 2026
 
-Claude released its claims on #1464 and #1453 in the handover. Codex continues #1464; check GitHub for
-current claims and pull requests before starting another increment.
+Read current GitHub claims and pull requests before editing. This is a dated handover, not a
+replacement for the issues or the [engineering standards](engineering/README.md).
 
-**Where things stand:**
+**Delivered and checked:**
 
-- ledova.io serves main `a1ada30ee` for the backend, worker, dashboard and website, released on
-  5 November 2026 with no migrations. The release record is in the private `Ledova/infra`. Nobody
-  signed in for the release checks, so signed-in pages there are unconfirmed.
-- The mobile app has not been released. It runs on the iOS simulator through Metro, and Android
-  hasn't been checked.
-- Since 31 October:
-  - #1476 removed particulars and certificate requests, #1489 removed notices, #1491 kept only
-    personal ID verification, and #1492 made a linked member's register details follow their
-    profile.
-  - [#1464](https://github.com/Ledova/ledova/issues/1464) rebuilt the app to match the web at phone
-    width, including the company side.
-  - The owner then walked through both platforms page by page as Taylor, Casey and Alex, on
-    3–5 November. Pages became compact, Team and Account split, and the award's page and Change
-    particulars were simplified further (#1557–#1559).
-  - [#1547](https://github.com/Ledova/ledova/issues/1547) made the back arrow the only way back on
-    every page with a parent (#1560).
-  - #1464's phase 5 now gives the app the company-representative choice, Company details and the
-    combined company/authority/Terms review, reusing saved details and interrupted-request recovery.
-    A configured identity requirement still blocks completion; the owner kept the native provider
-    journey separate under [#1562](https://github.com/Ledova/ledova/issues/1562).
-  - A shareholder's page in the app now has the web's supporting Documents section, reusing the
-    class page's document controls with the person fixed and a choice of their share classes.
-  - Company registry forms retain their state during same-account access rereads: Team, shareholder
-    and member access tasks, the employee scheme, Ledger tasks and setup, and document exports.
-    Private content and actions wait for confirmed access; account/session, explicit company-selection
-    or record changes discard the old draft. Picked files are controlled by their form and survive a
-    field hiding, with cleanup on session change/startup.
+- The signed-in web review covered company, investor and employee/member journeys. Its bounded
+  fixes are merged: Add person draft retention (#1570), common action/heading alignment (#1571),
+  import wording and in-flight confirmation (#1572), identity-check error handling (#1573), the
+  invited-company destination (#1574), Activation review retention (#1575), and unapplied
+  Certificates filter retention (#1576). Existing regression cases were extended within their caps.
+- Chrome checks on localhost at `aba54eeab` used real tab switches after the five-minute identity
+  freshness window. Certificates retained its unapplied choices; Activation retained the exact
+  open review form. Private content was briefly withheld during rechecking, with the frame intact
+  and no repeated flicker or page reload. The declaration stayed unchecked and no activation was
+  submitted; checked-acknowledgement retention is covered by the existing automated case.
+- The last observed ledova.io dashboard release is `aba54eeab`, on 7 November. Company-account
+  checks confirmed Purpose Demo's existing Active status and Certificates filtering and draft
+  retention after real tab switches. No new activation or certificate was submitted; member-only
+  Certificates were not exercised in production. Backend and site source/build inputs were
+  unchanged from the 5 November release at `a1ada30ee`, so their existing artifacts remained.
+  No migrations or backup operations ran. Release procedures and receipts stay in private
+  `Ledova/infra`.
+- Source main has since advanced through Claude's #1577–#1582 to `1ee5d4f51`: native error/access
+  wording, simpler Certificates, shared sign-in/sign-up presentation, unused-code removal,
+  native button/dialog cleanup and shared client logic. These newer commits are distinct from
+  the production revision above; this handover does not claim they have been deployed.
 
-**What's next, in order:**
+**Ownership and what remains:**
 
-1. [#1464](https://github.com/Ledova/ledova/issues/1464):
-   - Keep held saves across leaving a page in the app, where leaving drops a retry, so a repeated
-     add or invite could duplicate. Retained state now survives access rereads; destructive navigation
-     still needs its own guard and confirmed-success exit handling.
-   - The other follow-ups: the review findings on #1529, and, in the issue's comments, the failed
-     recipients read on Issue shares to them and the untested guards after preparing a transfer or
-     setup.
-2. [#1453](https://github.com/Ledova/ledova/issues/1453): the frontend architecture work the owner
-   paused, including keeping open work mounted during a same-account recheck.
-3. [#1555](https://github.com/Ledova/ledova/issues/1555): pagination, which the owner set aside for
-   later. Ask before starting it.
-4. Older items: #624's physical-device release acceptance and #1160's PyMuPDF decision.
+1. [#1567](https://github.com/Ledova/ledova/issues/1567) tracks Claude's Settings, Documents,
+   public/auth pages, shared page kit and native parity. Preserve Claude's checkout and check its
+   latest claim before touching those paths. Dashboard, Ledger, Shareholders and Employee scheme
+   remain coordinated under [#1453](https://github.com/Ledova/ledova/issues/1453). This wrap-up
+   changes documentation only and releases its documentation claim when merged.
+2. The owner requested a layout assessment, not implementation. At `aba54eeab`, Activation and
+   Certificates matched Dashboard, Ledger, Shareholders and Profile in workspace width, alignment,
+   typography and card styling. Keep the shared frame and page-heading filter placement.
+   Claude's #1578 has already removed the repeated Can prepare text and visible entry numbers;
+   do not implement those suggestions again.
+3. Recheck these remaining layout proposals against current main and agree the visual direction
+   before editing: a more compact Activation status summary; standard responsive spacing inside
+   its review; one selected-record summary during certificate preparation, without repeating its
+   shares and dates; and removal of the extra divider below preparation actions. Preserve distinct
+   company and ledger dates, retained audit facts, current authority and request recovery.
+   The extra divider comes from collection row dividers remaining while other rows are hidden;
+   retain the mounted rows and the normal action separator.
+4. Broader cleanup candidates and cache/guard ideas belong on #1567 and #1453. Re-verify callers
+   before removing anything; this pass authorises no global cache rewrite or new navigation model.
+   Keep mobile work for Claude/later in this continuation: use
+   [#1464](https://github.com/Ledova/ledova/issues/1464) and the separately scoped native identity
+   verification [#1562](https://github.com/Ledova/ledova/issues/1562), without claiming either complete.
+5. [#1555](https://github.com/Ledova/ledova/issues/1555) pagination remains deferred pending the
+   owner's direction. [#624](https://github.com/Ledova/ledova/issues/624) needs later human/device
+   release acceptance; [#1160](https://github.com/Ledova/ledova/issues/1160) retains the PyMuPDF decision.
 
-**How the owner works:**
+**Resume safely:**
 
-- The owner walks through pages and stops on each for feedback. "Make it compact too" means the
-  pattern in [UX standards](engineering/frontend-ux.md) on the web and in the app: usually two lines,
-  with the main figure or status at the right and one muted line of facts, and compact text actions
-  at the right edge. "Looks good, next" means finish any open post-merge steps, then show the next
-  page.
-- Every UI change goes on both platforms and is checked on both, the web in Chrome's phone view and
-  the app in the iOS simulator. Never change colours or fonts.
-- Show the owner the result on both platforms before opening a PR for anything beyond the agreed
-  pattern.
-- Merge without asking once an independent review passes at the exact head and required CI is green.
-  Record each review and merge on the PR, and delete the branch, worktree and temporary files
-  afterwards.
-- A release, a live migration, signer activation, real-funds use or a new cost needs the owner's
-  explicit go, each time. Hosting procedures are in `Ledova/infra`.
-
-**Traps found this round:**
-
-- Independent reviews mostly blocked on stale documentation, not code. When a page changes, also
-  search `docs/business` and the general rules in `docs/engineering`, such as tab titles and what the
-  app's menu marks.
-- In the app, `popTo` with no params clears the parent's params, which crashes a parent that needs
-  them. Pass `keepParams` to `topBar`.
-- A non-paid transfer hides its back arrow while a submission is unresolved, because its Cancel is
-  locked then and the web's navigation blocker covers only Ledger and award pages.
-- No test renders the app's `TopBar`, so its arrows and `held` need a live check.
-- When Metro has run from a checkout, delete the generated, git-ignored `expo-env.d.ts` in `mobile/`
-  before the checks. A reload signs the app out, and running the checks can cause one. After a branch
-  switch, reload the app before judging a change.
-- The walkthrough API doesn't reload and allows only origin 5173, so restart it after a backend change
-  and preview a branch's dashboard on that port.
-
-**Checks:**
-
-- On this Mac run the checks with the walkthrough's Python:
-  `make ci-checks PYTHON=/Users/ronildo/.local/state/ledova/web-walkthrough-20261021/.venv/bin/python`.
-  They pass shared **9**, dashboard **20**, mobile **6**, contracts **14** and smoke **7**. Dashboard
-  is at its cap of 20, so a new core test replaces another.
-- With the same `PYTHON=`, `make preflight` stops at the backend suite, which needs Python **3.13.15**
-  where this Mac has **3.13.3**. CI runs that suite.
-- A ruleset on `main` requires `Django verdict` and `PR type and issue` on a branch up to date with
-  `main`. Auto-merge pinned with `--match-head-commit` is the usual last step.
-- A `Refs` pull request's commits must avoid closing keywords, so close the issue by hand once its
-  work is done.
+- Keep useful local evidence outside Git under `~/Developer/ledova-artifacts/`. The 6 November full
+  web review and draft-retention folders hold the dated observations and checks; the 7 November
+  layout-review folder holds measurements and screenshots of the assessed revision. These are
+  evidence, not uncommitted application changes or proof about later source revisions.
+- Use the demo accounts above and the local startup instructions below. Reuse running services;
+  preserve the shared walkthrough database, uploads and other agents' processes. Do not delete
+  another agent's checkout merely because its branch has merged. Do not reset data for a handover.
+- Read fresh Chrome state before acting. Certificate action labels changed in #1578, so older
+  entry-number locators and screenshots are historical. Upload and download through the server as
+  the owner requested; retain private files and authentication material outside Git.
+- Run `make preflight` before pushing. The last completed source/client preflight executed shared
+  **9**, dashboard **20**, mobile **6**, contracts **14** and smoke **7** cases. Reconfirm counts on
+  the new head; dashboard remains at its 20-case cap. Existing cases must be replaced, or an explicit
+  cap increase approved, before adding a core case at capacity.
+- The walkthrough Python is **3.13.3**; local backend verification stops at its **3.13.15** pin.
+  Record that boundary on the PR and require backend CI. Do not report the local preflight as fully
+  passed. Use the pinned Node/npm environment from [local setup](getting-started.md).
+- Follow the usual focused PR, exact-head independent review, green current-with-main CI and
+  squash merge workflow in [CONTRIBUTING.md](../CONTRIBUTING.md). No direct main pushes.
+  A new live deployment, migration, signer activation, real-funds use or cost needs owner direction.
 
 ## Continue on this Mac
 
