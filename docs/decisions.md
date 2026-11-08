@@ -1163,6 +1163,10 @@ The second and third points were superseded the same day. Under the owner's data
 direction ([#1589](https://github.com/Ledova/ledova/issues/1589)), sign-up no longer asks
 financial-profile questions, on the web or in the app.
 
+The first point stands. [#1595](https://github.com/Ledova/ledova/pull/1595) had reworded the web
+acknowledgement. Asked the same day whether to keep the wholesale wording or take the new one, the
+owner answered "Keep wholesale", so the web and the app both ask it.
+
 ### Member invitations and account association
 
 **Owner decision, 11 October 2026**, supplied directly in the active Codex

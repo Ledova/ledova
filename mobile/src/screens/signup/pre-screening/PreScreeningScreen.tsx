@@ -223,7 +223,7 @@ export function PreScreeningScreen() {
                 />
               }
               title="Eligibility check"
-              subtitle="Before we continue, please confirm the following requirements to comply with Australian regulations."
+              subtitle="Ledova records Australian private-company share ownership. Please confirm these account details."
             />
 
             <View style={styles.formContainer}>
