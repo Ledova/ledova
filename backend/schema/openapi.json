@@ -37,6 +37,12 @@
             ],
             "nullable": true
           },
+          "termsAcceptances": {
+            "items": {
+              "$ref": "#/components/schemas/ExportedTermsAcceptance"
+            },
+            "type": "array"
+          },
           "transactions": {
             "items": {
               "$ref": "#/components/schemas/ExportedTransaction"
@@ -59,6 +65,7 @@
           "financialProfile",
           "portfolios",
           "profile",
+          "termsAcceptances",
           "transactions",
           "user",
           "wallets"
@@ -4094,6 +4101,26 @@
           "phoneCountryCode",
           "phoneNumber",
           "residentialAddress"
+        ],
+        "type": "object"
+      },
+      "ExportedTermsAcceptance": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "statement": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "createdAt",
+          "statement",
+          "version"
         ],
         "type": "object"
       },

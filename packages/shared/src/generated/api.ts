@@ -3553,6 +3553,7 @@ export interface ApiComponents {
       financialProfile: ApiComponents['schemas']['ExportedFinancialProfile'] | null;
       portfolios: ApiComponents['schemas']['ExportedPortfolio'][];
       profile: ApiComponents['schemas']['ExportedProfile'] | null;
+      termsAcceptances: ApiComponents['schemas']['ExportedTermsAcceptance'][];
       transactions: ApiComponents['schemas']['ExportedTransaction'][];
       user: ApiComponents['schemas']['ExportedUser'];
       wallets: ApiComponents['schemas']['ExportedWallet'][];
@@ -4364,6 +4365,11 @@ export interface ApiComponents {
       phoneCountryCode: string | null;
       phoneNumber: string | null;
       residentialAddress: string | null;
+    };
+    ExportedTermsAcceptance: {
+      createdAt: string;
+      statement: string;
+      version: string;
     };
     ExportedTransaction: {
       amount: string;
