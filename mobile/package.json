@@ -58,7 +58,7 @@
     "react-native-svg": "15.12.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.7",
+    "@babel/core": "^7.29.13",
     "@eslint/js": "^9.39.0",
     "@expo/plist": "0.4.9",
     "@testing-library/react-native": "^14.1.0",
