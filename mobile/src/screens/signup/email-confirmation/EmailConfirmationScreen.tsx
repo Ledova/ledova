@@ -10,6 +10,7 @@ import { formatVerificationToken, EMAIL_CONFIRMATION_VALIDATION, useAuth } from 
 import { EnvelopeOpenIcon, CheckCircleIcon, WarningCircleIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
+import { ScreenHeader } from '../../../components/header';
 
 export function EmailConfirmationScreen() {
   const theme = useAppTheme();
@@ -27,26 +28,12 @@ export function EmailConfirmationScreen() {
       paddingTop: theme.spacing.xs,
       paddingBottom: layout.screenBottomPadding,
     },
-    header: {
-      alignItems: 'center',
-      marginTop: theme.spacing.xs,
-      marginBottom: theme.spacing.md,
-    },
-    iconContainer: {
-      padding: theme.spacing.xs,
-      marginBottom: theme.spacing.sm,
-    },
-    title: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-    },
     formContainer: {
       backgroundColor: theme.colors.surface.raised,
-      borderRadius: theme.borderRadius.lg,
+      borderRadius: theme.borderRadius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border.default,
-      padding: theme.spacing.lg,
+      padding: theme.spacing.md,
     },
     successContainer: {
       flexDirection: 'row',
@@ -180,16 +167,16 @@ export function EmailConfirmationScreen() {
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.header}>
-              <View style={styles.iconContainer}>
+            <ScreenHeader
+              icon={
                 <EnvelopeOpenIcon
                   size={theme.icon.sizes.md}
                   color={theme.colors.text.muted}
                   weight={theme.icon.weights.regular}
                 />
-              </View>
-              <Text style={styles.title}>Verify your email</Text>
-            </View>
+              }
+              title="Verify your email"
+            />
 
             <View style={styles.formContainer}>
               {successMessage && (

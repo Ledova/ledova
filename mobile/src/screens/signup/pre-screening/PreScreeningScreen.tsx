@@ -16,6 +16,7 @@ import { useSignupPreScreening } from '@ledova/shared';
 import { ShieldCheckIcon, WarningCircleIcon, CheckCircleIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
+import { ScreenHeader } from '../../../components/header';
 
 export function PreScreeningScreen() {
   const theme = useAppTheme();
@@ -43,33 +44,12 @@ export function PreScreeningScreen() {
       fontSize: theme.fontSize.sm,
       color: theme.colors.text.muted,
     },
-    header: {
-      alignItems: 'center',
-      marginTop: theme.spacing.xs,
-      marginBottom: theme.spacing.md,
-    },
-    iconContainer: {
-      padding: theme.spacing.xs,
-      marginBottom: theme.spacing.sm,
-    },
-    title: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      marginBottom: theme.spacing.sm,
-    },
-    subtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-      paddingHorizontal: theme.spacing.md,
-    },
     formContainer: {
       backgroundColor: theme.colors.surface.raised,
-      borderRadius: theme.borderRadius.lg,
+      borderRadius: theme.borderRadius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border.default,
-      padding: theme.spacing.lg,
+      padding: theme.spacing.md,
     },
     errorContainer: {
       flexDirection: 'row',
@@ -221,7 +201,7 @@ export function PreScreeningScreen() {
             color={theme.colors.status.error.text}
             weight={theme.icon.weights.regular}
           />
-          <Text style={styles.errorStateTitle}>Unable to Load</Text>
+          <Text style={styles.errorStateTitle}>Unable to load</Text>
           <Text style={styles.errorStateMessage}>{generalError}</Text>
           <PrimaryButton onPress={retryLoad}>Try again</PrimaryButton>
         </View>
@@ -234,19 +214,17 @@ export function PreScreeningScreen() {
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.header}>
-              <View style={styles.iconContainer}>
+            <ScreenHeader
+              icon={
                 <ShieldCheckIcon
                   size={theme.icon.sizes.md}
                   color={theme.colors.text.muted}
                   weight={theme.icon.weights.regular}
                 />
-              </View>
-              <Text style={styles.title}>Eligibility check</Text>
-              <Text style={styles.subtitle}>
-                Before we continue, please confirm the following requirements to comply with Australian regulations.
-              </Text>
-            </View>
+              }
+              title="Eligibility check"
+              subtitle="Before we continue, please confirm the following requirements to comply with Australian regulations."
+            />
 
             <View style={styles.formContainer}>
               {generalError && (

@@ -18,6 +18,7 @@ import { CheckIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { SOURCE_OF_FUNDS_OPTIONS, INTENDED_USE_OPTIONS, useSignupFinancialProfile } from '@ledova/shared';
+import { ScreenHeader } from '../../../components/header';
 
 export function FinancialProfileScreen() {
   const theme = useAppTheme();
@@ -64,33 +65,12 @@ export function FinancialProfileScreen() {
       textAlign: 'center',
       marginBottom: theme.spacing.xl,
     },
-    header: {
-      alignItems: 'center',
-      marginTop: theme.spacing.xs,
-      marginBottom: theme.spacing.md,
-    },
-    iconContainer: {
-      padding: theme.spacing.xs,
-      marginBottom: theme.spacing.sm,
-    },
-    title: {
-      fontSize: theme.fontSize.xl,
-      fontWeight: theme.fontWeight.semibold,
-      color: theme.colors.text.primary,
-      marginBottom: theme.spacing.sm,
-    },
-    subtitle: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      textAlign: 'center',
-      paddingHorizontal: theme.spacing.md,
-    },
     formContainer: {
       backgroundColor: theme.colors.surface.raised,
-      borderRadius: theme.borderRadius.lg,
+      borderRadius: theme.borderRadius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border.default,
-      padding: theme.spacing.lg,
+      padding: theme.spacing.md,
     },
     errorContainer: {
       flexDirection: 'row',
@@ -302,7 +282,7 @@ export function FinancialProfileScreen() {
             color={theme.colors.status.error.text}
             weight={theme.icon.weights.regular}
           />
-          <Text style={styles.errorStateTitle}>Unable to Load Profile</Text>
+          <Text style={styles.errorStateTitle}>Unable to load profile</Text>
           <Text style={styles.errorStateMessage}>{generalError}</Text>
           <PrimaryButton onPress={retryLoad}>Try again</PrimaryButton>
         </View>
@@ -315,17 +295,17 @@ export function FinancialProfileScreen() {
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-            <View style={styles.header}>
-              <View style={styles.iconContainer}>
+            <ScreenHeader
+              icon={
                 <ChartBarIcon
                   size={theme.icon.sizes.md}
                   color={theme.colors.text.muted}
                   weight={theme.icon.weights.regular}
                 />
-              </View>
-              <Text style={styles.title}>Financial profile</Text>
-              <Text style={styles.subtitle}>About your finances and how you’ll use Ledova.</Text>
-            </View>
+              }
+              title="Financial profile"
+              subtitle="About your finances and how you’ll use Ledova."
+            />
 
             <View style={styles.formContainer}>
               {generalError && (
@@ -341,7 +321,7 @@ export function FinancialProfileScreen() {
 
               <View style={styles.fieldContainer}>
                 <Text style={styles.label}>What is your primary source of funds?</Text>
-                <Text style={styles.labelHint}>select all that apply</Text>
+                <Text style={styles.labelHint}>Select all that apply</Text>
                 <View style={styles.checkboxGrid}>
                   {SOURCE_OF_FUNDS_OPTIONS.map((option) => {
                     const isChecked = form.sourceOfFunds.includes(option.value);
