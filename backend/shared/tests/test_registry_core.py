@@ -67,6 +67,7 @@ from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_SUSPENDED
 from users.models import FinancialProfile, UserAccount, UserProfile
 from users.models.user_account import AccountRole
 from users.services.setup import ensure_defaults
+from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
 from wallets.services.possession_proof import proof_producer, retain_possession_proof
 from wallets.services.wallets import generate_verification_challenge
@@ -483,7 +484,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             )
             proof = retain_possession_proof(wallet, nominee, signature, now)
             wallet.verified_at = proof.completed_at
-            wallet.verification_status = "verified"
+            wallet.verification_status = WALLET_VERIFICATION_STATUS_VERIFIED
             wallet.verification_challenge = None
             wallet.verification_challenge_issued_at = None
             wallet.save(

@@ -135,8 +135,8 @@ CONVERTED_IN = {
 
 OPERATOR_BOUNDARIES = {
     "tokens.services.deployment.retry_confirmation": "Reads the original deployment claim for a signed retry form.",
-    "tokens.services.deployment._admit": "Refuses new deployment admission before creating a journal or "
-    "changing the token. Retained signed operations use the separate observation path.",
+    "tokens.services.deployment._admit": "Retained deployment journal helper behind the unavailable "
+    "deployment entry point; existing signed outcomes use the separate observation path.",
     "tokens.services.deployment._process": "Observes one existing signed deployment through its original "
     "intent and canonical receipt, without opening an operation, signing or broadcasting.",
     "tokens.services.deployment_journal.record_outcome": "Records the original operation's receipt and transaction "
