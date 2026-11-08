@@ -8,6 +8,9 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential \
       fonts-dejavu-core \
+    fonts-noto-core \
+    fonts-noto-cjk \
+    fonts-noto-color-emoji \
       libffi-dev \
       libcairo2 \
       libfribidi-dev \
