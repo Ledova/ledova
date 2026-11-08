@@ -238,7 +238,7 @@ export function ReviewScreen() {
       <GradientBackground>
         <SafeAreaView style={styles.container}>
           <View style={styles.errorContainer}>
-            <Text style={styles.errorTitle}>Error Loading Data</Text>
+            <Text style={styles.errorTitle}>Error loading data</Text>
             <Text style={styles.errorMessage}>{error}</Text>
             <PrimaryButton onPress={retryLoad}>Try again</PrimaryButton>
           </View>
@@ -271,23 +271,23 @@ export function ReviewScreen() {
 
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>Personal Information</Text>
+              <Text style={styles.sectionTitle}>Personal information</Text>
             </View>
             <View style={styles.cardContent}>
               {userProfile ? (
                 <View style={styles.infoList}>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Full Name:</Text>
+                    <Text style={styles.infoLabel}>Full name</Text>
                     <Text style={styles.infoValue}>{userProfile.fullName}</Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Phone:</Text>
+                    <Text style={styles.infoLabel}>Phone</Text>
                     <Text style={styles.infoValue}>
                       {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
                     </Text>
                   </View>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Residential address:</Text>
+                    <Text style={styles.infoLabel}>Residential address</Text>
                     <Text style={styles.infoValue}>{userProfile.residentialAddress || 'Not provided'}</Text>
                   </View>
                 </View>
@@ -299,28 +299,28 @@ export function ReviewScreen() {
 
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>{isCompany ? 'Company Information' : 'Financial Profile'}</Text>
+              <Text style={styles.sectionTitle}>{isCompany ? 'Company information' : 'Financial profile'}</Text>
             </View>
             <View style={styles.cardContent}>
               {isCompany ? (
                 company ? (
                   <View style={styles.infoList}>
                     <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Company Name:</Text>
+                      <Text style={styles.infoLabel}>Company name</Text>
                       <Text style={styles.infoValue}>{company.name}</Text>
                     </View>
                     <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>ACN:</Text>
+                      <Text style={styles.infoLabel}>ACN</Text>
                       <Text style={styles.infoValue}>{company.acn}</Text>
                     </View>
                     {company.abn ? (
                       <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>ABN:</Text>
+                        <Text style={styles.infoLabel}>ABN</Text>
                         <Text style={styles.infoValue}>{company.abn}</Text>
                       </View>
                     ) : null}
                     <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Type:</Text>
+                      <Text style={styles.infoLabel}>Type</Text>
                       <Text style={styles.infoValue}>
                         {COMPANY_TYPES.find((type) => type.value === company.companyType)?.label ?? company.companyType}
                       </Text>
@@ -332,30 +332,30 @@ export function ReviewScreen() {
               ) : financialProfile ? (
                 <View style={styles.infoList}>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Source of Funds:</Text>
+                    <Text style={styles.infoLabel}>Source of funds</Text>
                     <Text style={styles.infoValue}>{formatSourceOfFunds(financialProfile.sourceOfFunds)}</Text>
                   </View>
                   {financialProfile.sourceOfFundsOtherText && (
                     <View style={styles.infoRowVertical}>
-                      <Text style={styles.infoLabel}>Source of Funds (Other):</Text>
+                      <Text style={styles.infoLabel}>Source (Other)</Text>
                       <Text style={styles.infoValueVertical}>{financialProfile.sourceOfFundsOtherText}</Text>
                     </View>
                   )}
                   {financialProfile.intendedUse && (
                     <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Intended Use:</Text>
+                      <Text style={styles.infoLabel}>Intended use</Text>
                       <Text style={styles.infoValue}>{formatIntendedUse(financialProfile.intendedUse)}</Text>
                     </View>
                   )}
                   {financialProfile.intendedUseOtherText && (
                     <View style={styles.infoRowVertical}>
-                      <Text style={styles.infoLabel}>Intended Use (Other):</Text>
+                      <Text style={styles.infoLabel}>Intended use (Other)</Text>
                       <Text style={styles.infoValueVertical}>{financialProfile.intendedUseOtherText}</Text>
                     </View>
                   )}
                   {financialProfile.occupation && (
                     <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Occupation:</Text>
+                      <Text style={styles.infoLabel}>Occupation</Text>
                       <Text style={styles.infoValue}>{financialProfile.occupation}</Text>
                     </View>
                   )}

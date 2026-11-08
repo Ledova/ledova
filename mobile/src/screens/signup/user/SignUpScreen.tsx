@@ -243,7 +243,7 @@ export function SignUpScreen() {
         navigation.reset({ index: 0, routes: [{ name: 'EmailConfirmation' }] });
         if (!retired) {
           Alert.alert(
-            'Email Changed',
+            'Email changed',
             'Your email was changed, but this device could not confirm that your saved sign-in was removed.',
           );
         }
@@ -264,7 +264,7 @@ export function SignUpScreen() {
                   weight={theme.icon.weights.regular}
                 />
               </View>
-              <Text style={styles.title}>{isAuthenticated ? 'Your Account' : 'Create Your Account'}</Text>
+              <Text style={styles.title}>{isAuthenticated ? 'Your account' : 'Create your account'}</Text>
             </View>
 
             <View style={styles.formContainer}>

@@ -50,7 +50,7 @@ export default function SignupFinancialProfile() {
   return (
     <AuthLayout>
       <AuthHeader title="Financial profile" icon={<ChartBarIcon size={ICON_MD} className="text-text-muted" />}>
-        <p className="text-sm text-text-muted mt-1">AML/CTF compliance information</p>
+        <p className="text-sm text-text-muted mt-1">About your finances and how you’ll use Ledova.</p>
       </AuthHeader>
 
       <FinancialProfileForm
