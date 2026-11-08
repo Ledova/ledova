@@ -714,9 +714,9 @@ versioned acceptance evidence. Introduce explicit versioned individual acceptanc
 without backfilling a version or date from those booleans. Company rollout must
 also update the version/text pins in its database guards through a reviewed
 migration, preserving earlier receipts. The operator's software
-permission ([position 5](#5-software-licensing-and-commercial-permission)) and
-PyMuPDF rights ([position 12](#12-pymupdf-an-agpl-runtime-dependency)) remain
-separate decisions; a public repository supplies neither automatically.
+permission ([position 5](#5-software-licensing-and-commercial-permission)) remains
+separate from the [PDF dependency replacement](#12-pymupdf-an-agpl-runtime-dependency);
+a public repository does not grant commercial permission automatically.
 
 **Sources rechecked 8 November 2026:** OAIC's
 [APP 3](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-3-app-3-collection-of-solicited-personal-information)
