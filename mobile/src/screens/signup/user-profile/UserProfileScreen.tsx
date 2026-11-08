@@ -41,10 +41,10 @@ export function UserProfileScreen() {
     },
     formContainer: {
       backgroundColor: theme.colors.surface.raised,
-      borderRadius: theme.borderRadius.lg,
+      borderRadius: theme.borderRadius.xl,
       borderWidth: 1,
       borderColor: theme.colors.border.default,
-      padding: theme.spacing.lg,
+      padding: theme.spacing.md,
     },
     errorContainer: {
       flexDirection: 'row',
@@ -228,7 +228,7 @@ export function UserProfileScreen() {
             color={theme.colors.status.error.text}
             weight={theme.icon.weights.regular}
           />
-          <Text style={styles.errorStateTitle}>Unable to Load Profile</Text>
+          <Text style={styles.errorStateTitle}>Unable to load profile</Text>
           <Text style={styles.errorStateMessage}>{generalError}</Text>
           <PrimaryButton onPress={retryLoad}>Try again</PrimaryButton>
         </View>
@@ -289,7 +289,7 @@ export function UserProfileScreen() {
 
               <View style={styles.fieldContainer}>
                 <DatePickerField
-                  label="Date of Birth"
+                  label="Date of birth"
                   value={parseDateString(form.dateOfBirth)}
                   onChange={(date) => setFieldValue('dateOfBirth', formatDateToString(date))}
                   placeholder="DD/MM/YYYY"

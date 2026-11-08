@@ -11,9 +11,11 @@ import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useReview } from './useReview';
 import { COMPANY_TYPES, formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
 import { PUBLIC_LINKS } from '../../../config/publicLinks';
+import { Fact, Rows, Section, useCardStyles } from '../../../components/Ledger';
 
 export function ReviewScreen() {
   const theme = useAppTheme();
+  const card = useCardStyles();
   const styles = useThemedStyles((theme) => ({
     container: {
       flex: 1,
@@ -53,58 +55,8 @@ export function ReviewScreen() {
       color: theme.colors.status.error.icon,
       textAlign: 'center',
     },
-    card: {
-      backgroundColor: theme.colors.surface.raised,
-      borderRadius: theme.borderRadius.lg,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-    },
-    cardHeader: {
-      paddingVertical: theme.spacing.md,
-      paddingHorizontal: theme.spacing.lg,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.subtle,
-    },
-    cardContent: {
-      padding: theme.spacing.lg,
-    },
-    sectionTitle: {
-      fontSize: theme.fontSize.base,
-      fontFamily: theme.fontFamily.display,
-      color: theme.colors.text.primary,
-    },
     infoList: {
       gap: theme.spacing.md,
-    },
-    infoRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.colors.border.subtle,
-    },
-    infoRowVertical: {
-      gap: theme.spacing.sm,
-    },
-    infoLabel: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.muted,
-      fontWeight: theme.fontWeight.medium,
-    },
-    infoValue: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.primary,
-      fontWeight: theme.fontWeight.medium,
-      textAlign: 'right',
-      flex: 1,
-    },
-    infoValueVertical: {
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.text.primary,
-      fontWeight: theme.fontWeight.medium,
-      textAlign: 'left',
     },
     errorText: {
       fontSize: theme.fontSize.sm,
@@ -119,22 +71,12 @@ export function ReviewScreen() {
       color: theme.colors.interactive.active,
       textDecorationLine: 'underline',
     },
-    buttonContainer: {
-      paddingHorizontal: theme.spacing.lg,
-      paddingBottom: theme.spacing.lg,
-    },
     completeButton: {
       shadowColor: theme.colors.interactive.active,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.4,
       shadowRadius: 8,
       elevation: 4,
-    },
-    validationText: {
-      marginBottom: theme.spacing.md,
-      fontSize: theme.fontSize.sm,
-      color: theme.colors.status.error.icon,
-      textAlign: 'center',
     },
     divider: {
       flexDirection: 'row',
@@ -261,7 +203,7 @@ export function ReviewScreen() {
                 weight={theme.icon.weights.regular}
               />
             }
-            title={isCompany ? 'Complete company setup' : 'Review & Confirm'}
+            title={isCompany ? 'Complete company setup' : 'Review & confirm'}
             subtitle={
               isCompany
                 ? 'Review your saved details. Documents and team setup can wait until your dashboard.'
@@ -269,176 +211,144 @@ export function ReviewScreen() {
             }
           />
 
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>Personal information</Text>
-            </View>
-            <View style={styles.cardContent}>
-              {userProfile ? (
-                <View style={styles.infoList}>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Full name</Text>
-                    <Text style={styles.infoValue}>{userProfile.fullName}</Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Phone</Text>
-                    <Text style={styles.infoValue}>
-                      {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
-                    </Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Residential address</Text>
-                    <Text style={styles.infoValue}>{userProfile.residentialAddress || 'Not provided'}</Text>
-                  </View>
-                </View>
-              ) : (
-                <Text style={styles.errorText}>No personal information found.</Text>
-              )}
-            </View>
-          </View>
+          <Section title="Personal information">
+            {userProfile ? (
+              <Rows>
+                <Fact label="Full name" inline>
+                  {userProfile.fullName ?? ''}
+                </Fact>
+                <Fact label="Phone" inline>
+                  {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
+                </Fact>
+                <Fact label="Residential address" inline>
+                  {userProfile.residentialAddress || 'Not provided'}
+                </Fact>
+              </Rows>
+            ) : (
+              <Text style={styles.errorText}>No personal information found.</Text>
+            )}
+          </Section>
 
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>{isCompany ? 'Company information' : 'Financial profile'}</Text>
-            </View>
-            <View style={styles.cardContent}>
-              {isCompany ? (
-                company ? (
-                  <View style={styles.infoList}>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Company name</Text>
-                      <Text style={styles.infoValue}>{company.name}</Text>
-                    </View>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>ACN</Text>
-                      <Text style={styles.infoValue}>{company.acn}</Text>
-                    </View>
-                    {company.abn ? (
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>ABN</Text>
-                        <Text style={styles.infoValue}>{company.abn}</Text>
-                      </View>
-                    ) : null}
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Type</Text>
-                      <Text style={styles.infoValue}>
-                        {COMPANY_TYPES.find((type) => type.value === company.companyType)?.label ?? company.companyType}
-                      </Text>
-                    </View>
-                  </View>
-                ) : (
-                  <Text style={styles.errorText}>No company information found.</Text>
-                )
-              ) : financialProfile ? (
-                <View style={styles.infoList}>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Source of funds</Text>
-                    <Text style={styles.infoValue}>{formatSourceOfFunds(financialProfile.sourceOfFunds)}</Text>
-                  </View>
-                  {financialProfile.sourceOfFundsOtherText && (
-                    <View style={styles.infoRowVertical}>
-                      <Text style={styles.infoLabel}>Source (Other)</Text>
-                      <Text style={styles.infoValueVertical}>{financialProfile.sourceOfFundsOtherText}</Text>
-                    </View>
-                  )}
-                  {financialProfile.intendedUse && (
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Intended use</Text>
-                      <Text style={styles.infoValue}>{formatIntendedUse(financialProfile.intendedUse)}</Text>
-                    </View>
-                  )}
-                  {financialProfile.intendedUseOtherText && (
-                    <View style={styles.infoRowVertical}>
-                      <Text style={styles.infoLabel}>Intended use (Other)</Text>
-                      <Text style={styles.infoValueVertical}>{financialProfile.intendedUseOtherText}</Text>
-                    </View>
-                  )}
-                  {financialProfile.occupation && (
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>Occupation</Text>
-                      <Text style={styles.infoValue}>{financialProfile.occupation}</Text>
-                    </View>
-                  )}
-                </View>
-              ) : (
-                <Text style={styles.errorText}>No financial profile found.</Text>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.cardContent}>
-              {isCompany && company ? (
-                <View style={styles.infoList}>
-                  <Text style={styles.termsText}>
-                    By completing setup, you confirm that you are authorised to administer {company.name}, including
-                    managing its users, and accept the{' '}
-                    <Text style={styles.linkText} onPress={handleOpenTerms}>
-                      Terms of Service
-                    </Text>{' '}
-                    on the company’s behalf.
-                  </Text>
-                  {authorityError ? (
-                    <View style={styles.infoList}>
-                      <Text accessibilityRole="alert" style={styles.errorText}>
-                        {authorityError}
-                      </Text>
-                      {authorityRequest?.status === 'pending' ? (
-                        <TouchableOpacity
-                          accessibilityRole="button"
-                          disabled={busy}
-                          onPress={() => void resetAuthorityRequest().catch(() => undefined)}
-                        >
-                          <Text style={styles.backLink}>Update saved setup</Text>
-                        </TouchableOpacity>
-                      ) : null}
-                      <TouchableOpacity
-                        accessibilityRole="button"
-                        disabled={busy}
-                        onPress={() => void retryLoad().catch(() => undefined)}
-                      >
-                        <Text style={styles.backLink}>Try again</Text>
-                      </TouchableOpacity>
-                    </View>
+          <Section title={isCompany ? 'Company information' : 'Financial profile'}>
+            {isCompany ? (
+              company ? (
+                <Rows>
+                  <Fact label="Company name" inline>
+                    {company.name}
+                  </Fact>
+                  <Fact label="ACN" inline>
+                    {company.acn}
+                  </Fact>
+                  {company.abn ? (
+                    <Fact label="ABN" inline>
+                      {company.abn}
+                    </Fact>
                   ) : null}
-                </View>
+                  <Fact label="Type" inline>
+                    {COMPANY_TYPES.find((type) => type.value === company.companyType)?.label ??
+                      company.companyType ??
+                      ''}
+                  </Fact>
+                </Rows>
               ) : (
+                <Text style={styles.errorText}>No company information found.</Text>
+              )
+            ) : financialProfile ? (
+              <Rows>
+                <Fact label="Source of funds" inline>
+                  {formatSourceOfFunds(financialProfile.sourceOfFunds)}
+                </Fact>
+                {financialProfile.sourceOfFundsOtherText ? (
+                  <Fact label="Source (Other)">{financialProfile.sourceOfFundsOtherText}</Fact>
+                ) : null}
+                {financialProfile.intendedUse ? (
+                  <Fact label="Intended use" inline>
+                    {formatIntendedUse(financialProfile.intendedUse)}
+                  </Fact>
+                ) : null}
+                {financialProfile.intendedUseOtherText ? (
+                  <Fact label="Intended use (Other)">{financialProfile.intendedUseOtherText}</Fact>
+                ) : null}
+                {financialProfile.occupation ? (
+                  <Fact label="Occupation" inline>
+                    {financialProfile.occupation}
+                  </Fact>
+                ) : null}
+              </Rows>
+            ) : (
+              <Text style={styles.errorText}>No financial profile found.</Text>
+            )}
+          </Section>
+
+          <View style={card.card}>
+            {isCompany && company ? (
+              <View style={styles.infoList}>
                 <Text style={styles.termsText}>
-                  By completing signup, you accept the{' '}
+                  By completing setup, you confirm that you are authorised to administer {company.name}, including
+                  managing its users, and accept the{' '}
                   <Text style={styles.linkText} onPress={handleOpenTerms}>
                     Terms of Service
                   </Text>{' '}
-                  and{' '}
-                  <Text style={styles.linkText} onPress={handleOpenPrivacyPolicy}>
-                    Privacy Policy
-                  </Text>
-                  .
+                  on the company’s behalf.
                 </Text>
-              )}
-            </View>
-            <View style={styles.buttonContainer}>
-              {identityRequired ? (
-                <Text accessibilityRole="alert" style={styles.validationText}>
-                  This platform requires a verified identity before company setup.
+                {authorityError ? (
+                  <View style={styles.infoList}>
+                    <Text accessibilityRole="alert" style={styles.errorText}>
+                      {authorityError}
+                    </Text>
+                    {authorityRequest?.status === 'pending' ? (
+                      <TouchableOpacity
+                        accessibilityRole="button"
+                        disabled={busy}
+                        onPress={() => void resetAuthorityRequest().catch(() => undefined)}
+                      >
+                        <Text style={styles.backLink}>Update saved setup</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      disabled={busy}
+                      onPress={() => void retryLoad().catch(() => undefined)}
+                    >
+                      <Text style={styles.backLink}>Try again</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </View>
+            ) : (
+              <Text style={styles.termsText}>
+                By completing signup, you accept the{' '}
+                <Text style={styles.linkText} onPress={handleOpenTerms}>
+                  Terms of Service
+                </Text>{' '}
+                and{' '}
+                <Text style={styles.linkText} onPress={handleOpenPrivacyPolicy}>
+                  Privacy Policy
                 </Text>
-              ) : !canCompleteSignup ? (
-                <Text style={styles.validationText}>Please ensure all information is complete to proceed.</Text>
-              ) : null}
-              {completionError && (
-                <Text accessibilityRole="alert" style={styles.errorText}>
-                  {completionError}
-                </Text>
-              )}
-              <PrimaryButton
-                onPress={() => void finish()}
-                loading={busy}
-                disabled={!canCompleteSignup || busy}
-                fullWidth
-                style={styles.completeButton}
-              >
-                {isCompany ? 'Complete company setup' : 'Complete signup'}
-              </PrimaryButton>
-            </View>
+                .
+              </Text>
+            )}
+            {identityRequired ? (
+              <Text accessibilityRole="alert" style={styles.errorText}>
+                This platform requires a verified identity before company setup.
+              </Text>
+            ) : !canCompleteSignup ? (
+              <Text style={styles.errorText}>Please ensure all information is complete to proceed.</Text>
+            ) : null}
+            {completionError && (
+              <Text accessibilityRole="alert" style={styles.errorText}>
+                {completionError}
+              </Text>
+            )}
+            <PrimaryButton
+              onPress={() => void finish()}
+              loading={busy}
+              disabled={!canCompleteSignup || busy}
+              fullWidth
+              style={styles.completeButton}
+            >
+              {isCompany ? 'Complete company setup' : 'Complete signup'}
+            </PrimaryButton>
           </View>
 
           <View style={styles.divider}>
