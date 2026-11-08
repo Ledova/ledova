@@ -5,6 +5,7 @@ from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from django.conf import settings
 from eth_account import Account
@@ -22,6 +23,7 @@ from integrations.base_chain.exceptions import (
     BaseChainTransactionError,
     GasEstimationError,
 )
+from shared.registry_scope import refuse_deferred_execution
 
 logger = logging.getLogger(__name__)
 
@@ -216,7 +218,17 @@ class BaseChainClient:
                 f"The node would not estimate gas for this transaction, so it is not being sent: {e}"
             ) from e
 
+    def _require_local_execution(self):
+        endpoint = getattr(self.w3.provider, "endpoint_uri", "")
+        if (
+            settings.BLOCKCHAIN_CHAIN_ID != 31337
+            or urlparse(endpoint).hostname not in {"127.0.0.1", "localhost"}
+            or self.w3.eth.chain_id != 31337
+        ):
+            refuse_deferred_execution()
+
     def sign_transaction(self, tx: TxParams, private_key: str) -> bytes:
+        self._require_local_execution()
         expected_chain_id = self.assert_expected_chain()
         if tx.get("chainId") != expected_chain_id:
             raise BaseChainTransactionError("Refusing to sign a transaction for an unexpected chain")
@@ -224,6 +236,7 @@ class BaseChainClient:
         return signed.raw_transaction
 
     def send_raw_transaction(self, signed_tx: bytes) -> str:
+        self._require_local_execution()
         self.assert_expected_chain()
         tx_hash = self.w3.eth.send_raw_transaction(signed_tx)
         return Web3.to_hex(tx_hash)
@@ -253,6 +266,7 @@ class BaseChainClient:
         wait_for_receipt: bool = True,
         on_signed: Callable[[str, bytes], None] | None = None,
     ) -> tuple[str, Optional[TxReceipt]]:
+        self._require_local_execution()
         account = self.account_from_key(private_key)
 
         tx = self.build_transaction(

@@ -1,5 +1,4 @@
 import logging
-from contextlib import contextmanager
 from uuid import UUID
 
 from django.conf import settings
@@ -21,17 +20,13 @@ from blockchain.models import (
     OutgoingStatus,
     SignedAttempt,
     TransactionStatus,
-    TransactionType,
 )
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
-from tokens.exceptions import (
-    CapitalIncreaseConflict,
-    CapitalIncreaseSigningHold,
-    CapitalIncreaseUnresolved,
-)
+from tokens.exceptions import CapitalIncreaseConflict, CapitalIncreaseUnresolved
 from tokens.models import (
     CapitalIncreaseExecution,
     CapitalIncreaseRequest,
@@ -186,6 +181,7 @@ def _enqueue(execution):
 
 
 def admit_company(request, proposal, actor):
+    refuse_deferred_execution()
     if current_alias() == APP_ALIAS:
         raise PermissionDenied("Capital execution requires operator authority.")
     if (
@@ -214,6 +210,7 @@ def admit_company(request, proposal, actor):
 
 
 def admit(request, user, *, confirmed):
+    refuse_deferred_execution()
     _boundary()
     actor = _authorize(user)
     previous = CapitalIncreaseExecution.objects.filter(request_id=request.pk).first()
@@ -290,43 +287,6 @@ def _retain_receipt(execution, operation):
     )
 
 
-def _claim(execution):
-    if execution.operation_id:
-        with atomic(durable=True):
-            current, _, _, operation = _lock(execution.pk, execution.operation_id)
-            if operation.status == OutgoingStatus.REVERTED:
-                _retain_receipt(current, operation)
-            if operation.status not in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED) or (
-                current.retry_of != operation.claim_id or current.attribution_evidence is not None
-            ):
-                return outgoing.OperationClaim(operation.pk, operation.claim_id)
-            execution = current
-    intent = {field: execution.intent[field] for field in INTENT_FIELDS}
-    intent["value"] = int(intent["value"])
-    claim = outgoing.open_operation(
-        f"capital-increase:{execution.request_id}:{execution.pk}",
-        **intent,
-        restart_of=execution.retry_of or UUID(int=0),
-    )
-    with atomic(durable=True):
-        token = ShareToken.objects.select_for_update().get(pk=execution.token_id)
-        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
-        request = CapitalIncreaseRequest.objects.select_for_update().get(pk=execution.request_id)
-        current = CapitalIncreaseExecution.objects.select_for_update().get(pk=execution.pk)
-        if current.operation_id == operation.pk and current.projected_at is not None:
-            return outgoing.OperationClaim(operation.pk, operation.claim_id)
-        if (
-            current.operation_id not in (None, operation.pk)
-            or request.dispatch_id != current.pk
-            or request.token_id != token.pk
-            or request.status != RequestStatus.EXECUTING
-        ):
-            raise CapitalIncreaseConflict("The original capital execution no longer owns this request.")
-        current.operation = operation
-        current.save(update_fields=["operation", "updated_at"])
-        return outgoing.OperationClaim(operation.pk, operation.claim_id)
-
-
 def _evidence(source, expected, observed):
     return {
         "reason": "The observed token state does not identify the admitted capital increase.",
@@ -363,137 +323,6 @@ def _expected_identity(execution):
         "cap": execution.intent["prior_authorized_total"],
         "decimals": 0,
     }
-
-
-def _check_preparation(execution, claim, client):
-    from tokens.services.register_capital_increases import execution_requirements
-
-    if execution.source_increase_id is None:
-        raise CapitalIncreaseSigningHold(["legacy_source_unavailable"])
-    unmet = execution_requirements(execution.source_increase)
-    if unmet:
-        raise CapitalIncreaseSigningHold(unmet)
-    with atomic(durable=True):
-        current, request, token, operation = _lock(execution.pk, claim.operation_id)
-        if operation.claim_id != claim.claim_id:
-            raise CapitalIncreaseConflict("Another capital attempt owns this preparation.")
-        if current.projected_at is not None or operation.status != OutgoingStatus.PREPARING:
-            return False
-        expected, observed = _expected_identity(current), _current_identity(token)
-        if expected != observed:
-            _hold(current, _evidence("database", expected, observed))
-        held = current.attribution_evidence is not None
-        if not held and (request.status != RequestStatus.EXECUTING or _intent(request, token) != current.intent):
-            raise CapitalIncreaseConflict("The original capital execution configuration or lifecycle has changed.")
-    if held:
-        raise CapitalIncreaseConflict(ATTRIBUTION_REQUIRED)
-    try:
-        chain_id = client.assert_expected_chain()
-        contract = client.load_contract("ShareToken", execution.intent["to"])
-        authorized = contract.functions.authorizedShares().call()
-    except Exception:
-        raise CapitalIncreaseSigningHold(["authorised_cap_unavailable"]) from None
-    if chain_id != execution.intent["chain_id"]:
-        raise CapitalIncreaseSigningHold(["capital_configuration_changed"])
-    if type(authorized) is not int or authorized < 0:
-        raise CapitalIncreaseSigningHold(["authorised_cap_unavailable"])
-    if authorized != int(execution.intent["prior_authorized_total"]):
-        with atomic(durable=True):
-            current, _, _, operation = _lock(execution.pk, claim.operation_id)
-            if (
-                operation.claim_id == claim.claim_id
-                and operation.status == OutgoingStatus.PREPARING
-                and operation.current_attempt_id is None
-                and current.projected_at is None
-            ):
-                _hold(
-                    current,
-                    _evidence("chain", execution.intent["prior_authorized_total"], str(authorized)),
-                )
-        raise CapitalIncreaseConflict(ATTRIBUTION_REQUIRED)
-    return True
-
-
-@contextmanager
-def _signing_token(execution, claim):
-    operation = OutgoingOperation.objects.get(pk=claim.operation_id)
-    if operation.claim_id == claim.claim_id and operation.status in (OutgoingStatus.SIGNED, OutgoingStatus.CONFIRMED):
-        yield None
-        return
-    from tokens.services.register_capital_increases import signing_source
-
-    with signing_source(execution, claim) as validate:
-        yield validate
-
-
-def _record_signed(execution_id, attempt):
-    execution, request, token, operation = _lock(execution_id, attempt.operation_id)
-    if (
-        execution.attribution_evidence is not None
-        or execution.projected_at is not None
-        or request.status != RequestStatus.EXECUTING
-        or operation.claim_id != attempt.claim_id
-        or _current_identity(token) != _expected_identity(execution)
-        or _intent(request, token) != execution.intent
-    ):
-        raise CapitalIncreaseConflict("The admitted capital identity or configuration changed before signing.")
-    intent = execution.intent
-    record = BlockchainTransaction.objects.create(
-        tx_hash=attempt.tx_hash,
-        tx_type=TransactionType.OTHER,
-        status=TransactionStatus.SUBMITTED,
-        from_address=intent["sender"],
-        to_address=intent["to"],
-        function_name="setAuthorizedShares",
-        function_args={"newAuthorizedShares": intent["new_authorized_total"]},
-        related_model="tokens.CapitalIncreaseRequest",
-        related_uuid=execution.request_id,
-        submitted_at=attempt.created_at,
-    )
-    execution.transaction = record
-    execution.save(update_fields=["transaction", "updated_at"])
-
-
-def _preparation_failed(execution, claim):
-    with atomic(durable=True):
-        current, _, token, operation = _lock(execution.pk, claim.operation_id)
-        if (
-            operation.claim_id != claim.claim_id
-            or operation.status != OutgoingStatus.PREPARING
-            or operation.current_attempt_id is not None
-            or current.projected_at is not None
-        ):
-            return False
-        expected, observed = _expected_identity(current), _current_identity(token)
-        if expected != observed:
-            _hold(current, _evidence("database", expected, observed))
-        if current.attribution_evidence is not None:
-            return False
-    return outgoing.fail_preparing(claim)
-
-
-def _retire_lapsed_source(execution, claim):
-    from tokens.services.register_capital_increases import permanent_source_loss
-
-    with atomic(durable=True):
-        current, request, _, operation = _lock(execution.pk, claim.operation_id)
-        if (
-            operation.claim_id != claim.claim_id
-            or operation.status != OutgoingStatus.PREPARING
-            or operation.current_attempt_id is not None
-            or SignedAttempt.objects.filter(operation_id=operation.pk).exists()
-            or current.projected_at is not None
-            or current.attribution_evidence is not None
-            or current.source_increase_id is None
-            or not permanent_source_loss(current.source_increase)
-        ):
-            return False
-        operation.status = OutgoingStatus.FAILED
-        operation.save(update_fields=["status", "updated_at"])
-        current.projected_at = timezone.now()
-        current.save(update_fields=["projected_at", "updated_at"])
-        request.mark_failed("The original company capital appointment lapsed before any transaction was signed.")
-    return True
 
 
 def _verified_receipt(execution, operation, client):
@@ -612,9 +441,8 @@ def recover(execution_id):
         execution.attribution_evidence is not None and execution.operation_id is None
     ):
         return _result(execution)
-    claim = _claim(execution)
-    execution.refresh_from_db()
-    if execution.projected_at is not None:
+    claim = outgoing.recovery_claim(execution.operation_id, execution.intent)
+    if claim is None:
         return _result(execution)
     operation = OutgoingOperation.objects.get(pk=claim.operation_id)
     if operation.status in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED):
@@ -622,35 +450,8 @@ def recover(execution_id):
     if execution.attribution_evidence is not None and operation.status != OutgoingStatus.SIGNED:
         return _result(_project(execution, claim))
     client = get_base_chain_client()
-    if operation.status == OutgoingStatus.PREPARING:
-        try:
-            if _check_preparation(execution, claim, client):
-                prepared = outgoing.prepare_operation(claim, client)
-                if _check_preparation(execution, claim, client):
-                    outgoing.sign_operation(
-                        claim,
-                        prepared,
-                        settings.BLOCKCHAIN_OPERATOR_KEY,
-                        signing_context=lambda: _signing_token(execution, claim),
-                        on_signed=lambda attempt: _record_signed(execution.pk, attempt),
-                    )
-        except CapitalIncreaseSigningHold:
-            _retire_lapsed_source(execution, claim)
-            return _result(execution)
-        except Exception:
-            logger.warning("Capital execution %s requires committed-state recovery", execution.pk)
-            _preparation_failed(execution, claim)
-    operation.refresh_from_db()
-    execution.refresh_from_db()
-    if operation.claim_id != claim.claim_id:
-        return _result(execution)
     if operation.status == OutgoingStatus.SIGNED:
         outgoing.reconcile_operation(claim, client)
-        operation.refresh_from_db()
-        execution.refresh_from_db()
-        if operation.status == OutgoingStatus.SIGNED and execution.attribution_evidence is None:
-            outgoing.broadcast_operation(claim, client)
-            outgoing.reconcile_operation(claim, client)
         operation.refresh_from_db()
     if operation.status == OutgoingStatus.CONFIRMED:
         with atomic(durable=True):

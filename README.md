@@ -2,8 +2,7 @@
 
 Ledova is a share registry for private companies. Companies administer their
 own registers and deal directly with their investors, shareholders and
-employees; Ledova supplies the records, workflows and tools, with optional
-on-chain ownership records and an experimental investor marketplace. A private
+employees; Ledova supplies the records, workflows and tools. A private
 installation runs the same product. The [product page](docs/product.md) says
 what is built and what is planned; the [decisions log](docs/decisions.md)
 records why.
@@ -13,8 +12,8 @@ records why.
 > be used with real funds, securities, companies, identities, wallets or personal
 > information. It makes no claim of regulatory compliance or legal recognition.
 
-Fresh installations disable the trading API by default; existing deployments keep
-their stored setting. Preparation of a registry-only release under Blueberry Money
+The API refuses new payments, trading, wallet changes and chain execution. Retained
+records remain readable within their existing permissions. Preparation of a registry-only release under Blueberry Money
 is tracked in [#1586](https://github.com/Ledova/ledova/issues/1586); the current preview
 remains synthetic-only. Operation with real participants follows the conditions in
 the [regulatory pathway](docs/regulatory-pathway.md), and releases require the

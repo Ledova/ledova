@@ -20,6 +20,7 @@ from blockchain.models import OutgoingOperation
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
 from shared.utils.token_amounts import format_units
 from tokens.exceptions import NAVUpdateConflict
@@ -146,6 +147,7 @@ def submit(
     custodian_report_ref="",
     notes="",
 ):
+    refuse_deferred_execution()
     from tokens.tasks.nav import recover_nav_update
 
     require_boundary()

@@ -12,6 +12,11 @@ records, workflows and tools. This index lists what has been delivered under it 
 log. New integrated AUD payments remain deferred; the trading, advanced governance and filing
 expansion tickets were [closed as not planned on 18 October](../../decisions.md#registry-focus-and-cancelled-expansion-tickets).
 
+The [registry-only execution boundary](../../engineering/chain.md#registry-only-execution-boundary)
+now refuses new payment, trading, wallet and chain-execution admissions. Historical chain increments
+below remain as scoped records and receipt reconciliation, without new signing or broadcasting.
+Core off-chain registry workflows remain available.
+
 ## Delivered increments
 
 | Issue                                               | Increment                                                                                                                             | Described in                                                                                                                                        | PR                                                                                                   |

@@ -15,6 +15,7 @@ from companies.services.authority_requests import _requester_principal
 from integrations.base_chain import get_base_chain_client
 from operators.models import Operator
 from shared.db import atomic, use_operator
+from shared.registry_scope import refuse_deferred_execution
 from tokens.exceptions import (
     CapitalIncreaseConflict,
     CapitalIncreaseSigningHold,
@@ -191,6 +192,7 @@ def prepare_capital_increase(
     authority_evidence,
     shareholder_approval_reference=""
 ):
+    refuse_deferred_execution()
     from tokens.services.capital_execution import _intent
     from tokens.services.dilution import dilution_for
 
@@ -431,6 +433,7 @@ def preview_capital_increase_decision(*, actor, capital_increase_id, appointment
 def decide_capital_increase(
     *, actor, capital_increase_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""
 ):
+    refuse_deferred_execution()
     try:
         return decide(
             CAPITAL_INCREASES,

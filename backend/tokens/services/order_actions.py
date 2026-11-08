@@ -10,6 +10,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 from web3 import Web3
 
 from shared.db import atomic, current_alias
+from shared.registry_scope import refuse_deferred_execution
 from shared.utils.typed_data import build_domain
 from tokens.constants import ORDER_ACTION_REFUSAL_DETAIL_LIMIT
 from tokens.exceptions import (
@@ -266,6 +267,7 @@ def _validate_issue(action, observed_balance):
 
 
 def issue_order_action(actor, order_id, purpose, data):
+    refuse_deferred_execution()
     _independent_boundary()
     action = _register_action(actor, order_id, purpose, data)
     if action.status != OrderActionStatus.PENDING:

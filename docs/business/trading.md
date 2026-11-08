@@ -10,6 +10,12 @@ settlement and transfer mechanisms are in
 web app ([wallets](#wallets-and-wallet-sends), [trading](#what-trading-is-today)) or the mobile app
 ([decision](../decisions.md#mobile-app-for-shareholders)).
 
+The registry-only boundary now refuses the whole trading API and new wallet mutations,
+including direct service admissions. Scoped wallet/history reads and existing receipt
+reconciliation remain; no recovery path broadcasts a transaction. The protocols below describe
+retained experimental records, not available trading or payment journeys
+([execution boundary](../engineering/chain.md#registry-only-execution-boundary)).
+
 Contents:
 
 - [What trading is today](#what-trading-is-today)

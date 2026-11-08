@@ -10,6 +10,7 @@ from web3 import Web3
 
 from operators.settlement import single_settlement_asset
 from shared.db import atomic, current_alias
+from shared.registry_scope import refuse_deferred_execution
 from tokens.exceptions import (
     ChallengeMismatchException,
     CreateOrderInsufficientBalanceException,
@@ -159,6 +160,7 @@ def _recover_order(submission):
 
 
 def issue_order_submission(actor, data):
+    refuse_deferred_execution()
     _independent_boundary()
     with atomic(durable=True):
         ShareToken.objects.select_for_update(of=("self",), no_key=True).get(pk=data["token"])

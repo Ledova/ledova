@@ -15,6 +15,7 @@ from companies.models import Company, CompanyAppointment, CompanyCapability
 from companies.services.administration import company_operation
 from companies.services.authority_requests import _requester_principal
 from shared.db import atomic, use_operator
+from shared.registry_scope import refuse_deferred_execution
 from tokens.exceptions import IssuanceSigningHold, RegisterChangeConflict
 from tokens.models import (
     RegisterEntry,
@@ -275,6 +276,7 @@ def prepare_issue(
     terms_evidence,
     acceptance_evidence=None,
 ):
+    refuse_deferred_execution()
     from tokens.services.issuance_execution import _intent
 
     try:
@@ -587,6 +589,7 @@ def preview_issue_decision(*, actor, issue_id, appointment, kind, reason=""):
 
 
 def decide_issue(*, actor, issue_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""):
+    refuse_deferred_execution()
     _issue_of(actor, issue_id)
     try:
         return decide(

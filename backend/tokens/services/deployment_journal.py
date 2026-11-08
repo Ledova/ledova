@@ -10,14 +10,8 @@ from blockchain.models import (
 )
 from companies.models import Company
 from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operator
-from shared.tasks.queue import defer
 from tokens.exceptions import InvalidTokenStateException
-from tokens.models import (
-    ShareToken,
-    ShareTokenStatus,
-    SwapApprovalOutcome,
-    TokenDeployment,
-)
+from tokens.models import ShareToken, ShareTokenStatus, TokenDeployment
 
 
 def caller_principal():
@@ -112,18 +106,9 @@ def record_outcome(deployment_id, claim, *, contract_address=""):
 
 
 def mark_projected(deployment_id):
-    from tokens.services.swap_approval import approval_intent
-    from tokens.tasks.deployment import recover_swap_approval
-
     with use_operator(), atomic(durable=True):
         deployment = TokenDeployment.objects.select_for_update().get(pk=deployment_id)
         if deployment.projected_at is not None:
             return
-        deployment.approval_intent = approval_intent(deployment)
-        deployment.approval_outcome = (
-            SwapApprovalOutcome.PENDING if deployment.approval_intent else SwapApprovalOutcome.NOT_CONFIGURED
-        )
         deployment.projected_at = timezone.now()
-        deployment.save(update_fields=["approval_intent", "approval_outcome", "projected_at", "updated_at"])
-        if deployment.approval_intent:
-            defer(recover_swap_approval, deployment_id=str(deployment.pk))
+        deployment.save(update_fields=["projected_at", "updated_at"])

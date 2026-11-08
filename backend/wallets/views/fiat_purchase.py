@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from shared.constants import get_native_asset_symbol
+from shared.registry_scope import RegistryReadOnly
 from shared.views.principal import SetsThePrincipalOnTheConnection
 from users.models import UserAccount
 from wallets.exceptions import WalletUuidRequiredException
@@ -18,7 +19,7 @@ from wallets.services.fiat_onramp import generate_transak_widget_url
 
 class FiatPurchaseViewSet(SetsThePrincipalOnTheConnection, viewsets.ViewSet):
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, RegistryReadOnly]
 
     @extend_schema(
         request=FiatPurchaseWidgetRequestSerializer,

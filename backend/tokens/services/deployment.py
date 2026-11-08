@@ -1,9 +1,7 @@
 import logging
-from uuid import UUID
 
 from django.conf import settings
 from django.core import signing
-from django.db import IntegrityError
 from django.utils import timezone
 from eth_abi import encode
 from eth_account import Account
@@ -17,6 +15,7 @@ from companies.models import Company, CompanyStatus
 from companies.services.company import primary_wallet_for
 from integrations.base_chain import get_base_chain_client
 from shared.db import atomic, use_operator
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
 from tokens.exceptions import (
     CompanyNotReadyException,
@@ -66,6 +65,7 @@ def retry_confirmation(token):
 
 
 def retry_deployment(token, *, principal_id, confirmation):
+    refuse_deferred_execution()
     from tokens.tasks import deploy_share_token_task
 
     require_retryable(token)
@@ -138,64 +138,6 @@ def _admit(token):
         return deployment
 
 
-def _claim(deployment, retry_of):
-    if deployment.operation_id:
-        operation = OutgoingOperation.objects.get(pk=deployment.operation_id)
-        if retry_of is None or operation.status not in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED):
-            return outgoing.OperationClaim(operation.pk, operation.claim_id)
-        if operation.status == OutgoingStatus.REVERTED:
-            previous = outgoing.OperationClaim(operation.pk, operation.claim_id)
-            try:
-                deployment_journal.record_outcome(deployment.pk, previous)
-            except InvalidTokenStateException:
-                operation.refresh_from_db()
-                if operation.claim_id == previous.claim_id:
-                    raise
-                return outgoing.OperationClaim(operation.pk, operation.claim_id)
-    intent = {field: deployment.intent[field] for field in INTENT_FIELDS}
-    intent["value"] = int(intent["value"])
-    claim = outgoing.open_operation(
-        f"token-deployment:{deployment.pk}", **intent, restart_of=UUID(str(retry_of)) if retry_of else UUID(int=0)
-    )
-    with atomic(durable=True):
-        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
-        current = TokenDeployment.objects.select_for_update().get(pk=deployment.pk)
-        if current.operation_id not in (None, operation.pk) or operation.claim_id != claim.claim_id:
-            raise InvalidTokenStateException("A newer deployment attempt owns this operation.")
-        current.operation = operation
-        current.save(update_fields=["operation", "updated_at"])
-    return claim
-
-
-def _check_preparation(deployment, client):
-    from tokens.services.register_deployments import execution_requirements
-
-    if deployment.source_deployment_id is None:
-        raise DeploymentSigningHold(["legacy_source_unavailable"])
-    unmet = execution_requirements(deployment.source_deployment)
-    if unmet:
-        raise DeploymentSigningHold(unmet)
-    if client.assert_expected_chain() != deployment.intent["chain_id"]:
-        raise InvalidTokenStateException("The deployment provider is on a different chain.")
-
-
-def _hold_existing_contract(deployment, claim, client):
-    contract = client.load_contract("ShareTokenFactory", Web3.to_checksum_address(deployment.intent["to"]))
-    address = contract.functions.getTokenByIdentifier(deployment.intent["identifier"]).call()
-    if address.lower() == share_token_service.ZERO_ADDRESS:
-        return False
-    with atomic(durable=True):
-        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
-        current = TokenDeployment.objects.select_for_update().get(pk=deployment.pk)
-        if operation.claim_id == claim.claim_id and operation.status == OutgoingStatus.PREPARING:
-            current.attribution_required = True
-            current.save(update_fields=["attribution_required", "updated_at"])
-            operation.status = OutgoingStatus.FAILED
-            operation.save(update_fields=["status", "updated_at"])
-            return True
-    return False
-
-
 def _created_address(deployment, operation, client):
     if client.assert_expected_chain() != deployment.intent["chain_id"]:
         raise InvalidTokenStateException("The deployment provider is on a different chain.")
@@ -234,68 +176,16 @@ def _process(deployment, retry_of=None):
     with use_operator():
         if deployment.attribution_required:
             raise InvalidTokenStateException(ATTRIBUTION_REQUIRED)
-        claim = _claim(deployment, retry_of)
+        claim = outgoing.recovery_claim(deployment.operation_id, deployment.intent)
+        if claim is None:
+            return deployment
         operation = OutgoingOperation.objects.get(pk=claim.operation_id)
         if operation.status in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED):
             return deployment_journal.record_outcome(deployment.pk, claim)
         client = get_base_chain_client()
-        if operation.status == OutgoingStatus.PREPARING:
-            try:
-                _check_preparation(deployment, client)
-                if _hold_existing_contract(deployment, claim, client):
-                    raise InvalidTokenStateException(ATTRIBUTION_REQUIRED)
-                prepared = outgoing.prepare_operation(claim, client)
-                _check_preparation(deployment, client)
-            except DeploymentSigningHold:
-                operation.refresh_from_db()
-                if operation.claim_id != claim.claim_id or operation.status not in (
-                    OutgoingStatus.SIGNED,
-                    OutgoingStatus.CONFIRMED,
-                ):
-                    return deployment
-            except Exception:
-                if outgoing.fail_preparing(claim):
-                    raise
-                operation.refresh_from_db()
-                if operation.claim_id != claim.claim_id or operation.status not in (
-                    OutgoingStatus.SIGNED,
-                    OutgoingStatus.CONFIRMED,
-                ):
-                    raise
-            else:
-                from tokens.services.register_deployments import signing_source
-
-                try:
-                    outgoing.sign_operation(
-                        claim,
-                        prepared,
-                        settings.BLOCKCHAIN_OPERATOR_KEY,
-                        signing_context=lambda: signing_source(deployment, claim),
-                        on_signed=lambda attempt: deployment_journal.record_signed_deployment(deployment, attempt),
-                    )
-                except DeploymentSigningHold:
-                    operation.refresh_from_db()
-                    if operation.claim_id != claim.claim_id or operation.status not in (
-                        OutgoingStatus.SIGNED,
-                        OutgoingStatus.CONFIRMED,
-                    ):
-                        return deployment
-                except IntegrityError:
-                    from tokens.services.register_deployments import (
-                        execution_requirements,
-                    )
-
-                    if execution_requirements(deployment.source_deployment):
-                        return deployment
-                    raise
-        operation.refresh_from_db()
         if operation.status == OutgoingStatus.SIGNED:
             outgoing.reconcile_operation(claim, client)
             operation.refresh_from_db()
-            if operation.status == OutgoingStatus.SIGNED:
-                outgoing.broadcast_operation(claim, client)
-                outgoing.reconcile_operation(claim, client)
-        operation.refresh_from_db()
         address = (
             _created_address(deployment, operation, client) if operation.status == OutgoingStatus.CONFIRMED else ""
         )
@@ -354,6 +244,7 @@ def _project(deployment):
 
 
 def deploy_token(token, *, retry_of=None):
+    refuse_deferred_execution()
     deployment_journal.caller_principal()
     deployment = _admit(token)
     try:

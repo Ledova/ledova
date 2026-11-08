@@ -49,7 +49,10 @@ and in the app, offers this empty-opening choice through the same draft, review 
 The web app no longer offers the chain actions described below: the owner removed a class's
 **Chain actions** page, its **On chain** card and **Put this class on chain** on 31 October 2026
 ([decision](../decisions.md#wallets-removed-from-the-web-app),
-[#1452](https://github.com/Ledova/ledova/issues/1452)). The API keeps them, with the rules below.
+[#1452](https://github.com/Ledova/ledova/issues/1452)). New chain proposals and decisions are also unavailable through the API under
+[#1587](https://github.com/Ledova/ledova/issues/1587). The sections below describe retained
+records and their original safeguards; [receipt reconciliation](../engineering/chain.md#registry-only-execution-boundary)
+never starts or broadcasts a new transaction.
 
 ### Class rights
 

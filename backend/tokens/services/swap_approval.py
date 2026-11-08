@@ -10,16 +10,11 @@ from hexbytes import HexBytes
 from web3 import Web3
 from web3.logs import DISCARD
 
-from blockchain.models import (
-    BlockchainTransaction,
-    OutgoingOperation,
-    OutgoingStatus,
-    TransactionStatus,
-    TransactionType,
-)
+from blockchain.models import OutgoingOperation, OutgoingStatus, TransactionStatus
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
 from shared.db import atomic
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
 from tokens.exceptions import InvalidTokenStateException
 from tokens.models import SwapApprovalOutcome, TokenDeployment
@@ -64,83 +59,6 @@ def _check_configuration(deployment, client):
         or client.assert_expected_chain() != intent["chain_id"]
     ):
         raise InvalidTokenStateException("The configured approval chain, contract or signer changed after admission.")
-
-
-def _decide(deployment, client):
-    _check_configuration(deployment, client)
-    block = client.get_block("latest")
-    number = block["number"]
-    block_hash = Web3.to_hex(HexBytes(block["hash"]))
-    if type(number) is not int or number < 0 or len(HexBytes(block_hash)) != 32:
-        raise InvalidTokenStateException("The approval observation has no valid block identity.")
-    intent = deployment.approval_intent
-    contract = client.load_contract("AtomicSwap", Web3.to_checksum_address(intent["to"]))
-    approved = contract.functions.approvedShareTokens(Web3.to_checksum_address(intent["token"])).call(
-        block_identifier=block_hash
-    )
-    if type(approved) is not bool:
-        raise InvalidTokenStateException("The approval observation is not a verified boolean.")
-    with atomic(durable=True):
-        current = TokenDeployment.objects.select_for_update().get(pk=deployment.pk)
-        if current.approval_outcome != SwapApprovalOutcome.PENDING:
-            return current
-        if current.approval_operation_id or OutgoingOperation.objects.filter(operation_key=_key(current)).exists():
-            raise InvalidTokenStateException("An approval operation already owns this decision.")
-        current.approval_outcome = SwapApprovalOutcome.OBSERVED_APPROVED if approved else SwapApprovalOutcome.EXECUTING
-        if approved:
-            current.approval_observation = {
-                "block_number": number,
-                "block_hash": block_hash,
-                "observed_at": timezone.now().isoformat(),
-            }
-        current.save(update_fields=["approval_outcome", "approval_observation", "updated_at"])
-        return current
-
-
-def _claim(deployment):
-    intent = deployment.approval_intent
-    claim = outgoing.open_operation(
-        _key(deployment),
-        **{field: intent[field] for field in ("chain_id", "sender", "to", "data")},
-        value=int(intent["value"]),
-        restart_of=deployment.approval_retry_of or UUID(int=0),
-    )
-    with atomic(durable=True):
-        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
-        current = TokenDeployment.objects.select_for_update().get(pk=deployment.pk)
-        if operation.claim_id != claim.claim_id or current.approval_operation_id not in (None, operation.pk):
-            raise InvalidTokenStateException("A newer approval attempt owns this operation.")
-        if current.approval_operation_id is None:
-            if current.approval_outcome != SwapApprovalOutcome.EXECUTING:
-                raise InvalidTokenStateException("This approval no longer permits an operation.")
-            current.approval_operation = operation
-            current.save(update_fields=["approval_operation", "updated_at"])
-    return claim
-
-
-def _record_signed(deployment_id, attempt):
-    current = TokenDeployment.objects.select_for_update().get(pk=deployment_id)
-    if (
-        current.approval_outcome != SwapApprovalOutcome.EXECUTING
-        or current.approval_operation_id != attempt.operation_id
-    ):
-        raise InvalidTokenStateException("This approval no longer permits signing.")
-    intent = current.approval_intent
-    record = BlockchainTransaction.objects.create(
-        tx_hash=attempt.tx_hash,
-        tx_type=TransactionType.OTHER,
-        status=TransactionStatus.SUBMITTED,
-        from_address=intent["sender"],
-        to_address=intent["to"],
-        nonce=attempt.nonce,
-        function_name="setShareTokenApproval",
-        function_args={"token": intent["token"], "approved": True},
-        related_model="tokens.TokenDeployment",
-        related_uuid=current.pk,
-        submitted_at=attempt.created_at,
-    )
-    current.approval_transaction = record
-    current.save(update_fields=["approval_transaction", "updated_at"])
 
 
 def _verify_event(deployment, operation, client):
@@ -218,49 +136,17 @@ def recover(deployment_id):
     current = TokenDeployment.objects.filter(pk=deployment_id).first()
     if current is None or current.approval_outcome not in ACTIVE:
         return current.approval_outcome if current else None
+    claim = outgoing.recovery_claim(current.approval_operation_id, current.approval_intent)
+    if claim is None:
+        return current.approval_outcome
     try:
-        client = None
-        if current.approval_outcome == SwapApprovalOutcome.PENDING:
-            client = get_base_chain_client()
-            current = _decide(current, client)
-        if current.approval_outcome != SwapApprovalOutcome.EXECUTING:
-            return current.approval_outcome
-        claim = _claim(current)
         operation = OutgoingOperation.objects.get(pk=claim.operation_id)
         if operation.status in FAILED:
             return _record_outcome(current.pk, claim)
-        if client is None:
-            client = get_base_chain_client()
-        if operation.status == OutgoingStatus.PREPARING:
-            try:
-                _check_configuration(current, client)
-                prepared = outgoing.prepare_operation(claim, client)
-                _check_configuration(current, client)
-            except Exception:
-                if outgoing.fail_preparing(claim):
-                    return _record_outcome(current.pk, claim)
-                operation.refresh_from_db()
-                if operation.claim_id != claim.claim_id or operation.status not in (
-                    OutgoingStatus.SIGNED,
-                    OutgoingStatus.CONFIRMED,
-                    OutgoingStatus.REVERTED,
-                ):
-                    raise
-            else:
-                outgoing.sign_operation(
-                    claim,
-                    prepared,
-                    settings.BLOCKCHAIN_OPERATOR_KEY,
-                    on_signed=lambda attempt: _record_signed(current.pk, attempt),
-                )
-        operation.refresh_from_db()
+        client = get_base_chain_client()
         if operation.status == OutgoingStatus.SIGNED:
             outgoing.reconcile_operation(claim, client)
             operation.refresh_from_db()
-            if operation.status == OutgoingStatus.SIGNED:
-                outgoing.broadcast_operation(claim, client)
-                outgoing.reconcile_operation(claim, client)
-        operation.refresh_from_db()
         verified = operation.status == OutgoingStatus.CONFIRMED and _verify_event(current, operation, client)
         return _record_outcome(current.pk, claim, verified=verified)
     finally:
@@ -296,6 +182,7 @@ def retry_confirmation(token, actor):
 
 
 def retry(token, actor, confirmation):
+    refuse_deferred_execution()
     from tokens.tasks.deployment import recover_swap_approval
 
     _operator()

@@ -7,7 +7,7 @@ from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import DatabaseError, OperationalError, ProgrammingError, connection
+from django.db import DatabaseError, connection
 from django.utils import timezone
 from eth_account import Account
 from eth_account.messages import encode_defunct
@@ -28,7 +28,10 @@ from companies.services.authority import (
     SIGNUP_DECLARATION_TEXT,
     SIGNUP_DECLARATION_VERSION,
 )
-from companies.services.authority_requests import submit_authority_request
+from companies.services.authority_requests import (
+    _requester_principal,
+    submit_authority_request,
+)
 from companies.services.team import (
     accept_team_invitation,
     issue_team_invitation,
@@ -64,9 +67,17 @@ from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_SUSPENDED
 from users.models import FinancialProfile, UserAccount, UserProfile
 from users.models.user_account import AccountRole
 from users.services.setup import ensure_defaults
+from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Wallet
-from whitelist.models import WhitelistEntry
+from wallets.services.possession_proof import proof_producer, retain_possession_proof
+from wallets.services.wallets import generate_verification_challenge
+from whitelist.models import CompanyWalletNomination, WhitelistEntry
 from whitelist.services.identity import entry_identity, identities_for
+from whitelist.services.wallet_nominations import (
+    _digest,
+    _nomination_operation,
+    _source,
+)
 
 
 def unfinished_signup(label, acn):
@@ -87,44 +98,88 @@ def unfinished_signup(label, acn):
 
 
 class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
-    def test_trading_defaults_off_and_preserves_authorised_registry_history(self):
+    def test_registry_release_refuses_deferred_execution_and_preserves_core_history(self):
         with use_migrate(), connection.schema_editor() as editor:
             seed_reference_rows(apps, editor)
             self.assertFalse(FeatureFlag.objects.get(name="trading_enabled").enabled)
+            FeatureFlag.objects.filter(name="trading_enabled").update(enabled=True)
 
         history_path = f"/api/v1/tokens/{self.token.pk}/register/entries/"
         history = self.client.get(history_path)
         self.assertEqual(history.status_code, 200, history.content)
-
-        paths = (
+        identifier = uuid4()
+        trading_paths = (
             "/api/v1/trading/",
             "/api/v1/trading/tokens/",
             "/api/v1/trading/orders/create/",
+            f"/api/v1/trading/orders/{identifier}/swap/",
+            f"/api/v1/trading/orders/actions/{identifier}/",
+            f"/api/v1/trading/orders/submissions/{identifier}/",
+            "/api/v1/trading/swap/approval-data/",
             "/api/v1/trading/wallets/",
             "/api/v1/trading/swaps/",
             "/api/v1/trading/events/stream/",
             "/api/v1/trading/whitelist/example/example/status/",
         )
-        for path in paths:
-            response = self.client.post(path, {}, format="json")
-            self.assertEqual(response.status_code, 403, response.content)
-            self.assertEqual(response.json(), {"detail": "Trading is disabled."})
-            self.assertEqual(self.client.get(path).status_code, 403)
-
-        with use_migrate():
-            FeatureFlag.objects.filter(name="trading_enabled").delete()
-        self.assertEqual(self.client.get("/api/v1/trading/tokens/").status_code, 403)
-
-        for failure in (OperationalError, ProgrammingError):
-            with patch("feature_flags.middleware.FeatureFlag.objects.filter", side_effect=failure):
-                response = self.client.get("/api/v1/trading/tokens/")
+        deferred_posts = [
+            "/api/fiat-purchases/transak-widget-url/",
+            "/api/wallets/",
+            "/api/wallets/batch-check-balances/",
+            f"/api/v1/whitelist/sync/{identifier}/",
+            "/api/v1/whitelist/wallet-nominations/",
+            "/api/v1/whitelist/wallet-nominations/preview/",
+        ]
+        deferred_posts.extend(
+            f"/api/wallets/{identifier}/{action}/"
+            for action in ("request-verification", "verify-signature", "sync", "prepare-transfer", "broadcast-transfer")
+        )
+        for family in (
+            "/api/v1/tokens/register-deployments/",
+            "/api/v1/tokens/register-capital-increases/",
+            "/api/v1/tokens/register-pause-changes/",
+            "/api/v1/tokens/register-issues/",
+            "/api/v1/whitelist/company-wallet-instructions/",
+        ):
+            deferred_posts.extend((family, f"{family}{identifier}/decision-preview/", f"{family}{identifier}/decide/"))
+        for staff in (False, True):
+            with use_operator():
+                self.owner.is_staff = staff
+                self.owner.save(update_fields=["is_staff"])
+            for path in trading_paths:
+                for method in (self.client.get, self.client.post):
+                    with self.subTest(staff=staff, path=path, method=method.__name__):
+                        response = method(path)
+                        self.assertEqual(response.status_code, 403, response.content)
+                        self.assertEqual(response.json(), {"detail": "Trading is disabled."})
+            for path in deferred_posts:
+                with self.subTest(staff=staff, path=path):
+                    response = self.client.post(path, {}, format="json")
+                    self.assertEqual(response.status_code, 403, response.content)
+            for method in (self.client.patch, self.client.delete):
+                response = method(f"/api/wallets/{identifier}/", {}, format="json")
                 self.assertEqual(response.status_code, 403, response.content)
 
+        self.assertEqual(APIClient().get("/api/v1/trading/orders/").status_code, 403)
+        for path in (
+            "/api/wallets/",
+            "/api/v1/tokens/register-deployments/",
+            "/api/v1/tokens/register-capital-increases/",
+            "/api/v1/tokens/register-pause-changes/",
+            "/api/v1/tokens/register-issues/",
+            "/api/v1/whitelist/wallet-nominations/",
+            "/api/v1/whitelist/company-wallet-instructions/",
+        ):
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, response.content)
+        created = self.client.post(
+            "/api/v1/tokens/",
+            {"company": str(self.company.pk), "name": "Synthetic new class", "symbol": "NEW", "total_supply": "1000"},
+            format="json",
+        )
+        self.assertEqual(created.status_code, 201, created.content)
+        with use_operator():
+            self.assertFalse(ShareToken.objects.get(pk=created.json()["uuid"]).contract_address)
         self.assertEqual(self.client.get(history_path).json(), history.json())
-
-        with use_migrate():
-            FeatureFlag.objects.create(name="trading_enabled", enabled=True)
-        self.assertEqual(APIClient().get("/api/v1/trading/orders/").status_code, 401)
 
     def test_company_ownership_summary_and_paged_holders_are_exact_and_current(self):
         overview = "/api/v1/tokens/ownership/"
@@ -414,36 +469,55 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         with use_migrate():
             Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.ACTIVE)
             account.update(account_status=ACCOUNT_STATUS_ACTIVE)
-        self.client.force_authenticate(nominee)
-        wallet = self.client.post(
-            "/api/wallets/", {"name": "Synthetic", "address": signer.address, "chain": "base"}, format="json"
-        ).json()["uuid"]
-        challenge = self.client.post(f"/api/wallets/{wallet}/request-verification/").json()["challenge"]
+        now = timezone.now()
+        challenge = generate_verification_challenge(signer.address, now - timedelta(seconds=1))
         signature = signer.sign_message(encode_defunct(text=challenge)).signature.to_0x_hex()
-        verified = self.client.post(f"/api/wallets/{wallet}/verify-signature/", {"signature": signature}, format="json")
-        self.assertEqual(verified.status_code, 200, verified.content)
-        terms = {"company": str(self.company.pk), "wallet": wallet}
-        preview = self.client.post("/api/v1/whitelist/wallet-nominations/preview/", terms, format="json")
-        nominated = self.client.post(
-            "/api/v1/whitelist/wallet-nominations/",
-            {
-                **terms,
-                "operation_id": str(uuid4()),
-                "preview_digest": preview.json()["previewDigest"],
-                "sharing_accepted": True,
-            },
-            format="json",
-        )
-        self.assertEqual(nominated.status_code, 201, nominated.content)
+        with use_migrate(), _requester_principal(nominee.pk), proof_producer(), atomic():
+            wallet = Wallet.objects.create(
+                user_account=account.get(),
+                address=signer.address.lower(),
+                chain="base",
+                verification_challenge=challenge,
+                verification_challenge_issued_at=now - timedelta(seconds=1),
+                verification_signature=signature,
+                verified_at=now,
+            )
+            proof = retain_possession_proof(wallet, nominee, signature, now)
+            wallet.verified_at = proof.completed_at
+            wallet.verification_status = WALLET_VERIFICATION_STATUS_VERIFIED
+            wallet.verification_challenge = None
+            wallet.verification_challenge_issued_at = None
+            wallet.save(
+                update_fields=[
+                    "verified_at",
+                    "verification_status",
+                    "verification_challenge",
+                    "verification_challenge_issued_at",
+                ]
+            )
+            _, _, _, snapshot, unmet = _source(nominee, self.company.pk, wallet.pk)
+            self.assertEqual(unmet, [])
+            digest = _digest(snapshot)
+            with _nomination_operation():
+                CompanyWalletNomination.objects.create(
+                    company=self.company,
+                    proof=proof,
+                    wallet_id=wallet.pk,
+                    submitted_by=nominee,
+                    snapshot=snapshot,
+                    preview_digest=digest,
+                    digest=digest,
+                    sharing_accepted=True,
+                    submitted_at=now,
+                )
 
         def readiness():
             self.client.force_authenticate(self.owner)
             listed = self.client.get("/api/v1/whitelist/company-wallet-nominations/", {"company": str(self.company.pk)})
-            self.client.force_authenticate(nominee)
-            own = self.client.post("/api/v1/whitelist/wallet-nominations/preview/", terms, format="json")
-            return [row["unmetRequirements"] for row in listed.json()["results"]], own.json()["unmetRequirements"]
+            self.assertEqual(listed.status_code, 200, listed.content)
+            return [row["unmetRequirements"] for row in listed.json()["results"]]
 
-        self.assertEqual(readiness(), ([[]], []))
+        self.assertEqual(readiness(), [[]])
         profile = UserProfile.objects.filter(pk=nominee_profile.pk)
         for reason, rows, lapsed, restored in (
             ("participant_identity_required", profile, {"is_id_verified": False}, {"is_id_verified": True}),
@@ -462,7 +536,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         ):
             with use_migrate():
                 rows.update(**lapsed)
-            self.assertEqual(readiness(), ([["participant_not_current"]], [reason]), reason)
+            self.assertEqual(readiness(), [["participant_not_current"]], reason)
             with use_migrate():
                 rows.update(**restored)
 

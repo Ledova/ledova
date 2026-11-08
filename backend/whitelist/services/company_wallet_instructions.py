@@ -14,6 +14,7 @@ from companies.services.authority_requests import _requester_principal
 from integrations.base_chain import get_base_chain_client
 from operators.models import Operator
 from shared.db import atomic, use_operator
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterDecisionKind
@@ -228,6 +229,7 @@ def _before_command(actor, proposal, kind, appointment):
 def prepare_wallet_instruction(
     *, actor, operation_id, appointment, company, action, nomination=None, target_change=None, expires_at=None
 ):
+    refuse_deferred_execution()
     if (
         action not in ("add", "remove")
         or (action == "add") != (nomination is not None)
@@ -321,6 +323,7 @@ def _lock(proposal):
 
 
 def queue_wallet_change(change):
+    refuse_deferred_execution()
     from whitelist.tasks.company_wallet import execute_company_wallet_change
 
     return defer(execute_company_wallet_change, change_id=str(change.pk))
@@ -388,6 +391,7 @@ def preview_wallet_instruction_decision(*, actor, instruction_id, **data):
 
 
 def decide_wallet_instruction(*, actor, instruction_id, **data):
+    refuse_deferred_execution()
     try:
         return decide(WALLET_INSTRUCTIONS, actor=actor, proposal_id=instruction_id, **data)
     except (IntegrityError, OperationalError, RegisterChangeConflict):

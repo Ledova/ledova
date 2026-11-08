@@ -1,8 +1,6 @@
 import logging
 from collections.abc import Mapping
-from uuid import UUID
 
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, connections
 from django.db.models import Q
@@ -25,8 +23,8 @@ from integrations.base_chain import get_base_chain_client
 from integrations.blockchain.receipts import nonnegative_integer
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias, principal_of
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
-from shared.utils.blockchain import decode_exception_to_message
 from tokens.constants import MAX_SWAP_RECEIPT_VALUE
 from tokens.events import publish_trading_event
 from tokens.exceptions import (
@@ -66,10 +64,7 @@ from wallets.models import ChainObservationFinality, ChainObservationResult, Wal
 from wallets.services.chain_evidence import collect_chain_evidence
 from wallets.services.chain_observations import finality_policy
 from wallets.services.holdings import sync_holding
-from wallets.services.nonce_evidence import (
-    MAX_BLOCK_TRANSACTIONS,
-    collect_nonce_evidence,
-)
+from wallets.services.nonce_evidence import MAX_BLOCK_TRANSACTIONS
 
 logger = logging.getLogger(__name__)
 REVERTED_ON_CHAIN = "Swap execution reverted on chain"
@@ -190,6 +185,7 @@ def _lock_command(transaction, *, authority=False):
 
 
 def submit_signature(swap_order, signature, signer_address, *, user, participant):
+    refuse_deferred_execution()
     from tokens.tasks.swap_reconciler import recover_swap_execution
 
     require_autocommit()
@@ -310,70 +306,10 @@ def submit_signature(swap_order, signature, signer_address, *, user, participant
         return swap
 
 
-def _claim(transaction):
-    intent = transaction_intent(transaction)
-    claim = outgoing.open_operation(
-        operation_key(transaction),
-        **{field: intent[field] for field in ("chain_id", "sender", "to", "data")},
-        restart_of=UUID(int=0),
-    )
-    with atomic(durable=True):
-        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
-        _swap, current = _lock_command(transaction)
-        if (
-            operation.claim_id != claim.claim_id
-            or operation.intent != intent
-            or current.outgoing_operation_id not in (None, operation.pk)
-        ):
-            raise SwapNotReadyException()
-        if current.outgoing_operation_id is None:
-            current.outgoing_operation = operation
-            current.save(update_fields=["outgoing_operation", "updated_at"])
-    return claim
-
-
-def _configuration(transaction):
-    intent = transaction_intent(transaction)
-    if Account.from_key(atomic_swap_service.configured_relayer_key()).address.lower() != intent["sender"]:
-        raise SettlementContextChanged()
-    with atomic(durable=True):
-        _lock_command(transaction, authority=True)
-
-
-def _signed(transaction, attempt):
-    swap, current = _lock_command(transaction, authority=True)
-    if current.outgoing_operation_id != attempt.operation_id:
-        raise SwapNotReadyException()
-    if (
-        Account.from_key(atomic_swap_service.configured_relayer_key()).address.lower()
-        != transaction_intent(current)["sender"]
-    ):
-        raise SettlementContextChanged()
-    current.mark_submitted(attempt.tx_hash)
-    swap.mark_executing(attempt.tx_hash, transaction=current)
-
-
 def _original_chain(transaction, client):
     actual = client.w3.eth.chain_id
     if type(actual) is not int or actual != transaction_intent(transaction)["chain_id"]:
         raise SettlementContextChanged()
-
-
-def _before_send(transaction, claim, client):
-    _original_chain(transaction, client)
-    with atomic(durable=True):
-        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
-        if operation.claim_id != claim.claim_id or operation.status != OutgoingStatus.SIGNED:
-            raise SwapNotReadyException()
-        outgoing._admitted_signer(operation.intent, lock=True)
-        swap, current = _lock_command(transaction, authority=True)
-        attempt = operation.current_attempt
-        if (
-            current.outgoing_operation_id != operation.pk
-            or current.tx_hash != attempt.tx_hash
-            or swap.tx_hash != attempt.tx_hash
-        ):
-            raise SwapNotReadyException()
 
 
 def _verify_receipt(transaction, operation, client, receipt):
@@ -440,23 +376,6 @@ def _observe(transaction, claim, client):
     outgoing.record_receipt(claim, operation.current_attempt.tx_hash, receipt, client=client)
 
 
-def _consumed(transaction, operation, client):
-    attempt = operation.current_attempt
-    sender = Web3.to_checksum_address(operation.intent["sender"])
-    if outgoing._integer(client.w3.eth.get_transaction_count(sender, "latest")) <= attempt.nonce:
-        return False
-    spend = collect_nonce_evidence(client, attempt.raw_transaction)
-    candidate = spend.get("candidate", {})
-    logger.warning(
-        "Swap execution %s nonce %s consumed by %s (%s); held for operator attribution",
-        transaction.pk,
-        attempt.nonce,
-        candidate.get("tx_hash", "an unattributed transaction"),
-        candidate.get("intent_kind", spend["reason"]),
-    )
-    return True
-
-
 def _project(transaction, claim, refusal="Swap execution could not be prepared"):
     with atomic(durable=True):
         operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
@@ -503,51 +422,19 @@ def recover(transaction_id, *, client=None):
     if transaction is None:
         return None
     _admission(transaction)
-    BlockchainTransaction.objects.filter(pk=transaction.pk).update(updated_at=timezone.now())
-    claim = _claim(transaction)
+    claim = outgoing.recovery_claim(transaction.outgoing_operation_id, transaction_intent(transaction))
+    if claim is None:
+        return None
     operation = OutgoingOperation.objects.get(pk=claim.operation_id)
     if operation.status in (OutgoingStatus.FAILED, OutgoingStatus.CONFIRMED, OutgoingStatus.REVERTED):
         _project(transaction, claim)
         return operation.status
     client = client or get_base_chain_client()
-    if operation.status == OutgoingStatus.PREPARING:
-        try:
-            _configuration(transaction)
-            _original_chain(transaction, client)
-            prepared = outgoing.prepare_operation(claim, client)
-            _configuration(transaction)
-            outgoing.sign_operation(
-                claim,
-                prepared,
-                settings.BLOCKCHAIN_OPERATOR_KEY,
-                on_signed=lambda attempt: _signed(transaction, attempt),
-            )
-        except Exception as exc:
-            refusal = decode_exception_to_message(exc, "Swap execution could not be prepared")
-            if isinstance(exc, outgoing.OutgoingPreparationError) and exc.revert_message:
-                refusal = exc.revert_message
-            if outgoing.fail_preparing(claim):
-                _project(transaction, claim, refusal)
-                return OutgoingStatus.FAILED
-            operation.refresh_from_db()
-            if operation.claim_id != claim.claim_id or operation.status not in (
-                OutgoingStatus.SIGNED,
-                OutgoingStatus.CONFIRMED,
-                OutgoingStatus.REVERTED,
-            ):
-                raise
     try:
         _observe(transaction, claim, client)
     except Exception as exc:
         logger.warning("Swap execution %s receipt remains unavailable: %s", transaction.pk, type(exc).__name__)
         return None
-    operation.refresh_from_db()
-    if operation.status == OutgoingStatus.SIGNED and not _consumed(transaction, operation, client):
-        outgoing.broadcast_operation(claim, client, before_send=lambda: _before_send(transaction, claim, client))
-        try:
-            _observe(transaction, claim, client)
-        except Exception as exc:
-            logger.warning("Swap execution %s receipt remains unavailable: %s", transaction.pk, type(exc).__name__)
     _project(transaction, claim)
     operation.refresh_from_db()
     return operation.status

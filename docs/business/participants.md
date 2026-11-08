@@ -18,6 +18,11 @@ verification Ledova requires of a person is the identity check below; there are 
 classification claims, payslips or company eligibility decisions
 ([decision](../decisions.md#verification-limited-to-id-checks)).
 
+New wallet nominations, company wallet instructions and chain whitelist changes are unavailable
+under the [registry-only execution boundary](../engineering/chain.md#registry-only-execution-boundary).
+Their scoped records remain readable. The wallet sections below describe retained records and
+original controls, not a supported new-action workflow.
+
 ## Accounts and identity verification
 
 ### Investor signup

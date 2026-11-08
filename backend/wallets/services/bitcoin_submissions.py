@@ -11,6 +11,7 @@ from integrations.blockchain.bitcoin_transactions import decode_bitcoin_transact
 from integrations.blockchain.receipts import transaction_hash_matches
 from shared.constants import normalize_chain
 from shared.db import atomic
+from shared.registry_scope import refuse_deferred_execution
 from wallets.exceptions import BlockchainAPIError, InvalidTransactionException
 from wallets.models import (
     BitcoinSubmission,
@@ -23,8 +24,6 @@ from wallets.services import transaction_confirmation
 from wallets.services.bitcoin_intent import (
     GENESIS_HASHES,
     bitcoin_transfer_outputs,
-    check_bitcoin_admission,
-    observe_bitcoin_inputs,
     prepare_bitcoin_intent,
     verified_bitcoin_network,
 )
@@ -54,6 +53,7 @@ def _request_wallet(wallet_id, principal_id, *, lock=False):
 
 
 def submit_bitcoin_transfer(wallet, raw, *, principal_id):
+    refuse_deferred_execution()
     if principal_id is None:
         raise InvalidTransactionException("A Bitcoin submission requires its requesting user.")
     decoded = _decode(raw)
@@ -227,21 +227,7 @@ def attempt_bitcoin_submission(submission_id):
             if isinstance(receipt, Mapping) and transaction_hash_matches(receipt.get("tx_hash"), submission.tx_hash):
                 return "receipt_available"
             return "receipt_identity_unavailable"
-        current = observe_bitcoin_inputs(client, decoded, sender_script)
-        if {
-            (item["tx_hash"], item["output_index"]): (item["satoshis"], item["script"]) for item in current
-        } != recorded:
-            return "input_identity_unavailable"
-        admission = check_bitcoin_admission(client, decoded, fee, allow_known=True)
-        verified_bitcoin_network(client, submission.network)
-        if admission == "allowed":
-            acknowledged = client.broadcast_transaction(decoded.raw.hex())
-            if not transaction_hash_matches(acknowledged, submission.tx_hash):
-                return "acknowledgement_unavailable"
+        return "held"
     except Exception:
         logger.warning("Bitcoin submission delivery remains unresolved")
         return "delivery_unavailable"
-    BitcoinSubmission.objects.filter(pk=submission.pk, acknowledged_at__isnull=True).update(
-        acknowledged_at=timezone.now(), updated_at=timezone.now()
-    )
-    return "acknowledged"

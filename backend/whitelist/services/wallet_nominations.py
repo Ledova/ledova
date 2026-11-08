@@ -11,6 +11,7 @@ from rest_framework.exceptions import ValidationError
 from companies.models import Company
 from companies.services.authority_requests import _requester_principal
 from shared.db import atomic, current_alias, use_operator
+from shared.registry_scope import refuse_deferred_execution
 from users.services.participants import (
     participant_requirements,
     requirements_shown_to_the_company,
@@ -93,6 +94,7 @@ def preview_wallet_nomination(*, actor, company, wallet):
 
 
 def nominate_wallet(*, actor, operation_id, company, wallet, preview_digest, sharing_accepted):
+    refuse_deferred_execution()
     if sharing_accepted is not True:
         raise ValidationError("Confirm sharing this exact wallet address with this company.")
     try:

@@ -9,6 +9,7 @@ from django.db import connections
 from rest_framework.exceptions import NotFound
 
 from shared.db import current_alias, principal_of, use_operator
+from shared.registry_scope import refuse_deferred_execution
 from users.exceptions import InvestorNotEligibleException
 from users.models import UserAccount, UserProfile
 from users.services.participants import participant_requirements
@@ -29,6 +30,7 @@ class TradingAdmission:
 
 @contextmanager
 def participant_context(actor):
+    refuse_deferred_execution()
     principal = principal_of() or ""
     if actor is None or not actor.is_authenticated or principal != str(actor.pk):
         raise NotFound("Trading participant not found.")
@@ -107,6 +109,7 @@ def prepare_admission(
     signature=None,
     settlement_digest=None,
 ):
+    refuse_deferred_execution()
     account, wallet = lock_participant(actor, account.pk, wallet.pk)
     reasons = tuple(participant_requirements(account, token.company))
     if reasons:

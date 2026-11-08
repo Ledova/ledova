@@ -22,6 +22,7 @@ from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
 from operators.settlement import require_deployment
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.registry_scope import refuse_deferred_execution
 from shared.utils.blockchain import failure_summary
 from tokens.constants import MINT_CHAIN
 from tokens.exceptions import MintRequestConflict, MintRequestUnresolved
@@ -61,6 +62,7 @@ def mint_info(contract_name, contract_address):
 
 
 def create_request(submission_id, user, *, settlement_asset=None, yield_token=None, **terms):
+    refuse_deferred_execution()
     _boundary()
     if (settlement_asset is None) == (yield_token is None):
         raise MintRequestConflict("A mint must name exactly one token.")
@@ -152,54 +154,6 @@ def _key(request):
     return f"mint-request:{request.pk}:{request.dispatch_id}"
 
 
-def _claim(request, *, retry_of):
-    if request.operation_id is not None:
-        operation = OutgoingOperation.objects.get(pk=request.operation_id)
-        if retry_of is None or operation.status not in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED):
-            return outgoing.OperationClaim(operation.pk, operation.claim_id)
-        if operation.status == OutgoingStatus.REVERTED:
-            previous = outgoing.OperationClaim(operation.pk, operation.claim_id)
-            try:
-                _project(request.pk, previous)
-            except MintRequestConflict:
-                operation.refresh_from_db()
-                if operation.claim_id == previous.claim_id:
-                    raise
-                return outgoing.OperationClaim(operation.pk, operation.claim_id)
-    intent = {field: request.execution_intent[field] for field in INTENT_FIELDS}
-    intent["value"] = int(intent["value"])
-    claim = outgoing.open_operation(_key(request), **intent, restart_of=retry_of or UUID(int=0))
-    with atomic(durable=True):
-        current = MintRequest.objects.select_for_update().get(pk=request.pk)
-        if current.execution_intent != request.execution_intent or current.operation_id not in (
-            None,
-            claim.operation_id,
-        ):
-            raise MintRequestConflict("The mint operation association changed.")
-        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
-        if operation.claim_id != claim.claim_id:
-            raise MintRequestConflict("A newer mint attempt owns this outcome.")
-        current.operation_id = claim.operation_id
-        if current.status == MintRequestStatus.FAILED and operation.status not in (
-            OutgoingStatus.FAILED,
-            OutgoingStatus.REVERTED,
-        ):
-            current.status = MintRequestStatus.EXECUTING
-        current.save(update_fields=["operation", "status", "updated_at"])
-    return claim
-
-
-def _check_preparation(request_id, intent, client):
-    current = MintRequest.objects.get(pk=request_id)
-    if _intent(current) != intent:
-        raise MintRequestConflict("The mint deployment or signing configuration changed after admission.")
-    if client.assert_expected_chain() != intent["chain_id"]:
-        raise MintRequestConflict("The mint provider is on a different chain.")
-    contract = client.load_contract(intent["contract_name"], Web3.to_checksum_address(intent["to"]))
-    if not contract.functions.minters(Web3.to_checksum_address(intent["sender"])).call():
-        raise MintRequestConflict("The recorded signer is not an authorized minter.")
-
-
 def _project(request_id, claim):
     with atomic(durable=True):
         request = MintRequest.objects.select_for_update().get(pk=request_id)
@@ -266,37 +220,22 @@ def _project(request_id, claim):
 
 
 def _process(request, *, retry_of=None):
-    claim = _claim(request, retry_of=retry_of)
+    claim = outgoing.recovery_claim(request.operation_id, request.execution_intent)
+    if claim is None:
+        return request
     operation = OutgoingOperation.objects.get(pk=claim.operation_id)
     if operation.status in (OutgoingStatus.CONFIRMED, OutgoingStatus.REVERTED, OutgoingStatus.FAILED):
         return _project(request.pk, claim)
     client = get_base_chain_client()
-    if operation.status == OutgoingStatus.PREPARING:
-        try:
-            _check_preparation(request.pk, request.execution_intent, client)
-            prepared = outgoing.prepare_operation(claim, client)
-            _check_preparation(request.pk, request.execution_intent, client)
-        except Exception:
-            stopped = outgoing.fail_preparing(claim)
-            current = _project(request.pk, claim)
-            if not stopped:
-                return current
-            raise MintRequestUnresolved(
-                "The mint could not be prepared. Its recorded state is available for recovery."
-            ) from None
-        outgoing.sign_operation(claim, prepared, settings.BLOCKCHAIN_OPERATOR_KEY)
     request = _project(request.pk, claim)
     if request.status != MintRequestStatus.EXECUTING:
         return request
     outgoing.reconcile_operation(claim, client)
-    operation.refresh_from_db()
-    if operation.status == OutgoingStatus.SIGNED:
-        outgoing.broadcast_operation(claim, client)
-        outgoing.reconcile_operation(claim, client)
     return _project(request.pk, claim)
 
 
 def execute(mint_request, user, notes="", *, permission="tokens.change_mintrequest", retry_of=None):
+    refuse_deferred_execution()
     _boundary()
     allowed = {"tokens.change_mintrequest", "assets.change_asset", "tokens.change_yieldtoken"}
     if permission not in allowed:

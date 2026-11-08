@@ -1,11 +1,8 @@
 import logging
 from collections.abc import Mapping
-from datetime import timedelta
 
 from django.db import IntegrityError
-from django.db.models import Q
 from django.utils import timezone
-from rest_framework.exceptions import APIException
 from web3 import Web3
 
 from integrations.base_chain import get_base_chain_client
@@ -15,7 +12,8 @@ from integrations.blockchain.receipts import (
     transaction_hash_matches,
 )
 from shared.db import atomic, use_operator
-from tokens.constants import MAX_UINT256, SWAP_APPROVAL_RESEND_SECONDS
+from shared.registry_scope import refuse_deferred_execution
+from tokens.constants import MAX_UINT256
 from tokens.exceptions import (
     SettlementApprovalConflict,
     SettlementApprovalPending,
@@ -73,6 +71,7 @@ def recorded_outcome(swap, participant, tx_hash):
 
 
 def record(swap, participant, raw, decoded, actor_id):
+    refuse_deferred_execution()
     context = recorded_settlement_context(swap)
     terms = party_terms(context, participant)
     tx_hash = Web3.keccak(raw).to_0x_hex()
@@ -142,10 +141,7 @@ def attempt(submission_id, *, client=None, receipt_wait=0):
             if receipt is None:
                 return _resolve(submission, ApprovalSubmissionOutcome.SUPERSEDED)
         if receipt is None:
-            delivery = _deliver(client, submission, raw)
-            if not receipt_wait:
-                return delivery
-            receipt = client.receipt_even_if_reverted(submission.tx_hash, timeout=receipt_wait)
+            return "held"
         return _record_receipt(submission, receipt)
     except Exception as exc:
         _note_error(submission, exc)
@@ -174,49 +170,6 @@ def _mined_nonce(client, submission):
     if nonce is None:
         raise ValueError("Invalid nonce observation")
     return nonce
-
-
-def _resend_permitted(submission):
-    swap = SwapOrder.objects.filter(pk=submission.swap_id).first()
-    if swap is None or swap.settlement_digest != submission.settlement_digest:
-        return False
-    try:
-        context = require_pending_settlement(swap)
-    except APIException:
-        return False
-    return party_terms(context, submission.participant) == {
-        "chain_id": submission.chain_id,
-        "sender_address": submission.sender_address,
-        "token_address": submission.token_address,
-        "spender_address": submission.spender_address,
-    }
-
-
-def _deliver(client, submission, raw):
-    now = timezone.now()
-    claimed = (
-        SwapApprovalSubmission.objects.filter(pk=submission.pk, outcome=PENDING)
-        .filter(
-            Q(last_attempt_at__isnull=True)
-            | Q(last_attempt_at__lte=now - timedelta(seconds=SWAP_APPROVAL_RESEND_SECONDS))
-        )
-        .update(last_attempt_at=now, updated_at=now)
-    )
-    if not claimed:
-        return "observing"
-    if not _resend_permitted(submission):
-        return "held"
-    try:
-        acknowledged = client.send_raw_transaction(raw)
-    except Exception as exc:
-        _note_error(submission, exc)
-        return "delivery_unavailable"
-    if not transaction_hash_matches(acknowledged, submission.tx_hash):
-        return "acknowledgement_unavailable"
-    SwapApprovalSubmission.objects.filter(pk=submission.pk, acknowledged_at__isnull=True).update(
-        acknowledged_at=timezone.now(), updated_at=timezone.now()
-    )
-    return "acknowledged"
 
 
 def _record_receipt(submission, receipt):

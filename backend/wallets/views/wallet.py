@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from shared.db import atomic
+from shared.registry_scope import RegistryReadOnly
 from shared.views.base import AuthenticatedGenericViewSet
 from wallets.filters import WalletFilter
 from wallets.models import Wallet
@@ -41,6 +42,7 @@ class WalletViewSet(
     mixins.DestroyModelMixin,
     AuthenticatedGenericViewSet,
 ):
+    permission_classes = [*AuthenticatedGenericViewSet.permission_classes, RegistryReadOnly]
     serializer_class = WalletSerializer
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     lookup_field = "uuid"

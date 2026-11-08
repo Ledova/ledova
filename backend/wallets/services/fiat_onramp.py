@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from integrations.transak import TransakClient
 from integrations.transak.exceptions import TransakError
+from shared.registry_scope import refuse_deferred_execution
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ def generate_transak_widget_url(
     color_mode: str = "DARK",
     partner_customer_id: str = None,
 ) -> str:
+    refuse_deferred_execution()
     try:
         logger.info(
             f"Generating Transak widget URL for address {wallet_address[:8]}... ({chain}/{crypto_currency_code})"

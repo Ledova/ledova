@@ -9,6 +9,27 @@ action is in [issuing shares](../business/issuing-shares.md) and
 and keys, deployment scripts, their addresses and allowed chain ids in
 [chain setup](../operations/chains.md#allowed-chains-and-finality).
 
+## Registry-only execution boundary
+
+The registry product refuses new payment, trading, wallet and chain-execution admissions
+([#1587](https://github.com/Ledova/ledova/issues/1587)). This is a fixed boundary, not another
+feature mode. Deferred API mutations are denied before preparation; the trading namespace
+is denied even when an earlier database flag is enabled. Direct services and background jobs
+cannot prepare, sign or broadcast a new transaction.
+
+Recovery leaves unsigned work held in its existing state. For existing signed operations it
+can verify intent, observe canonical receipts, apply finality checks and project genuine results;
+it cannot broadcast or replay signed bytes. A stored hash or signed state alone does not prove
+submission. An uncertain transaction remains held when no canonical receipt is available, rather
+than being marked failed or replaced. Identity invalidations and audit records remain, but they
+cannot start a whitelist transaction. Reconciled deployments do not start a trading approval.
+
+The historical protocols below describe the retained records and their safeguards. Off-chain
+register classes, copied openings, awards, grants, external allotments, transfers and documents
+remain available. `make chain-test` retains the manually invoked local-chain smoke: direct
+contract signing/sending is limited to chain 31337 on a loopback RPC and cannot enable execution
+through the application services. Chain reads and mainnet rejection are unchanged.
+
 ## Contracts
 
 The OpenZeppelin-based Solidity contracts in `contracts/contracts/` are owned by the operator key

@@ -7,6 +7,7 @@ from drf_spectacular.utils import (
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from shared.registry_scope import RegistryReadOnly
 from tokens.models import RegisterPauseChange
 from tokens.serializers.register_pause_change import (
     RegisterPauseChangeCreateSerializer,
@@ -36,6 +37,7 @@ FILTERS = {"company": "company_id", "token": "token_id", "status": "status"}
     )
 )
 class RegisterPauseChangeViewSet(RegisterProposalViewSet):
+    permission_classes = [*RegisterProposalViewSet.permission_classes, RegistryReadOnly]
     queryset = RegisterPauseChange.objects.none()
     serializer_class = RegisterPauseChangeSerializer
     scoped_model = RegisterPauseChange

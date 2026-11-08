@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from contextlib import contextmanager, nullcontext
+from contextlib import nullcontext
 from typing import NamedTuple
 from uuid import UUID
 
@@ -20,7 +20,6 @@ from blockchain.models import (
     OutgoingOperation,
     OutgoingStatus,
     TransactionStatus,
-    TransactionType,
 )
 from blockchain.services import outgoing
 from integrations.base_chain import get_base_chain_client
@@ -31,6 +30,7 @@ from integrations.blockchain.receipts import (
 )
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
 from tokens.constants import ISSUANCE_RECOVERY_COLLISION_RETRIES
 from tokens.exceptions import (
@@ -42,7 +42,6 @@ from tokens.exceptions import (
 )
 from tokens.models import (
     IssuanceExecutionStatus,
-    IssuanceStatus,
     RequestStatus,
     ShareIssuance,
     ShareIssuanceExecution,
@@ -188,6 +187,7 @@ def _enqueue(execution):
 
 
 def admit_company(request, proposal, actor):
+    refuse_deferred_execution()
     _operator()
     if (
         not connections[current_alias()].in_atomic_block
@@ -213,6 +213,7 @@ def admit_company(request, proposal, actor):
 
 
 def admit(request, user, *, confirmed):
+    refuse_deferred_execution()
     _boundary()
     actor = _authorize(user, REQUEST_AUTHORITY)
     retry_of = _confirmed(request, actor, confirmed)
@@ -357,79 +358,6 @@ def _start(execution):
 def _require_register(token_id):
     if opened_by_import(token_id):
         raise IssuanceExecutionConflict("An imported register cannot admit or sign a new on-chain issue.")
-
-
-@contextmanager
-def _signing_register(execution):
-    from tokens.services import register_issues
-
-    with register_issues.signing_source(
-        execution,
-        outgoing.OperationClaim(
-            execution.operation_id, OutgoingOperation.objects.get(pk=execution.operation_id).claim_id
-        ),
-    ) as validate:
-        yield validate
-
-
-def _claim(execution):
-    if execution.operation_id:
-        operation = OutgoingOperation.objects.get(pk=execution.operation_id)
-        if (
-            operation.status not in (OutgoingStatus.FAILED, OutgoingStatus.REVERTED)
-            or execution.retry_of != operation.claim_id
-        ):
-            return outgoing.OperationClaim(operation.pk, operation.claim_id)
-    intent = {field: execution.intent[field] for field in INTENT_FIELDS}
-    intent["value"] = int(intent["value"])
-    claim = outgoing.open_operation(
-        f"share-issuance:{execution.request_id}:{execution.pk}",
-        **intent,
-        restart_of=execution.retry_of or UUID(int=0),
-    )
-    with atomic(durable=True):
-        operation = OutgoingOperation.objects.select_for_update().get(pk=claim.operation_id)
-        current, request, _, _ = _lock(execution.pk, execution.operation_id)
-        if current.status in TERMINAL and current.operation_id == operation.pk:
-            return outgoing.OperationClaim(operation.pk, operation.claim_id)
-        if current.status != IssuanceExecutionStatus.EXECUTING or request.status != RequestStatus.EXECUTING:
-            raise IssuanceExecutionConflict("The original issuance no longer owns execution.")
-        current.operation = operation
-        current.save(update_fields=["operation", "updated_at"])
-    return outgoing.OperationClaim(operation.pk, operation.claim_id)
-
-
-def _record_signed(execution_id, attempt):
-    execution, request, token, operation = _lock(execution_id, attempt.operation_id)
-    if (
-        execution.status != IssuanceExecutionStatus.EXECUTING
-        or request.status != RequestStatus.EXECUTING
-        or operation.claim_id != attempt.claim_id
-        or _intent(request, token) != execution.intent
-    ):
-        raise IssuanceExecutionConflict("The admitted issuance changed before signing.")
-    intent = execution.intent
-    record = BlockchainTransaction.objects.create(
-        tx_hash=attempt.tx_hash,
-        tx_type=TransactionType.TOKEN_MINT,
-        status=TransactionStatus.SUBMITTED,
-        from_address=intent["sender"],
-        to_address=intent["to"],
-        function_name="mint",
-        function_args={"recipient": intent["recipient"], "amount": intent["amount"]},
-        related_model="tokens.ShareIssuanceRequest",
-        related_uuid=execution.request_id,
-        submitted_at=attempt.created_at,
-    )
-    execution.transaction = record
-    execution.save(update_fields=["transaction", "updated_at"])
-    issuance = ShareIssuance.objects.select_for_update().get(pk=execution.issuance_id)
-    issuance.transaction = record
-    issuance.tx_hash = record.tx_hash
-    issuance.status = IssuanceStatus.PROCESSING
-    issuance.processed_at = attempt.created_at
-    issuance.error_message = ""
-    issuance.save(update_fields=["transaction", "tx_hash", "status", "processed_at", "error_message", "updated_at"])
 
 
 def _retain_receipt(execution, operation, receipt=None):
@@ -588,73 +516,13 @@ def _recover(execution_id):
         if execution.status == IssuanceExecutionStatus.EXECUTED:
             record_completed_effects(execution.token_id)
         return _result(execution)
-    client = get_base_chain_client()
-    if execution.status == IssuanceExecutionStatus.QUEUED:
-        try:
-            _preflight(execution, client)
-        except IssuanceRefusedException:
-            pass
-        execution = _start(execution)
-        if execution.status in TERMINAL:
-            return _result(execution)
-    claim = _claim(execution)
-    execution.refresh_from_db()
+    claim = outgoing.recovery_claim(execution.operation_id, execution.intent)
+    if claim is None:
+        return _result(execution)
     operation = OutgoingOperation.objects.get(pk=claim.operation_id)
-    if execution.status in TERMINAL:
-        return _result(execution)
-    refusal = None
-    if operation.status == OutgoingStatus.PREPARING:
-        try:
-            if execution.source_instruction_id:
-                from tokens.services import register_issues
-
-                unmet = register_issues.execution_requirements(execution.source_instruction)
-                if unmet:
-                    raise IssuanceSigningHold(unmet)
-            _preflight(execution, client)
-            prepared = outgoing.prepare_operation(claim, client)
-            outgoing.sign_operation(
-                claim,
-                prepared,
-                settings.BLOCKCHAIN_OPERATOR_KEY,
-                signing_context=lambda: _signing_register(execution),
-                on_signed=lambda attempt: _record_signed(execution.pk, attempt),
-            )
-        except IssuanceSigningHold as error:
-            from tokens.services import register_issues
-
-            if execution.source_instruction_id and register_issues.permanent_source_loss(
-                execution.source_instruction, error.unmet_requirements
-            ):
-                if outgoing.fail_preparing(claim):
-                    return _result(
-                        _project(execution, claim, refusal="The original company issue source lapsed before signing.")
-                    )
-            return _result(execution)
-        except IntegrityError:
-            if execution.source_instruction_id:
-                return _result(execution)
-            raise
-        except IssuanceRefusedException as exc:
-            if execution.source_instruction_id:
-                return _result(execution)
-            refusal = str(exc.detail)
-            outgoing.fail_preparing(claim)
-        except Exception:
-            logger.warning("Issuance execution %s requires committed-state recovery", execution.pk)
-            if execution.source_instruction_id:
-                return _result(execution)
-            outgoing.fail_preparing(claim)
-    operation.refresh_from_db()
-    execution.refresh_from_db()
-    if operation.claim_id != claim.claim_id:
-        return _result(execution)
+    client = get_base_chain_client()
     if operation.status == OutgoingStatus.SIGNED:
         outgoing.reconcile_operation(claim, client)
-        operation.refresh_from_db()
-        if operation.status == OutgoingStatus.SIGNED:
-            outgoing.broadcast_operation(claim, client)
-            outgoing.reconcile_operation(claim, client)
         operation.refresh_from_db()
     finalized = None
     if operation.status in (OutgoingStatus.CONFIRMED, OutgoingStatus.REVERTED):
@@ -664,7 +532,7 @@ def _recover(execution_id):
                 return _result(current)
             _retain_receipt(current, locked)
         finalized = _finalized_receipt(execution, operation, client)
-    projected = _project(execution, claim, finalized=finalized, refusal=refusal)
+    projected = _project(execution, claim, finalized=finalized)
     if projected.status == IssuanceExecutionStatus.EXECUTED:
         record_completed_effects(projected.token_id)
     return _result(projected)
