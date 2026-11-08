@@ -32,8 +32,22 @@ files, retains and purges them, and validates uploads. For engineers; the settin
   reserves each attempt atomically in Redis on Redis's clock. Successful and unsuccessful
   credential checks both count; over the limit answers 429 with `Retry-After`. The count survives
   backend restarts; Redis data loss or a cache clear resets it, and an unreachable cache answers
-  503 before credentials are checked. Only `auth_email` and uploads have strict atomic windows;
+  503 before credentials are checked. Auth-email, password-reset and upload limits have strict atomic windows;
   other DRF rate limits count approximately. Test settings use `LocMemCache`.
+- Web password recovery has separate anonymous request and confirmation actions. A valid email
+  request receives the same acknowledgement and queues the same task before account lookup; only
+  an active, email-verified account with a usable password receives a link. Delivery runs in the
+  existing worker, so account eligibility and provider response time do not change the request
+  response. Reset requests allow five attempts per address per hour, confirmations ten per account
+  per hour, and both actions share thirty attempts per IP per hour; their Redis reservations fail
+  closed. These limits count attempts, not successful resets.
+- The reset link uses Django's password-bound token, expires after ten minutes and carries its
+  account/proof in a URL fragment. The web page removes the fragment and keeps it only in memory;
+  passwords and proof are not put in browser storage. Confirmation locks and rechecks the account,
+  validates the password, consumes the old proof through the password change and revokes all
+  sessions. Sign-in, refresh, email verification and password changes use the same account lock;
+  a password change rechecks its current password and live session before saving.
+  Reset neither signs the person in nor changes account verification, standing or company authority.
 - The Django admin uses ordinary Django sessions, not the JWT stack; company users use the client
   transport, and authentication confers no company mandate
   ([company authority boundaries](README.md#company-authority-boundaries)).

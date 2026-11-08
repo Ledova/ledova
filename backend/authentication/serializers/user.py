@@ -1,9 +1,11 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import RegexValidator
 from rest_framework import serializers
 
 from authentication.serializers.fields import NormalizedEmailField
 
 User = get_user_model()
+PASSWORD_PRESENT = RegexValidator(r"\S", message="Password may not be blank.")
 
 
 def _identity(instance):
@@ -24,9 +26,21 @@ class EmailVerificationSerializer(serializers.Serializer):
 
 class UserSignupSerializer(serializers.Serializer):
     email = NormalizedEmailField(required=True)
-    password = serializers.CharField(max_length=255, write_only=True, required=True, style={"input_type": "password"})
+    password = serializers.CharField(
+        max_length=255,
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        validators=[PASSWORD_PRESENT],
+        style={"input_type": "password"},
+    )
     password_confirm = serializers.CharField(
-        max_length=255, write_only=True, required=True, style={"input_type": "password"}
+        max_length=255,
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        validators=[PASSWORD_PRESENT],
+        style={"input_type": "password"},
     )
 
     def validate_password(self, value):
@@ -40,7 +54,14 @@ class UserSignupSerializer(serializers.Serializer):
 
 class UserSigninSerializer(serializers.Serializer):
     email = NormalizedEmailField(required=True)
-    password = serializers.CharField(max_length=255, write_only=True, required=True, style={"input_type": "password"})
+    password = serializers.CharField(
+        max_length=255,
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        validators=[PASSWORD_PRESENT],
+        style={"input_type": "password"},
+    )
 
     def to_representation(self, instance):
         return _identity(instance)
@@ -50,10 +71,31 @@ class ResendVerificationSerializer(serializers.Serializer):
     email = NormalizedEmailField(required=False)
 
 
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = NormalizedEmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField(max_length=64, write_only=True)
+    token = serializers.CharField(max_length=100, write_only=True)
+    new_password = serializers.CharField(
+        max_length=255,
+        write_only=True,
+        trim_whitespace=False,
+        validators=[PASSWORD_PRESENT],
+        style={"input_type": "password"},
+    )
+
+
 class SignupRestartSerializer(serializers.Serializer):
     email = NormalizedEmailField(required=True)
     current_password = serializers.CharField(
-        max_length=255, write_only=True, required=True, style={"input_type": "password"}
+        max_length=255,
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        validators=[PASSWORD_PRESENT],
+        style={"input_type": "password"},
     )
 
     def to_representation(self, instance):
@@ -62,13 +104,28 @@ class SignupRestartSerializer(serializers.Serializer):
 
 class ChangePasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField(
-        max_length=255, write_only=True, required=True, style={"input_type": "password"}
+        max_length=255,
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        validators=[PASSWORD_PRESENT],
+        style={"input_type": "password"},
     )
     new_password = serializers.CharField(
-        max_length=255, write_only=True, required=True, style={"input_type": "password"}
+        max_length=255,
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        validators=[PASSWORD_PRESENT],
+        style={"input_type": "password"},
     )
     new_password_confirm = serializers.CharField(
-        max_length=255, write_only=True, required=True, style={"input_type": "password"}
+        max_length=255,
+        write_only=True,
+        required=True,
+        trim_whitespace=False,
+        validators=[PASSWORD_PRESENT],
+        style={"input_type": "password"},
     )
 
     def validate_new_password(self, value):

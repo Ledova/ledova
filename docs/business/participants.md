@@ -51,6 +51,18 @@ have already saved stays with your account, because companies are never deleted,
 identity check is kept too. Once you have chosen **Complete company setup**, or signup is complete,
 the email can no longer be changed this way.
 
+### Recovering your password
+
+On the web, choose **Forgot password?** on Sign in and enter your email. The acknowledgement is
+the same whether or not an eligible account exists. An active account with verified email receives
+a reset link, valid for ten minutes and one use. Open it, enter and confirm a new password, then
+sign in again. A successful reset signs out every existing session; it does not reactivate an
+account or change company access.
+
+Delivery requires the installation's email sender and worker. The current hosted preview's
+delivery limitations remain separate from this software flow; provider acceptance alone does not
+establish inbox delivery. This web increment adds no mobile reset screen.
+
 ### Account standing
 
 An account is Pending Verification, Active, Rejected, Suspended or Terminated. A wallet nomination,

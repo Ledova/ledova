@@ -8,6 +8,7 @@ from .base import DEBUG, SECRET_KEY
 AUTH_USER_MODEL = "authentication.CustomUser"
 
 AUTHENTICATION_BACKENDS = ("django.contrib.auth.backends.ModelBackend",)
+PASSWORD_RESET_TIMEOUT = 10 * 60
 
 AUTH_PASSWORD_VALIDATORS = [
     {

@@ -12,6 +12,8 @@ import type {
   AuthVerificationResponse,
   ChangePasswordRequest,
   ChangePasswordResponse,
+  PasswordResetRequest,
+  PasswordResetConfirmRequest,
 } from '../types';
 
 export const signin = (apiClient: AxiosInstance, data: SigninRequest) => {
@@ -50,4 +52,12 @@ export const verifyAuth = (apiClient: AxiosInstance) => {
 
 export const changePassword = (apiClient: AxiosInstance, data: ChangePasswordRequest) => {
   return apiClient.post<ChangePasswordResponse>(AUTH_ENDPOINTS.CHANGE_PASSWORD, data);
+};
+
+export const requestPasswordReset = (apiClient: AxiosInstance, data: PasswordResetRequest) => {
+  return apiClient.post<ApiResponse<'api_password_reset_request_create'>>(AUTH_ENDPOINTS.PASSWORD_RESET_REQUEST, data);
+};
+
+export const confirmPasswordReset = (apiClient: AxiosInstance, data: PasswordResetConfirmRequest) => {
+  return apiClient.post<ApiResponse<'api_password_reset_confirm_create'>>(AUTH_ENDPOINTS.PASSWORD_RESET_CONFIRM, data);
 };

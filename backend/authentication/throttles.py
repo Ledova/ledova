@@ -1,6 +1,7 @@
 from rest_framework.throttling import SimpleRateThrottle
 
 from authentication.email import EmailError, normalize_email
+from authentication.services.password_reset import reset_account_id
 
 
 class EmailRateThrottle(SimpleRateThrottle):
@@ -33,3 +34,23 @@ class EmailRateThrottle(SimpleRateThrottle):
         except EmailError:
             email = email.strip().lower()[:254]
         return self.cache_format % {"scope": self.scope, "ident": email}
+
+
+class PasswordResetEmailThrottle(EmailRateThrottle):
+    scope = "password_reset_email"
+
+
+class PasswordResetProofThrottle(EmailRateThrottle):
+    scope = "password_reset_proof"
+
+    def get_cache_key(self, request, view):
+        uid = request.data.get("uid") if isinstance(request.data, dict) else None
+        identifier = reset_account_id(uid) if isinstance(uid, str) and len(uid) <= 64 else None
+        return self.cache_format % {"scope": self.scope, "ident": identifier or "invalid"}
+
+
+class PasswordResetIPThrottle(EmailRateThrottle):
+    scope = "password_reset_ip"
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {"scope": self.scope, "ident": self.get_ident(request)}

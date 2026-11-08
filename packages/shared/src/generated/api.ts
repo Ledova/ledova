@@ -255,6 +255,38 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/password-reset/confirm/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_password_reset_confirm_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/password-reset/request/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: ApiOperations['api_password_reset_request_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/portfolios/': {
     parameters: {
       query?: never;
@@ -5182,6 +5214,20 @@ export interface ApiComponents {
       results: ApiComponents['schemas']['WhitelistEntry'][];
     };
     ParticipationEnum: 'not_recorded' | 'non_participating' | 'participating' | 'capped';
+    PasswordResetCompleted: {
+      message: string;
+    };
+    PasswordResetConfirmRequest: {
+      newPassword: string;
+      token: string;
+      uid: string;
+    };
+    PasswordResetRequested: {
+      message: string;
+    };
+    PasswordResetRequestRequest: {
+      email: string;
+    };
     PatchedCompanyUpdateRequest: {
       abn?: string;
       acn?: string;
@@ -8162,6 +8208,56 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['Operator'];
+        };
+      };
+    };
+  };
+  api_password_reset_confirm_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['PasswordResetConfirmRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['PasswordResetConfirmRequest'];
+        'multipart/form-data': ApiComponents['schemas']['PasswordResetConfirmRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PasswordResetCompleted'];
+        };
+      };
+    };
+  };
+  api_password_reset_request_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': ApiComponents['schemas']['PasswordResetRequestRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['PasswordResetRequestRequest'];
+        'multipart/form-data': ApiComponents['schemas']['PasswordResetRequestRequest'];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['PasswordResetRequested'];
         };
       };
     };

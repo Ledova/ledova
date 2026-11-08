@@ -48,6 +48,9 @@ describe('useSignIn', () => {
 
   it('signs in, refreshes authentication state, then reports success', async () => {
     const { queryClient, wrapper } = createHarness();
+    queryClient.setQueryData(['userAccount'], { data: { role: 'company' } });
+    queryClient.setQueryData(['userProfiles'], { data: { results: [{ uuid: 'someone-else' }] } });
+    queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
     const callOrder: string[] = [];
     const storageWrite = vi.spyOn(Storage.prototype, 'setItem');
     signinMock.mockImplementation(async () => {
@@ -77,25 +80,6 @@ describe('useSignIn', () => {
     expect(storageWrite).not.toHaveBeenCalled();
     expect(localStorage).toHaveLength(0);
     expect(sessionStorage).toHaveLength(0);
-
-    unmount();
-    queryClient.clear();
-  });
-
-  it('forgets what the tab held for whoever was signed in before, keeping only the session check', async () => {
-    const { queryClient, wrapper } = createHarness();
-    queryClient.setQueryData(['userAccount'], { data: { role: 'company' } });
-    queryClient.setQueryData(['userProfiles'], { data: { results: [{ uuid: 'someone-else' }] } });
-    queryClient.setQueryData(AUTH_QUERY_KEY, { data: { valid: false } });
-    signinMock.mockResolvedValue({ data: {} } as never);
-    vi.spyOn(queryClient, 'refetchQueries').mockResolvedValue(undefined);
-    const { result, unmount } = renderHook(() => useSignIn(), { wrapper });
-    fillForm(result);
-
-    await act(async () => {
-      await result.current.handleSubmit();
-    });
-
     expect(queryClient.getQueryData(['userAccount'])).toBeUndefined();
     expect(queryClient.getQueryData(['userProfiles'])).toBeUndefined();
     expect(queryClient.getQueryData(AUTH_QUERY_KEY)).toBeDefined();

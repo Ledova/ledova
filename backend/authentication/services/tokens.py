@@ -7,6 +7,8 @@ from rest_framework_simplejwt.token_blacklist.models import (
 )
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from shared.db import atomic
+
 User = get_user_model()
 
 
@@ -20,11 +22,13 @@ class TokenService:
         return str(access), str(refresh)
 
     @staticmethod
+    @atomic()
     def rotate(raw_refresh):
         token = RefreshToken(raw_refresh)
-        user = User.objects.filter(pk=token[api_settings.USER_ID_CLAIM], is_active=True).first()
+        user = User.objects.select_for_update().filter(pk=token[api_settings.USER_ID_CLAIM], is_active=True).first()
         if user is None:
             raise TokenError("User is inactive")
+        token = RefreshToken(raw_refresh)
         token.blacklist()
         return (user, *TokenService.issue(user))
 

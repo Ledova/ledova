@@ -4,9 +4,12 @@ from django.contrib.auth import authenticate, get_user_model
 from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 
 from authentication.email import EmailError, normalize_email
 from authentication.managers.user import EmailLookupState
+from authentication.services.email_codes import EmailCodeService
+from authentication.services.email_lookup import find_unique_user
 from authentication.services.tokens import TokenService
 from shared.db import atomic
 from shared.db.principal import set_principal
@@ -33,12 +36,23 @@ def _create_signup_user(email, password):
 
 class SessionService:
     @staticmethod
+    @atomic()
     def login(email, password):
         if not email or not password:
             raise serializers.ValidationError({"error": ["Email and password are required."]})
 
-        user = authenticate(username=email, password=password)
-        if not user:
+        try:
+            destination = normalize_email(email)
+            candidate = User.objects.resolve_email(destination).user
+        except EmailError:
+            raise serializers.ValidationError({"error": ["Invalid email or password."]}) from None
+        locked = (
+            User.objects.select_for_update().filter(pk=candidate.pk, email=destination, is_active=True).first()
+            if candidate is not None
+            else None
+        )
+        user = authenticate(username=destination, password=password)
+        if user is None or locked is None or user.pk != locked.pk:
             raise serializers.ValidationError({"error": ["Invalid email or password."]})
 
         set_principal(user.pk)
@@ -55,7 +69,36 @@ class SessionService:
         user.save(update_fields=["last_login"])
 
         logger.info(f"User {user.pk} successfully authenticated")
-        return user
+        return user, *TokenService.issue(user)
+
+    @staticmethod
+    def verify_email(email, token):
+        session = None
+        with atomic():
+            candidate = find_unique_user(email)
+            user = (
+                User.objects.select_for_update().filter(pk=candidate.pk, email=email, is_active=True).first()
+                if candidate is not None
+                else None
+            )
+            if user is not None and EmailCodeService.verify(user, token):
+                set_principal(user.pk)
+                session = (user, *TokenService.issue(user))
+        if session is None:
+            raise serializers.ValidationError({"token": ["Invalid email or verification code."]})
+        return session
+
+    @staticmethod
+    @atomic()
+    def change_password(*, user_id, session_jti, current_password, new_password):
+        user = User.objects.select_for_update().filter(pk=user_id, is_active=True).first()
+        if user is None or not TokenService.is_session_live(session_jti):
+            raise AuthenticationFailed("Your session has expired. Sign in again.")
+        if not user.check_password(current_password):
+            raise serializers.ValidationError({"current_password": ["Current password is incorrect."]})
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+        TokenService.revoke_all(user, keep_jti=session_jti)
 
     @staticmethod
     @atomic()
