@@ -283,7 +283,7 @@ export function FinancialProfileScreen() {
             color={theme.colors.status.error.text}
             weight={theme.icon.weights.regular}
           />
-          <Text style={styles.errorStateTitle}>Profile Not Found</Text>
+          <Text style={styles.errorStateTitle}>Profile not found</Text>
           <Text style={styles.errorStateMessage}>
             Please complete your user profile before setting your financial profile.
           </Text>
@@ -324,7 +324,7 @@ export function FinancialProfileScreen() {
                 />
               </View>
               <Text style={styles.title}>Financial profile</Text>
-              <Text style={styles.subtitle}>AML/CTF compliance information</Text>
+              <Text style={styles.subtitle}>About your finances and how you’ll use Ledova.</Text>
             </View>
 
             <View style={styles.formContainer}>

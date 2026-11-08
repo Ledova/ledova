@@ -187,7 +187,7 @@ it('completes individual signup only through explicit Terms acceptance, resumes 
   );
   const first = await render(<ReviewScreen />, { wrapper });
   expect(first.getByRole('button', { name: 'Complete signup' })).toBeEnabled();
-  expect(first.getByText('Residential address:')).toBeTruthy();
+  expect(first.getByText('Residential address')).toBeTruthy();
   expect(first.getByText(mockResidentialAddress, { normalizer: (value) => value }).props.children).toBe(
     mockResidentialAddress,
   );
@@ -296,7 +296,7 @@ it('takes a company representative through personal and company details, then re
   await account.unmount();
 
   const personal = await render(<UserProfileScreen />, { wrapper });
-  await fireEvent.changeText(personal.getByLabelText('Full Name'), 'Alex Director');
+  await fireEvent.changeText(personal.getByLabelText('Full name'), 'Alex Director');
   await fireEvent.press(personal.getByRole('button', { name: 'Continue' }));
   expect(mockSaveProfile).toHaveBeenCalledWith(expect.objectContaining({ fullName: 'Alex Director' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('CompanyRegistration');
@@ -314,7 +314,7 @@ it('takes a company representative through personal and company details, then re
   const review = await render(<ReviewScreen />, { wrapper });
   expect(review.getByText('New Example Pty Ltd')).toBeTruthy();
   expect(review.getByText('Proprietary Limited (Pty Ltd)')).toBeTruthy();
-  expect(review.queryByText('Financial Profile')).toBeNull();
+  expect(review.queryByText('Financial profile')).toBeNull();
   expect(review.queryByRole('checkbox')).toBeNull();
   expect(review.getByText(/By completing setup, you confirm that you are authorised to administer/)).toBeTruthy();
   expect(review.getByRole('button', { name: 'Complete company setup' })).toBeDisabled();

@@ -37,6 +37,7 @@ stay here as history and are marked where they appear.
 | [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)                  | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                                           |
 | [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                            | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md); eligibility removed 2 November       |
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                              | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
+| [Sign-up wording after offerings were deferred](#sign-up-wording-after-offerings-were-deferred)                    | 8 November 2026                                | Current; #1567                                                                                                                     |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital)    | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                          | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
 | [Member particulars requests removed](#member-particulars-requests-removed)                                        | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed and linked members follow their profile (#1492)      |
@@ -1113,6 +1114,19 @@ and provider guards, so the features can return from Git history under a new dec
 app this supersedes the 26 September choice that crypto lives inside Wallets and the 9 October
 instruction to keep existing payment and chain controls. It authorises no live operation or data
 deletion.
+
+### Sign-up wording after offerings were deferred
+
+**Owner decision, 8 November 2026**, given in the session
+([#1567](https://github.com/Ledova/ledova/issues/1567)). Asked about sign-up wording that still
+referred to features outside the first release, the owner chose, as recommended:
+
+- keep the investor's wholesale acknowledgement on **Eligibility check**, as decided when
+  [offerings were deferred](#offerings-deferred-from-the-first-release);
+- stop offering **Trading crypto currencies** as an intended use to new sign-ups, while answers
+  already stored still display, with no backend or migration change;
+- replace the financial profile's "AML/CTF compliance information" subtitle with plain wording that
+  claims no legal basis: **About your finances and how you’ll use Ledova.**
 
 ### Member invitations and account association
 

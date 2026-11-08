@@ -265,7 +265,7 @@ export function UserProfileScreen() {
               )}
 
               <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Full Name</Text>
+                <Text style={styles.label}>Full name</Text>
                 <View style={styles.inputWrapper}>
                   <View style={styles.inputIcon}>
                     <UserIcon
@@ -275,7 +275,7 @@ export function UserProfileScreen() {
                     />
                   </View>
                   <TextInput
-                    accessibilityLabel="Full Name"
+                    accessibilityLabel="Full name"
                     style={[styles.input, styles.inputWithIcon, errors.fullName ? styles.inputError : null]}
                     placeholder="John Doe"
                     placeholderTextColor={theme.colors.text.muted}
@@ -301,7 +301,7 @@ export function UserProfileScreen() {
               </View>
 
               <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Phone Number</Text>
+                <Text style={styles.label}>Phone number</Text>
                 <View style={styles.phoneInputWrapper}>
                   <View style={styles.inputIcon}>
                     <PhoneIcon
@@ -317,7 +317,7 @@ export function UserProfileScreen() {
                     disabled={isSubmitting}
                   />
                   <TextInput
-                    accessibilityLabel="Phone Number"
+                    accessibilityLabel="Phone number"
                     style={[styles.input, styles.phoneInput, errors.phoneNumber ? styles.inputError : null]}
                     placeholder="416 004 021"
                     placeholderTextColor={theme.colors.text.muted}
@@ -331,7 +331,7 @@ export function UserProfileScreen() {
               </View>
 
               <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Residential Address</Text>
+                <Text style={styles.label}>Residential address</Text>
                 <Text style={styles.helperText}>Include street number, city, state and postcode</Text>
                 <View style={styles.inputWrapper}>
                   <View style={[styles.inputIcon, styles.inputIconTop]}>
@@ -342,7 +342,7 @@ export function UserProfileScreen() {
                     />
                   </View>
                   <TextInput
-                    accessibilityLabel="Residential Address"
+                    accessibilityLabel="Residential address"
                     style={[
                       styles.input,
                       styles.inputWithIcon,
