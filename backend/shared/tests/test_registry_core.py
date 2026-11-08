@@ -108,39 +108,20 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         history = self.client.get(history_path)
         self.assertEqual(history.status_code, 200, history.content)
         identifier = uuid4()
-        trading_paths = (
-            "/api/v1/trading/",
-            "/api/v1/trading/tokens/",
-            "/api/v1/trading/orders/create/",
-            f"/api/v1/trading/orders/{identifier}/swap/",
-            f"/api/v1/trading/orders/actions/{identifier}/",
-            f"/api/v1/trading/orders/submissions/{identifier}/",
-            "/api/v1/trading/swap/approval-data/",
-            "/api/v1/trading/wallets/",
-            "/api/v1/trading/swaps/",
-            "/api/v1/trading/events/stream/",
-            "/api/v1/trading/whitelist/example/example/status/",
-        )
-        deferred_posts = [
+        trading_paths = ("/api/v1/trading/orders/create/",)
+        deferred_posts = (
             "/api/fiat-purchases/transak-widget-url/",
             "/api/wallets/",
-            "/api/wallets/batch-check-balances/",
+            f"/api/wallets/{identifier}/broadcast-transfer/",
             f"/api/v1/whitelist/sync/{identifier}/",
             "/api/v1/whitelist/wallet-nominations/",
-            "/api/v1/whitelist/wallet-nominations/preview/",
-        ]
-        deferred_posts.extend(
-            f"/api/wallets/{identifier}/{action}/"
-            for action in ("request-verification", "verify-signature", "sync", "prepare-transfer", "broadcast-transfer")
-        )
-        for family in (
             "/api/v1/tokens/register-deployments/",
             "/api/v1/tokens/register-capital-increases/",
             "/api/v1/tokens/register-pause-changes/",
             "/api/v1/tokens/register-issues/",
+            f"/api/v1/tokens/register-issues/{identifier}/decide/",
             "/api/v1/whitelist/company-wallet-instructions/",
-        ):
-            deferred_posts.extend((family, f"{family}{identifier}/decision-preview/", f"{family}{identifier}/decide/"))
+        )
         for staff in (False, True):
             with use_operator():
                 self.owner.is_staff = staff

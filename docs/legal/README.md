@@ -154,10 +154,15 @@ Read the provision before relying on a summary of it.
 **Licences**
 
 - [GNU Affero General Public License, version 3](https://www.gnu.org/licenses/agpl-3.0.html),
-  sections 0, 2, 4 to 6 and 13, behind position 12.
+  sections 0, 2, 4 to 6 and 13, behind the historical reading in position 12.
 - PyMuPDF's package metadata and project description, which declare its dual
   licence, and [Artifex's licensing page](https://artifex.com/licensing) for the
   commercial terms, which were not read.
+- [WeasyPrint](https://github.com/Kozea/WeasyPrint/blob/main/LICENSE),
+  [pypdf](https://github.com/py-pdf/pypdf/blob/main/LICENSE),
+  [Pyphen](https://github.com/Kozea/Pyphen/blob/main/LICENSE) and
+  [Noto fonts](https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/LICENSE),
+  for the replacement's direct licences and retained notices.
 
 What does not exist, and is worth knowing rather than searching for: community
 legal centres and legal aid do not take commercial financial-services work.

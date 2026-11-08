@@ -138,7 +138,7 @@ enforced, including why a child limit below 1 fails every upload, is in
 | `UPLOAD_BODY_SECONDS`         | `30`                 | ASGI body arrival deadline                                                              |
 | `UPLOAD_MAX_PDF_PAGES`        | `100`                | Pages inspected                                                                         |
 | `UPLOAD_MAX_SOURCE_PIXELS`    | `16000000`           | Image or embedded-image pixels, or PDF page pixels at 2x scale                          |
-| `UPLOAD_MAX_DECODED_BYTES`    | `67108864`           | Four bytes per pixel per image or page, and the sum of unique embedded images on a page |
+| `UPLOAD_MAX_DECODED_BYTES`    | `67108864`           | Four bytes per pixel per image or page, unique image totals per page and decoded PDF stream bounds |
 | `UPLOAD_PROCESS_MEMORY_BYTES` | `536870912`          | Decoder and scanner-client address space                                                |
 | `UPLOAD_PROCESS_FILE_BYTES`   | `8388608`            | Largest file the decoder child may write                                                |
 | `UPLOAD_PROCESS_CPU_SECONDS`  | `5`                  | Child CPU time                                                                          |
@@ -148,6 +148,13 @@ enforced, including why a child limit below 1 fails every upload, is in
 | `UPLOAD_SCANNER_SECONDS`      | `10`                 | Scanner-client child wall deadline                                                      |
 | `UPLOAD_REQUESTS_PER_HOUR`    | `20`                 | Authenticated create attempts per rolling hour per user, across all upload routes       |
 | `UPLOAD_BYTES_PER_HOUR`       | `52428800`           | Actual file bytes per rolling hour per user (50 MiB)                                    |
+
+PDF inspection uses pypdf in strict mode and refuses repair warnings, encrypted files (including
+empty-password encryption), malformed object references and excess pages. Page dimensions include
+`UserUnit`; image budgets include nested forms, inline images and image masks. Recursive forms and
+oversized decoded streams are refused. The child never renders uploaded PDFs or fetches URLs, and
+malware scanning still runs before storage. This is bounded structural validation, not a guarantee
+that every PDF viewer will interpret a document identically.
 
 On Linux every limit applies. Where the kernel refuses to lower the address-space limit, the child
 runs without it and the parent logs

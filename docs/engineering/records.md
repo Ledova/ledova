@@ -862,13 +862,16 @@ shows](../business/member-records.md#what-a-certificate-shows)). A page's amount
 the allotment's consideration and 0.00 only when `_fully_paid_issues`, which
 `_external_amounts_paid` also reads, returns the entry: an applied AUD allotment with its exact
 Issue entry, whose company-recorded receipt equals its consideration. Every other page prints Not
-recorded for both. PyMuPDF renders each page from
+recorded for both. WeasyPrint renders each page from
 [share_certificate.html](../../backend/tokens/templates/tokens/share_certificate.html), escaping
-every value and embedding the glyphs non-Latin names need; it is imported only when a certificate is
-rendered ([legal position 12](../legal/positions.md#12-pymupdf-an-agpl-runtime-dependency)). Fonts
-are subset, metadata is cleared and the file carries no creation date or random identifier, so the
-same entry gives the same bytes while the register, the particulars and the PyMuPDF version stay the
-same. A generated certificate separates its actual entry recording timestamp from the company event
+every value. The shared [PDF renderer](../../backend/shared/pdf.py) embeds subset fonts, uses
+Pango's script shaping and installed Noto fallbacks, and fits each person's content to one A4 page.
+Transfers still produce at most two pages. Resource URLs are refused: the renderer accepts only the
+application's escaped templates, not uploaded HTML. It is imported only when rendering is needed
+([legal position 12](../legal/positions.md#12-pymupdf-an-agpl-runtime-dependency)). The file carries
+no creation date or random identifier, so the same entry gives the same bytes while the register,
+particulars, renderer dependencies and installed fonts stay the same. A generated certificate
+separates its actual entry recording timestamp from the company event
 date, showing Not recorded when that company fact is unknown. Retained earlier files are unchanged.
 
 ### Notice figures format
