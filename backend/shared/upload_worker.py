@@ -65,6 +65,8 @@ def process_pdf(raw, limits):
                 reader.get_object(IndirectObject(number, 0, reader))
             for page in reader.pages:
                 unit = page.user_unit
+                if not math.isfinite(unit) or unit <= 0:
+                    raise InvalidContent()
                 for box in (page.mediabox, page.cropbox):
                     check_dimensions(
                         float(box.width) * unit * 2,
