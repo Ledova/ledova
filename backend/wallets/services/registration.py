@@ -3,6 +3,7 @@ from rest_framework.exceptions import ValidationError
 
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import atomic
+from shared.registry_scope import refuse_deferred_execution
 from wallets.constants import WALLET_VERIFICATION_STATUS_PENDING
 from wallets.models import Wallet
 from whitelist.constants import WALLET_REFRESH_DELAY_SECONDS
@@ -23,6 +24,7 @@ def _refuse_duplicate(wallet):
 
 
 def register_wallet(**fields):
+    refuse_deferred_execution()
     wallet = Wallet(**fields, verification_status=WALLET_VERIFICATION_STATUS_PENDING)
     try:
         with atomic():
@@ -37,6 +39,7 @@ def register_wallet(**fields):
 
 
 def update_wallet(wallet, fields):
+    refuse_deferred_execution()
     for name, value in fields.items():
         setattr(wallet, name, value)
     try:
@@ -49,6 +52,7 @@ def update_wallet(wallet, fields):
 
 
 def delete_wallet(user, wallet_id):
+    refuse_deferred_execution()
     with invalidation_writer_context(user):
         wallet = Wallet.objects.owned_by(user).select_for_update().get(pk=wallet_id)
         if wallet.chain == BLOCKCHAIN_BASE:

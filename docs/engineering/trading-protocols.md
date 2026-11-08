@@ -19,13 +19,12 @@ Contents: [intent and settlement](#intent-and-settlement) · [creating](#creatin
 
 ## Intent and settlement
 
-`TradingFeatureFlagMiddleware` (`backend/feature_flags/middleware.py`) refuses every method under
-`/api/v1/trading/` with 403 while the `trading_enabled` flag is off, including the token market
-and per-class whitelist status. Fresh database installation seeds the flag off; this does not
-change an existing database's stored flag. Missing flags and failed flag reads also refuse access.
-An operator switches it per deployment in Django admin. The separate wallet, payment and class
-execution APIs are not controlled by this middleware; the full release boundary remains tracked
-under [#1587](https://github.com/Ledova/ledova/issues/1587).
+`TradingBoundaryMiddleware` (`backend/feature_flags/middleware.py`) refuses every method under
+`/api/v1/trading/` with 403, regardless of the stored `trading_enabled` flag. This includes
+signing-data and recovery GET routes. The [registry-only execution boundary](chain.md#registry-only-execution-boundary)
+also refuses new wallet, payment and chain admissions in their APIs and services. Existing
+records remain stored; recovery can inspect canonical receipts but cannot sign or broadcast.
+The mechanisms below describe retained experimental records and original safeguards.
 
 The rules are in
 [who may trade and who sees orders](../business/trading.md#who-may-trade-and-who-sees-orders).

@@ -12,14 +12,10 @@ SYSTEM_WIDE = {
     "on the operator connection, retaining its original target and signed transaction.",
     "tokens.tasks.deployment.check_pending_swap_approvals": "Recovers admitted swap approvals across issuers "
     "without reopening terminal outcomes or adopting historical deployments.",
-    "whitelist.tasks.refresh.refresh_whitelist_approvals": "Sweeps every company approval on the deployment and "
-    "submits the removal a retained standing, identity or wallet loss calls for, under the actor that loss "
-    "recorded. It belongs to no tenant and lists for staff any approval whose holder is no longer current "
-    "without a recorded cause.",
-    "whitelist.tasks.refresh.refresh_whitelist_targets": "Refreshes the named company approvals after the staff "
-    "or holder action that changed them, under operator authority and attributed to that actor. The actor is an "
-    "audit actor rather than a tenant principal: a holder can only reach it by removing their own wallet, and "
-    "the entry point refuses any addition they did not already hold a staff approval for.",
+    "whitelist.tasks.refresh.refresh_whitelist_approvals": "Retained queued entry point; no longer scheduled and "
+    "does not admit whitelist execution in the registry product.",
+    "whitelist.tasks.refresh.refresh_whitelist_targets": "Retained queued entry point; returns without new "
+    "whitelist execution. Identity invalidation audit records remain separate.",
     "whitelist.tasks.recovery.recover_whitelist_changes": "Recovers admitted whitelist changes through their "
     "original outgoing operations. Uses operator authority, never admits or reopens a command, and never "
     "substitutes current membership for a signed transaction outcome.",
@@ -65,24 +61,21 @@ SYSTEM_WIDE = {
     "executed.",
     "tokens.tasks.swap_expiry.expire_unclaimed_matches": "Releases eligible unclaimed expired matches across both "
     "parties, retaining every swap with a transaction claim or uncertain history.",
-    "tokens.tasks.held_orders.place_held_orders": "Re-places every order held back from the book because its price "
-    "crosses it: each takes its next single match, never with an order it already lapsed or failed with, or is "
-    "listed once it no longer crosses. Then, while two listed orders in a class cross because they came to rest at "
-    "the same moment, it holds back the newer of the two, which its next run treats like any held order. It belongs "
-    "to no tenant: a match pairs two parties' private orders on the operator connection, as order creation does.",
+    "tokens.tasks.held_orders.place_held_orders": "Retained queued entry point; no longer scheduled and "
+    "does not reopen, list or match held orders.",
     "tokens.tasks.swap_reconciler.recover_swap_execution": "Recovers one explicitly admitted swap execution "
     "using its original participant and common signed journal. The exact job commits with admission.",
     "tokens.tasks.swap_reconciler.resolve_executing_swaps": "Recovers admitted swap executions across private "
     "counterparties and settles each once its network's approved finality policy is satisfied and its inclusion "
     "re-verifies: a final success completes the swap and a final revert releases its reservation once. It never "
     "invents an actor, restarts a claim or releases a hold on unknown, waiting or changed evidence.",
-    "tokens.tasks.approval_submissions.recover_swap_approval_submissions": "Replays the exact recorded bytes of "
-    "every pending participant-signed approval across both parties and records the receipt it finds; it signs "
-    "nothing, allocates no nonce and reads the private journal on the operator connection.",
+    "tokens.tasks.approval_submissions.recover_swap_approval_submissions": "Observes receipts for "
+    "pending participant-signed approvals across both parties. It never signs, broadcasts or replays bytes, "
+    "allocates no nonce and reads the private journal on the operator connection.",
     "wallets.tasks.chain_observations.observe_wallet_chains": "Polls the chain for every submission whose "
     "watch is due, across all accounts. The chain answers about a transaction, not about whose it is.",
-    "wallets.tasks.submissions.recover_wallet_submissions": "Retries every submission left pending across all "
-    "accounts on a clock; the owner is not present and each retry re-reads its own row.",
+    "wallets.tasks.submissions.recover_wallet_submissions": "Observes submissions left pending across all "
+    "accounts without broadcasting. The owner is not present and each observation re-reads its own row.",
     "wallets.tasks.sync.sync_all_wallets": "Fans out over every verified wallet; the per-wallet task it defers is "
     "the one that acts for somebody.",
     "wallets.tasks.confirmation.check_all_pending_transactions": "Requeues pending transactions and unfinished "
@@ -143,13 +136,13 @@ OPERATOR_BOUNDARIES = {
     "tokens.services.deployment.retry_confirmation": "Reads the original deployment claim for a signed retry form.",
     "tokens.services.deployment._admit": "Locks the admitted token and company on the operator connection, verifies "
     "deployment identity and creates a missing journal only from the applied company source.",
-    "tokens.services.deployment._process": "Uses the private shared signer journal for one admitted deployment. Its "
-    "local signing callback rechecks ownership and commits bytes, hash and token association together before RPC.",
+    "tokens.services.deployment._process": "Observes one existing signed deployment through its original "
+    "intent and canonical receipt, without opening an operation, signing or broadcasting.",
     "tokens.services.deployment_journal.record_outcome": "Records the original operation's receipt and transaction "
     "outcome on the operator connection; the deployment worker and recovery project the token and asset on "
     "the operator connection too.",
-    "tokens.services.deployment_journal.mark_projected": "Commits the attributed token projection marker with "
-    "one immutable swap approval disposition and its exact recovery job.",
+    "tokens.services.deployment_journal.mark_projected": "Commits the attributed token projection marker "
+    "without creating a swap approval or execution job.",
 }
 
 

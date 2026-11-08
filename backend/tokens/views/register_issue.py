@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
+from shared.registry_scope import RegistryReadOnly
 from shared.views import stream_stored_file
 from tokens.models import RegisterInstruction
 from tokens.serializers.register_issue import (
@@ -38,6 +39,7 @@ FILTERS = {"company": "company_id", "token": "token_id", "status": "status"}
     )
 )
 class RegisterIssueViewSet(RegisterProposalViewSet):
+    permission_classes = [*RegisterProposalViewSet.permission_classes, RegistryReadOnly]
     queryset = RegisterInstruction.objects.none()
     serializer_class = RegisterIssueSerializer
     scoped_model = RegisterInstruction

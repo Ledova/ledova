@@ -7,6 +7,7 @@ from drf_spectacular.utils import (
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from shared.registry_scope import RegistryReadOnly
 from shared.views import AuthenticatedReadOnlyViewSet
 from tokens.views.register_proposal import with_decisions
 from whitelist.company_serializers import (
@@ -41,6 +42,7 @@ from whitelist.services.wallet_nominations import (
 
 @extend_schema_view(list=extend_schema(parameters=[OpenApiParameter("company", OpenApiTypes.UUID)]))
 class WalletNominationViewSet(AuthenticatedReadOnlyViewSet):
+    permission_classes = [*AuthenticatedReadOnlyViewSet.permission_classes, RegistryReadOnly]
     queryset = CompanyWalletNomination.objects.none()
     serializer_class = WalletNominationSerializer
     scoped_model = CompanyWalletNomination
@@ -116,6 +118,7 @@ class CompanyWalletNominationViewSet(AuthenticatedReadOnlyViewSet):
     )
 )
 class CompanyWalletInstructionViewSet(AuthenticatedReadOnlyViewSet):
+    permission_classes = [*AuthenticatedReadOnlyViewSet.permission_classes, RegistryReadOnly]
     queryset = CompanyWalletInstruction.objects.none()
     serializer_class = CompanyWalletInstructionSerializer
     scoped_model = CompanyWalletInstruction

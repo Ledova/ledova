@@ -12,6 +12,7 @@ from blockchain.services import outgoing
 from companies.models import Company
 from companies.services.administration import company_operation
 from shared.db import atomic, current_alias
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
 from tokens.exceptions import InvalidTokenStateException, PauseChangeConflict
 from tokens.models import (
@@ -72,6 +73,7 @@ def operation_key(change):
 
 
 def admit_company(proposal, actor):
+    refuse_deferred_execution()
     from tokens.tasks.pause import recover_pause_change
 
     if (

@@ -14,6 +14,7 @@ from shared.constants import (
     SUPPORTED_CHAINS,
     normalize_chain,
 )
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
 from shared.utils.blockchain import decode_exception_to_message
 from shared.utils.token_amounts import token_base_units
@@ -40,6 +41,7 @@ def prepare_transfer(
     amount_token: Optional[str] = None,
     token_contract: Optional[str] = None,
 ) -> Dict[str, Any]:
+    refuse_deferred_execution()
     chain = normalize_chain(wallet.chain)
 
     if chain not in SUPPORTED_CHAINS:
@@ -141,6 +143,7 @@ def broadcast_transfer(
     *,
     principal_id,
 ) -> Dict[str, Any]:
+    refuse_deferred_execution()
     chain = normalize_chain(wallet.chain)
 
     if chain not in SUPPORTED_CHAINS:

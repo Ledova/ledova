@@ -18,6 +18,11 @@ page keeps what the schema cannot express and links each business rule.
 - [Identity providers](#identity-providers)
 - [Notifications](#notifications)
 
+The [registry-only execution boundary](chain.md#registry-only-execution-boundary) overrides the
+historical chain, wallet and trading mutation routes described here. They retain their API shapes
+and scoped reads, but new execution admissions are denied before preparation; background recovery
+observes and reconciles existing receipts without signing or broadcasting.
+
 ## Backend apps
 
 One Django app per bounded concern. `backend/ledova_backend/settings/` is a package of per-concern

@@ -18,6 +18,7 @@ from blockchain.models import (
     SigningAccount,
 )
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.registry_scope import refuse_deferred_execution
 from shared.utils.blockchain import decode_exception_to_message
 
 MAX_DATABASE_INTEGER = 2**63 - 1
@@ -110,6 +111,7 @@ def transaction_intent(*, chain_id, sender, to, value=0, data="0x"):
 
 
 def open_operation(operation_key, *, chain_id, sender, to, value=0, data="0x", restart_of=None, opening_context=None):
+    refuse_deferred_execution()
     _boundary()
     if not isinstance(operation_key, str) or not operation_key.strip() or len(operation_key) > 200:
         raise OutgoingTransactionError("An outgoing operation requires a stable key of at most 200 characters.")
@@ -145,6 +147,22 @@ def open_operation(operation_key, *, chain_id, sender, to, value=0, data="0x", r
                     "updated_at",
                 ]
             )
+    return OperationClaim(operation.pk, operation.claim_id)
+
+
+def recovery_claim(operation_id, intent):
+    _boundary()
+    operation = OutgoingOperation.objects.filter(pk=operation_id).exclude(status=OutgoingStatus.PREPARING).first()
+    if operation is None:
+        return None
+    expected = transaction_intent(
+        **{
+            field: int(intent[field]) if field == "value" else intent[field]
+            for field in ("chain_id", "sender", "to", "value", "data")
+        }
+    )
+    if operation.intent != expected:
+        raise OutgoingTransactionError("The retained operation differs from its original command.")
     return OperationClaim(operation.pk, operation.claim_id)
 
 
@@ -193,6 +211,7 @@ def close_signer_admission(*, chain_id, sender):
 
 
 def prepare_operation(claim, client):
+    refuse_deferred_execution()
     _boundary()
     operation = _current(claim)
     if operation.status != OutgoingStatus.PREPARING:
@@ -236,6 +255,7 @@ def prepare_operation(claim, client):
 
 
 def sign_operation(claim, prepared, private_key, *, on_signed=None, signing_context=None):
+    refuse_deferred_execution()
     _boundary()
     if prepared.claim != claim:
         raise OutgoingTransactionError(STALE_ATTEMPT)
@@ -360,6 +380,7 @@ def _record_broadcast(claim, tx_hash, error):
 
 
 def broadcast_operation(claim, client, *, before_send=None):
+    refuse_deferred_execution()
     _boundary()
     with atomic(durable=True):
         operation = _current(claim, lock=True)

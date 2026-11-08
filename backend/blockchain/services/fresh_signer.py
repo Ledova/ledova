@@ -41,6 +41,7 @@ from integrations.base_chain import get_base_chain_client
 from integrations.blockchain.receipts import nonnegative_integer, normalized_hash
 from shared.constants import BLOCKCHAIN_BASE
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.registry_scope import refuse_deferred_execution
 from tokens.services.legacy_outgoing_sources import read_legacy_outgoing_sources
 from wallets.models import ChainObservationFinality, ChainObservationResult
 from wallets.services.chain_evidence import collect_chain_evidence
@@ -384,6 +385,7 @@ def _lock_bootstrap():
 
 
 def bootstrap_fresh_signer(manifest):
+    refuse_deferred_execution()
     require_bootstrap_boundary()
     manifest = validate_bootstrap_manifest(manifest)
     _configuration(manifest)

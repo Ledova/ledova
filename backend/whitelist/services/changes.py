@@ -1,10 +1,9 @@
 import hashlib
 import logging
 from contextlib import contextmanager
-from uuid import UUID
 
 from django.conf import settings
-from django.db import IntegrityError, connections
+from django.db import connections
 from django.utils import timezone
 from eth_abi import encode
 from eth_account import Account
@@ -22,16 +21,15 @@ from blockchain.services import outgoing
 from companies.models import Company
 from integrations.base_chain import get_base_chain_client
 from shared.db import APP_ALIAS, atomic, current_alias
+from shared.registry_scope import refuse_deferred_execution
 from whitelist.constants import WHITELIST_NO_EXPIRY, WHITELIST_RECOVERY_LIMIT
 from whitelist.exceptions import (
     WhitelistChangeConflict,
     WhitelistChangeUnresolved,
     WhitelistRegistryMissing,
-    WhitelistSigningHold,
 )
 from whitelist.models import (
     WhitelistAction,
-    WhitelistAuthority,
     WhitelistChange,
     WhitelistChangeStatus,
     WhitelistStatus,
@@ -147,20 +145,6 @@ def _record_membership_decision(change, expiry):
         return current
 
 
-def _claim(change):
-    intent = change.intent | {"value": int(change.intent["value"])}
-    claim = outgoing.open_operation(f"whitelist-change:{change.pk}", **intent, restart_of=UUID(int=0))
-    with _target(change):
-        current = WhitelistChange.objects.select_for_update().get(pk=change.pk)
-        if current.status != WhitelistChangeStatus.EXECUTING or current.operation_id not in (None, claim.operation_id):
-            if current.status in TERMINAL and current.operation_id == claim.operation_id:
-                return claim
-            raise WhitelistChangeConflict("The whitelist operation association changed.")
-        current.operation_id = claim.operation_id
-        current.save(update_fields=["operation", "updated_at"])
-    return claim
-
-
 def _project(change, claim):
     with _target(change):
         current = WhitelistChange.objects.select_for_update().get(pk=change.pk)
@@ -241,52 +225,14 @@ def _project(change, claim):
 def _process(change):
     if change.status in TERMINAL:
         return change
-    client = get_base_chain_client()
-    if change.status == WhitelistChangeStatus.PENDING:
-        expiry = _observe_membership(change, client)
-        change = _record_membership_decision(change, expiry)
-        if change.status in TERMINAL:
-            return change
-    claim = _claim(change)
+    claim = outgoing.recovery_claim(change.operation_id, change.intent)
+    if claim is None:
+        return change
     operation = OutgoingOperation.objects.get(pk=claim.operation_id)
     if operation.status in (OutgoingStatus.CONFIRMED, OutgoingStatus.FAILED, OutgoingStatus.REVERTED):
         return _project(change, claim)
-    if operation.status == OutgoingStatus.PREPARING:
-        try:
-            if _change_intent(change) != change.intent:
-                raise WhitelistChangeConflict("The whitelist signing configuration changed after admission.")
-            prepared = outgoing.prepare_operation(claim, client)
-            if _change_intent(change) != change.intent:
-                raise WhitelistChangeConflict("The whitelist signing configuration changed during preparation.")
-        except Exception:
-            outgoing.fail_preparing(claim)
-            return _project(change, claim)
-        from whitelist.services.company_wallet_instructions import signing_source
-
-        try:
-            outgoing.sign_operation(
-                claim,
-                prepared,
-                settings.BLOCKCHAIN_OPERATOR_KEY,
-                signing_context=(
-                    (lambda: signing_source(change, claim)) if change.authority != WhitelistAuthority.REFRESH else None
-                ),
-            )
-        except WhitelistSigningHold as error:
-            if "source_lock_busy" not in error.unmet_requirements:
-                outgoing.fail_preparing(claim)
-            return _project(change, claim)
-        except IntegrityError:
-            outgoing.fail_preparing(claim)
-            return _project(change, claim)
-    current = _project(change, claim)
-    if current.status in TERMINAL:
-        return current
+    client = get_base_chain_client()
     outgoing.reconcile_operation(claim, client)
-    operation.refresh_from_db()
-    if operation.status == OutgoingStatus.SIGNED:
-        outgoing.broadcast_operation(claim, client)
-        outgoing.reconcile_operation(claim, client)
     return _project(change, claim)
 
 
@@ -312,6 +258,7 @@ def recover_changes():
 
 
 def submit_invalidation(submission_id, command):
+    refuse_deferred_execution()
     from whitelist.services.eligibility_invalidation import admit_invalidation
 
     _boundary()

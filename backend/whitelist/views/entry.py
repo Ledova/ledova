@@ -8,6 +8,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from shared.db.middleware import RunsOnTheOperatorConnection
+from shared.registry_scope import RegistryReadOnly
 from shared.utils import csv_cell
 from shared.views.principal import SetsThePrincipalOnTheConnection
 from shared.views.scope import PolicyQuerysets
@@ -30,7 +31,7 @@ class WhitelistEntryViewSet(
     viewsets.GenericViewSet,
 ):
     serializer_class = WhitelistEntrySerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser, RegistryReadOnly]
     filterset_class = WhitelistEntryFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at"]

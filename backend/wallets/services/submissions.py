@@ -16,6 +16,7 @@ from integrations.blockchain.receipts import (
 )
 from shared.constants import normalize_chain
 from shared.db import atomic
+from shared.registry_scope import refuse_deferred_execution
 from tokens.services.signed_transactions import decode_signed_transaction
 from wallets.exceptions import InvalidTransactionException
 from wallets.models import Holding, Transaction, Wallet, WalletSubmission
@@ -32,6 +33,7 @@ MAX_RECORDED_NONCE = 2**63 - 1
 
 
 def submit_evm_transfer(wallet, signed_transaction, *, principal_id, token_contract=None):
+    refuse_deferred_execution()
     if principal_id is None:
         raise InvalidTransactionException("A wallet submission requires its requesting user.")
     raw, decoded = _decode(signed_transaction)
@@ -271,13 +273,7 @@ def attempt_submission(submission_id):
             ):
                 return "receipt_available"
             return "receipt_identity_unavailable"
-        acknowledged_hash = client.broadcast_transaction("0x" + raw.hex())
-        if not transaction_hash_matches(acknowledged_hash, submission.tx_hash):
-            return "acknowledgement_unavailable"
+        return "held"
     except Exception:
         logger.warning("Wallet submission delivery remains unresolved")
         return "delivery_unavailable"
-    WalletSubmission.objects.filter(pk=submission.pk, acknowledged_at__isnull=True).update(
-        acknowledged_at=timezone.now(), updated_at=timezone.now()
-    )
-    return "acknowledged"

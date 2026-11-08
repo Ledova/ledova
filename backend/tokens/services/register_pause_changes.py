@@ -12,6 +12,7 @@ from companies.models import Company, CompanyAppointment, CompanyCapability
 from companies.services.administration import company_operation, lock_company_actor
 from operators.models import Operator
 from shared.db import atomic
+from shared.registry_scope import refuse_deferred_execution
 from tokens.exceptions import (
     InvalidTokenStateException,
     PauseChangeConflict,
@@ -141,6 +142,7 @@ def _command(actor, initial, operation, recorded=False):
 def prepare_pause_change(
     *, actor, operation_id, appointment, token, paused, reason, authority_reference, authority_evidence
 ):
+    refuse_deferred_execution()
     try:
         operation_id, appointment, token, authority_evidence = (
             UUID(str(value)) for value in (operation_id, appointment, token, authority_evidence)
@@ -308,6 +310,7 @@ def preview_pause_change_decision(*, actor, pause_change_id, appointment, kind, 
 def decide_pause_change(
     *, actor, pause_change_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""
 ):
+    refuse_deferred_execution()
     try:
         return decide(
             PAUSE_CHANGES,

@@ -7,6 +7,7 @@ from drf_spectacular.utils import (
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from shared.registry_scope import RegistryReadOnly
 from shared.views import AuthenticatedReadOnlyViewSet
 from tokens.models import RegisterDeployment
 from tokens.serializers.register_deployment import (
@@ -37,6 +38,7 @@ FILTERS = {"company": "company_id", "token": "token_id", "status": "status"}
     )
 )
 class RegisterDeploymentViewSet(AuthenticatedReadOnlyViewSet):
+    permission_classes = [*AuthenticatedReadOnlyViewSet.permission_classes, RegistryReadOnly]
     queryset = RegisterDeployment.objects.none()
     serializer_class = RegisterDeploymentSerializer
     scoped_model = RegisterDeployment

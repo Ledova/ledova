@@ -6,7 +6,6 @@ from whitelist.exceptions import WhitelistRemovalPending
 from whitelist.services import refresh
 
 
-@app.periodic(cron="*/5 * * * *")
 @app.task
 def refresh_whitelist_approvals(timestamp: int = 0):
     return refresh.sweep()

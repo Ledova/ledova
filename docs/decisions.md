@@ -84,6 +84,12 @@ historical records, lawful access arrangements, filings and corporate decisions.
 trading and blockchain execution are outside this release; their retained records and safeguards
 must not be discarded or weakened.
 
+The fixed backend boundary under #1587 refuses new payment, trading, wallet and chain-execution
+admissions regardless of stored feature flags. Scoped retained reads and genuine receipt
+reconciliation remain; unsigned work stays held and no recovery signs, broadcasts or replays a
+transaction. Manual chain smoke remains local-only. This adds no configurable product mode and
+does not change a live deployment until a separately authorised release.
+
 Preparation has four focused tracks: the software boundary (#1587), public web recovery (#1588),
 privacy, deletion, operator terms and software rights (#1589), then iOS distribution (#1590).
 Existing work under #1464, #1562 and the relevant physical iPhone checks under #624 is reused.

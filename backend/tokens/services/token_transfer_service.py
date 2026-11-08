@@ -9,6 +9,7 @@ from django.db.models import Q
 from integrations.base_chain import get_base_chain_client
 from operators.settlement import require_deployment
 from shared.db import atomic
+from shared.registry_scope import refuse_deferred_execution
 from shared.utils.token_amounts import token_base_units_ceiling
 from tokens.exceptions import (
     CreateOrderInsufficientBalanceException,
@@ -38,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 @atomic()
 def match_orders(buy_order: TransferOrder, sell_order: TransferOrder, match_quantity: Optional[int] = None) -> dict:
+    refuse_deferred_execution()
     locked = {
         order.pk: order for order in lock_orders(TransferOrder.objects.filter(pk__in=[buy_order.pk, sell_order.pk]))
     }
@@ -238,6 +240,7 @@ def _match_candidate(order, candidate, match_quantity):
 
 
 def take_one_match(order):
+    refuse_deferred_execution()
     refusal = None
     with closing(find_matching_orders(order)) as candidates:
         for matching_order, match_quantity in candidates:
@@ -265,6 +268,7 @@ def create_order_and_match(
     submission,
     order_id,
 ) -> tuple[TransferOrder, Optional[dict]]:
+    refuse_deferred_execution()
     try:
         wallet = (
             Wallet.objects.select_for_update(of=("self",), no_key=True).select_related("user_account").get(pk=wallet.pk)

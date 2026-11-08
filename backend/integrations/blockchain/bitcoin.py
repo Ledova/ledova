@@ -9,6 +9,8 @@ import bech32
 import requests
 from django.conf import settings
 
+from shared.registry_scope import refuse_deferred_execution
+
 from .base import BlockchainClient
 from .bitcoin_transactions import MAX_MONEY
 from .receipts import nonnegative_integer, normalized_hash, transaction_hash_matches
@@ -187,6 +189,7 @@ class BitcoinClient(BlockchainClient):
         return self._rpc_call("getmempoolentry", [tx_hash])
 
     def broadcast_transaction(self, signed_tx: str) -> str:
+        refuse_deferred_execution()
         try:
             self.assert_expected_network()
             tx_hash = self._rpc_call("sendrawtransaction", [signed_tx])

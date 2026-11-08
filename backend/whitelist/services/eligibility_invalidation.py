@@ -13,6 +13,7 @@ from companies.models import Company
 from companies.services.authority_requests import _requester_principal
 from integrations.base_chain import get_base_chain_client
 from shared.db import APP_ALIAS, atomic, current_alias, principal_of, use_operator
+from shared.registry_scope import refuse_deferred_execution
 from whitelist.exceptions import WhitelistChangeConflict
 from whitelist.models import (
     WhitelistAction,
@@ -224,6 +225,7 @@ def _same_change(change, command, intent, history):
 
 
 def admit_invalidation(submission_id, command):
+    refuse_deferred_execution()
     company = Company.objects.get(pk=command["company"])
     registry = registry_for(company, get_base_chain_client())
     if registry != command["registry"]:

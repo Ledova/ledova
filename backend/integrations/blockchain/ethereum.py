@@ -9,6 +9,7 @@ from web3 import Web3
 from web3.exceptions import TimeExhausted, TransactionNotFound
 
 from integrations.base_chain.exceptions import GasEstimationError
+from shared.registry_scope import refuse_deferred_execution
 from shared.utils.blockchain import failure_summary
 from shared.utils.token_amounts import token_base_units
 
@@ -170,6 +171,7 @@ class EthereumClient(BlockchainClient):
             raise
 
     def broadcast_transaction(self, signed_tx: str) -> str:
+        refuse_deferred_execution()
         try:
             self.assert_expected_chain()
             tx_hash = self.w3.eth.send_raw_transaction(signed_tx)

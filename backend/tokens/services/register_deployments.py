@@ -16,6 +16,7 @@ from companies.models import (
 from companies.services.company import primary_wallet_for
 from operators.models import Operator
 from shared.constants import BLOCKCHAIN_BASE
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
 from tokens.exceptions import (
     DeploymentSigningHold,
@@ -217,6 +218,7 @@ def _state(proposal):
 
 
 def prepare_deployment(*, actor, operation_id, appointment, token):
+    refuse_deferred_execution()
     try:
         operation_id, appointment, token_id = (UUID(str(value)) for value in (operation_id, appointment, token))
     except (ValueError, TypeError, AttributeError):
@@ -302,6 +304,7 @@ def _lock(proposal):
 
 
 def queue_deployment(**arguments):
+    refuse_deferred_execution()
     from tokens.tasks import deploy_share_token_task
 
     return defer(deploy_share_token_task, **arguments)
@@ -349,6 +352,7 @@ def preview_deployment_decision(*, actor, deployment_id, appointment, kind, reas
 def decide_deployment(
     *, actor, deployment_id, appointment, kind, idempotency_key, preview_digest, confirmation, reason=""
 ):
+    refuse_deferred_execution()
     try:
         return decide(
             DEPLOYMENTS,

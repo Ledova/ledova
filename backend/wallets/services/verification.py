@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from companies.services.authority_requests import _requester_principal
 from shared.db import atomic, use_operator
+from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.exceptions import (
@@ -34,6 +35,7 @@ def _locked_wallet(user, uuid):
 
 @atomic()
 def start_wallet_verification(user, uuid):
+    refuse_deferred_execution()
     wallet = _locked_wallet(user, uuid)
     wallet.verification_challenge_issued_at = timezone.now()
     wallet.verification_challenge = generate_verification_challenge(
@@ -44,6 +46,7 @@ def start_wallet_verification(user, uuid):
 
 
 def complete_wallet_verification(user, uuid, signature):
+    refuse_deferred_execution()
     with use_operator(), _requester_principal(user.pk), proof_producer(), atomic():
         return _complete_wallet_verification(user, uuid, signature)
 
