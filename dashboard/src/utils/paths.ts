@@ -21,7 +21,6 @@ export function certificatesLocation(location: Pick<Location, 'search' | 'state'
 export const SIGNUP_PATHS = {
   emailConfirmation: '/signup/email-confirmation',
   accountType: '/signup/account-type',
-  preScreening: '/signup/pre-screening',
   userProfile: '/signup/user-profile',
   companyRegistration: '/signup/company-registration',
   review: '/signup/review',
@@ -30,7 +29,6 @@ export const SIGNUP_PATHS = {
 export const SIGNUP_STEPS = [
   SIGNUP_PATHS.emailConfirmation,
   SIGNUP_PATHS.accountType,
-  SIGNUP_PATHS.preScreening,
   SIGNUP_PATHS.userProfile,
   SIGNUP_PATHS.companyRegistration,
   SIGNUP_PATHS.review,

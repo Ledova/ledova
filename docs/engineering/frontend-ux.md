@@ -1039,9 +1039,7 @@ This section covers how a form reports a problem: when it is submitted, and when
     needs. The app's Team, Activation, representative authority, inspection copy, company pack, Add
     person, particulars change, member access, employee award, vesting and entitlement-change and
     class rights forms use it too, showing each problem under its field without a summary.
-    A box that must be ticked is a `CheckboxField`,
-    except sign-up pre-screening's four declarations,
-    which keep their own layout with the same checks. Register import names each shareholder and allotment in its summary instead of linking
+    A box that must be ticked is a `CheckboxField`. Register import names each shareholder and allotment in its summary instead of linking
     to a field, and lists the problems current at the time. Its shareholder editor lists the problems
     with the shareholder being edited. A summary link focuses the control the field's label points
     to, or else the field's first control, including Headless UI checkboxes and radios.

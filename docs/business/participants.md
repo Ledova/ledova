@@ -29,11 +29,9 @@ original controls, not a supported new-action workflow.
 
 1. Create your account, verify your email and choose **Individual investor** as the account type.
    Company representatives follow [company signup](companies.md#company-signup).
-2. At **Eligibility check**, confirm that you are 18 or older, an Australian resident and opening an
-   individual account.
-3. Complete your personal profile, review it and choose **Complete signup**, which accepts the
-   Terms of Service and Privacy Policy. Signup does not collect financial-profile answers, on the
-   web or in the app.
+2. Complete your personal profile, review it and choose **Complete signup**, which accepts the
+   Terms of Service and Privacy Policy. Signup asks no eligibility questions and collects no
+   financial-profile answers, on the web or in the app.
 
 Signup does not include identity verification. Complete it afterwards on the web with the identity
 check's **Review** in **Settings → Account**; while the investor identity requirement is on, wallet

@@ -136,11 +136,7 @@ export function AccountTypeScreen() {
                   accessibilityLabel={option.title}
                   disabled={isSubmitting || !account}
                   style={[styles.choice, isSubmitting || !account ? styles.disabled : null]}
-                  onPress={() =>
-                    void chooseRole(option.role, () =>
-                      navigation.navigate(option.role === 'company' ? 'UserProfile' : 'PreScreening'),
-                    )
-                  }
+                  onPress={() => void chooseRole(option.role, () => navigation.navigate('UserProfile'))}
                 >
                   <Icon size={theme.icon.sizes.lg} color={theme.colors.text.muted} />
                   <View style={styles.choiceContent}>
