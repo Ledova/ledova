@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from rest_framework.exceptions import NotFound
 
 from integrations.kyc import get_kyc_provider
 from integrations.kyc.base import (
@@ -24,6 +25,8 @@ from shared.tasks.queue import defer
 from users.exceptions import VerificationTokenGenerationException
 from users.models.user_account import UserAccount
 from users.models.user_profile import UserProfile
+from users.services.accounts import lock_active_profile
+from users.services.erasure import queue_provider_erasure
 from whitelist.models import WhitelistInvalidationCause
 from whitelist.services.eligibility_invalidation import invalidation_writer_context
 from whitelist.services.refresh import enqueue_for_account
@@ -41,6 +44,11 @@ REVIEW_OUTCOME_MESSAGES = {
 
 
 def create_applicant(kyc_provider: KYCProvider, user_profile: UserProfile) -> dict:
+    with use_operator(), atomic():
+        user = lock_active_profile(user_profile)
+        if user is None:
+            raise NotFound("This account is closed.")
+        completion_email = user.email
     try:
         external_id = str(user_profile.uuid)
         result = kyc_provider.create_applicant(
@@ -48,22 +56,26 @@ def create_applicant(kyc_provider: KYCProvider, user_profile: UserProfile) -> di
             first_name=user_profile.full_name.split()[0] if user_profile.full_name else None,
             last_name=user_profile.full_name.split()[-1] if user_profile.full_name else None,
             dob=str(user_profile.date_of_birth) if user_profile.date_of_birth else None,
-            email=user_profile.user.email,
+            email=completion_email,
         )
 
         with use_operator(), atomic():
-            user_profile.refresh_from_db(from_queryset=UserProfile.objects.select_for_update())
             provider_name = kyc_provider.get_provider_name()
-            if provider_name == PROVIDER_KYCAID:
-                user_profile.kycaid_applicant_id = result["applicant_id"]
-                applicant_field = "kycaid_applicant_id"
+            closed = lock_active_profile(user_profile) is None
+            if closed:
+                queue_provider_erasure(user, provider_name, result.get("applicant_id"), completion_email)
             else:
-                user_profile.sumsub_applicant_id = result.get("applicant_id")
-                applicant_field = "sumsub_applicant_id"
-            user_profile.kyc_provider = provider_name
-            user_profile.save(update_fields=[applicant_field, "kyc_provider", "updated_at"])
+                applicant_field = "kycaid_applicant_id" if provider_name == PROVIDER_KYCAID else "sumsub_applicant_id"
+                setattr(user_profile, applicant_field, result.get("applicant_id"))
+                user_profile.kyc_provider = provider_name
+                user_profile.save(update_fields=[applicant_field, "kyc_provider", "updated_at"])
+
+        if closed:
+            raise NotFound("This account is closed.")
 
         return result
+    except NotFound:
+        raise
     except Exception as e:
         logger.error(
             f"Failed to create applicant for user profile {user_profile.uuid}: {e}",
@@ -73,6 +85,9 @@ def create_applicant(kyc_provider: KYCProvider, user_profile: UserProfile) -> di
 
 
 def get_verification_session(user_profile: UserProfile) -> VerificationSession:
+    with use_operator(), atomic():
+        if lock_active_profile(user_profile) is None:
+            raise NotFound("This account is closed.")
     kyc_provider = get_kyc_provider()
     external_id = str(user_profile.uuid)
 
@@ -82,11 +97,12 @@ def get_verification_session(user_profile: UserProfile) -> VerificationSession:
 
     applicant_id = user_profile.active_applicant_id
     try:
-        return kyc_provider.generate_session(applicant_id, external_id)
+        session = kyc_provider.generate_session(applicant_id, external_id)
     except Exception as e:
         logger.warning(f"generate_session failed for applicant {applicant_id}, re-creating: {e}")
         with use_operator(), atomic():
-            user_profile.refresh_from_db(from_queryset=UserProfile.objects.select_for_update())
+            if lock_active_profile(user_profile) is None:
+                raise NotFound("This account is closed.")
             provider_name = kyc_provider.get_provider_name()
             if provider_name == PROVIDER_KYCAID:
                 user_profile.kycaid_applicant_id = None
@@ -99,10 +115,17 @@ def get_verification_session(user_profile: UserProfile) -> VerificationSession:
         create_applicant(kyc_provider, user_profile)
         user_profile.refresh_from_db()
         applicant_id = user_profile.active_applicant_id
-        return kyc_provider.generate_session(applicant_id, external_id)
+        session = kyc_provider.generate_session(applicant_id, external_id)
+    with use_operator(), atomic():
+        if lock_active_profile(user_profile) is None:
+            raise NotFound("This account is closed.")
+    return session
 
 
 def get_verification_status(user_profile: UserProfile) -> dict:
+    with use_operator(), atomic():
+        if lock_active_profile(user_profile) is None:
+            raise NotFound("This account is closed.")
     kyc_provider = get_kyc_provider()
     applicant_id = user_profile.active_applicant_id
 
@@ -139,6 +162,9 @@ def get_verification_status(user_profile: UserProfile) -> dict:
         except Exception as e:
             logger.warning(f"Failed to extract verified data for applicant {applicant_id}: {e}")
 
+    with use_operator(), atomic():
+        if lock_active_profile(user_profile) is None:
+            raise NotFound("This account is closed.")
     return response_data
 
 
@@ -150,8 +176,8 @@ def update_status_from_normalized(user_profile: UserProfile, normalized: Normali
         user_account = (
             UserAccount.objects.select_for_update(no_key=True).filter(user_profile_id=user_profile.pk).first()
         )
-        get_user_model().objects.select_for_update(no_key=True).filter(pk=user_profile.user_id).first()
-        user_profile.refresh_from_db(from_queryset=UserProfile.objects.select_for_update())
+        if lock_active_profile(user_profile) is None:
+            return False
         previous_result = user_profile.review_result
         user_profile.verification_status = normalized.verification_status
         user_profile.review_result = normalized.review_result
@@ -275,14 +301,8 @@ def _trigger_risk_assessment(user_account, pep_data: Dict[str, Any]) -> None:
 
 def populate_profile(user_profile: UserProfile, extracted_data: Dict[str, Optional[str]]) -> bool:
     with use_operator(), atomic():
-        if (
-            not get_user_model()
-            .objects.select_for_update(no_key=True)
-            .filter(pk=user_profile.user_id, is_active=True)
-            .exists()
-        ):
+        if lock_active_profile(user_profile) is None:
             return False
-        user_profile.refresh_from_db(from_queryset=UserProfile.objects.select_for_update(no_key=True))
         changed = []
         for field, key in (
             ("full_name", "fullName"),

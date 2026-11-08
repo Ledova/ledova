@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CACHE_TIMING } from '../constants';
+import { CACHE_TIMING, TERMS_VERSION } from '../constants';
 import { getUserProfiles, updateUserProfile } from '../services/users';
 import type { UpdateUserProfile } from '../types';
 import { AUTH_QUERY_KEY, useAuth } from './useAuth';
@@ -11,6 +11,7 @@ import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { useApiClient } from './useApiClient';
 
 type PersonalDetails = Pick<UpdateUserProfile, 'fullName' | 'residentialAddress' | 'phoneCountryCode' | 'phoneNumber'>;
+type ProfileChanges = PersonalDetails | Pick<UpdateUserProfile, 'termsVersion' | 'termsAndConditions'>;
 
 export function useUserProfile({ session }: { session?: OrderSubmissionSession } = {}) {
   const apiClient = useApiClient();
@@ -65,7 +66,7 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
   const sourceKey = userProfile ? JSON.stringify([...key, snapshot]) : null;
   const ownerKey = owner && preferences?.status === 'success' ? JSON.stringify(key) : null;
   const update = useMutation({
-    mutationFn: async ({ data }: { data: PersonalDetails }) => {
+    mutationFn: async ({ data }: { data: ProfileChanges }) => {
       const sourceGuard = () => {
         guard();
         const query = client.getQueryState(key);
@@ -100,15 +101,10 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
     },
     onSuccess: () => client.invalidateQueries({ queryKey: key }),
   });
-  const updateProfile = (data: PersonalDetails, onSuccess: () => void) => {
+  const saveProfile = (data: ProfileChanges, onSuccess: () => void) => {
     if (!userProfile || profile.isFetching || profile.isError || update.isPending || pending.current) return;
     pending.current = true;
-    const body = Object.freeze({
-      fullName: data.fullName,
-      residentialAddress: data.residentialAddress,
-      phoneCountryCode: data.phoneCountryCode,
-      phoneNumber: data.phoneNumber,
-    });
+    const body = Object.freeze({ ...data });
     update.mutate(
       { data: body },
       {
@@ -121,11 +117,14 @@ export function useUserProfile({ session }: { session?: OrderSubmissionSession }
       },
     );
   };
+  const updateProfile = (data: PersonalDetails, onSuccess: () => void) => saveProfile(data, onSuccess);
+  const acceptTerms = (onSuccess: () => void) =>
+    saveProfile({ termsVersion: TERMS_VERSION, termsAndConditions: true }, onSuccess);
   const state = {
     ...profile,
     isLoading: isAuthenticated && preferences?.status !== 'error' && (!ownerReady || profile.isLoading),
     isError: preferences?.status === 'error' || profile.isError,
     isFetching: preferences?.fetchStatus === 'fetching' || profile.isFetching,
   };
-  return { userProfile, profile: state, update, updateProfile, sourceKey, ownerKey };
+  return { userProfile, profile: state, update, updateProfile, acceptTerms, sourceKey, ownerKey };
 }

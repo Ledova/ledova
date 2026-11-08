@@ -3945,6 +3945,7 @@ export interface ApiComponents {
     };
     CompanyAppointmentSourceEnum: 'initial' | 'invitation' | 'legacy_owner';
     CompanyAppointmentStatusEnum: 'active' | 'expired' | 'revoked';
+    CompanyAuthorityDeclarationVersionEnum: '2026-10-04';
     CompanyAuthorityRequest: {
       appointment: ApiComponents['schemas']['CompanyAppointment'] | null;
       company: string;
@@ -3971,10 +3972,9 @@ export interface ApiComponents {
       verificationStatus: ApiComponents['schemas']['CompanyAuthorityVerificationStatusEnum'];
       withdrawnAt: string | null;
     };
-    CompanyAuthorityRequestAdmissionDeclarationVersionEnum: '2026-10-14';
     CompanyAuthorityRequestAdmissionRequest: {
       acceptDeclaration: boolean;
-      declarationVersion: ApiComponents['schemas']['CompanyAuthorityRequestAdmissionDeclarationVersionEnum'];
+      declarationVersion: ApiComponents['schemas']['ServiceTermsVersionEnum'];
     };
     CompanyAuthorityRequestUploadRequest: {
       company: string;
@@ -4139,11 +4139,10 @@ export interface ApiComponents {
       inviterAppointment: string;
       uuid: string;
     };
-    CompanyTeamInvitationAcceptDeclarationVersionEnum: '2026-10-04';
     CompanyTeamInvitationAcceptRequest: {
       acceptDeclaration: boolean;
       code: string;
-      declarationVersion: ApiComponents['schemas']['CompanyTeamInvitationAcceptDeclarationVersionEnum'];
+      declarationVersion: ApiComponents['schemas']['CompanyAuthorityDeclarationVersionEnum'];
     };
     CompanyTeamInvitationCreateRequest: {
       acceptanceDeadline?: string | null;
@@ -5283,6 +5282,7 @@ export interface ApiComponents {
       residenceCountry?: string;
       residentialAddress?: string | null;
       termsAndConditions?: boolean;
+      termsVersion?: ApiComponents['schemas']['ServiceTermsVersionEnum'];
     };
     PatchedWalletRequest: {
       address?: string;
@@ -7023,6 +7023,7 @@ export interface ApiComponents {
     };
     ReviewResultEnum: 'GREEN' | 'RED' | 'YELLOW';
     RoleEnum: 'investor' | 'company' | 'both';
+    ServiceTermsVersionEnum: '2026-11-09';
     SettlementApprovalBroadcastRequest: {
       ownerAccountUuid: string;
       settlementDigest: string;
@@ -7485,6 +7486,11 @@ export interface ApiComponents {
       userRole: ApiComponents['schemas']['UserRoleEnum'];
       walletUuid: string;
     };
+    TermsAcceptance: {
+      acceptedAt: string;
+      statement: string;
+      version: string;
+    };
     TokenTypeEnum: 'ordinary' | 'preference' | 'redeemable';
     ToStatusEnum: 'cancelled';
     TradingWalletBalances: {
@@ -7607,6 +7613,7 @@ export interface ApiComponents {
       sumsubApplicantId: string | null;
       sumsubVerificationStatus:
         (ApiComponents['schemas']['UserVerificationStatusEnum'] | ApiComponents['schemas']['NullEnum']) | null;
+      termsAcceptance: ApiComponents['schemas']['TermsAcceptance'] | null;
       termsAndConditions?: boolean;
       uuid: string;
       verificationStatus:
@@ -7626,6 +7633,7 @@ export interface ApiComponents {
       residenceCountry?: string;
       residentialAddress?: string | null;
       termsAndConditions?: boolean;
+      termsVersion?: ApiComponents['schemas']['ServiceTermsVersionEnum'];
     };
     UserRoleEnum: 'buyer' | 'seller';
     UserSigninRequest: {

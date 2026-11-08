@@ -176,7 +176,7 @@ profile, else the identity recorded at allotment, else the member's recorded par
 name recorded at allotment (a labelled treasury address takes its recorded particulars before its
 label). Ledova sees wallets, not members, so a wallet emptied into another of the member's wallets
 on or after their date entered is left out; an earlier cessation stays, as the member ceased and
-holds again and section 169(3) keeps it, and so does a rotation before the opening, which cannot be
+holds again and section 169(7) keeps it, and so does a rotation before the opening, which cannot be
 told from a cessation. The list is marked as needing a refresh when last read over 24 hours ago.
 
 An import records former members from before Ledova, which the chain cannot rebuild. They must have

@@ -31,10 +31,10 @@ DECLARATION_TEXT = (
     "I am authorised to act for this company. The company is responsible for the company and share information "
     "it provides, its ASIC filings and legal obligations."
 )
-SIGNUP_DECLARATION_VERSION = "2026-10-14"
+SIGNUP_DECLARATION_VERSION = "2026-11-09"
 SIGNUP_DECLARATION_TEXT = (
     "I am authorised to set up and administer this company’s workspace, including managing its users, "
-    "and I accept the Terms of Service (version 2026-10-14) on the company’s behalf. The company is responsible "
+    "and I accept the Terms of Service (version 2026-11-09) on the company’s behalf. The company is responsible "
     "for the company and share information it provides, its ASIC filings and legal obligations."
 )
 

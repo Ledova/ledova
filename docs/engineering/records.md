@@ -841,7 +841,7 @@ The register CSV, the base of every inspection copy and of each class's `registe
    waiting to be recorded (when there are any, or `unknown`), and Reconciled with the chain: the
    latest result (its status or discrepancy count) with its block and time, `never`, or
    `not on chain` for an import-opened class.
-3. Former members, after an empty row and the heading "Former members (retained under s169(3) of the
+3. Former members, after an empty row and the heading "Former members (retained under s169(7) of the
    Corporations Act)": Name, Residential address, Wallet address, Shares held on ceasing, Date
    ceased, Identity source and Identity recorded at. A final As at row gives the fold's time, block
    and `stale` when stale; `never read` and `stale` before a chain class's first fold; or
@@ -1055,7 +1055,7 @@ one-step edit, whose `evidence` names its supporting copy instead), and `provide
 for a change a linked member made in their profile, `member`. `approvals.json`'s `listed` is computed at the as-at time as the registry would, so
 an active approval past its expiry is not listed, and `contracts.json` takes its registry addresses
 from it. `retain_until` is `FORMER_MEMBER_RETENTION_MONTHS` (84) after the member ceased
-([s169(3)](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years)).
+([s169(7)](../legal/positions.md#1-section-1697-members-who-ceased-in-the-last-seven-years)).
 
 ### Chain evidence
 

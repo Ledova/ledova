@@ -42,6 +42,8 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "ENUM_NAME_OVERRIDES": {
+        "ServiceTermsVersionEnum": ["2026-11-09"],
+        "CompanyAuthorityDeclarationVersionEnum": ["2026-10-04"],
         "ClassRightsVotingTypeEnum": ["not_recorded", "general", "conditional", "no_general_vote", "custom"],
         "ClassRightsDividendsTypeEnum": ["not_recorded", "participating", "preferential", "none", "custom"],
         "ClassRightsCapitalTypeEnum": ["not_recorded", "residual", "preferential", "custom"],

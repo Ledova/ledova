@@ -9,6 +9,7 @@ import {
   COMPANY_AUTHORITY_DECLARATION_VERSION,
   COMPANY_SIGNUP_DECLARATION,
   COMPANY_SIGNUP_DECLARATION_VERSION,
+  TERMS_VERSION,
   appointmentReceipt,
 } from '@ledova/shared';
 import { APPOINTMENT } from '../../../testSupport/company';
@@ -51,7 +52,9 @@ it('reuses saved company details and clearly accepts authority and Terms through
   expect(
     screen.getByText(/By completing setup, you confirm that you are authorised to administer Example Company/),
   ).toBeTruthy();
-  expect(screen.getByRole('link', { name: /Terms of Service/ }).getAttribute('href')).toMatch(/terms-of-service$/);
+  expect(screen.getByRole('link', { name: /Terms of Service/ }).getAttribute('href')).toContain(
+    `/terms-of-service/${TERMS_VERSION}`,
+  );
   expect(state.completeSignup).not.toHaveBeenCalled();
 
   vi.mocked(useReview).mockReturnValue({

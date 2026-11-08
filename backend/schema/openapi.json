@@ -1917,6 +1917,13 @@
         ],
         "type": "string"
       },
+      "CompanyAuthorityDeclarationVersionEnum": {
+        "description": "* `2026-10-04` - 2026-10-04",
+        "enum": [
+          "2026-10-04"
+        ],
+        "type": "string"
+      },
       "CompanyAuthorityRequest": {
         "properties": {
           "appointment": {
@@ -2092,20 +2099,13 @@
         ],
         "type": "object"
       },
-      "CompanyAuthorityRequestAdmissionDeclarationVersionEnum": {
-        "description": "* `2026-10-14` - 2026-10-14",
-        "enum": [
-          "2026-10-14"
-        ],
-        "type": "string"
-      },
       "CompanyAuthorityRequestAdmissionRequest": {
         "properties": {
           "acceptDeclaration": {
             "type": "boolean"
           },
           "declarationVersion": {
-            "$ref": "#/components/schemas/CompanyAuthorityRequestAdmissionDeclarationVersionEnum"
+            "$ref": "#/components/schemas/ServiceTermsVersionEnum"
           }
         },
         "required": [
@@ -2956,13 +2956,6 @@
         ],
         "type": "object"
       },
-      "CompanyTeamInvitationAcceptDeclarationVersionEnum": {
-        "description": "* `2026-10-04` - 2026-10-04",
-        "enum": [
-          "2026-10-04"
-        ],
-        "type": "string"
-      },
       "CompanyTeamInvitationAcceptRequest": {
         "properties": {
           "acceptDeclaration": {
@@ -2975,7 +2968,7 @@
             "writeOnly": true
           },
           "declarationVersion": {
-            "$ref": "#/components/schemas/CompanyTeamInvitationAcceptDeclarationVersionEnum"
+            "$ref": "#/components/schemas/CompanyAuthorityDeclarationVersionEnum"
           }
         },
         "required": [
@@ -8754,6 +8747,14 @@
           },
           "termsAndConditions": {
             "type": "boolean"
+          },
+          "termsVersion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ServiceTermsVersionEnum"
+              }
+            ],
+            "writeOnly": true
           }
         },
         "type": "object"
@@ -17634,6 +17635,13 @@
         ],
         "type": "string"
       },
+      "ServiceTermsVersionEnum": {
+        "description": "* `2026-11-09` - 2026-11-09",
+        "enum": [
+          "2026-11-09"
+        ],
+        "type": "string"
+      },
       "SettlementApprovalBroadcastRequest": {
         "properties": {
           "ownerAccountUuid": {
@@ -19987,6 +19995,29 @@
         ],
         "type": "object"
       },
+      "TermsAcceptance": {
+        "properties": {
+          "acceptedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
+          "statement": {
+            "readOnly": true,
+            "type": "string"
+          },
+          "version": {
+            "readOnly": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "acceptedAt",
+          "statement",
+          "version"
+        ],
+        "type": "object"
+      },
       "ToStatusEnum": {
         "description": "* `cancelled` - cancelled",
         "enum": [
@@ -20675,6 +20706,15 @@
             ],
             "readOnly": true
           },
+          "termsAcceptance": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TermsAcceptance"
+              }
+            ],
+            "nullable": true,
+            "readOnly": true
+          },
           "termsAndConditions": {
             "type": "boolean"
           },
@@ -20717,6 +20757,7 @@
           "reviewResult",
           "sumsubApplicantId",
           "sumsubVerificationStatus",
+          "termsAcceptance",
           "uuid",
           "verificationStatus",
           "verifiedAt"
@@ -20773,6 +20814,14 @@
           },
           "termsAndConditions": {
             "type": "boolean"
+          },
+          "termsVersion": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ServiceTermsVersionEnum"
+              }
+            ],
+            "writeOnly": true
           }
         },
         "required": [

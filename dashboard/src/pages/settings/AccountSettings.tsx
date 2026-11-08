@@ -9,6 +9,7 @@ import {
   formatShortDate,
   getUserVerificationStatus,
   VERIFICATION_TONES,
+  TERMS_VERSION,
 } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
@@ -19,7 +20,8 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { MEMBER_INVITATION_PATH } from '@utils/paths';
+import { MEMBER_INVITATION_PATH, SITE_PATHS } from '@utils/paths';
+import { SITE_URL } from '@utils/siteUrl';
 import { YourAppointments } from './YourAppointments';
 
 function SettingRow({ label, detail, action }: { label?: string; detail?: ReactNode; action: ReactNode }) {
@@ -149,6 +151,46 @@ export function AccountSettings() {
         </div>
         <Outcome>{passwordChanged && 'Your password was changed.'}</Outcome>
       </Section>
+      {profile.userProfile && (
+        <Section title="Terms of Service">
+          <SettingRow
+            label={
+              profile.userProfile.termsAcceptance?.version === TERMS_VERSION ? 'Accepted' : 'Review the current Terms'
+            }
+            detail={
+              profile.userProfile.termsAcceptance?.version === TERMS_VERSION
+                ? formatDateTime(profile.userProfile.termsAcceptance.acceptedAt)
+                : 'Accepting records this version for your account. Company records remain separate.'
+            }
+            action={
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <a
+                  href={`${SITE_URL}${SITE_PATHS.termsOfService}/${TERMS_VERSION}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-brand-light underline"
+                >
+                  Read Terms of Service
+                </a>
+                {profile.userProfile.termsAcceptance?.version !== TERMS_VERSION && (
+                  <PageAction
+                    compact
+                    label="Accept Terms"
+                    disabled={profile.isFetching || profile.isUpdating}
+                    onClick={() => {
+                      profile.resetUpdate();
+                      profile.acceptTerms(() => undefined);
+                    }}
+                  />
+                )}
+              </div>
+            }
+          />
+          {profile.updateError && (
+            <Failure>{failureSentence(profile.updateError, 'The Terms were not accepted. Try again.')}</Failure>
+          )}
+        </Section>
+      )}
       {profile.userProfile && (
         <Section title="Account details">
           <div className="divide-y divide-border-subtle">
@@ -281,7 +323,7 @@ export function AccountData() {
           />
           <SettingRow
             label="Delete account"
-            detail="Deactivates your account and removes personal details. Some records are retained."
+            detail="Ends sign-in and erases unnecessary personal details. Company records remain separate."
             action={
               <PageAction
                 compact
@@ -328,9 +370,9 @@ export function AccountData() {
       >
         <p className="mb-3 text-sm font-medium">This action cannot be undone.</p>
         <p className="text-sm text-text-muted">
-          This ends sign-in and removes your personal profile answers, financial answers, preferences, device tokens and
-          inbox notifications. Company records and documents, wallet, verification, compliance and session-security
-          records remain. Contact hello@ledova.io for other privacy requests.
+          This ends sign-in and erases unnecessary account details. Where an identity provider holds your documents,
+          permanent deletion is requested separately, with a target of 30 days. Company records, required security
+          receipts and specific legal holds remain separate. Contact hello@ledova.io for privacy questions.
         </p>
         {deleteMutation.isError && (
           <p role="alert" className="mt-3 text-sm text-error-light">

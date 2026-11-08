@@ -13,7 +13,8 @@ from compliance.constants import (
     BATCH_MONITORING_LOOKBACK_HOURS,
 )
 from ledova_backend.procrastinate_app import app
-from shared.db import use_operator
+from shared.db import atomic, use_operator
+from users.services.accounts import lock_active_profile
 
 logger = logging.getLogger(__name__)
 
@@ -72,27 +73,32 @@ def check_periodic_reviews(timestamp: int) -> str:
 
     flagged_count = 0
     for assessment in due_for_review:
-        already_open = ComplianceAlert.objects.filter(
-            user_account=assessment.user_account,
-            alert_type=ALERT_TYPE_PERIODIC_REVIEW,
-            status__in=[ALERT_STATUS_NEW, ALERT_STATUS_REVIEWING],
-        ).exists()
-        if already_open:
-            continue
-        ComplianceAlert.objects.create(
-            user_account=assessment.user_account,
-            alert_type=ALERT_TYPE_PERIODIC_REVIEW,
-            severity=ALERT_SEVERITY_MEDIUM,
-            triggered_rule="REVIEW-001",
-            description="Periodic risk assessment review required (24-month cycle)",
-            alert_data={
-                "assessment_uuid": str(assessment.uuid),
-                "current_rating": assessment.overall_risk_rating,
-                "valid_from": assessment.valid_from.isoformat() if assessment.valid_from else None,
-                "next_review_date": assessment.next_review_date.isoformat() if assessment.next_review_date else None,
-            },
-        )
-        flagged_count += 1
+        with atomic():
+            if lock_active_profile(assessment.user_account.user_profile) is None:
+                continue
+            already_open = ComplianceAlert.objects.filter(
+                user_account=assessment.user_account,
+                alert_type=ALERT_TYPE_PERIODIC_REVIEW,
+                status__in=[ALERT_STATUS_NEW, ALERT_STATUS_REVIEWING],
+            ).exists()
+            if already_open:
+                continue
+            ComplianceAlert.objects.create(
+                user_account=assessment.user_account,
+                alert_type=ALERT_TYPE_PERIODIC_REVIEW,
+                severity=ALERT_SEVERITY_MEDIUM,
+                triggered_rule="REVIEW-001",
+                description="Periodic risk assessment review required (24-month cycle)",
+                alert_data={
+                    "assessment_uuid": str(assessment.uuid),
+                    "current_rating": assessment.overall_risk_rating,
+                    "valid_from": assessment.valid_from.isoformat() if assessment.valid_from else None,
+                    "next_review_date": (
+                        assessment.next_review_date.isoformat() if assessment.next_review_date else None
+                    ),
+                },
+            )
+            flagged_count += 1
 
     logger.info(f"[PERIODIC_REVIEW] Flagged {flagged_count} assessments for periodic review")
     return f"Flagged {flagged_count} assessments for periodic review"

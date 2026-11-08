@@ -18,9 +18,11 @@ from integrations.kyc.constants import (
 )
 from integrations.kycaid.client import KYCAIDService
 from integrations.webhooks import is_stale
+from shared.db import atomic
 from shared.db.middleware import RunsOnTheOperatorConnection
 from users.models.user_profile import UserProfile
 from users.services import identity
+from users.services.accounts import lock_active_profile
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +59,11 @@ class KYCAIDWebhookView(RunsOnTheOperatorConnection, APIView):
                 user_profile = UserProfile.objects.get(kycaid_applicant_id=applicant_id)
             except (UserProfile.DoesNotExist, ValueError, ValidationError):
                 logger.warning("Rejected webhook: applicant id matched no profile")
-                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"success": True}, status=status.HTTP_200_OK)
+
+            with atomic():
+                if lock_active_profile(user_profile) is None:
+                    return Response({"success": True}, status=status.HTTP_200_OK)
 
             if event_type == KYCAID_EVENT_VERIFICATION_COMPLETED:
                 callback = data
@@ -84,8 +90,10 @@ class KYCAIDWebhookView(RunsOnTheOperatorConnection, APIView):
                 if new_status is None:
                     logger.warning("Ignored unrecognised verification status %r", reported_status)
                 else:
-                    user_profile.verification_status = new_status
-                    user_profile.save(update_fields=["verification_status", "updated_at"])
+                    with atomic():
+                        if lock_active_profile(user_profile) is not None:
+                            user_profile.verification_status = new_status
+                            user_profile.save(update_fields=["verification_status", "updated_at"])
 
             elif event_type == KYCAID_EVENT_DATABASE_SCREENING:
                 user_account = getattr(user_profile, "user_account", None)
