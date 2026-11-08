@@ -22,6 +22,7 @@ export function Field({
   autoFocus,
   hint,
   error,
+  filled,
   onChange,
 }: {
   label: string;
@@ -39,19 +40,21 @@ export function Field({
   autoFocus?: boolean;
   hint?: string;
   error?: string | null;
+  filled?: boolean;
   onChange: (value: string) => void;
 }) {
   const theme = useAppTheme();
   const styles = useCompanyStyles();
   return (
     <View style={styles.group}>
-      <Text style={styles.text}>{label}</Text>
+      <Text style={filled ? styles.filledLabel : styles.text}>{label}</Text>
       <TextInput
         clearButtonMode={clearable ? 'while-editing' : undefined}
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityState={{ disabled: !editable }}
         style={[
           styles.input,
+          filled && styles.filled,
           multiline && { minHeight: rows * 22 + 2 * theme.spacing.smd, textAlignVertical: 'top' as const },
         ]}
         value={value}
