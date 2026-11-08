@@ -1,9 +1,11 @@
-from shared.db import use_operator
+from shared.db import atomic, use_operator
 from users.models import DeviceToken
+from users.services.accounts import lock_active_user
 
 
 def register_device_token(user, push_token, device_type):
-    with use_operator():
+    with use_operator(), atomic():
+        lock_active_user(user)
         return DeviceToken.objects.update_or_create(
             push_token=push_token,
             defaults={"user": user, "device_type": device_type, "is_active": True},

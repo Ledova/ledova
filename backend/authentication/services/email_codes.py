@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from integrations.sendgrid_email import sendgrid_client
+from shared.db import atomic
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -30,17 +31,25 @@ class EmailCodeService:
     @staticmethod
     def send(user):
         try:
-            code = EmailCodeService.generate(6)
-            user.email_verification_token = _digest(user, code)
-            user.email_verification_sent_at = timezone.now()
-            user.email_verification_attempts = 0
-            user.save(
-                update_fields=[
-                    "email_verification_token",
-                    "email_verification_sent_at",
-                    "email_verification_attempts",
-                ]
-            )
+            with atomic():
+                user = (
+                    User.objects.select_for_update(no_key=True)
+                    .filter(pk=user.pk, email=user.email, is_active=True)
+                    .first()
+                )
+                if user is None:
+                    return False
+                code = EmailCodeService.generate(6)
+                user.email_verification_token = _digest(user, code)
+                user.email_verification_sent_at = timezone.now()
+                user.email_verification_attempts = 0
+                user.save(
+                    update_fields=[
+                        "email_verification_token",
+                        "email_verification_sent_at",
+                        "email_verification_attempts",
+                    ]
+                )
 
             email_body = render_to_string("email/verify_email.html", {"user": user, "token": code})
             result = sendgrid_client.send_email(

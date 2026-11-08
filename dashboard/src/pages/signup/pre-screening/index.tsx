@@ -31,7 +31,7 @@ export default function SignupPreScreening() {
       !form.confirmedAustralianResident && 'Confirm that you are currently an Australian resident.',
     confirmedIndividualAccount: !form.confirmedIndividualAccount && 'Confirm that you are acting on your own behalf.',
     acknowledgedWholesaleOnly:
-      !acknowledgedWholesaleOnly && 'Confirm that you understand share offerings here are wholesale only.',
+      !acknowledgedWholesaleOnly && 'Confirm that you understand Ledova records company share ownership.',
   });
 
   const handleContinue = async (e: React.FormEvent) => {
@@ -70,8 +70,8 @@ export default function SignupPreScreening() {
     },
     {
       key: 'acknowledgedWholesaleOnly' as const,
-      label: 'I understand share offerings here are wholesale only',
-      description: 'Offers are made without a disclosure document to wholesale and sophisticated investors.',
+      label: 'I understand Ledova records company share ownership',
+      description: 'Companies supply their own records and manage their legal share register.',
       checked: acknowledgedWholesaleOnly,
       onChange: () => toggleWholesaleOnly(),
     },
@@ -89,7 +89,7 @@ export default function SignupPreScreening() {
     <AuthLayout>
       <AuthHeader title="Eligibility check" icon={<ShieldCheckIcon size={ICON_MD} className="text-text-muted" />}>
         <p className="text-sm text-text-muted mt-1 px-4">
-          Before we continue, please confirm the following requirements to comply with Australian regulations.
+          Ledova records Australian private-company share ownership. Please confirm these account details.
         </p>
       </AuthHeader>
 

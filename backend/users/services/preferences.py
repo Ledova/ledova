@@ -1,9 +1,11 @@
 from shared.db import atomic
 from users.models import UserPreferences, UserProfile
+from users.services.accounts import lock_active_user
 
 
 @atomic()
 def upsert_user_preferences(user, fields):
+    lock_active_user(user)
     user_profile = _profile_locked_against_a_concurrent_upsert(user)
     existing = UserPreferences.objects.filter(user_profile=user_profile).first()
 

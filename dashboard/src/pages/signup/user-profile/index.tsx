@@ -30,11 +30,7 @@ export default function SignupUserProfile() {
   const handleSubmitProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     await handleSubmit(() => {
-      if (isCompany) {
-        navigate(SIGNUP_PATHS.companyRegistration);
-      } else {
-        navigate(SIGNUP_PATHS.financialProfile);
-      }
+      navigate(isCompany ? SIGNUP_PATHS.companyRegistration : SIGNUP_PATHS.review);
     });
   };
 

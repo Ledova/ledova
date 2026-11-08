@@ -65,7 +65,7 @@ it('accepts current company terms only on explicit completion, resumes setup wit
     createdAt: '2026-10-14T00:00:00Z',
     signupTerms: declarationVersion === '2026-10-14' && source === 'initial' ? termsReceipt() : retainedTerms,
   });
-  jest.spyOn(api, 'get').mockImplementation(async (url) => {
+  const reads = jest.spyOn(api, 'get').mockImplementation(async (url) => {
     if (url === '/api/auth/verify/') return { data: { valid: true } };
     if (url === '/api/user-preferences/') {
       if (preferencesMode === 'failed') throw new Error('Preferences refused');
@@ -329,5 +329,24 @@ it('accepts current company terms only on explicit completion, resumes setup wit
   expect(registration.result.current.form.name).toBe(company.name);
   expect(post.mock.calls.filter(([url]) => url === '/api/v1/companies/')).toHaveLength(1);
   registration.unmount();
+  query.clear();
+  mounted = renderHook(() => useSignupReview('investor', finished), { wrapper });
+  await waitFor(() => expect(mounted.result.current.isLoading).toBe(false));
+  expect(mounted.result.current.canCompleteSignup).toBe(false);
+  expect(reads.mock.calls.some(([url]) => url === '/api/financial-profiles/')).toBe(true);
+  mounted.unmount();
+  query.clear();
+  reads.mockClear();
+  mounted = renderHook(
+    () => useSignupReview('investor', finished, undefined, undefined, { requireFinancialProfile: false }),
+    { wrapper },
+  );
+  await waitFor(() => expect(mounted.result.current.canCompleteSignup).toBe(true));
+  expect(mounted.result.current.data.financialProfile).toBeNull();
+  expect(reads.mock.calls.some(([url]) => url === '/api/financial-profiles/')).toBe(false);
+  await act(async () => mounted.result.current.completeSignup());
+  expect(completedProfiles()).toHaveLength(5);
+  expect(finished).toHaveBeenCalledTimes(3);
+  mounted.unmount();
   query.clear();
 });

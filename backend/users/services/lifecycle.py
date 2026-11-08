@@ -15,7 +15,14 @@ from companies.models import CompanyAppointment, CompanyAuthorityRequest
 from portfolios.models import Portfolio
 from shared.db import atomic
 from shared.utils.token_amounts import plain_amount
-from users.models import FinancialProfile, UserAccount, UserProfile
+from users.models import (
+    DeviceToken,
+    FinancialProfile,
+    Notification,
+    UserAccount,
+    UserPreferences,
+    UserProfile,
+)
 from users.models.user_account import AccountRole
 from wallets.models import Transaction, Wallet
 from whitelist.services.eligibility_invalidation import invalidation_writer_context
@@ -28,7 +35,11 @@ def delete_account(user):
     with invalidation_writer_context(user):
         logger.info("Account deletion requested")
 
-        account = UserAccount.objects.select_for_update(no_key=True).filter(user_profile__user_id=user.pk).first()
+        account = (
+            UserAccount.objects.select_for_update(no_key=True, of=("self",))
+            .filter(user_profile__user_id=user.pk)
+            .first()
+        )
         user.refresh_from_db(from_queryset=user.__class__.objects.select_for_update(no_key=True))
         cause_fields = [field for field in ("is_active", "is_email_verified") if getattr(user, field)]
 
@@ -39,20 +50,36 @@ def delete_account(user):
         user.email = tombstone
         user.is_active = False
         user.is_email_verified = False
+        user.set_unusable_password()
+        user.email_verification_token = None
+        user.email_verification_sent_at = None
+        user.email_verification_attempts = 0
         if cause_fields and account is not None:
             enqueue_for_account(account.pk, user, cause_fields=cause_fields)
-        user.save(update_fields=["email", "is_active", "is_email_verified"])
+        user.save(
+            update_fields=[
+                "email",
+                "is_active",
+                "is_email_verified",
+                "password",
+                "email_verification_token",
+                "email_verification_sent_at",
+                "email_verification_attempts",
+            ]
+        )
 
         TokenService.revoke_all(user)
+        DeviceToken.objects.filter(user=user).delete()
+        Notification.objects.filter(user=user).delete()
 
         try:
-            profile = UserProfile.objects.get(user=user)
+            profile = UserProfile.objects.select_for_update(no_key=True).get(user=user)
+            for field, value in SIGNUP_ANSWERS.items():
+                setattr(profile, field, value)
             profile.full_name = "Deleted User"
-            profile.phone_country_code = None
-            profile.phone_number = None
-            profile.residential_address = None
-            profile.date_of_birth = None
-            profile.save()
+            profile.save(update_fields=[*SIGNUP_ANSWERS, "updated_at"])
+            FinancialProfile.objects.filter(user_profile=profile).delete()
+            UserPreferences.objects.filter(user_profile=profile).delete()
         except UserProfile.DoesNotExist:
             pass
 

@@ -274,30 +274,30 @@ def _trigger_risk_assessment(user_account, pep_data: Dict[str, Any]) -> None:
 
 
 def populate_profile(user_profile: UserProfile, extracted_data: Dict[str, Optional[str]]) -> bool:
-    profile_updated = False
-
-    full_name = extracted_data.get("fullName")
-    address = extracted_data.get("address")
-    date_of_birth = extracted_data.get("dateOfBirth")
-    residence_country = extracted_data.get("residenceCountry")
-
-    if full_name and not user_profile.full_name:
-        user_profile.full_name = full_name
-        profile_updated = True
-
-    if address and not user_profile.residential_address:
-        user_profile.residential_address = address
-        profile_updated = True
-
-    if date_of_birth and not user_profile.date_of_birth:
-        user_profile.date_of_birth = date_of_birth
-        profile_updated = True
-
-    if residence_country and not user_profile.residence_country:
-        user_profile.residence_country = Country.get_or_create_for_code(residence_country)
-        profile_updated = True
-
-    if profile_updated:
-        user_profile.save()
-
-    return profile_updated
+    with use_operator(), atomic():
+        if (
+            not get_user_model()
+            .objects.select_for_update(no_key=True)
+            .filter(pk=user_profile.user_id, is_active=True)
+            .exists()
+        ):
+            return False
+        user_profile.refresh_from_db(from_queryset=UserProfile.objects.select_for_update(no_key=True))
+        changed = []
+        for field, key in (
+            ("full_name", "fullName"),
+            ("residential_address", "address"),
+            ("date_of_birth", "dateOfBirth"),
+            ("residence_country", "residenceCountry"),
+        ):
+            value = extracted_data.get(key)
+            if value and not getattr(user_profile, field):
+                setattr(
+                    user_profile,
+                    field,
+                    Country.get_or_create_for_code(value) if field == "residence_country" else value,
+                )
+                changed.append(field)
+        if changed:
+            user_profile.save(update_fields=[*changed, "updated_at"])
+        return bool(changed)

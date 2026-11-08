@@ -634,23 +634,114 @@ should not be relied on.
 addresses; exports include them; former members' records are purged on the
 seven-year clock ([position 1](#1-section-1693-members-who-ceased-in-the-last-seven-years)).
 
-**The position.** In a company-hosted instance the Privacy Act question attaches
-to the company under its own status; in a registry service it attaches to the
-operator as well. Whether or not the exemption applies to the operator on a
-given day, the platform is built to the Australian Privacy Principles: a
-privacy policy, collection limited to what the register and the client's
-instructions need, access and correction on request, breach notification
-readiness, and no tax file numbers, which the registry service of historical
-analysis B has no reason to collect because it pays no dividends. The client
-company will ask for this, and becoming an AML reporting entity or trading in
-personal information would remove the exemption without notice.
+**The position.** Assess both the operator and each company's actual activities;
+neither a free service nor low turnover establishes an exemption. Follow the
+Australian Privacy Principles as the design baseline, without claiming that the
+implementation already satisfies them. The current preview notice, partial
+account closure and experimental evidence retention do not establish readiness
+for real personal information. No tax file numbers are requested.
+
+### Registry-only launch preparation
+
+**Accepted direction, 8 November 2026.** Under
+[#1586](https://github.com/Ledova/ledova/issues/1586), the owner selected Blueberry
+Money Pty Ltd to operate a free Australian private-company registry and ownership
+mirror, web first and mobile later. Under
+[#1589](https://github.com/Ledova/ledova/issues/1589), the owner also accepted
+removing legacy financial signup questions, erasing unnecessary account-only
+information on deletion and retaining justified company records separately.
+The web financial questionnaire is removed and bounded account-only erasure is
+implemented as described in [security](../engineering/security.md#account-closure-and-export).
+The decisions below remain pending; the preview still permits fictional records only.
+
+**Implementation direction; retention periods still undecided:**
+
+- Collect email, account security information and the person's name for access.
+  The web no longer asks source-of-funds, occupation or intended-use questions;
+  native onboarding remains for the later mobile increment. Justify birth date,
+  phone, country and any other required details by a specific function; preserve existing identity safeguards until their purpose
+  and requirements are settled.
+- On account deletion, erase unnecessary account-only details, financial answers,
+  credentials, verification codes and device tokens, and end sessions. Retain a
+  minimal actor reference where genuine company history requires it. The current
+  [erasure scope](../engineering/security.md#account-closure-and-export) does not
+  establish complete erasure or Apple's full deletion acceptance.
+- Keep company-held member records, approvals and evidence separately only for
+  an identified company purpose, legal requirement or justified legal claim.
+  Define each category's responsible party, period or end condition and disposal
+  mechanism. The former-member seven-year assumption is not a universal rule;
+  closing a sign-in must not erase protected company history.
+- Use short, purpose-specific periods for unused signup information, invitations,
+  security logs and unused uploads. Existing authentication and reset expiry
+  limits stay in [security](../engineering/security.md#authentication-and-sessions);
+  remaining periods need a decision and implementation. Explain retained data and
+  access, correction or deletion requests through the existing privacy contact.
+- Give authorised companies their existing exports and company pack before exit.
+  Agree what exit removes and what remains. Publish actual providers, processing
+  locations and disclosures, including collection of company-supplied member data.
+
+**Draft service wording, not accepted Terms:**
+
+> Blueberry Money Pty Ltd provides Ledova as a free recordkeeping and ownership
+> mirror for Australian private companies. We record company-supplied information
+> and authorised instructions. This service does not collect investment money,
+> arrange trading or execute blockchain transactions, and provides no legal,
+> investment or tax advice.
+>
+> You must already be authorised to establish and administer a company workspace.
+> Use individual accounts and appoint only people entitled to the permissions you
+> give them. The company is responsible for its information, corporate decisions,
+> legal register, historical records, lawful inspection arrangements and filings.
+> Copying records into Ledova does not establish legal ownership or replace those
+> arrangements.
+>
+> Company records remain separate from personal sign-in accounts. Closing an
+> account does not remove company records retained for an identified purpose.
+> Authorised users can obtain the available company exports and company pack.
+> Privacy, access, correction and deletion requests go to hello@ledova.io.
+
+Before acceptance, settle retention and exit, provider disclosures, confidentiality
+and permitted support access. Have availability, suspension, termination, changes,
+mandatory rights and proportionate liability reviewed for this actual service.
+
+Keep the accepted experimental Terms v2026-10-14 unchanged. A real-data agreement
+needs a new version across the backend and shared acceptance contract, with old
+receipts and matching Terms still accessible. The current company
+[receipt](../../backend/companies/models/signup_terms.py) records declaration,
+version and acceptance time, not the full Terms. Individual signup stores only
+writable `terms_and_conditions` and `is_signup_completed` booleans; these are not
+versioned acceptance evidence. Introduce explicit versioned individual acceptance
+without backfilling a version or date from those booleans. Company rollout must
+also update the version/text pins in its database guards through a reviewed
+migration, preserving earlier receipts. The operator's software
+permission ([position 5](#5-software-licensing-and-commercial-permission)) and
+PyMuPDF rights ([position 12](#12-pymupdf-an-agpl-runtime-dependency)) remain
+separate decisions; a public repository supplies neither automatically.
+
+**Sources rechecked 8 November 2026:** OAIC's
+[APP 3](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-3-app-3-collection-of-solicited-personal-information)
+on necessary, proportionate collection,
+[APP 5](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-5-app-5-notification-of-the-collection-of-personal-information)
+on collection notices, and
+[APP 11](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-11-app-11-security-of-personal-information)
+on destruction or de-identification with specific retention exceptions;
+[small-business guidance](https://www.oaic.gov.au/privacy/privacy-guidance-for-organisations-and-government-agencies/organisations/small-business)
+on coverage; and Apple's
+[account-deletion requirement](https://developer.apple.com/support/offering-account-deletion-in-your-app/).
+Apple requires removal of associated personal data not legally required to remain;
+deactivation alone is insufficient. Australian applicability, supplier terms and
+record-specific retention still need assessment for this operator and service.
 
 **What would show this wrong.** Nothing would make building to the principles
 wrong; what could change is the date compliance stops being voluntary.
 
 **Trigger.** The first real member's personal information.
 
-**Status.** Drafted 2026-09-15, awaiting the owner's sign-off.
+**Status.** Original privacy position drafted 2026-09-15; launch direction and
+data-minimisation direction accepted 2026-11-08. Web collection and account-only erasure are
+implemented; remaining identity-data purposes, retention periods, real-data service Terms and
+software permissions remain pending. Nothing here
+records a compliance determination or permission for live data.
 
 ## 11. The company's own fundraising and scheme obligations
 
