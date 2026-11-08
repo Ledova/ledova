@@ -285,12 +285,15 @@ Provider callbacks, profile and account writers recheck the fresh active user un
 inactive callbacks cannot repopulate erased details. Company-first profile locking is preserved.
 
 If a provider holds an applicant, closure creates a private operator-only erasure work item before
-clearing the profile. An operator must request **permanent** supplier deletion, not reversible
+clearing the profile. A signed callback for an unused duplicate provider profile is tracked in
+the same queue rather than overwriting the current applicant. An operator must request
+**permanent** supplier deletion, not reversible
 deactivation, and record genuine confirmation. The target is thirty days. Applicant IDs and the
 completion address are kept only for that follow-through, then cleared after confirmation and
 notice. A specific legal hold needs its case, reason and review date; it is not a blanket exemption
 for registry users. Pending, overdue and held items remain visible to the operator. No supplier
-request is silently treated as completed.
+request is silently treated as completed. An active account’s current applicant cannot be
+completed as erased; an unused duplicate additionally needs explicit operator confirmation.
 
 Stable user, profile and account identifiers remain for protected references. Company member
 particulars, associations, decisions, evidence and copied snapshots are retained separately for the

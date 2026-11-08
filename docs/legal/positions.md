@@ -105,14 +105,13 @@ The current plan removes the software modes and assigns ordinary register work
 to companies; the agency reading and any required terms must be revisited
 against the actual replacement service.
 
-**What this leaves undone, and it is not a legal question.** An agency
-relationship has to exist in the terms between the operator and each company.
-There are no such terms. That is a document to write, not advice to buy, and it
-is the gap to close first because it is free to close. In the registry service
-it is also the first onboarding artefact: a registry services agreement
-naming the company's authorised officers, requiring instructions in writing,
-fixing where the data is kept, promising an export on exit, disclaiming advice,
-and capping liability.
+**Current service terms.** The earlier analysis proposed an agency agreement and
+said none existed. The owner has since accepted registry-only Terms v2026-11-09
+under Blueberry Money, preserving company responsibility and promising the
+available exports. They do not claim to appoint Ledova as the company's legal
+register keeper or establish legal sufficiency of that historical agency reading.
+The [launch position](#registry-only-launch-preparation) records remaining live
+supplier/legal assessment and complete company-disposal gates.
 
 **The export trail.** Each register export is recorded durably: the
 requester, share class, register sequence, row counts, time and whether the

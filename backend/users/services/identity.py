@@ -44,28 +44,27 @@ REVIEW_OUTCOME_MESSAGES = {
 
 
 def create_applicant(kyc_provider: KYCProvider, user_profile: UserProfile) -> dict:
-    with use_operator(), atomic():
-        user = lock_active_profile(user_profile)
-        if user is None:
-            raise NotFound("This account is closed.")
-        completion_email = user.email
     try:
-        external_id = str(user_profile.uuid)
-        result = kyc_provider.create_applicant(
-            external_id,
-            first_name=user_profile.full_name.split()[0] if user_profile.full_name else None,
-            last_name=user_profile.full_name.split()[-1] if user_profile.full_name else None,
-            dob=str(user_profile.date_of_birth) if user_profile.date_of_birth else None,
-            email=completion_email,
-        )
-
         with use_operator(), atomic():
+            user = lock_active_profile(user_profile)
+            if user is None:
+                raise NotFound("This account is closed.")
             provider_name = kyc_provider.get_provider_name()
+            applicant_field = "kycaid_applicant_id" if provider_name == PROVIDER_KYCAID else "sumsub_applicant_id"
+            if getattr(user_profile, applicant_field):
+                return {"applicant_id": getattr(user_profile, applicant_field)}
+            completion_email = user.email
+            result = kyc_provider.create_applicant(
+                str(user_profile.uuid),
+                first_name=user_profile.full_name.split()[0] if user_profile.full_name else None,
+                last_name=user_profile.full_name.split()[-1] if user_profile.full_name else None,
+                dob=str(user_profile.date_of_birth) if user_profile.date_of_birth else None,
+                email=completion_email,
+            )
             closed = lock_active_profile(user_profile) is None
             if closed:
                 queue_provider_erasure(user, provider_name, result.get("applicant_id"), completion_email)
             else:
-                applicant_field = "kycaid_applicant_id" if provider_name == PROVIDER_KYCAID else "sumsub_applicant_id"
                 setattr(user_profile, applicant_field, result.get("applicant_id"))
                 user_profile.kyc_provider = provider_name
                 user_profile.save(update_fields=[applicant_field, "kyc_provider", "updated_at"])
@@ -98,24 +97,11 @@ def get_verification_session(user_profile: UserProfile) -> VerificationSession:
     applicant_id = user_profile.active_applicant_id
     try:
         session = kyc_provider.generate_session(applicant_id, external_id)
-    except Exception as e:
-        logger.warning(f"generate_session failed for applicant {applicant_id}, re-creating: {e}")
-        with use_operator(), atomic():
-            if lock_active_profile(user_profile) is None:
-                raise NotFound("This account is closed.")
-            provider_name = kyc_provider.get_provider_name()
-            if provider_name == PROVIDER_KYCAID:
-                user_profile.kycaid_applicant_id = None
-                applicant_field = "kycaid_applicant_id"
-            else:
-                user_profile.sumsub_applicant_id = None
-                applicant_field = "sumsub_applicant_id"
-            user_profile.save(update_fields=[applicant_field, "updated_at"])
-
-        create_applicant(kyc_provider, user_profile)
-        user_profile.refresh_from_db()
-        applicant_id = user_profile.active_applicant_id
-        session = kyc_provider.generate_session(applicant_id, external_id)
+    except Exception:
+        logger.warning("Identity verification session unavailable; existing applicant retained")
+        raise VerificationTokenGenerationException(
+            "Unable to initialize verification. Please try again later."
+        ) from None
     with use_operator(), atomic():
         if lock_active_profile(user_profile) is None:
             raise NotFound("This account is closed.")

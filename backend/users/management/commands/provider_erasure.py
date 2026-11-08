@@ -19,6 +19,7 @@ class Command(BaseCommand):
             "--reference", help="Opaque provider permanent-deletion confirmation reference; no personal data."
         )
         parser.add_argument("--confirm-permanent-deletion", action="store_true")
+        parser.add_argument("--confirm-unused-profile", action="store_true")
         parser.add_argument(
             "--release-hold-reference",
             help="Opaque authorisation reference resolving this item's specific retention hold.",
@@ -47,7 +48,12 @@ class Command(BaseCommand):
                     return
                 if not options["confirm_permanent_deletion"] or not options["reference"]:
                     raise CommandError("Require a permanent-deletion confirmation and --reference from the provider.")
-                item = complete_provider_erasure(item.pk, options["reference"], options["release_hold_reference"] or "")
+                item = complete_provider_erasure(
+                    item.pk,
+                    options["reference"],
+                    options["release_hold_reference"] or "",
+                    confirm_unused_profile=options["confirm_unused_profile"],
+                )
             except (AccountErasureWorkItem.DoesNotExist, ValueError) as error:
                 raise CommandError(str(error)) from error
             self.stdout.write(f"{item.pk} completed={item.completed_at.isoformat()}; applicant and contact cleared")

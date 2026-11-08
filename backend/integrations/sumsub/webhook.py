@@ -26,6 +26,7 @@ from shared.db.middleware import RunsOnTheOperatorConnection
 from users.models.user_profile import UserProfile
 from users.services import identity
 from users.services.accounts import lock_active_profile
+from users.services.erasure import queue_provider_erasure
 
 logger = logging.getLogger(__name__)
 
@@ -81,15 +82,20 @@ class SumSubWebhookView(RunsOnTheOperatorConnection, APIView):
             try:
                 with atomic():
                     user_profile = UserProfile.objects.get(uuid=external_user_id)
-                    if lock_active_profile(user_profile) is None:
+                    user = lock_active_profile(user_profile)
+                    if user is None:
+                        queue_provider_erasure(user_profile.user, PROVIDER_SUMSUB, applicant_id, "")
                         return Response({"success": True}, status=status.HTTP_200_OK)
-                    if user_profile.sumsub_applicant_id != applicant_id:
+                    if user_profile.sumsub_applicant_id and user_profile.sumsub_applicant_id != applicant_id:
+                        queue_provider_erasure(user, PROVIDER_SUMSUB, applicant_id, user.email)
+                        return Response({"success": True}, status=status.HTTP_200_OK)
+                    if not user_profile.sumsub_applicant_id:
                         user_profile.sumsub_applicant_id = applicant_id
                         user_profile.save(update_fields=["sumsub_applicant_id"])
 
             except (UserProfile.DoesNotExist, ValueError, ValidationError):
                 logger.warning("Rejected webhook: externalUserId matched no profile")
-                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"success": True}, status=status.HTTP_200_OK)
 
             if webhook_type in STATUS_BY_EVENT:
                 _record_status(user_profile, STATUS_BY_EVENT[webhook_type])

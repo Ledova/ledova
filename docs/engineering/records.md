@@ -1124,7 +1124,9 @@ as history.
 `GET /api/user-profiles/export-data/` returns the signed-in person's own data as one JSON document
 and takes no identifier. It runs on the application connection under the caller's own row-level
 policies ([tenancy](security.md#tenancy-model)), and `export_account_data` in
-[lifecycle.py](../../backend/users/services/lifecycle.py) selects only the caller's rows. Both
+[lifecycle.py](../../backend/users/services/lifecycle.py) selects only the caller's rows. Its bounded
+Terms-receipt query uses the operator connection for that exact user; it grants no wider receipt
+read to the app. Both
 clients call `exportAccountData` in `@ledova/shared` and name the file `ledova-data-export-<UTC
 date>.json`; the dashboard saves it from Settings, and the mobile app writes one private cache copy
 bound to the session current when the export was requested and hands it to the share sheet
@@ -1134,7 +1136,8 @@ bound to the session current when the export was requested and hands it to the s
 
 The document is `AccountExportData` in the schema: `exportedAt`, `user`, `profile`,
 `financialProfile`, `account`, `wallets`, `transactions` (every transaction of the account's
-wallets) and `portfolios`; a section with no row is `null`, or an empty list. Not in it:
+wallets), `portfolios` and `termsAcceptances` (version, acknowledgement and server recording time);
+a section with no row is `null`, or an empty list. Not in it:
 per-asset holdings, orders, notifications, the transaction-alerts switch and register particulars.
 
 ### Transaction evidence fields

@@ -22,7 +22,7 @@ from compliance.models import (
 )
 from integrations.kyc.constants import PROVIDER_KYCAID, PROVIDER_SUMSUB
 from portfolios.models import Portfolio
-from shared.db import atomic
+from shared.db import atomic, use_operator
 from shared.utils.token_amounts import plain_amount
 from users.models import (
     DeviceToken,
@@ -33,7 +33,7 @@ from users.models import (
     UserProfile,
 )
 from users.models.user_account import AccountRole
-from users.services.erasure import queue_provider_erasure
+from users.services.erasure import identity_retention_case, queue_provider_erasure
 from wallets.models import Transaction, Wallet
 from whitelist.services.eligibility_invalidation import invalidation_writer_context
 from whitelist.services.refresh import enqueue_for_account
@@ -86,14 +86,7 @@ def delete_account(user, *, automated=False):
 
         try:
             profile = UserProfile.objects.select_for_update(no_key=True).get(user=user)
-            held_case = (
-                ComplianceAlert.objects.filter(user_account=account)
-                .filter(Q(smr_required=True) | Q(smr_filed_at__isnull=False))
-                .order_by("created_at", "pk")
-                .first()
-                if account is not None
-                else None
-            )
+            held_case = identity_retention_case(account)
             for provider, field in (
                 (PROVIDER_KYCAID, "kycaid_applicant_id"),
                 (PROVIDER_SUMSUB, "sumsub_applicant_id"),
@@ -103,7 +96,6 @@ def delete_account(user, *, automated=False):
                     provider,
                     getattr(profile, field),
                     completion_email,
-                    (f"Review identity retention for flagged or filed case {held_case.pk}" if held_case else ""),
                 )
             for field, value in {**SIGNUP_ANSWERS, **IDENTITY_ANSWERS}.items():
                 setattr(profile, field, value)
@@ -215,6 +207,13 @@ def restart_signup(user, email, current_password):
 def export_account_data(user):
     logger.info("Data export requested")
 
+    with use_operator():
+        terms_acceptances = list(
+            TermsAcceptance.objects.filter(user_id=user.pk)
+            .order_by("created_at")
+            .values("version", "statement", "created_at")
+        )
+
     data = {
         "exported_at": timezone.now(),
         "user": {
@@ -228,11 +227,7 @@ def export_account_data(user):
         "wallets": [],
         "transactions": [],
         "portfolios": [],
-        "terms_acceptances": list(
-            TermsAcceptance.objects.filter(user=user)
-            .order_by("created_at")
-            .values("version", "statement", "created_at")
-        ),
+        "terms_acceptances": terms_acceptances,
     }
 
     profile = getattr(user, "userprofile", None)

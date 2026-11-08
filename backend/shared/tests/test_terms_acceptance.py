@@ -38,8 +38,9 @@ class TermsAcceptanceTest(APITransactionTestCase):
             {"terms_version": TERMS_VERSION},
             {**acknowledgement, "terms_version": "2026-10-14"},
         ):
-            refused = self.client.patch(endpoint, payload, format="json")
-            self.assertEqual(refused.status_code, 400, refused.content)
+            with self.subTest(payload=payload):
+                refused = self.client.patch(endpoint, payload, format="json")
+                self.assertEqual(refused.status_code, 400, refused.content)
         self.assertFalse(TermsAcceptance.objects.exists())
         with patch("users.services.profile.follow_profile", side_effect=ValidationError("Synthetic rollback")):
             rolled_back = self.client.patch(endpoint, {**acknowledgement, "full_name": "Changed"}, format="json")
@@ -76,7 +77,7 @@ class TermsAcceptanceTest(APITransactionTestCase):
                 lambda: TermsAcceptance.objects.filter(user=user).update(statement="Changed"),
                 lambda: TermsAcceptance.objects.filter(user=user).delete(),
             ):
-                with self.assertRaises(DatabaseError), atomic():
+                with self.subTest(change=change), self.assertRaises(DatabaseError), atomic():
                     change()
             with self.assertRaises(DatabaseError), atomic():
                 _mark(str(user.pk))

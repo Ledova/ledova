@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from io import StringIO
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
@@ -19,6 +19,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from authentication.managers.user import EmailLookupState
 from authentication.services.email_codes import EmailCodeService
 from authentication.services.sessions import SessionService
+from authentication.services.terms import TERMS_STATEMENT, TERMS_VERSION
 from authentication.services.tokens import TokenService
 from companies.models import Company
 from compliance.constants import IDENTITY_SCREENING_RULE
@@ -41,6 +42,7 @@ from tokens.models import (
     RegisterParticularsChange,
     RegisterPosition,
 )
+from users.exceptions import VerificationTokenGenerationException
 from users.models import (
     AccountErasureWorkItem,
     DeviceToken,
@@ -150,6 +152,27 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(accepted.status_code, 200, accepted.content)
         member_path = f"/api/v1/tokens/member-records/{accepted.json()['uuid']}/"
         self.assertEqual(member_client.get(member_path).status_code, 200)
+        accepted_terms = member_client.patch(
+            f"/api/user-profiles/{profile.pk}/",
+            {"terms_version": TERMS_VERSION, "terms_and_conditions": True, "is_signup_completed": True},
+            format="json",
+        )
+        self.assertEqual(accepted_terms.status_code, 200, accepted_terms.content)
+        foreign_client = APIClient()
+        foreign_client.force_authenticate(self.foreign)
+        foreign_terms = foreign_client.patch(
+            f"/api/user-profiles/{self.foreign_profile.pk}/",
+            {"terms_version": TERMS_VERSION, "terms_and_conditions": True, "is_signup_completed": True},
+            format="json",
+        )
+        self.assertEqual(foreign_terms.status_code, 200, foreign_terms.content)
+        exported = member_client.get("/api/user-profiles/export-data/")
+        self.assertEqual(exported.status_code, 200, exported.content)
+        self.assertEqual(exported.json()["user"]["email"], subject.email)
+        self.assertEqual(len(exported.json()["termsAcceptances"]), 1)
+        self.assertEqual(exported.json()["termsAcceptances"][0]["version"], TERMS_VERSION)
+        self.assertEqual(exported.json()["termsAcceptances"][0]["statement"], TERMS_STATEMENT)
+        self.assertTrue(exported.json()["termsAcceptances"][0]["createdAt"])
         retained_models = (
             Company,
             MemberInvitation,
@@ -326,6 +349,14 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             reset_principal()
             profile.kycaid_applicant_id = "provider-held-applicant"
             profile.save(update_fields=["kycaid_applicant_id"])
+            provider = Mock()
+            provider.generate_session.side_effect = RuntimeError("transient timeout")
+            with patch("users.services.identity.get_kyc_provider", return_value=provider):
+                with self.assertRaises(VerificationTokenGenerationException):
+                    identity.get_verification_session(profile)
+                provider.create_applicant.assert_not_called()
+            profile.refresh_from_db()
+            self.assertEqual(profile.kycaid_applicant_id, "provider-held-applicant")
             held = ComplianceAlert.objects.create(
                 user_account=profile.user_account,
                 alert_type="manual",
@@ -393,6 +424,19 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             self.assertIsNotNone(item.completed_at)
             self.assertEqual(item.applicant_id, "")
             self.assertEqual(item.completion_email, "")
+            inactive = get_user_model().objects.bulk_create(
+                [
+                    get_user_model()(
+                        email=f"inactive-signup-{number}@example.test",
+                        password="!disabled",
+                        is_active=False,
+                        date_joined=old,
+                    )
+                    for number in range(100)
+                ]
+            )
+            UserProfile.objects.bulk_create([UserProfile(user=user) for user in inactive])
+            UserProfile.objects.filter(user__in=inactive).update(created_at=old, updated_at=old)
             with patch("shared.tasks.job_retention.app.job_manager.delete_old_jobs", new=AsyncMock()):
                 self.assertEqual(remove_old_jobs()["abandoned_signups"], 1)
             self.assertFalse(OutstandingToken.objects.filter(pk=expired.pk).exists())
@@ -406,3 +450,59 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(self.owner.email_verification_token, "fresh-code")
             self.assertIsNone(self.foreign.email_verification_token)
             self.assertTrue(Company.objects.filter(pk=self.company.pk, owner=self.owner).exists())
+
+        late_user, late_profile = person("late-provider-erasure")
+        with use_operator():
+            reset_principal()
+            late_case = ComplianceAlert.objects.create(
+                user_account=late_profile.user_account,
+                alert_type="manual",
+                severity="high",
+                triggered_rule="late-case",
+                description="Specific held case",
+                smr_required=True,
+            )
+        provider = Mock()
+        provider.get_provider_name.return_value = "kycaid"
+
+        def respond_after_closure(*args, **kwargs):
+            with use_operator():
+                delete_account(late_user, automated=True)
+            return {"applicant_id": "late-held-applicant"}
+
+        provider.create_applicant.side_effect = respond_after_closure
+        with self.assertRaises(NotFound):
+            identity.create_applicant(provider, late_profile)
+        with use_operator():
+            late_item = AccountErasureWorkItem.objects.get(user=late_user)
+            self.assertIn(str(late_case.pk), late_item.hold_reason)
+            self.assertIsNotNone(late_item.review_due_at)
+            with self.assertRaises(ValueError):
+                complete_provider_erasure(late_item.pk, "provider-confirmation")
+
+        duplicate_user, duplicate_profile = person("duplicate-provider")
+        with use_operator():
+            duplicate_profile.sumsub_applicant_id = "current-sumsub-profile"
+            duplicate_profile.save(update_fields=["sumsub_applicant_id"])
+        with patch("integrations.sumsub.webhook.SumSubService.verify_webhook_signature", return_value=True):
+            response = APIClient().post(
+                "/webhooks/sumsub/",
+                {
+                    "type": "applicantPending",
+                    "applicantId": "duplicate-sumsub-profile",
+                    "externalUserId": str(duplicate_profile.pk),
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, 200, response.content)
+        with use_operator():
+            duplicate_profile.refresh_from_db()
+            self.assertEqual(duplicate_profile.sumsub_applicant_id, "current-sumsub-profile")
+            duplicate = AccountErasureWorkItem.objects.get(user=duplicate_user)
+            self.assertEqual(duplicate.applicant_id, "duplicate-sumsub-profile")
+            with self.assertRaises(ValueError):
+                complete_provider_erasure(duplicate.pk, "duplicate-erased")
+            with patch("users.services.erasure.sendgrid_client.send_email", return_value={"success": True}):
+                complete_provider_erasure(duplicate.pk, "duplicate-erased", confirm_unused_profile=True)
+            duplicate_profile.refresh_from_db()
+            self.assertEqual(duplicate_profile.sumsub_applicant_id, "current-sumsub-profile")

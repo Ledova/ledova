@@ -10,6 +10,7 @@ import { useSignupReview } from '../../src/hooks/useSignupReview';
 import {
   COMPANY_AUTHORITY_DECLARATION,
   COMPANY_SIGNUP_DECLARATION,
+  COMPANY_SIGNUP_DECLARATION_VERSION,
 } from '../../src/constants/business/company-authority';
 
 afterEach(() => {
@@ -33,7 +34,7 @@ it('accepts current company terms only on explicit completion, resumes setup wit
   const withdrawnRequests: Record<string, unknown>[] = [];
   let requestSubmissions = 0;
   let effective = false;
-  let declarationVersion = '2026-10-14';
+  let declarationVersion = COMPANY_SIGNUP_DECLARATION_VERSION;
   let source = 'initial';
   let delegation = ['admin', 'prepare', 'approve', 'apply', 'finance', 'read_register'];
   let expiresAt: string | null = null;
@@ -45,9 +46,9 @@ it('accepts current company terms only on explicit completion, resumes setup wit
     appointment: 'appointment-a',
     acceptedBy: 1,
     acceptedProfile: profile.uuid,
-    declarationVersion: '2026-10-14',
+    declarationVersion: COMPANY_SIGNUP_DECLARATION_VERSION,
     declarationText: COMPANY_SIGNUP_DECLARATION,
-    acceptedAt: '2026-10-14T00:00:00Z',
+    acceptedAt: `${COMPANY_SIGNUP_DECLARATION_VERSION}T00:00:00Z`,
   });
   let failProfileCompletion = true;
   let refuseReads = false;
@@ -58,12 +59,18 @@ it('accepts current company terms only on explicit completion, resumes setup wit
     capabilities: ['admin'],
     isEffective: effective,
     declarationVersion,
-    declarationText: declarationVersion === '2026-10-14' ? COMPANY_SIGNUP_DECLARATION : COMPANY_AUTHORITY_DECLARATION,
+    declarationText:
+      declarationVersion === COMPANY_SIGNUP_DECLARATION_VERSION
+        ? COMPANY_SIGNUP_DECLARATION
+        : COMPANY_AUTHORITY_DECLARATION,
     delegatableCapabilities: delegation,
     expiresAt,
     source,
     createdAt: '2026-10-14T00:00:00Z',
-    signupTerms: declarationVersion === '2026-10-14' && source === 'initial' ? termsReceipt() : retainedTerms,
+    signupTerms:
+      declarationVersion === COMPANY_SIGNUP_DECLARATION_VERSION && source === 'initial'
+        ? termsReceipt()
+        : retainedTerms,
   });
   jest.spyOn(api, 'get').mockImplementation(async (url) => {
     if (url === '/api/auth/verify/') return { data: { valid: true } };
@@ -121,13 +128,13 @@ it('accepts current company terms only on explicit completion, resumes setup wit
       return { data: withdrawn };
     }
     if (url === '/api/v1/company-authority/requests/request-b/admit/') {
-      expect(body).toEqual({ declarationVersion: '2026-10-14', acceptDeclaration: true });
+      expect(body).toEqual({ declarationVersion: COMPANY_SIGNUP_DECLARATION_VERSION, acceptDeclaration: true });
       effective = true;
       request = { ...request, status: 'admitted', appointment: appointment() };
       return { data: request };
     }
     if (url === '/api/v1/company-authority/appointments/appointment-a/signup-terms/') {
-      expect(body).toEqual({ declarationVersion: '2026-10-14', acceptDeclaration: true });
+      expect(body).toEqual({ declarationVersion: COMPANY_SIGNUP_DECLARATION_VERSION, acceptDeclaration: true });
       retainedTerms ??= termsReceipt();
       return { data: appointment() };
     }
@@ -139,6 +146,7 @@ it('accepts current company terms only on explicit completion, resumes setup wit
       return { data: company };
     }
     if (url === '/api/user-profiles/profile-a/') {
+      expect(body).toMatchObject({ termsVersion: COMPANY_SIGNUP_DECLARATION_VERSION, termsAndConditions: true });
       if (failProfileCompletion) throw new Error('Profile completion interrupted');
       return { data: { ...profile, isSignupCompleted: true } };
     }

@@ -309,7 +309,8 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
-    "users_accounterasureworkitem": "Provider-erasure follow-up for an already closed account. The bounded account "
+    "users_accounterasureworkitem": "Provider-erasure follow-up for closed accounts or unused duplicate provider "
+    "profiles. The bounded account "
     "closure service records the minimum applicant identifier and completion contact on the operator connection; "
     "the operator command confirms permanent provider deletion, delivers confirmation and clears both fields. "
     "The app role has no grants or direct rows.",
