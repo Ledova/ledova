@@ -53,11 +53,10 @@ export function PrivacyPolicy() {
             <ul className={LIST}>
               <li>
                 <strong className={LABEL}>When you register:</strong> your email address, a password (kept only as a
-                one-way hash), and your full name, date of birth, phone number and residential address. Investors also
-                confirm they are 18 or older, an Australian resident and opening an individual account. The web signup
-                and native signup do not ask for occupation, source of funds or intended use; earlier preview records
-                can include these answers. Contact details support account and identity-check workflows; birth date
-                supports age and configured identity checks, not company ownership calculations.
+                one-way hash), and your full name, date of birth, phone number and residential address. Web and native
+                signup do not ask for occupation, source of funds or intended use; earlier preview records can include
+                these answers. Contact details support account and identity-check workflows; birth date supports
+                configured identity checks, not company ownership calculations.
               </li>
               <li>
                 <strong className={LABEL}>What you record:</strong> company details, share classes, holdings and awards,
