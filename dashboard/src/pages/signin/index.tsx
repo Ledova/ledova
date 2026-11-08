@@ -11,7 +11,7 @@ import {
   AuthField,
   AUTH_LINK_CLASS,
 } from '@components/auth';
-import { ROOT_PATH, SIGNUP_PATH } from '@utils/paths';
+import { PASSWORD_RESET_PATH, ROOT_PATH, SIGNUP_PATH } from '@utils/paths';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSignIn } from './useSignIn';
 import { EyeIcon, EyeSlashIcon, EnvelopeIcon, LockIcon } from '@phosphor-icons/react';
@@ -93,6 +93,12 @@ function SignInPage() {
               {showPassword ? <EyeSlashIcon size={ICON_MD} /> : <EyeIcon size={ICON_MD} />}
             </button>
           </AuthField>
+
+          <div className="text-right text-sm">
+            <Link to={PASSWORD_RESET_PATH} className={AUTH_LINK_CLASS}>
+              Forgot password?
+            </Link>
+          </div>
 
           <AuthSubmit busy={isLoading} busyLabel="Signing in…">
             Sign in

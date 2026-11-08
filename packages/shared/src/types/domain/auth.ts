@@ -18,3 +18,7 @@ export type AuthVerificationResponse = ApiResponse<'api_auth_verify_retrieve'>;
 export type ChangePasswordRequest = ApiRequest<'api_change_password_create'>;
 
 export type ChangePasswordResponse = ApiResponse<'api_change_password_create'>;
+
+export type PasswordResetRequest = ApiRequest<'api_password_reset_request_create'>;
+
+export type PasswordResetConfirmRequest = ApiRequest<'api_password_reset_confirm_create'>;

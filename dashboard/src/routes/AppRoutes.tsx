@@ -8,6 +8,7 @@ import {
   COMPANY_DASHBOARD_PATH,
   ROOT_PATH,
   SIGNIN_PATH,
+  PASSWORD_RESET_PATH,
   SIGNUP_PATHS,
   NOT_FOUND_PATH,
   MEMBER_INVITATION_PATH,
@@ -19,6 +20,7 @@ import {
   MemberInvitationPage,
   NotFoundPage,
   SignInPage,
+  PasswordResetPage,
   SignupAccountType,
   SignupCompanyRegistration,
   SignupEmailConfirmation,
@@ -47,6 +49,7 @@ export function AppRoutes() {
       <Routes>
         <Route path={ROOT_PATH} element={<RootRedirect />} />
         <Route path={MEMBER_INVITATION_PATH} element={<MemberInvitationPage />} />
+        <Route path={PASSWORD_RESET_PATH} element={<PasswordResetPage />} />
 
         <Route
           path={SIGNIN_PATH}

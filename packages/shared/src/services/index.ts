@@ -8,6 +8,8 @@ export {
   refreshToken,
   verifyAuth,
   changePassword,
+  requestPasswordReset,
+  confirmPasswordReset,
 } from './auth';
 export { getUserAccount, setAccountRole } from './userAccount';
 export { createFinancialProfile, updateFinancialProfile, getFinancialProfiles } from './financialProfile';

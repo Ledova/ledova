@@ -938,18 +938,21 @@
           "currentPassword": {
             "maxLength": 255,
             "minLength": 1,
+            "pattern": "\\S",
             "type": "string",
             "writeOnly": true
           },
           "newPassword": {
             "maxLength": 255,
             "minLength": 1,
+            "pattern": "\\S",
             "type": "string",
             "writeOnly": true
           },
           "newPasswordConfirm": {
             "maxLength": 255,
             "minLength": 1,
+            "pattern": "\\S",
             "type": "string",
             "writeOnly": true
           }
@@ -8491,6 +8494,70 @@
           "capped"
         ],
         "type": "string"
+      },
+      "PasswordResetCompleted": {
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
+      },
+      "PasswordResetConfirmRequest": {
+        "properties": {
+          "newPassword": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string",
+            "writeOnly": true
+          },
+          "token": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          },
+          "uid": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "newPassword",
+          "token",
+          "uid"
+        ],
+        "type": "object"
+      },
+      "PasswordResetRequestRequest": {
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "PasswordResetRequested": {
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "type": "object"
       },
       "PatchedCompanyUpdateRequest": {
         "properties": {
@@ -19519,6 +19586,7 @@
           "currentPassword": {
             "maxLength": 255,
             "minLength": 1,
+            "pattern": "\\S",
             "type": "string",
             "writeOnly": true
           },
@@ -20730,6 +20798,7 @@
           "password": {
             "maxLength": 255,
             "minLength": 1,
+            "pattern": "\\S",
             "type": "string",
             "writeOnly": true
           }
@@ -20750,12 +20819,14 @@
           "password": {
             "maxLength": 255,
             "minLength": 1,
+            "pattern": "\\S",
             "type": "string",
             "writeOnly": true
           },
           "passwordConfirm": {
             "maxLength": 255,
             "minLength": 1,
+            "pattern": "\\S",
             "type": "string",
             "writeOnly": true
           }
@@ -22504,6 +22575,92 @@
           {
             "cookieAuth": []
           }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/password-reset/confirm/": {
+      "post": {
+        "operationId": "api_password_reset_confirm_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirmRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirmRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirmRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResetCompleted"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {}
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/password-reset/request/": {
+      "post": {
+        "operationId": "api_password_reset_request_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequestRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequestRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordResetRequested"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {}
         ],
         "tags": [
           "api"

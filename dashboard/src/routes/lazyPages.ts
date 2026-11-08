@@ -19,6 +19,7 @@ export const NotFoundPage = lazy(() => import('@pages/not-found'));
 export const SettingsPage = lazy(() => import('@pages/settings'));
 export const ShareClassPage = lazy(() => import('@pages/company/ledger/detail'));
 export const SignInPage = lazy(() => import('@pages/signin'));
+export const PasswordResetPage = lazy(() => import('@pages/reset-password'));
 export const SignupAccountType = lazy(() => import('@pages/signup/account-type'));
 export const SignupCompanyRegistration = lazy(() => import('@pages/signup/company-registration'));
 export const SignupEmailConfirmation = lazy(() => import('@pages/signup/email-confirmation'));

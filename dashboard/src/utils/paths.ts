@@ -3,6 +3,7 @@ import type { Location } from 'react-router-dom';
 
 export const ROOT_PATH = '/';
 export const SIGNIN_PATH = '/signin';
+export const PASSWORD_RESET_PATH = '/reset-password';
 export const MEMBER_INVITATION_PATH = '/member-invitation';
 export const SIGNUP_PATH = '/signup';
 export const NOT_FOUND_PATH = '*';

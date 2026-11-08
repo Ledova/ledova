@@ -27,6 +27,8 @@ from authentication.schema import (
 from authentication.serializers.user import (
     ChangePasswordSerializer,
     EmailVerificationSerializer,
+    PasswordResetConfirmSerializer,
+    PasswordResetRequestSerializer,
     ResendVerificationSerializer,
     SignupRestartSerializer,
     UserSigninSerializer,
@@ -34,9 +36,20 @@ from authentication.serializers.user import (
 )
 from authentication.services.email_codes import EmailCodeService
 from authentication.services.email_lookup import find_unique_user
+from authentication.services.password_reset import (
+    REQUEST_MESSAGE,
+    RESET_MESSAGE,
+    queue_password_reset,
+    reset_password,
+)
 from authentication.services.sessions import SessionService
 from authentication.services.tokens import TokenService
-from authentication.throttles import EmailRateThrottle
+from authentication.throttles import (
+    EmailRateThrottle,
+    PasswordResetEmailThrottle,
+    PasswordResetIPThrottle,
+    PasswordResetProofThrottle,
+)
 from shared.views.principal import SetsThePrincipalOnTheConnection
 from users.services import lifecycle
 
@@ -109,6 +122,13 @@ class AuthViewSet(SetsThePrincipalOnTheConnection, TokenCookieMixin, ViewSet):
         throttles = super().get_throttles()
         if self.action in self.email_throttled_actions:
             throttles.append(EmailRateThrottle())
+        if self.action in {"password_reset_request", "password_reset_confirm"}:
+            throttles.append(PasswordResetIPThrottle())
+            throttles.append(
+                PasswordResetEmailThrottle()
+                if self.action == "password_reset_request"
+                else PasswordResetProofThrottle()
+            )
         return throttles
 
     def get_permissions(self):
@@ -134,6 +154,29 @@ class AuthViewSet(SetsThePrincipalOnTheConnection, TokenCookieMixin, ViewSet):
 
         response_serializer = UserSignupSerializer(instance=user)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        request=PasswordResetRequestSerializer,
+        responses=inline_serializer(name="PasswordResetRequested", fields={"message": serializers.CharField()}),
+    )
+    @action(detail=False, methods=["post"], url_path="password-reset/request", authentication_classes=[])
+    def password_reset_request(self, request):
+        serializer = PasswordResetRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        queue_password_reset(serializer.validated_data["email"])
+        return Response({"message": REQUEST_MESSAGE}, headers={"Cache-Control": "no-store"})
+
+    @extend_schema(
+        request=PasswordResetConfirmSerializer,
+        responses=inline_serializer(name="PasswordResetCompleted", fields={"message": serializers.CharField()}),
+    )
+    @action(detail=False, methods=["post"], url_path="password-reset/confirm", authentication_classes=[])
+    def password_reset_confirm(self, request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        reset_password(**serializer.validated_data)
+        response = Response({"message": RESET_MESSAGE}, headers={"Cache-Control": "no-store"})
+        return self.clear_token_cookies(response)
 
     @extend_schema(
         request=SignupRestartSerializer,
@@ -174,8 +217,7 @@ class AuthViewSet(SetsThePrincipalOnTheConnection, TokenCookieMixin, ViewSet):
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
 
-        user = SessionService.login(email, password)
-        access_token, refresh_token = TokenService.issue(user)
+        user, access_token, refresh_token = SessionService.login(email, password)
         return self.session_response(request, UserSigninSerializer(instance=user).data, access_token, refresh_token)
 
     @extend_schema(
@@ -280,15 +322,7 @@ class AuthViewSet(SetsThePrincipalOnTheConnection, TokenCookieMixin, ViewSet):
         token = serializer.validated_data["token"]
         email = serializer.validated_data["email"]
 
-        user = find_unique_user(email)
-
-        if user is None or not EmailCodeService.verify(user, token):
-            return Response(
-                {"token": ["Invalid email or verification code."]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        access_token, refresh_token = TokenService.issue(user)
+        user, access_token, refresh_token = SessionService.verify_email(email, token)
         return self.session_response(
             request, EmailVerificationSerializer(instance=user).data, access_token, refresh_token
         )
@@ -352,18 +386,11 @@ class AuthViewSet(SetsThePrincipalOnTheConnection, TokenCookieMixin, ViewSet):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = request.user
-        current_password = serializer.validated_data["current_password"]
-        new_password = serializer.validated_data["new_password"]
-
-        if not user.check_password(current_password):
-            return Response(
-                {"current_password": ["Current password is incorrect."]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        user.set_password(new_password)
-        user.save(update_fields=["password"])
-        TokenService.revoke_all(user, keep_jti=request.auth.get("rjti"))
+        SessionService.change_password(
+            user_id=request.user.pk,
+            session_jti=request.auth.get("rjti") if request.auth else None,
+            current_password=serializer.validated_data["current_password"],
+            new_password=serializer.validated_data["new_password"],
+        )
 
         return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
