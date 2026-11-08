@@ -36,10 +36,10 @@ stay here as history and are marked where they appear.
 | [The company pack](#the-company-pack)                                                                              | 23 September 2026                              | Current                                                                                                                            |
 | [Essential registry and development workflow priority](#essential-registry-and-development-workflow-priority)      | 9 October 2026                                 | Register priority current; workflow part superseded 11 October; web wallet and chain controls removed 31 October                   |
 | [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)                  | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                                           |
-| [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                            | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md); eligibility removed 2 November       |
+| [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                            | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md); eligibility removed 2 November, sign-up acknowledgement 9 November |
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                              | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
 | [Sign-up wording after offerings were deferred](#sign-up-wording-after-offerings-were-deferred)                    | 8 November 2026                                | Superseded: financial-profile points 8 November (#1589), Eligibility check removed 9 November                                      |
-| [Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up)                                  | 9 November 2026                                | Current; #1567; stored answers removed after #1589                                                                                 |
+| [Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up)                                  | 9 November 2026                                | Current; #1567; stored answers kept until the backend cleanup after #1589                                                          |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital)    | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                          | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
 | [Member particulars requests removed](#member-particulars-requests-removed)                                        | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed and linked members follow their profile (#1492)      |
@@ -1125,7 +1125,8 @@ migrations, so a database migrated before this change, ledova.io included, needs
 [fresh rebuild](engineering/backend.md#migrations) before it runs this code; that rebuild is
 the owner's call. _Investor classification and company eligibility were removed on 2 November 2026
 ([verification limited to ID checks](#verification-limited-to-id-checks)); the wallet approvals
-stay without them._
+stay without them. The investor sign-up acknowledgement went on 9 November 2026 with the whole
+Eligibility check ([Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up))._
 
 ### Wallets removed from the web app
 

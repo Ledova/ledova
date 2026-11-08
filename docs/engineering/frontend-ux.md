@@ -1042,13 +1042,11 @@ This section covers how a form reports a problem: when it is submitted, and when
     A box that must be ticked is a `CheckboxField`. Register import names each shareholder and allotment in its summary instead of linking
     to a field, and lists the problems current at the time. Its shareholder editor lists the problems
     with the shareholder being edited. A summary link focuses the control the field's label points
-    to, or else the field's first control, including Headless UI checkboxes and radios.
+    to, or else the field's first control.
   - **Sign-in and sign-up** keep the rules in `packages/shared`, which both clients use: sign-up's
     hooks and `useSignInForm` for sign-in. The hook reports its field errors when the form is
     submitted, and the server's come back the same way.
     `useFieldErrorSummary` lists them in the same summary, which takes focus after each submit.
-    Pre-screening's four declarations are checked by the page, since its hook reports only one
-    sentence.
   - **In these forms submit stays enabled** unless the form is busy or the action is unavailable,
     such as without company authority or with nothing changed, and the page says why. An unchanged
     retry of an interrupted request is not checked again.
