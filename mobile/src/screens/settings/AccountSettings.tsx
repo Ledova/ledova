@@ -305,7 +305,7 @@ export function AccountData() {
         <Rows>
           <SettingRow
             label="Export data"
-            detail={<Text style={styles.muted}>Save or share a copy of your account data.</Text>}
+            detail={<Text style={styles.muted}>Save or share your account summary. Company records are separate.</Text>}
             action={<Action compact label="Export" accessibilityLabel="Export data" onPress={() => open('export')} />}
           />
           <SettingRow
@@ -336,7 +336,8 @@ export function AccountData() {
         }
       >
         <Text style={styles.text}>
-          Save or share your account data as a private JSON file. The share sheet opens when the export is ready.
+          Save or share your account summary as a private JSON file. It does not include every record companies hold
+          about you. The share sheet opens when the export is ready.
         </Text>
         {error && (
           <Text accessibilityRole="alert" style={styles.error}>
@@ -360,9 +361,9 @@ export function AccountData() {
       >
         <Text style={styles.text}>This action cannot be undone.</Text>
         <Text style={styles.text}>
-          This deactivates your account and removes your name, date of birth, phone number and address from your
-          profile. Your country of citizenship, financial profile, wallets, verification records and share register
-          entries are kept.
+          This ends sign-in and removes your personal profile answers, financial answers, preferences, device tokens and
+          inbox notifications. Company records and documents, wallet, verification, compliance and session-security
+          records remain. Contact hello@ledova.io for other privacy requests.
         </Text>
         {error && (
           <Text accessibilityRole="alert" style={styles.error}>

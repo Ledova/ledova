@@ -31,7 +31,7 @@ export default function SignupPreScreening() {
       !form.confirmedAustralianResident && 'Confirm that you are currently an Australian resident.',
     confirmedIndividualAccount: !form.confirmedIndividualAccount && 'Confirm that you are acting on your own behalf.',
     acknowledgedWholesaleOnly:
-      !acknowledgedWholesaleOnly && 'Confirm that you understand Ledova records company share ownership.',
+      !acknowledgedWholesaleOnly && 'Confirm that you understand share offerings here are wholesale only.',
   });
 
   const handleContinue = async (e: React.FormEvent) => {
@@ -70,8 +70,8 @@ export default function SignupPreScreening() {
     },
     {
       key: 'acknowledgedWholesaleOnly' as const,
-      label: 'I understand Ledova records company share ownership',
-      description: 'Companies supply their own records and manage their legal share register.',
+      label: 'I understand share offerings here are wholesale only',
+      description: 'Offers are made without a disclosure document to wholesale and sophisticated investors.',
       checked: acknowledgedWholesaleOnly,
       onChange: () => toggleWholesaleOnly(),
     },

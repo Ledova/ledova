@@ -82,7 +82,7 @@ pull to refresh keeps the screen and any unfinished work. A failed profile refre
 while a confirmed profile exists. Without one, or when the preferences recheck fails, the gate shows
 its error, and a failed sign-in check returns to Sign in. After email verification, Account type
 offers **Individual investor** or **Company representative**. An investor continues through
-pre-screening, personal details, financial profile and review; a representative continues through
+pre-screening, personal details and review; a representative continues through
 personal details, Company details and **Complete company setup**. The dashboard's routes and guards
 do not apply.
 

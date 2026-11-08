@@ -9,7 +9,7 @@ import { ClipboardIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useReview } from './useReview';
-import { COMPANY_TYPES, formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
+import { COMPANY_TYPES, formatPhoneWithCountryCode } from '@ledova/shared';
 import { PUBLIC_LINKS } from '../../../config/publicLinks';
 import { Fact, Rows, Section, useCardStyles } from '../../../components/Ledger';
 
@@ -133,7 +133,7 @@ export function ReviewScreen() {
   };
 
   const handleBack = () => {
-    if (!busy) navigation.navigate(isCompany ? 'CompanyRegistration' : 'FinancialProfile');
+    if (!busy) navigation.navigate(isCompany ? 'CompanyRegistration' : 'UserProfile');
   };
 
   const handleOpenTerms = async () => {
@@ -189,7 +189,7 @@ export function ReviewScreen() {
     );
   }
 
-  const { userProfile, financialProfile } = data;
+  const { userProfile } = data;
 
   return (
     <GradientBackground>
@@ -229,9 +229,9 @@ export function ReviewScreen() {
             )}
           </Section>
 
-          <Section title={isCompany ? 'Company information' : 'Financial profile'}>
-            {isCompany ? (
-              company ? (
+          {isCompany ? (
+            <Section title="Company information">
+              {company ? (
                 <Rows>
                   <Fact label="Company name" inline>
                     {company.name}
@@ -252,33 +252,9 @@ export function ReviewScreen() {
                 </Rows>
               ) : (
                 <Text style={styles.errorText}>No company information found.</Text>
-              )
-            ) : financialProfile ? (
-              <Rows>
-                <Fact label="Source of funds" inline>
-                  {formatSourceOfFunds(financialProfile.sourceOfFunds)}
-                </Fact>
-                {financialProfile.sourceOfFundsOtherText ? (
-                  <Fact label="Source (Other)">{financialProfile.sourceOfFundsOtherText}</Fact>
-                ) : null}
-                {financialProfile.intendedUse ? (
-                  <Fact label="Intended use" inline>
-                    {formatIntendedUse(financialProfile.intendedUse)}
-                  </Fact>
-                ) : null}
-                {financialProfile.intendedUseOtherText ? (
-                  <Fact label="Intended use (Other)">{financialProfile.intendedUseOtherText}</Fact>
-                ) : null}
-                {financialProfile.occupation ? (
-                  <Fact label="Occupation" inline>
-                    {financialProfile.occupation}
-                  </Fact>
-                ) : null}
-              </Rows>
-            ) : (
-              <Text style={styles.errorText}>No financial profile found.</Text>
-            )}
-          </Section>
+              )}
+            </Section>
+          ) : null}
 
           <View style={card.card}>
             {isCompany && company ? (

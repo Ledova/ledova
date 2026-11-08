@@ -6,7 +6,6 @@ import { SignUpScreen } from '../screens/signup/user';
 import { EmailConfirmationScreen } from '../screens/signup/email-confirmation';
 import { PreScreeningScreen } from '../screens/signup/pre-screening';
 import { UserProfileScreen } from '../screens/signup/user-profile';
-import { FinancialProfileScreen } from '../screens/signup/financial-profile';
 import { ReviewScreen } from '../screens/signup/review';
 import { AccountTypeScreen } from '../screens/signup/account-type';
 import { CompanyRegistrationScreen } from '../screens/signup/company-registration';
@@ -21,7 +20,6 @@ export type RootStackParamList = {
   AccountType: undefined;
   PreScreening: undefined;
   UserProfile: undefined;
-  FinancialProfile: undefined;
   CompanyRegistration: undefined;
   Review: undefined;
   MainApp: NavigatorScreenParams<SignedInStackParamList> | undefined;
@@ -106,13 +104,6 @@ export const AppNavigator = () => {
         <Stack.Screen
           name="UserProfile"
           component={UserProfileScreen}
-          options={{
-            headerShown: false,
-          }}
-        />
-        <Stack.Screen
-          name="FinancialProfile"
-          component={FinancialProfileScreen}
           options={{
             headerShown: false,
           }}

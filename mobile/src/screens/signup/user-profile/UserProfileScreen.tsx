@@ -200,7 +200,7 @@ export function UserProfileScreen() {
 
   const handleContinue = async () => {
     await handleSubmit(() => {
-      navigation.navigate(isCompany ? 'CompanyRegistration' : 'FinancialProfile');
+      navigation.navigate(isCompany ? 'CompanyRegistration' : 'Review');
     });
   };
 

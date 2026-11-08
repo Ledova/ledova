@@ -18,7 +18,7 @@ vi.mock('./useReview', () => ({ useReview: vi.fn() }));
 it('reuses saved company details and clearly accepts authority and Terms through explicit completion without checkboxes or uploads', () => {
   const address = '17 Example Street,\nSydney NSW 2000, Australia';
   const state = {
-    data: { userProfile: { fullName: 'Example Director', residentialAddress: address }, financialProfile: null },
+    data: { userProfile: { fullName: 'Example Director', residentialAddress: address } },
     company: { uuid: 'company-a', name: 'Example Company', acn: '123456789', companyType: 'pty' },
     isCompany: true,
     isLoading: false,
@@ -109,7 +109,6 @@ it('reuses saved company details and clearly accepts authority and Terms through
     ...state,
     isCompany: false,
     canCompleteSignup: true,
-    data: { ...state.data, financialProfile: { occupation: 'Retained private details' } },
   } as never);
   const personalReview = render(
     <MemoryRouter>
@@ -118,7 +117,6 @@ it('reuses saved company details and clearly accepts authority and Terms through
   );
   expect(screen.getByRole('heading', { name: 'Review & confirm' })).toBeTruthy();
   expect(screen.queryByText('Financial profile')).toBeNull();
-  expect(screen.queryByText('Retained private details')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Complete signup' }));
   expect(state.completeSignup).toHaveBeenCalledTimes(2);
   personalReview.unmount();

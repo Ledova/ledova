@@ -12,7 +12,6 @@ export {
   confirmPasswordReset,
 } from './auth';
 export { getUserAccount, setAccountRole } from './userAccount';
-export { createFinancialProfile, updateFinancialProfile, getFinancialProfiles } from './financialProfile';
 export {
   updateUserProfile,
   updateUserProfileCompletion,
