@@ -11,6 +11,7 @@ export function SelectField<T extends string>({
   onChange,
   disabled = false,
   error,
+  filled = false,
 }: {
   label: string;
   value: T;
@@ -18,6 +19,7 @@ export function SelectField<T extends string>({
   onChange: (value: T) => void;
   disabled?: boolean;
   error?: string | null;
+  filled?: boolean;
 }) {
   const theme = useAppTheme();
   const form = useCompanyStyles();
@@ -48,6 +50,7 @@ export function SelectField<T extends string>({
       padding: theme.spacing.smd,
     },
     chosen: { backgroundColor: theme.colors.surface.tertiary },
+    filledOption: { paddingHorizontal: theme.spacing.md },
   }));
   const [open, setOpen] = useState(false);
   const labelOf = (option: (typeof options)[number]) =>
@@ -57,8 +60,8 @@ export function SelectField<T extends string>({
   const picked = options.find((option) => option.value === value);
   const current = picked ? labelOf(picked) : '';
   return (
-    <View style={form.group}>
-      <Text style={form.text}>{label}</Text>
+    <View style={[form.group, filled && form.filledGroup]}>
+      <Text style={filled ? form.filledLabel : form.text}>{label}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${current}`}
@@ -66,7 +69,7 @@ export function SelectField<T extends string>({
         accessibilityHint={error ?? undefined}
         disabled={disabled}
         onPress={() => setOpen((shown) => !shown)}
-        style={[styles.control, open && styles.open, disabled && styles.disabled]}
+        style={[styles.control, filled && form.filled, open && styles.open, disabled && styles.disabled]}
       >
         <Text numberOfLines={1} style={styles.value}>
           {current}
@@ -86,7 +89,7 @@ export function SelectField<T extends string>({
                   onChange(option.value);
                   setOpen(false);
                 }}
-                style={[styles.option, selected && styles.chosen]}
+                style={[styles.option, filled && styles.filledOption, selected && styles.chosen]}
               >
                 <Text style={styles.value}>{labelOf(option)}</Text>
                 {selected && <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.brand.light} />}

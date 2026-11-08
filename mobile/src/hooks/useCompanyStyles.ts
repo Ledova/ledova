@@ -3,6 +3,7 @@ import { useThemedStyles } from '../contexts/index';
 export const useCompanyStyles = () =>
   useThemedStyles((theme) => ({
     group: { gap: theme.spacing.smd },
+    filledGroup: { gap: theme.spacing.sm },
     choices: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: theme.spacing.sm },
     actions: {
       flexDirection: 'row' as const,
@@ -13,6 +14,7 @@ export const useCompanyStyles = () =>
     heading: { fontFamily: theme.fontFamily.medium, fontSize: 17, color: theme.colors.text.primary },
     text: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.primary },
     muted: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 21, color: theme.colors.text.muted },
+    filledLabel: { fontFamily: theme.fontFamily.medium, fontSize: 14, lineHeight: 21, color: theme.colors.text.body },
     error: {
       fontFamily: theme.fontFamily.regular,
       fontSize: 14,
@@ -28,5 +30,10 @@ export const useCompanyStyles = () =>
       borderWidth: 1,
       borderRadius: theme.borderRadius.md,
       padding: theme.spacing.smd,
+    },
+    filled: {
+      minHeight: 48,
+      paddingHorizontal: theme.spacing.md,
+      backgroundColor: theme.colors.surface.tertiary,
     },
   }));
