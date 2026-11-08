@@ -39,10 +39,6 @@ export const USER_PROFILE_ENDPOINTS = {
   DELETE_ACCOUNT: '/api/user-profiles/delete-account/',
   EXPORT_DATA: '/api/user-profiles/export-data/',
 } as const;
-export const FINANCIAL_PROFILE_ENDPOINTS = {
-  BASE: '/api/financial-profiles/',
-  DETAIL: (uuid: string) => `/api/financial-profiles/${uuid}/` as const,
-} as const;
 export const USER_PREFERENCES_ENDPOINTS = { BASE: '/api/user-preferences/' } as const;
 export const USER_ACCOUNT_ENDPOINTS = {
   BASE: '/api/user-accounts/',

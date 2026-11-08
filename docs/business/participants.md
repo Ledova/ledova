@@ -32,10 +32,8 @@ original controls, not a supported new-action workflow.
 2. At **Eligibility check**, confirm that you are 18 or older, an Australian resident and opening an
    individual account.
 3. Complete your personal profile, review it and choose **Complete signup**, which accepts the
-   Terms of Service and Privacy Policy. Web signup does not collect financial-profile answers.
-
-Native signup still has its financial questionnaire and company-registration path; those screens
-are unchanged by the web privacy increment and remain for the later mobile work.
+   Terms of Service and Privacy Policy. Signup does not collect financial-profile answers, on the
+   web or in the app.
 
 Signup does not include identity verification. Complete it afterwards on the web with the identity
 check's **Review** in **Settings → Account**; while the investor identity requirement is on, wallet

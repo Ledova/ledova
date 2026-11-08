@@ -65,7 +65,7 @@ it('accepts current company terms only on explicit completion, resumes setup wit
     createdAt: '2026-10-14T00:00:00Z',
     signupTerms: declarationVersion === '2026-10-14' && source === 'initial' ? termsReceipt() : retainedTerms,
   });
-  const reads = jest.spyOn(api, 'get').mockImplementation(async (url) => {
+  jest.spyOn(api, 'get').mockImplementation(async (url) => {
     if (url === '/api/auth/verify/') return { data: { valid: true } };
     if (url === '/api/user-preferences/') {
       if (preferencesMode === 'failed') throw new Error('Preferences refused');
@@ -73,7 +73,6 @@ it('accepts current company terms only on explicit completion, resumes setup wit
       return { data: { userProfile: profile.uuid, userAccount: { uuid: 'account-a', role: 'company' } } };
     }
     if (url === '/api/user-profiles/') return { data: { results: [profile] } };
-    if (url === '/api/financial-profiles/') return { data: { results: [] } };
     if (url === '/api/operator/') return { data: { issuerKycRequired: false } };
     if (url === '/api/v1/companies/') return { data: { results: companySaved ? [company] : [] } };
     if (url === '/api/v1/companies/company-a/') return { data: company };
@@ -331,19 +330,7 @@ it('accepts current company terms only on explicit completion, resumes setup wit
   registration.unmount();
   query.clear();
   mounted = renderHook(() => useSignupReview('investor', finished), { wrapper });
-  await waitFor(() => expect(mounted.result.current.isLoading).toBe(false));
-  expect(mounted.result.current.canCompleteSignup).toBe(false);
-  expect(reads.mock.calls.some(([url]) => url === '/api/financial-profiles/')).toBe(true);
-  mounted.unmount();
-  query.clear();
-  reads.mockClear();
-  mounted = renderHook(
-    () => useSignupReview('investor', finished, undefined, undefined, { requireFinancialProfile: false }),
-    { wrapper },
-  );
   await waitFor(() => expect(mounted.result.current.canCompleteSignup).toBe(true));
-  expect(mounted.result.current.data.financialProfile).toBeNull();
-  expect(reads.mock.calls.some(([url]) => url === '/api/financial-profiles/')).toBe(false);
   await act(async () => mounted.result.current.completeSignup());
   expect(completedProfiles()).toHaveLength(5);
   expect(finished).toHaveBeenCalledTimes(3);

@@ -38,7 +38,7 @@ stay here as history and are marked where they appear.
 | [Registry focus and cancelled expansion tickets](#registry-focus-and-cancelled-expansion-tickets)                  | 18 October 2026                                | Current; #869, #870 and #872 not planned                                                                                           |
 | [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                            | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md); eligibility removed 2 November       |
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                              | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
-| [Sign-up wording after offerings were deferred](#sign-up-wording-after-offerings-were-deferred)                    | 8 November 2026                                | Current; #1567                                                                                                                     |
+| [Sign-up wording after offerings were deferred](#sign-up-wording-after-offerings-were-deferred)                    | 8 November 2026                                | Acknowledgement current; financial-profile points superseded 8 November 2026 (#1589)                                               |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital)    | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                          | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
 | [Member particulars requests removed](#member-particulars-requests-removed)                                        | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed and linked members follow their profile (#1492)      |
@@ -1158,6 +1158,10 @@ referred to features outside the first release, the owner chose, as recommended:
   already stored still display, with no backend or migration change;
 - replace the financial profile's "AML/CTF compliance information" subtitle with plain wording that
   claims no legal basis: **About your finances and how you’ll use Ledova.**
+
+The second and third points were superseded the same day. Under the owner's data-minimisation
+direction ([#1589](https://github.com/Ledova/ledova/issues/1589)), sign-up no longer asks
+financial-profile questions, on the web or in the app.
 
 ### Member invitations and account association
 

@@ -11,7 +11,6 @@ import { getUserProfiles, updateUserProfileCompletion } from '../services/users'
 import type { AccountRole, ReviewData } from '../types';
 import { apiErrorSentence, describeFailure } from '../utils/errors';
 import { useApiClient } from './useApiClient';
-import { useFinancialProfile, FINANCIAL_PROFILES_QUERY_KEY } from './useFinancialProfile';
 import { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
 import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { useSignupCompanyAuthority, SIGNUP_AUTHORITY_QUERY_KEY } from './useSignupCompanyAuthority';
@@ -29,7 +28,6 @@ export function useSignupReview(
   onComplete: (guard: () => void) => Promise<void> | void,
   session?: OrderSubmissionSession,
   newKey?: () => string,
-  { requireFinancialProfile = true }: { requireFinancialProfile?: boolean } = {},
 ) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
@@ -43,12 +41,6 @@ export function useSignupReview(
   });
 
   const userProfile = userProfileQuery.data?.data?.results?.[0] || null;
-
-  const {
-    financialProfile,
-    isLoading: financialProfileLoading,
-    error: financialProfileError,
-  } = useFinancialProfile({ enabled: requireFinancialProfile });
 
   const companyQuery = useQuery({
     queryKey: SIGNUP_COMPANY_QUERY_KEY,
@@ -77,23 +69,16 @@ export function useSignupReview(
     newKey,
   );
 
-  const data: ReviewData = {
-    userProfile,
-    financialProfile: isCompany || !requireFinancialProfile ? null : financialProfile,
-  };
+  const data: ReviewData = { userProfile };
 
   const isLoading = Boolean(
     userProfileQuery.isLoading ||
-    (!isCompany && requireFinancialProfile && financialProfileLoading) ||
     (isCompany &&
       (companyQuery.isLoading || detailQuery.isLoading || operatorQuery.isLoading || authority.authorityLoading)),
   );
 
   const loadFailure =
-    userProfileQuery.error ??
-    (isCompany
-      ? (companyQuery.error ?? detailQuery.error ?? operatorQuery.error)
-      : requireFinancialProfile && financialProfileError);
+    userProfileQuery.error ?? (isCompany ? (companyQuery.error ?? detailQuery.error ?? operatorQuery.error) : null);
   const error = loadFailure
     ? apiErrorSentence(loadFailure, SIGNUP_LOAD_FAILED, SIGNUP_LOAD_FAILED)
     : isCompany && selectedUuid && detailQuery.isSuccess && !company
@@ -107,7 +92,7 @@ export function useSignupReview(
     !authority.authorityError &&
     (isCompany
       ? Boolean(userProfile && company && authority.canEstablishAuthority && !identityRequired)
-      : Boolean(userProfile && (!requireFinancialProfile || financialProfile)));
+      : Boolean(userProfile));
 
   const completeSignupMutation = useMutation({
     mutationFn: async () => {
@@ -151,9 +136,6 @@ export function useSignupReview(
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY }),
       ...(isCompany ? [queryClient.invalidateQueries({ queryKey: SIGNUP_COMPANY_QUERY_KEY })] : []),
-      ...(!isCompany && requireFinancialProfile
-        ? [queryClient.invalidateQueries({ queryKey: FINANCIAL_PROFILES_QUERY_KEY })]
-        : []),
       ...(selectedUuid ? [queryClient.invalidateQueries({ queryKey: signupCompanyDetailKey(selectedUuid) })] : []),
       ...(isCompany
         ? [
@@ -164,7 +146,7 @@ export function useSignupReview(
           ]
         : []),
     ]);
-  }, [queryClient, isCompany, requireFinancialProfile, selectedUuid, authority, completeSignupMutation]);
+  }, [queryClient, isCompany, selectedUuid, authority, completeSignupMutation]);
 
   return {
     ...authority,

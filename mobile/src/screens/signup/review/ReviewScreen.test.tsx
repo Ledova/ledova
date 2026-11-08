@@ -124,7 +124,6 @@ jest.mock('@ledova/shared', () => {
       return {
         data: {
           userProfile: { fullName: mockFullName, residentialAddress: mockResidentialAddress },
-          financialProfile: mockCompany ? null : { sourceOfFunds: 'salary' },
         },
         company: mockCompany ? { uuid: 'company-one', ...mockCompanyDetails } : null,
         isCompany: mockCompany,

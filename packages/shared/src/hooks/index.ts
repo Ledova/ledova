@@ -5,7 +5,6 @@ export { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPrefere
 export { useRole } from './useRole';
 export { useSignInForm } from './useSignInForm';
 export { useIdentityVerificationStatus, IDENTITY_VERIFICATION_QUERY_KEY } from './useIdentityVerificationStatus';
-export { useFinancialProfile, FINANCIAL_PROFILES_QUERY_KEY } from './useFinancialProfile';
 export { useNotifications } from './useNotifications';
 export { useSubmissionOwner } from './useSubmissionOwner';
 export type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
@@ -32,7 +31,6 @@ export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerif
 export { useSignupAccountType } from './useSignupAccountType';
 export { useSignupPreScreening } from './useSignupPreScreening';
 export { USER_PROFILE_FIELDS, useSignupUserProfile } from './useSignupUserProfile';
-export { FINANCIAL_PROFILE_FIELDS, useSignupFinancialProfile } from './useSignupFinancialProfile';
 export { COMPANY_REGISTRATION_FIELDS, useSignupCompanyRegistration } from './useSignupCompanyRegistration';
 export {
   useSignupReview,
