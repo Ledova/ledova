@@ -126,6 +126,7 @@ export function CompanyRegistrationScreen() {
                 </Text>
               )}
               <Field
+                filled
                 label="Registered company name"
                 value={form.name}
                 maxLength={FIELD_LIMITS.COMPANY_NAME}
@@ -135,6 +136,7 @@ export function CompanyRegistrationScreen() {
                 onChange={(value) => setFieldValue('name', value)}
               />
               <Field
+                filled
                 label="Trading name (optional)"
                 value={form.tradingName}
                 maxLength={FIELD_LIMITS.COMPANY_NAME}
@@ -144,6 +146,7 @@ export function CompanyRegistrationScreen() {
                 onChange={(value) => setFieldValue('tradingName', value)}
               />
               <SelectField
+                filled
                 label="Company type"
                 value={form.companyType}
                 options={COMPANY_TYPES}
@@ -152,6 +155,7 @@ export function CompanyRegistrationScreen() {
                 onChange={(value) => setFieldValue('companyType', value)}
               />
               <Field
+                filled
                 label="ACN"
                 value={form.acn}
                 maxLength={FIELD_LIMITS.ACN}
@@ -162,6 +166,7 @@ export function CompanyRegistrationScreen() {
                 onChange={(value) => setFieldValue('acn', value)}
               />
               <Field
+                filled
                 label="ABN (optional)"
                 value={form.abn}
                 maxLength={FIELD_LIMITS.ABN}
