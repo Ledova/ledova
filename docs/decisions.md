@@ -12,6 +12,7 @@ stay here as history and are marked where they appear.
 
 | Decision                                                                                                           | Date                                           | Status                                                                                                                             |
 | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| [Registry-only public release under Blueberry Money](#registry-only-public-release-under-blueberry-money)             | 8 November 2026                                | Preparation authorised; website first, then TestFlight and App Store; current preview remains synthetic-only                         |
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                            | 3 October 2026                                 | Current; replaces routine register work by platform staff                                                                          |
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                        | 5 October 2026                                 | Current; particulars change rule amended 1 November (#1476) and for linked members 2 November (#1492)                              |
 | [Company representative verification](#company-representative-verification)                                        | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                                       |
@@ -69,6 +70,30 @@ stay here as history and are marked where they appear.
 | [Tenancy, sessions and deployment](#tenancy-sessions-and-deployment)                                               | 3 October 2026                                 | Current                                                                                                                            |
 | [Contracts compiler and toolchain](#contracts-compiler-and-toolchain)                                              | Undated                                        | Current                                                                                                                            |
 | [Clients and API types](#clients-and-api-types)                                                                    | 14 September 2026                              | Current; mobile workflows superseded 26 October                                                                                    |
+
+## Registry-only public release under Blueberry Money
+
+On 8 November 2026 the owner accepted a free Australian registry and ownership-record
+service operated by Blueberry Money Pty Ltd, and authorised incremental preparation under
+[#1586](https://github.com/Ledova/ledova/issues/1586). The website goes first, followed by
+TestFlight and the App Store through the company's Apple Developer account.
+
+The release covers company-supplied share classes, ownership, members, employee awards,
+company-authorised recorded changes and basic documents. Companies retain their legal register,
+historical records, lawful access arrangements, filings and corporate decisions. Payments,
+trading and blockchain execution are outside this release; their retained records and safeguards
+must not be discarded or weakened.
+
+Preparation has four focused tracks: the software boundary (#1587), public web recovery (#1588),
+privacy, deletion, operator terms and software rights (#1589), then iOS distribution (#1590).
+Existing work under #1464, #1562 and the relevant physical iPhone checks under #624 is reused.
+Deferred Android, signer and swap acceptance does not become part of this scoped launch.
+Operational preparation and confidential acceptance stay in private `Ledova/infra`.
+
+The current preview remains synthetic-only until its release gates are met and the owner directs
+the live launch. This decision does not establish regulatory approval, settle outstanding
+licensing or retention questions, enable a required identity check without its provider, or
+authorise a live change or new cost. Preparation follows the usual independent review and green CI.
 
 ## Company-managed registers and one product
 

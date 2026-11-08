@@ -205,9 +205,10 @@ while a "special direct link" without which the transaction would not occur
 probably is.
 
 **What the code does.** Today the register is a stored record, and
-the platform also hosts trading enabled by default for synthetic/testnet use,
-which a registry service would not run. Investor classification was removed on
-2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)).
+the platform retains experimental trading for synthetic/testnet use, disabled by default on fresh
+installations; existing deployments keep their stored setting. Trading is outside the
+[planned registry-only release](../decisions.md#registry-only-public-release-under-blueberry-money).
+Investor classification was removed on 2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)).
 Offerings, subscriptions and payment recording are
 [planned for a later release](../business/offerings.md).
 The [registry service](registry-service.md) page's feature table records what
@@ -486,8 +487,9 @@ register; it sunsets on 1 October 2026 and ASIC has consulted (CS 60) on
 remaking it with the value cap raised to $2.5 million.
 
 **What the code does.** Secondary [trading](../business/trading.md) exists in the
-API behind the `trading_enabled` flag, which a data migration turns on by default and
-an operator can turn off; the web app has had no Market page since 29 October 2026.
+API behind the `trading_enabled` flag. Fresh installation seeds it off; this does not change
+an existing database's stored flag. An operator can change it, and the web app has had no Market
+page since 29 October 2026.
 The register itself lets nobody post an offer.
 
 **The position.** A register of members, with transfers entered on instruction
