@@ -92,7 +92,8 @@ SYSTEM_WIDE = {
 }
 
 PRINCIPAL_BEARING = {
-    "tokens.tasks.deployment.deploy_share_token_task": "Deploys one issuer's token and writes back to it.",
+    "tokens.tasks.deployment.deploy_share_token_task": "Retained queued deployment entry point; new admission "
+    "is refused by the registry boundary. Existing signed outcomes use the separate recovery sweep.",
     "wallets.tasks.confirmation.confirm_pending_transaction": "Confirms one wallet's transaction and moves the "
     "balance it belongs to, on the money path. Local journal evidence is collected and persisted in a "
     "bounded operator observation step after the scoped wallet lookup; finality consumption, holding "
@@ -134,8 +135,8 @@ CONVERTED_IN = {
 
 OPERATOR_BOUNDARIES = {
     "tokens.services.deployment.retry_confirmation": "Reads the original deployment claim for a signed retry form.",
-    "tokens.services.deployment._admit": "Locks the admitted token and company on the operator connection, verifies "
-    "deployment identity and creates a missing journal only from the applied company source.",
+    "tokens.services.deployment._admit": "Refuses new deployment admission before creating a journal or "
+    "changing the token. Retained signed operations use the separate observation path.",
     "tokens.services.deployment._process": "Observes one existing signed deployment through its original "
     "intent and canonical receipt, without opening an operation, signing or broadcasting.",
     "tokens.services.deployment_journal.record_outcome": "Records the original operation's receipt and transaction "
