@@ -484,6 +484,16 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
         with use_operator():
             duplicate_profile.sumsub_applicant_id = "current-sumsub-profile"
             duplicate_profile.save(update_fields=["sumsub_applicant_id"])
+        reused_provider = Mock()
+        reused_provider.get_provider_name.return_value = "sumsub"
+        self.assertEqual(
+            identity.create_applicant(reused_provider, duplicate_profile),
+            {"applicant_id": "current-sumsub-profile"},
+        )
+        reused_provider.create_applicant.assert_not_called()
+        with use_operator():
+            duplicate_profile.refresh_from_db()
+            self.assertEqual(duplicate_profile.kyc_provider, "sumsub")
         with patch("integrations.sumsub.webhook.SumSubService.verify_webhook_signature", return_value=True):
             response = APIClient().post(
                 "/webhooks/sumsub/",

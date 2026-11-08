@@ -52,6 +52,8 @@ def create_applicant(kyc_provider: KYCProvider, user_profile: UserProfile) -> di
             provider_name = kyc_provider.get_provider_name()
             applicant_field = "kycaid_applicant_id" if provider_name == PROVIDER_KYCAID else "sumsub_applicant_id"
             if getattr(user_profile, applicant_field):
+                user_profile.kyc_provider = provider_name
+                user_profile.save(update_fields=["kyc_provider", "updated_at"])
                 return {"applicant_id": getattr(user_profile, applicant_field)}
             completion_email = user.email
             result = kyc_provider.create_applicant(
