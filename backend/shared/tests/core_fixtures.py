@@ -1,13 +1,14 @@
+import io
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
-import pymupdf
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import override_settings
 from django.utils import timezone
+from pypdf import PdfWriter
 
 from companies.models import Company, CompanyCapability
 from companies.services.authority import (
@@ -34,9 +35,11 @@ STORAGES = {
 
 
 def pdf_bytes():
-    with pymupdf.open() as document:
-        document.new_page()
-        return document.tobytes()
+    document = PdfWriter()
+    document.add_blank_page(595, 842)
+    result = io.BytesIO()
+    document.write(result)
+    return result.getvalue()
 
 
 def person(label):

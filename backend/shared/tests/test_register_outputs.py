@@ -6,9 +6,9 @@ import zipfile
 from datetime import date, timedelta
 from uuid import UUID, uuid4
 
-import pymupdf
 from django.conf import settings
 from django.utils import timezone
+from pypdf import PdfReader
 from rest_framework.test import APITransactionTestCase
 
 from companies.models import CompanyCapability
@@ -59,7 +59,12 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(latest_rights.status_code, 201, latest_rights.content)
-        award = self.award_payload()
+        award = self.award_payload(
+            name="Synthetic Employee 陈 Demo / José / ليلى",
+            residential_address=("Level 12 Example Building, 2 Example Street, Sydney NSW 2000, Australia. " * 15)[
+                :1000
+            ],
+        )
         promised = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
         self.assertEqual(promised.status_code, 201, promised.content)
         vested = self.client.post(
@@ -154,14 +159,17 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(referenced_pdf.status_code, 200, referenced_pdf.content)
+        self.assertEqual(referenced_pdf.content, company_pdf.content)
         with use_operator():
             referenced_audit = RegisterExport.objects.exclude(pk=certificate_audit.pk).get(kind="certificate")
             self.assertEqual(referenced_audit.instruction, "SYNTHETIC-UNSIGNED-COMPANY-CERTIFICATE")
-        with pymupdf.open(stream=company_pdf.content, filetype="pdf") as document:
-            self.assertEqual(document.page_count, 2)
-            company_text = "".join(page.get_text() for page in document)
+        document = PdfReader(io.BytesIO(company_pdf.content), strict=True)
+        self.assertEqual(len(document.pages), 2)
+        company_text = "\n".join(page.extract_text() for page in document.pages)
         self.assertIn("Synthetic Member", company_text)
         self.assertIn("Synthetic Employee", company_text)
+        self.assertIn(award["name"], company_text)
+        self.assertIn(" ".join(award["residential_address"].split()), " ".join(company_text.split()))
         self.assertIn("Prepared unsigned", company_text)
         self.assertIn(f"Company event date: {transfer.json()['companyEventOn']}", company_text)
         self.assertIn(f"Recorded at: {entry.created_at.date().isoformat()}", company_text)
@@ -172,8 +180,9 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             company_endpoint, {**fields, "sequence": issue.sequence, "source_digest": issue_digest}, format="json"
         )
         self.assertEqual(issue_pdf.status_code, 200, issue_pdf.content)
-        with pymupdf.open(stream=issue_pdf.content, filetype="pdf") as document:
-            issue_text = "".join(page.get_text() for page in document)
+        document = PdfReader(io.BytesIO(issue_pdf.content), strict=True)
+        self.assertEqual(len(document.pages), 1)
+        issue_text = "\n".join(page.extract_text() for page in document.pages)
         self.assertIn("Amount paid on these shares: 250.00\nAmount unpaid on these shares: 0.00", issue_text)
         invitation = self.client.post(
             "/api/v1/tokens/member-invitations/", self.invitation_payload(member=award["member"]), format="json"

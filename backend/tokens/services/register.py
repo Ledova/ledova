@@ -30,9 +30,9 @@ from rest_framework.exceptions import ValidationError
 
 from companies.models import CompanyType
 from shared.db import atomic, current_alias
+from shared.pdf import render_pdf
 from shared.utils import csv_cell
 from tokens.constants import (
-    CERTIFICATE_MARGIN,
     INSPECTION_COPY_DAYS,
     ISSUE_CERTIFICATE_MONTHS,
     NOTICE_FIGURES_DAYS,
@@ -772,21 +772,13 @@ def _certificate_pages(token, entry) -> list[dict]:
 
 def _certificate_pdf(token, entry, pages) -> bytes:
     entry = with_company_event_dates(RegisterEntry.objects.filter(pk=entry.pk)).get()
-    import pymupdf
-
-    with pymupdf.open() as document:
-        for page in pages:
-            sheet = document.new_page()
-            sheet.insert_htmlbox(
-                sheet.rect + (CERTIFICATE_MARGIN, CERTIFICATE_MARGIN, -CERTIFICATE_MARGIN, -CERTIFICATE_MARGIN),
-                render_to_string(
-                    "tokens/share_certificate.html",
-                    {"company": token.company, "token": token, "entry": entry, **page},
-                ),
-            )
-        document.subset_fonts()
-        document.set_metadata({})
-        return document.tobytes(garbage=3, deflate=True, no_new_id=True)
+    return render_pdf(
+        render_to_string(
+            "tokens/share_certificate.html",
+            {"company": token.company, "token": token, "entry": entry, **page},
+        )
+        for page in pages
+    )
 
 
 def _certificate_source(token, sequence):

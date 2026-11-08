@@ -1,8 +1,9 @@
 from contextlib import nullcontext
 from uuid import uuid4
 
-import pymupdf
+from django.utils.html import format_html, format_html_join
 
+from shared.pdf import render_pdf
 from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.clock import frozen
 from shared.seeds.synthetic.identities import slug
@@ -15,15 +16,16 @@ RESOLUTION = "Directors' resolution"
 
 
 def pdf(title, lines):
-    with pymupdf.open() as document:
-        page = document.new_page(width=595, height=842)
-        page.insert_text((56, 72), title, fontsize=16)
-        offset = 112
-        for line in lines:
-            page.insert_text((56, offset), line, fontsize=10)
-            offset += 16
-        page.insert_text((56, 800), SYNTHETIC_NOTICE, fontsize=8)
-        return document.tobytes(no_new_id=True, garbage=3, deflate=True)
+    return render_pdf(
+        [
+            format_html(
+                '<h1>{}</h1>{}<p class="notice">{}</p>',
+                title,
+                format_html_join("", "<p>{}</p>", ((line,) for line in lines)),
+                SYNTHETIC_NOTICE,
+            )
+        ]
+    )
 
 
 def acn_text(acn):
