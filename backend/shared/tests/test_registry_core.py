@@ -28,7 +28,10 @@ from companies.services.authority import (
     SIGNUP_DECLARATION_TEXT,
     SIGNUP_DECLARATION_VERSION,
 )
-from companies.services.authority_requests import submit_authority_request
+from companies.services.authority_requests import (
+    _requester_principal,
+    submit_authority_request,
+)
 from companies.services.team import (
     accept_team_invitation,
     issue_team_invitation,
@@ -65,10 +68,15 @@ from users.models import FinancialProfile, UserAccount, UserProfile
 from users.models.user_account import AccountRole
 from users.services.setup import ensure_defaults
 from wallets.models import Wallet
-from wallets.services.possession_proof import retain_possession_proof
+from wallets.services.possession_proof import proof_producer, retain_possession_proof
+from wallets.services.wallets import generate_verification_challenge
 from whitelist.models import CompanyWalletNomination, WhitelistEntry
 from whitelist.services.identity import entry_identity, identities_for
-from whitelist.services.wallet_nominations import _digest, _source
+from whitelist.services.wallet_nominations import (
+    _digest,
+    _nomination_operation,
+    _source,
+)
 
 
 def unfinished_signup(label, acn):
@@ -461,14 +469,13 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.ACTIVE)
             account.update(account_status=ACCOUNT_STATUS_ACTIVE)
         now = timezone.now()
-        challenge = "Synthetic retained proof"
+        challenge = generate_verification_challenge(signer.address, now - timedelta(seconds=1))
         signature = signer.sign_message(encode_defunct(text=challenge)).signature.to_0x_hex()
-        with use_migrate():
+        with use_migrate(), _requester_principal(nominee.pk), proof_producer(), atomic():
             wallet = Wallet.objects.create(
                 user_account=account.get(),
                 address=signer.address.lower(),
                 chain="base",
-                verification_status="verified",
                 verification_challenge=challenge,
                 verification_challenge_issued_at=now - timedelta(seconds=1),
                 verification_signature=signature,
@@ -476,21 +483,32 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             )
             proof = retain_possession_proof(wallet, nominee, signature, now)
             wallet.verified_at = proof.completed_at
-            wallet.save(update_fields=["verified_at"])
+            wallet.verification_status = "verified"
+            wallet.verification_challenge = None
+            wallet.verification_challenge_issued_at = None
+            wallet.save(
+                update_fields=[
+                    "verified_at",
+                    "verification_status",
+                    "verification_challenge",
+                    "verification_challenge_issued_at",
+                ]
+            )
             _, _, _, snapshot, unmet = _source(nominee, self.company.pk, wallet.pk)
             self.assertEqual(unmet, [])
             digest = _digest(snapshot)
-            CompanyWalletNomination.objects.create(
-                company=self.company,
-                proof=proof,
-                wallet_id=wallet.pk,
-                submitted_by=nominee,
-                snapshot=snapshot,
-                preview_digest=digest,
-                digest=digest,
-                sharing_accepted=True,
-                submitted_at=now,
-            )
+            with _nomination_operation():
+                CompanyWalletNomination.objects.create(
+                    company=self.company,
+                    proof=proof,
+                    wallet_id=wallet.pk,
+                    submitted_by=nominee,
+                    snapshot=snapshot,
+                    preview_digest=digest,
+                    digest=digest,
+                    sharing_accepted=True,
+                    submitted_at=now,
+                )
 
         def readiness():
             self.client.force_authenticate(self.owner)

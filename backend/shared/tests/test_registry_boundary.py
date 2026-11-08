@@ -74,7 +74,7 @@ class RegistryExecutionBoundaryTest(TransactionTestCase):
             operation.status = OutgoingStatus.SIGNED
             operation.save(update_fields=["current_attempt", "status"])
             claim = outgoing.recovery_claim(operation.pk, intent)
-            client = Mock()
+            client = Mock(spec=BaseChainClient, w3=Mock())
             client.assert_expected_chain.return_value = 84532
             client.w3.eth.chain_id = 84532
             client.get_transaction_receipt.return_value = None
