@@ -57,6 +57,7 @@ def environment(supplied):
             "HOME",
             "LANG",
             "LC_ALL",
+            "DYLD_FALLBACK_LIBRARY_PATH",
             "TMPDIR",
             "TEMP",
             "TMP",

@@ -203,7 +203,8 @@ replacement for the issues or the [engineering standards](engineering/README.md)
    verification [#1562](https://github.com/Ledova/ledova/issues/1562), without claiming either complete.
 5. [#1555](https://github.com/Ledova/ledova/issues/1555) pagination remains deferred pending the
    owner's direction. [#624](https://github.com/Ledova/ledova/issues/624) needs later human/device
-   release acceptance; [#1160](https://github.com/Ledova/ledova/issues/1160) retains the PyMuPDF decision.
+   release acceptance; the PDF licensing replacement is recorded in
+   [legal position 12](legal/positions.md#12-pymupdf-an-agpl-runtime-dependency).
 
 **Resume safely:**
 

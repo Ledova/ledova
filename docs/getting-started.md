@@ -175,6 +175,14 @@ Compose, run the [seed commands](operations/operator-console.md#seeding-referenc
 and role checks included) before starting the server. Optional providers stay unavailable until
 configured; native policy testing requires a Ledova build rather than Expo Go.
 
+PDF generation also needs Pango and fonts covering the names being recorded. The backend image
+and CI install Noto core, CJK and emoji fonts. On macOS, install Pango with `brew install pango`;
+if a standalone Python cannot find its libraries, set
+`DYLD_FALLBACK_LIBRARY_PATH="$(brew --prefix)/lib"` before direct Python commands. For Make,
+pass it as an argument: `make preflight DYLD_FALLBACK_LIBRARY_PATH="$(brew --prefix)/lib"`.
+macOS strips loader variables inherited by its system Make binary.
+This loader path is never passed into the isolated upload checker.
+
 ## Troubleshooting
 
 Check the environment and the command's actual outcome before changing code.
