@@ -46,7 +46,7 @@ export function Field({
   const theme = useAppTheme();
   const styles = useCompanyStyles();
   return (
-    <View style={styles.group}>
+    <View style={[styles.group, filled && styles.filledGroup]}>
       <Text style={filled ? styles.filledLabel : styles.text}>{label}</Text>
       <TextInput
         clearButtonMode={clearable ? 'while-editing' : undefined}

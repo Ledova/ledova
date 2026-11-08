@@ -60,7 +60,7 @@ export function SelectField<T extends string>({
   const picked = options.find((option) => option.value === value);
   const current = picked ? labelOf(picked) : '';
   return (
-    <View style={form.group}>
+    <View style={[form.group, filled && form.filledGroup]}>
       <Text style={filled ? form.filledLabel : form.text}>{label}</Text>
       <Pressable
         accessibilityRole="button"

@@ -3,6 +3,7 @@ import { useThemedStyles } from '../contexts/index';
 export const useCompanyStyles = () =>
   useThemedStyles((theme) => ({
     group: { gap: theme.spacing.smd },
+    filledGroup: { gap: theme.spacing.sm },
     choices: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: theme.spacing.sm },
     actions: {
       flexDirection: 'row' as const,
