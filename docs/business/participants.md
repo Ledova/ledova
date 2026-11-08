@@ -31,12 +31,11 @@ original controls, not a supported new-action workflow.
    Company representatives follow [company signup](companies.md#company-signup).
 2. At **Eligibility check**, confirm that you are 18 or older, an Australian resident and opening an
    individual account.
-3. Complete your personal profile and financial profile, review them and choose **Complete
-   signup**, which accepts the Terms of Service and Privacy Policy.
+3. Complete your personal profile, review it and choose **Complete signup**, which accepts the
+   Terms of Service and Privacy Policy. Web signup does not collect financial-profile answers.
 
-Mobile signup creates individual accounts only: **Welcome to Ledova** takes the place of the account
-type choice. On mobile, a company account that has not finished signup sees **This app is for
-shareholders** and can only sign out.
+Native signup still has its financial questionnaire and company-registration path; those screens
+are unchanged by the web privacy increment and remain for the later mobile work.
 
 Signup does not include identity verification. Complete it afterwards on the web with the identity
 check's **Review** in **Settings → Account**; while the investor identity requirement is on, wallet
@@ -292,12 +291,14 @@ alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).
 **Data and privacy** holds the less frequent actions, in the same rows as Account: each names the
 action and what it does on the left, with **Export** or **Delete** on the right.
 
-- **Export data** downloads the person's account data as a JSON file
+- **Export data** downloads an account summary as JSON, separate from company-held records
   ([account-data export](../engineering/records.md#account-data-export)).
-- **Delete account** deactivates the account and removes the person's name, date of birth, phone
-  number and address from their profile. Citizenship, financial profile, wallets, verification
-  records and share register entries are kept. The confirmation says so, and the browser's copy of
-  the account's data is cleared once the server confirms.
+- **Delete account** ends sign-in and erases personal profile and financial answers, preferences,
+  device tokens and inbox notifications. Company particulars, documents and history remain
+  unchanged, as do guarded wallet, verification and session-security records. The confirmation
+  explains this scope; the browser clears account data after success. See
+  [account erasure](../engineering/security.md#account-closure-and-export) for the remaining launch
+  retention work.
 
 On mobile, Settings has the same three pages for the selected company, then
 [Team](companies.md#team-invitations-and-appointments) where that company can be managed and

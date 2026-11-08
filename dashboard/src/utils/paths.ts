@@ -23,7 +23,6 @@ export const SIGNUP_PATHS = {
   accountType: '/signup/account-type',
   preScreening: '/signup/pre-screening',
   userProfile: '/signup/user-profile',
-  financialProfile: '/signup/financial-profile',
   companyRegistration: '/signup/company-registration',
   review: '/signup/review',
 } as const;
@@ -33,7 +32,6 @@ export const SIGNUP_STEPS = [
   SIGNUP_PATHS.accountType,
   SIGNUP_PATHS.preScreening,
   SIGNUP_PATHS.userProfile,
-  SIGNUP_PATHS.financialProfile,
   SIGNUP_PATHS.companyRegistration,
   SIGNUP_PATHS.review,
 ] as const;

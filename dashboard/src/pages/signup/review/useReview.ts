@@ -10,12 +10,18 @@ export const useReview = () => {
   const queryClient = useQueryClient();
   const { role } = useRole();
 
-  return useSignupReview(role, async (guard) => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY }, { throwOnError: true }),
-      queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true }, { throwOnError: true }),
-    ]);
-    guard();
-    navigate(invitationDestination(canOpen(role, 'company') ? COMPANY_DASHBOARD_PATH : landingFor(role)));
-  });
+  return useSignupReview(
+    role,
+    async (guard) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY }, { throwOnError: true }),
+        queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEY, exact: true }, { throwOnError: true }),
+      ]);
+      guard();
+      navigate(invitationDestination(canOpen(role, 'company') ? COMPANY_DASHBOARD_PATH : landingFor(role)));
+    },
+    undefined,
+    undefined,
+    { requireFinancialProfile: false },
+  );
 };

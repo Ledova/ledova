@@ -55,7 +55,7 @@ class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, Authent
     @action(detail=False, methods=["post"], url_path="delete-account")
     def delete_account(self, request):
         lifecycle.delete_account(request.user)
-        return Response({"message": "Your account has been successfully deleted."})
+        return Response({"message": "Your account has been closed and selected profile details removed."})
 
     @extend_schema(responses=AccountExportDataSerializer)
     @action(detail=False, methods=["get"], url_path="export-data")

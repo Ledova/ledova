@@ -273,6 +273,31 @@ were [removed](../decisions.md#shareholder-publications-removed), and a database
 migration refused still holds their rows. New private fields must be swept or explicitly
 classified as retained, with a reason.
 
+### Account closure and export
+
+The `delete-account` action in [lifecycle.py](../../backend/users/services/lifecycle.py)
+replaces the sign-in email, disables the account and password, clears unused email-verification
+codes and revokes sessions. It clears personal profile answers, including country and financial
+answers, and deletes preferences, device tokens and inbox notifications. These writers check the
+fresh active user under the same account-row lock, so an already-authenticated request cannot
+recreate erased rows after closure. Profile writes keep their existing company-first lock order.
+Notification delivery runs outside its short row-creation transaction.
+
+The user, profile and account identifiers remain for protected references. Company member
+particulars, associations, decisions, evidence and documentary copies are separate retained
+records; account erasure neither edits them nor fabricates a company revocation. Inactive,
+unverified users lose member access. Provider-controlled identity metadata, wallet history and
+compliance history and revoked-session bookkeeping remain under their existing guards. Their purposes and retention
+still need resolution before real-data use; this increment does not establish complete erasure
+or App Store acceptance.
+
+The [account-data export](records.md#account-data-export) is a JSON summary, not every piece of
+information held about the person. Company-held particulars and documents have separate access
+and export rules. Other requests use the public privacy contact. The
+[accepted data-minimisation direction](../legal/positions.md#registry-only-launch-preparation)
+removes the web financial questionnaire; native signup is unchanged for the later mobile work.
+Retention periods, real-data service Terms and remaining software permissions are still pending.
+
 ### Retention clocks
 
 | Record                                                                 | Clock                                               | Purge                                        |
@@ -304,8 +329,10 @@ deleted when company documents were [removed](../decisions.md#company-documents-
 database refuses ordinary deletion of these rows; only copies left by a rolled-back or interrupted
 preparation fall under the orphan sweep.
 
-Production retention is decided before any real data, and account and company deletion still respect the
-protected register relations.
+Production retention is decided before any real data. The existing former-member clock is not a
+universal rule for account data, uploads or identity evidence. Account and company deletion still
+respect the protected register relations; the remaining retention work is tracked under
+[#1589](https://github.com/Ledova/ledova/issues/1589).
 
 ## Upload validation
 

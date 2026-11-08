@@ -3,6 +3,7 @@ from decimal import Decimal
 from typing import Any, Dict, Optional
 
 from integrations.expo_push import ExpoPushClient, ExpoPushError
+from shared.db import atomic
 from shared.utils.share_classes import share_class_label
 from shared.utils.token_amounts import format_amount
 from users.models import DeviceToken, Notification, UserPreferences
@@ -34,26 +35,29 @@ class NotificationService:
         notification_type: str = "general",
     ) -> Dict[str, Any]:
 
-        prefs = UserPreferences.objects.filter(user_profile__user=user).first()
+        with atomic():
+            if not user.__class__.objects.select_for_update(no_key=True).filter(pk=user.pk, is_active=True).exists():
+                return {"status": "skipped", "reason": "Account inactive", "sent": 0, "failed": 0}
+            prefs = UserPreferences.objects.filter(user_profile__user=user).first()
 
-        Notification.objects.create(
-            user=user,
-            title=title,
-            body=body,
-            notification_type=notification_type,
-            data=data or {},
-        )
+            Notification.objects.create(
+                user=user,
+                title=title,
+                body=body,
+                notification_type=notification_type,
+                data=data or {},
+            )
 
-        if prefs and not prefs.can_receive_notification(notification_type):
-            logger.info(f"Skipped for user {user.pk}: {notification_type} notifications disabled")
-            return {
-                "status": "skipped",
-                "reason": f"{notification_type} notifications disabled",
-                "sent": 0,
-                "failed": 0,
-            }
+            if prefs and not prefs.can_receive_notification(notification_type):
+                logger.info(f"Skipped for user {user.pk}: {notification_type} notifications disabled")
+                return {
+                    "status": "skipped",
+                    "reason": f"{notification_type} notifications disabled",
+                    "sent": 0,
+                    "failed": 0,
+                }
 
-        device_tokens = list(DeviceToken.objects.filter(user=user, is_active=True))
+            device_tokens = list(DeviceToken.objects.filter(user=user, is_active=True))
 
         if not device_tokens:
             logger.info(f"No active devices for user {user.pk}")

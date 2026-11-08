@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { ClipboardTextIcon } from '@phosphor-icons/react';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
-import { COMPANY_TYPES, formatPhoneWithCountryCode, formatSourceOfFunds, formatIntendedUse } from '@ledova/shared';
+import { COMPANY_TYPES, formatPhoneWithCountryCode } from '@ledova/shared';
 import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
 
@@ -40,11 +40,7 @@ export default function SignupReview() {
   const [verificationOpen, setVerificationOpen] = useState(false);
 
   const handleBack = () => {
-    if (isCompany) {
-      navigate(SIGNUP_PATHS.companyRegistration);
-    } else {
-      navigate(SIGNUP_PATHS.financialProfile);
-    }
+    navigate(isCompany ? SIGNUP_PATHS.companyRegistration : SIGNUP_PATHS.userProfile);
   };
 
   if (isLoading) {
@@ -53,7 +49,7 @@ export default function SignupReview() {
 
   if (error) return <ErrorState message={error} onRetry={retryLoad} />;
 
-  const { userProfile, financialProfile } = data;
+  const { userProfile } = data;
 
   return (
     <AuthLayout>
@@ -90,7 +86,7 @@ export default function SignupReview() {
           )}
         </Section>
 
-        {isCompany ? (
+        {isCompany && (
           <Section title="Company information">
             {company ? (
               <Rows>
@@ -111,38 +107,6 @@ export default function SignupReview() {
               </Rows>
             ) : (
               <p className="text-sm text-text-muted">No company information found.</p>
-            )}
-          </Section>
-        ) : (
-          <Section title="Financial profile">
-            {financialProfile ? (
-              <Rows>
-                <Row label="Source of funds" inline>
-                  {formatSourceOfFunds(financialProfile.sourceOfFunds)}
-                </Row>
-                {financialProfile.sourceOfFundsOtherText && (
-                  <Row label="Source (Other)" inline>
-                    {financialProfile.sourceOfFundsOtherText}
-                  </Row>
-                )}
-                {financialProfile.intendedUse && (
-                  <Row label="Intended use" inline>
-                    {formatIntendedUse(financialProfile.intendedUse)}
-                  </Row>
-                )}
-                {financialProfile.intendedUseOtherText && (
-                  <Row label="Intended use (Other)" inline>
-                    {financialProfile.intendedUseOtherText}
-                  </Row>
-                )}
-                {financialProfile.occupation && (
-                  <Row label="Occupation" inline>
-                    {financialProfile.occupation}
-                  </Row>
-                )}
-              </Rows>
-            ) : (
-              <p className="text-sm text-text-muted">No financial profile found.</p>
             )}
           </Section>
         )}

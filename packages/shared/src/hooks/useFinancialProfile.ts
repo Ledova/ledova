@@ -5,11 +5,12 @@ import { useApiClient } from './useApiClient';
 
 export const FINANCIAL_PROFILES_QUERY_KEY = ['financialProfiles'] as const;
 
-export function useFinancialProfile() {
+export function useFinancialProfile({ enabled = true }: { enabled?: boolean } = {}) {
   const apiClient = useApiClient();
   const query = useQuery({
     queryKey: FINANCIAL_PROFILES_QUERY_KEY,
     queryFn: () => getFinancialProfiles(apiClient),
+    enabled,
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
     gcTime: CACHE_TIMING.EXTRA_LONG_GC_TIME,
   });

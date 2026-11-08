@@ -4,6 +4,8 @@ from shared.db import atomic
 from shared.views.base import AuthenticatedGenericViewSet
 from users.models.financial_profile import FinancialProfile
 from users.serializers.financial_profile import FinancialProfileSerializer
+from users.services.accounts import lock_active_user
+from users.services.financial_profile import create_financial_profile
 
 
 class FinancialProfileViewSet(
@@ -24,11 +26,9 @@ class FinancialProfileViewSet(
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(user_profile=self.request.user.userprofile)
-
-    def perform_update(self, serializer):
-        serializer.save()
+        create_financial_profile(self.request.user, serializer)
 
     @atomic()
     def partial_update(self, request, *args, **kwargs):
+        lock_active_user(request.user)
         return super().partial_update(request, *args, **kwargs)

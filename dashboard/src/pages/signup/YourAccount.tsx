@@ -86,9 +86,8 @@ export function YourAccount() {
           {changed && (
             <>
               <p className="text-sm text-text-body leading-relaxed">
-                Changing your email starts signup again. We will send a code to the new address and clear your account
-                type, eligibility answers, and personal and financial details. A company you have already saved stays
-                with your account.
+                Changing your email starts signup again. We will send a code to the new address and clear your saved
+                signup answers and personal details. A company you have already saved stays with your account.
               </p>
               <AuthField
                 id={confirmField.id}

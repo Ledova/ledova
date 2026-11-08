@@ -23,7 +23,6 @@ export const PasswordResetPage = lazy(() => import('@pages/reset-password'));
 export const SignupAccountType = lazy(() => import('@pages/signup/account-type'));
 export const SignupCompanyRegistration = lazy(() => import('@pages/signup/company-registration'));
 export const SignupEmailConfirmation = lazy(() => import('@pages/signup/email-confirmation'));
-export const SignupFinancialProfile = lazy(() => import('@pages/signup/financial-profile'));
 export const SignupPreScreening = lazy(() => import('@pages/signup/pre-screening'));
 export const SignupReview = lazy(() => import('@pages/signup/review'));
 export const SignupUser = lazy(() => import('@pages/signup'));

@@ -24,7 +24,6 @@ import {
   SignupAccountType,
   SignupCompanyRegistration,
   SignupEmailConfirmation,
-  SignupFinancialProfile,
   SignupPreScreening,
   SignupReview,
   SignupUser,
@@ -38,7 +37,6 @@ const SIGNUP_ROUTES = signupRoutes(<SignupUser />, {
   [SIGNUP_PATHS.accountType]: <SignupAccountType />,
   [SIGNUP_PATHS.preScreening]: <SignupPreScreening />,
   [SIGNUP_PATHS.userProfile]: <SignupUserProfile />,
-  [SIGNUP_PATHS.financialProfile]: <SignupFinancialProfile />,
   [SIGNUP_PATHS.companyRegistration]: <SignupCompanyRegistration />,
   [SIGNUP_PATHS.review]: <SignupReview />,
 });

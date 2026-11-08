@@ -115,7 +115,12 @@ class SessionService:
         existing_user = lookup.user
         if existing_user:
             set_principal(existing_user.pk)
-            if not existing_user.is_active or not existing_user.check_password(password):
+            existing_user = (
+                User.objects.select_for_update(no_key=True)
+                .filter(pk=existing_user.pk, email=email, is_active=True)
+                .first()
+            )
+            if existing_user is None or not existing_user.check_password(password):
                 raise serializers.ValidationError({"email": ["Email already registered"]})
         if existing_user and hasattr(existing_user, "userprofile") and existing_user.userprofile.is_signup_completed:
             raise serializers.ValidationError({"email": ["Email already registered"]})

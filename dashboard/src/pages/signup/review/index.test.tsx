@@ -105,6 +105,23 @@ it('reuses saved company details and clearly accepts authority and Terms through
   fireEvent.click(screen.getByRole('button', { name: 'Complete company setup' }));
   expect(state.completeSignup).toHaveBeenCalledTimes(1);
   view.unmount();
+  vi.mocked(useReview).mockReturnValue({
+    ...state,
+    isCompany: false,
+    canCompleteSignup: true,
+    data: { ...state.data, financialProfile: { occupation: 'Retained private details' } },
+  } as never);
+  const personalReview = render(
+    <MemoryRouter>
+      <SignupReview />
+    </MemoryRouter>,
+  );
+  expect(screen.getByRole('heading', { name: 'Review & confirm' })).toBeTruthy();
+  expect(screen.queryByText('Financial profile')).toBeNull();
+  expect(screen.queryByText('Retained private details')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Complete signup' }));
+  expect(state.completeSignup).toHaveBeenCalledTimes(2);
+  personalReview.unmount();
   const revoked = {
     ...APPOINTMENT,
     source: 'initial' as const,
