@@ -20,9 +20,12 @@ Contents: [intent and settlement](#intent-and-settlement) · [creating](#creatin
 ## Intent and settlement
 
 `TradingFeatureFlagMiddleware` (`backend/feature_flags/middleware.py`) refuses every method under
-`/api/v1/trading/orders/`, `wallets/`, `swaps/` and `events/` with 403 while the `trading_enabled`
-flag is off; an operator switches it per deployment in Django admin. The read-only token market and
-the per-class whitelist status sit outside those prefixes.
+`/api/v1/trading/` with 403 while the `trading_enabled` flag is off, including the token market
+and per-class whitelist status. Fresh database installation seeds the flag off; this does not
+change an existing database's stored flag. Missing flags and failed flag reads also refuse access.
+An operator switches it per deployment in Django admin. The separate wallet, payment and class
+execution APIs are not controlled by this middleware; the full release boundary remains tracked
+under [#1587](https://github.com/Ledova/ledova/issues/1587).
 
 The rules are in
 [who may trade and who sees orders](../business/trading.md#who-may-trade-and-who-sees-orders).

@@ -3,13 +3,6 @@ from django.http import JsonResponse
 
 from feature_flags.models import FeatureFlag
 
-TRADING_WRITE_PREFIXES = (
-    "/api/v1/trading/orders/",
-    "/api/v1/trading/wallets/",
-    "/api/v1/trading/swaps/",
-    "/api/v1/trading/events/",
-)
-
 
 class TradingFeatureFlagMiddleware:
 
@@ -17,7 +10,7 @@ class TradingFeatureFlagMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if not request.path.startswith(TRADING_WRITE_PREFIXES):
+        if not request.path.startswith("/api/v1/trading/"):
             return self.get_response(request)
 
         try:

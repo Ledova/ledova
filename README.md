@@ -13,8 +13,10 @@ records why.
 > be used with real funds, securities, companies, identities, wallets or personal
 > information. It makes no claim of regulatory compliance or legal recognition.
 
-Secondary trading is enabled by default on this experimental deployment, on
-synthetic data only. Operation with real participants follows the conditions in
+Fresh installations disable the trading API by default; existing deployments keep
+their stored setting. Preparation of a registry-only release under Blueberry Money
+is tracked in [#1586](https://github.com/Ledova/ledova/issues/1586); the current preview
+remains synthetic-only. Operation with real participants follows the conditions in
 the [regulatory pathway](docs/regulatory-pathway.md), and releases require the
 human checks in [#624](https://github.com/Ledova/ledova/issues/624). The
 [roadmap](docs/roadmap.md) orients the remaining work.

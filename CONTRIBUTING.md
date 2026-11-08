@@ -19,9 +19,9 @@ before opening your first pull request.
 - **No secrets, ever.** No `.env` files, private keys, seed phrases, API tokens,
   real personal data or internal infrastructure identifiers. Only `.env.example`
   templates with blank values belong in the repository.
-- **Trading routes are enabled by default** on the experimental deployment
-  ([#646](https://github.com/Ledova/ledova/issues/646)), on synthetic data only;
-  see the [capability boundaries](docs/product.md#current-capability-boundaries).
+- **Trading is disabled by default on fresh installations.** Existing deployments
+  keep their stored setting; experimental trading remains synthetic-only.
+  See the [capability boundaries](docs/product.md#current-capability-boundaries).
 - Be respectful and constructive. Assume good faith.
   See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 

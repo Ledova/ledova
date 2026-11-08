@@ -128,7 +128,7 @@ def seed_reference_rows(apps, schema_editor):
         name="trading_enabled",
         defaults={
             "description": "Enables P2P trading of share tokens (buy/sell orders, atomic swaps)",
-            "enabled": True,
+            "enabled": False,
             "platform": "all",
         },
     )

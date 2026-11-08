@@ -62,8 +62,9 @@ its phase issues:
   former members and staff-prepared outputs ([the register](business/register.md)).
 - The secondary market ([#5](https://github.com/Ledova/ledova/issues/5),
   [#646](https://github.com/Ledova/ledova/issues/646)): order, matching and
-  settlement, enabled by default under
-  [accepted experimental limits](business/trading.md#accepted-experimental-limits).
+  settlement, retained under [accepted experimental limits](business/trading.md#accepted-experimental-limits).
+  Fresh installations disable its API by default; it is outside the
+  [planned registry-only release](decisions.md#registry-only-public-release-under-blueberry-money).
 - Company-scoped on-chain approvals with expiry ([#648](https://github.com/Ledova/ledova/issues/648)).
 - Shareholder publications ([#649](https://github.com/Ledova/ledova/issues/649)):
   documents, resolutions and dividends published by platform staff on the

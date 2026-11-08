@@ -3,10 +3,11 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import DatabaseError
+from django.db import DatabaseError, OperationalError, ProgrammingError, connection
 from django.utils import timezone
 from eth_account import Account
 from eth_account.messages import encode_defunct
@@ -33,6 +34,8 @@ from companies.services.team import (
     issue_team_invitation,
     revoke_company_appointment,
 )
+from feature_flags.models import FeatureFlag
+from shared.database_setup import seed_reference_rows
 from shared.db import atomic, use_migrate, use_operator
 from shared.tests.core_fixtures import (
     PASSWORD,
@@ -84,6 +87,45 @@ def unfinished_signup(label, acn):
 
 
 class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
+    def test_trading_defaults_off_and_preserves_authorised_registry_history(self):
+        with use_migrate(), connection.schema_editor() as editor:
+            seed_reference_rows(apps, editor)
+            self.assertFalse(FeatureFlag.objects.get(name="trading_enabled").enabled)
+
+        history_path = f"/api/v1/tokens/{self.token.pk}/register/entries/"
+        history = self.client.get(history_path)
+        self.assertEqual(history.status_code, 200, history.content)
+
+        paths = (
+            "/api/v1/trading/",
+            "/api/v1/trading/tokens/",
+            "/api/v1/trading/orders/create/",
+            "/api/v1/trading/wallets/",
+            "/api/v1/trading/swaps/",
+            "/api/v1/trading/events/stream/",
+            "/api/v1/trading/whitelist/example/example/status/",
+        )
+        for path in paths:
+            response = self.client.post(path, {}, format="json")
+            self.assertEqual(response.status_code, 403, response.content)
+            self.assertEqual(response.json(), {"detail": "Trading is disabled."})
+            self.assertEqual(self.client.get(path).status_code, 403)
+
+        with use_migrate():
+            FeatureFlag.objects.filter(name="trading_enabled").delete()
+        self.assertEqual(self.client.get("/api/v1/trading/tokens/").status_code, 403)
+
+        for failure in (OperationalError, ProgrammingError):
+            with patch("feature_flags.middleware.FeatureFlag.objects.filter", side_effect=failure):
+                response = self.client.get("/api/v1/trading/tokens/")
+                self.assertEqual(response.status_code, 403, response.content)
+
+        self.assertEqual(self.client.get(history_path).json(), history.json())
+
+        with use_migrate():
+            FeatureFlag.objects.create(name="trading_enabled", enabled=True)
+        self.assertEqual(APIClient().get("/api/v1/trading/orders/").status_code, 401)
+
     def test_company_ownership_summary_and_paged_holders_are_exact_and_current(self):
         overview = "/api/v1/tokens/ownership/"
         summary = self.client.get(overview, {"company": str(self.company.pk)})

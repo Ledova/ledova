@@ -28,10 +28,12 @@ The web app has no page for trading: the owner removed Market on 29 October 2026
 not planned. The rest of this page describes the trading API, which keeps its orders, history and
 guards.
 
-Trading (orders, matching and settlement) is on by default on the experimental deployment. Platform
-staff can switch it off for a deployment, as an operations switch, not a product mode. While it is
-off, Ledova refuses every order, trading-wallet, settlement and live-update request, and the
-read-only market and each wallet's approval status stay available. Being switched on does not
+Fresh installations disable trading by default. Existing deployments keep their stored setting;
+platform staff can change the operations switch. While it is off, Ledova refuses every request
+under `/api/v1/trading/`, including market and whitelist-status reads. This switch does not disable
+the separate wallet, payment or class execution APIs, which remain outside the
+[planned registry-only release](../decisions.md#registry-only-public-release-under-blueberry-money).
+Being switched on does not
 establish that trading is safe: a release still needs the human checks in
 [#624](https://github.com/Ledova/ledova/issues/624), and operation with real participants follows
 the [regulatory pathway](../regulatory-pathway.md). New trading and settlement work was deferred
