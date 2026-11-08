@@ -148,10 +148,10 @@ check-docs:
 	$(PYTHON) scripts/check-docs.py
 
 preflight:
-	"$(PYTHON)" scripts/preflight.py
+	env DYLD_FALLBACK_LIBRARY_PATH="$(DYLD_FALLBACK_LIBRARY_PATH)" "$(PYTHON)" scripts/preflight.py
 
 backend-test:
-	"$(PYTHON)" scripts/test-backend.py
+	env DYLD_FALLBACK_LIBRARY_PATH="$(DYLD_FALLBACK_LIBRARY_PATH)" "$(PYTHON)" scripts/test-backend.py
 
 check-api-types:
 	node scripts/check-api-types.mjs --schema "$(API_TYPES_SCHEMA)"
