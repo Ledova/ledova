@@ -285,11 +285,13 @@ it('takes a company representative through personal and company details, then re
   await waitFor(() => expect(account.getByRole('button', { name: 'Individual investor' })).toBeEnabled());
   holdPreferences = false;
   await fireEvent.press(account.getByRole('button', { name: 'Individual investor' }));
-  await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('PreScreening'));
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(2));
+  expect(mockNavigate).toHaveBeenLastCalledWith('UserProfile');
   expect(mockCompany).toBe(false);
   await waitFor(() => expect(account.getByRole('button', { name: 'Company representative' })).toBeEnabled());
   await fireEvent.press(account.getByRole('button', { name: 'Company representative' }));
-  await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('UserProfile'));
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(3));
+  expect(mockNavigate).toHaveBeenLastCalledWith('UserProfile');
   expect(mockCompany).toBe(true);
   expect(setAccountRole).toHaveBeenCalledTimes(3);
   await account.unmount();

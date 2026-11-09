@@ -35,7 +35,7 @@ export default function SignupUserProfile() {
   };
 
   const handleBack = () => {
-    navigate(isCompany ? SIGNUP_PATHS.accountType : SIGNUP_PATHS.preScreening);
+    navigate(SIGNUP_PATHS.accountType);
   };
 
   if (isLoading) {

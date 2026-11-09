@@ -24,7 +24,6 @@ import {
   SignupAccountType,
   SignupCompanyRegistration,
   SignupEmailConfirmation,
-  SignupPreScreening,
   SignupReview,
   SignupUser,
   SignupUserProfile,
@@ -35,7 +34,6 @@ const SIGNED_IN_ROUTES = signedInRoutes(PAGES);
 const SIGNUP_ROUTES = signupRoutes(<SignupUser />, {
   [SIGNUP_PATHS.emailConfirmation]: <SignupEmailConfirmation />,
   [SIGNUP_PATHS.accountType]: <SignupAccountType />,
-  [SIGNUP_PATHS.preScreening]: <SignupPreScreening />,
   [SIGNUP_PATHS.userProfile]: <SignupUserProfile />,
   [SIGNUP_PATHS.companyRegistration]: <SignupCompanyRegistration />,
   [SIGNUP_PATHS.review]: <SignupReview />,

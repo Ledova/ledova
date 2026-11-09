@@ -402,7 +402,7 @@ page headings and collection wrappers do not repeat the context name.
 ### Sign-up routes
 
 `SIGNUP_STEPS` (`dashboard/src/utils/paths.ts`) lists the steps after the create-account form:
-email confirmation, account type, pre-screening, user profile, company registration and review.
+email confirmation, account type, user profile, company registration and review.
 Signup has no financial questionnaire, and `useSignupReview` reads no financial profile, on the web
 or in the app. Identity verification is not a step: when `useSignupReview` reports
 `identityRequired`, company review offers **Verify your identity**, which opens the
@@ -413,7 +413,7 @@ and other finished accounts to `landingFor(role)`, lets an unfinished account or
 visitor through, and shows `AccountUnavailable` when the profile cannot be read. `/signup` shows
 the create-account form when signed out and **Your account** (`useSignupRestart`) when signed in.
 Verified accounts never return to email confirmation: account type goes back to `/signup`,
-pre-screening to account type, and the confirmation step sends a signed-in visitor to `/`. Sign-in
+user profile to account type, and the confirmation step sends a signed-in visitor to `/`. Sign-in
 sits under `PublicOnlyRoute`, which sends a signed-in visitor to `/`.
 
 Email verification and sign-up completion issue the session and await the explicit authentication

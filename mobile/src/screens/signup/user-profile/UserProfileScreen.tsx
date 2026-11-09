@@ -205,7 +205,7 @@ export function UserProfileScreen() {
   };
 
   const handleBack = () => {
-    navigation.navigate(isCompany ? 'AccountType' : 'PreScreening');
+    navigation.navigate('AccountType');
   };
 
   if (isLoading || roleLoading) {

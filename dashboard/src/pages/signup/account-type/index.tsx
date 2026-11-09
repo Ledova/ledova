@@ -33,14 +33,7 @@ export default function SignupAccountType() {
   const navigate = useNavigate();
   const { account, isSubmitting, error, chooseRole } = useSignupAccountType();
 
-  const handleSelect = (role: AccountRole) =>
-    chooseRole(role, () => {
-      if (role === 'investor') {
-        navigate(SIGNUP_PATHS.preScreening);
-      } else {
-        navigate(SIGNUP_PATHS.userProfile);
-      }
-    });
+  const handleSelect = (role: AccountRole) => chooseRole(role, () => navigate(SIGNUP_PATHS.userProfile));
 
   const handleBack = () => {
     navigate(SIGNUP_PATH);
