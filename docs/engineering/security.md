@@ -301,6 +301,11 @@ company's recorded purpose; closure neither edits them nor fabricates a company 
 Inactive users lose access. The [account summary](records.md#account-data-export) includes the
 person's Terms receipts but is not every record companies hold about them.
 
+The legacy [financial-profile API](../../backend/users/views/financial_profile.py) only lists the
+caller's retained records. It accepts no new POST or PATCH collection; the retired detail route
+is absent. Existing model/admin records, compliance reads, account summary and account erasure
+remain. No web or native signup sends financial-profile answers.
+
 Company exit is separate from account deletion. The maintenance-only
 [company-disposal command](../operations/operator-console.md#company-exit) requires verified
 company instruction, export handover and purpose/hold review. It supports the non-chain registry
