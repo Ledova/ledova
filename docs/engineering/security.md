@@ -332,9 +332,12 @@ of support mail, logs, supplier copies or retained archives. The operator must r
 record any lawful remaining purpose/expiry and drain in-flight company work before disposal.
 No command disables triggers or substitutes a universal seven-year period. The
 [supplier assessment](../legal/positions.md#registry-only-launch-preparation) records the current
-processing and copy limitations. Support-mail retention/hold facts remain under
-[#1589](https://github.com/Ledova/ledova/issues/1589), with operational mail delivery and
-copy-lifecycle acceptance under [#1586](https://github.com/Ledova/ledova/issues/1586).
+processing and copy limitations, including the 9 November support-mail and Vault verification.
+Support group history and mailbox copies have no automatic age expiry or applicable Vault
+retention/holds at that review. The operator rechecks holds for each actual disposal and removes
+unneeded copies when their recorded purpose ends; mailbox recovery and supplier deletion remain
+separate stages. Operational mail delivery and copy-lifecycle acceptance remain under
+[#1586](https://github.com/Ledova/ledova/issues/1586).
 
 Versioned Terms acceptance is recorded separately in immutable operator-only
 [receipts](../../backend/authentication/models/terms_acceptance.py). New signup or explicit renewal
