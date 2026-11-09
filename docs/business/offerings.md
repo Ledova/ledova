@@ -277,7 +277,7 @@ How the last implementation worked, for whoever restores it; the code is at the 
 - The first offerings target wholesale and sophisticated investors under the s708 exemptions; the
   positions were taken without advice
   ([eligibility decision](../decisions.md#eligibility-and-ownership-records);
-  [legal positions](../legal/positions.md#4b-issuance-payments-and-transfers-need-a-licence-a-registration-or-relief)).
+  [legal positions](../legal/positions.md#4b-activities-beyond-the-registry-scope)).
   Sign-up still asks investors to confirm that share offerings here are wholesale only.
 - Offer documents publish to anyone the directory admits, and once an offering is approved or closed
   they are added to and never removed (owner, 2 October 2026;

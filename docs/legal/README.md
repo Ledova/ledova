@@ -5,26 +5,26 @@
 **Folder index, first written 15 September 2026.** The
 [3 October 2026 one-product decision](../plans/company-managed-registers/plan.md)
 and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
-postdate the readings in this folder, which have not been reconfirmed against
-the current company-managed workflows. Neither product decision establishes a
+postdate the historical analyses in this folder. Position 4 was reassessed against
+the registry-only scope on 9 November; other positions keep their individual dates. Neither product decision establishes a
 legal conclusion.
 
 This folder records what the project has decided about the law it operates
-under, why, and what it still has to find out. **Nobody qualified has been
-asked any of it.** Each question is worked out from primary sources and
-written down as a position with the [same parts](#how-a-position-is-written)
-every time. Nothing here is legal advice or a legal opinion. The
-[regulatory pathway](../regulatory-pathway.md) defines how counsel is engaged
-— a targeted assessment is step 2 of its engagement sequence — and the
-conditions that must hold before live operation.
+under, why, and what it still has to find out. It records source-based positions, not professional legal advice or a compliance
+guarantee. On 9 November the owner directed us to proceed without making a paid
+adviser a prerequisite. Record assumptions, evidence and unresolved risks in the
+existing positions; keep the process proportionate. Required legal permissions,
+privacy, safe disposal and operational checks remain. The
+[regulatory pathway](../regulatory-pathway.md) describes earlier expansion routes,
+not a mandatory counsel engagement for the free registry-only software work.
 
-| Page | What it holds | Read it when |
-| --- | --- | --- |
-| [Company-hosted instance](company-hosted-instance.md) | Historical analysis A: a company running its own instance; software permission, regulatory duties and earlier launch assumptions | When tracing the earlier hosting analysis; validate the current company-managed workflow separately |
-| [Registry service](registry-service.md) | Historical analysis B: a platform operator keeping company registers on instruction; the clerk boundary and earlier launch assumptions | When tracing the earlier staff-operated service analysis; validate the actual platform functions separately |
-| [Positions](positions.md) | Dated positions, sources, triggers, historical responsibility assumptions and sign-off status | Before changing anything that touches the register, evidence, licensing or the licence; reassess readings affected by the current plan |
-| [Regulatory pathway](../regulatory-pathway.md) | The route to lawful live operation: obligation allocation, open questions, operating routes, engagement sequence and launch conditions | Before talking to ASIC, applying for anything, or enabling any live regulated activity |
-| [LICENSE](../../LICENSE) | The Ledova Noncommercial License 1.0 the code is published under | Position 5 |
+| Page                                                  | What it holds                                                                                                                          | Read it when                                                                                                                           |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| [Company-hosted instance](company-hosted-instance.md) | Historical analysis A: a company running its own instance; software permission, regulatory duties and earlier launch assumptions       | When tracing the earlier hosting analysis; validate the current company-managed workflow separately                                    |
+| [Registry service](registry-service.md)               | Historical analysis B: a platform operator keeping company registers on instruction; the clerk boundary and earlier launch assumptions | When tracing the earlier staff-operated service analysis; validate the actual platform functions separately                            |
+| [Positions](positions.md)                             | Dated positions, sources, triggers, historical responsibility assumptions and sign-off status                                          | Before changing anything that touches the register, evidence, licensing or the licence; reassess readings affected by the current plan |
+| [Regulatory pathway](../regulatory-pathway.md)        | The route to lawful live operation: obligation allocation, open questions, operating routes, engagement sequence and launch conditions | Before talking to ASIC, applying for anything, or enabling any live regulated activity                                                 |
+| [LICENSE](../../LICENSE)                              | The Ledova Noncommercial License 1.0 the code is published under                                                                       | Position 5                                                                                                                             |
 
 ## Historical analyses A and B
 
@@ -52,11 +52,11 @@ silence:
 - **Which way to be wrong** — where one error is a defect and the other is an
   offence, the position leans towards the defect.
 - **Trigger** — the event that must happen before the question is engaged.
-- **Status** — the sign-off state, dated. *Reviewed* positions were carried
-  over from the previous page and reviewed; *Rewritten* and *Reframed* ones
-  were carried over and changed, and await sign-off; *Drafted* ones were
+- **Status** — the sign-off state, dated. _Reviewed_ positions were carried
+  over from the previous page and reviewed; _Rewritten_ and _Reframed_ ones
+  were carried over and changed, and await sign-off; _Drafted_ ones were
   written by the assistant and are not yet confirmed by the owner; position 5
-  carries *Licence policy approved*, the owner's decision of 2026-09-20, which
+  carries _Licence policy approved_, the owner's decision of 2026-09-20, which
   is not legal advice. A draft is a reading written down; confirming it means
   the owner removes the marker in a later change. Product and legal decisions
   remain the owner's.
@@ -83,9 +83,9 @@ register. The chain guards refuse any mainnet chain id and mainnet configuration
 is absent from the repository. A question about how a register must be kept is
 not engaged by a register of fictional members.
 
-Each position therefore names its trigger. Most triggers are the first real
-company's first real member, the first fee charged for keeping a real register,
-or the first real offer of a security. The software licence applies from the
+Each position therefore names its trigger. Relevant triggers include the first real
+company/member record and the actual financial-service activity, not merely
+the first fee. Free or publicly readable software has no automatic exemption. The software licence applies from the
 outset, synthetic data or not
 ([position 5](positions.md#5-software-licensing-and-commercial-permission)).
 
@@ -214,32 +214,32 @@ markets, licensing and digital-asset platforms, follow the deferred #869 and
 
 ## Glossary
 
-| Term | Meaning |
-| --- | --- |
-| AFSL | Australian financial services licence, Part 7.6 of the Corporations Act |
-| AML/CTF | Anti-Money Laundering and Counter-Terrorism Financing Act 2006 and its rules, administered by AUSTRAC |
-| ASIC | Australian Securities and Investments Commission |
-| Clerk | In historical analysis B and position 4a, an operator that makes register entries only on a company's written instruction, with a director's approval recorded, and decides nothing itself |
-| CS facility | Clearing and settlement facility, licensed under Part 7.3 |
-| CSF | Crowd-sourced funding, Part 6D.3A |
-| DAF Act | Corporations Amendment (Digital Assets Framework) Act 2026 |
-| DAP, TCP | Digital asset platform and tokenised custody platform, the two products the DAF Act creates |
-| DFCRC | Digital Finance Cooperative Research Centre |
-| DFMI | Digital financial market infrastructure |
-| ERS | Enhanced Regulatory Sandbox, INFO 248, being repealed |
-| ESS | Employee share scheme, Division 1A of Part 7.12 for offers and Division 83A of the tax Act for tax |
-| FSL | Functional Source License, used for earlier versions; their existing grants remain effective |
-| INFO | An ASIC information sheet |
-| LVFM | Low volume financial market, Instrument 2016/888 |
-| Member, shareholder | A member is a person entered on a company's register of members, with or without an account or a wallet, the [product's term](../product.md#roles-and-deployment); these pages say shareholder where a source or scenario does |
-| NTA | Net tangible assets, RG 166 |
-| Operator | Either the legal person that operates a deployment, which historical analysis B calls the registry service's operator, or the [software role](../product.md#roles-and-deployment): a deployment's single configuration record, its technical database and signer roles, and the platform staff tooling, none of which is a company mandate |
-| REP | An ASIC report |
-| RG | An ASIC regulatory guide |
-| Registry service, registry product | The registry service is historical analysis B, a platform operator keeping many companies' registers on their written instructions; the registry product is the one product adopted on 3 October 2026, in which companies administer their own registers wherever the software is hosted |
-| Responsible manager | The person whose experience an AFSL applicant relies on, RG 105 |
-| s708 | The exemptions from disclosure for offers to wholesale, sophisticated, professional and associated investors |
-| Tier 2 | The lighter tier of Australian market licence in RG 172 |
+| Term                               | Meaning                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AFSL                               | Australian financial services licence, Part 7.6 of the Corporations Act                                                                                                                                                                                                                                                                    |
+| AML/CTF                            | Anti-Money Laundering and Counter-Terrorism Financing Act 2006 and its rules, administered by AUSTRAC                                                                                                                                                                                                                                      |
+| ASIC                               | Australian Securities and Investments Commission                                                                                                                                                                                                                                                                                           |
+| Clerk                              | In historical analysis B and position 4a, an operator that makes register entries only on a company's written instruction, with a director's approval recorded, and decides nothing itself                                                                                                                                                 |
+| CS facility                        | Clearing and settlement facility, licensed under Part 7.3                                                                                                                                                                                                                                                                                  |
+| CSF                                | Crowd-sourced funding, Part 6D.3A                                                                                                                                                                                                                                                                                                          |
+| DAF Act                            | Corporations Amendment (Digital Assets Framework) Act 2026                                                                                                                                                                                                                                                                                 |
+| DAP, TCP                           | Digital asset platform and tokenised custody platform, the two products the DAF Act creates                                                                                                                                                                                                                                                |
+| DFCRC                              | Digital Finance Cooperative Research Centre                                                                                                                                                                                                                                                                                                |
+| DFMI                               | Digital financial market infrastructure                                                                                                                                                                                                                                                                                                    |
+| ERS                                | Enhanced Regulatory Sandbox, INFO 248, being repealed                                                                                                                                                                                                                                                                                      |
+| ESS                                | Employee share scheme, Division 1A of Part 7.12 for offers and Division 83A of the tax Act for tax                                                                                                                                                                                                                                         |
+| FSL                                | Functional Source License, used for earlier versions; their existing grants remain effective                                                                                                                                                                                                                                               |
+| INFO                               | An ASIC information sheet                                                                                                                                                                                                                                                                                                                  |
+| LVFM                               | Low volume financial market, Instrument 2016/888                                                                                                                                                                                                                                                                                           |
+| Member, shareholder                | A member is a person entered on a company's register of members, with or without an account or a wallet, the [product's term](../product.md#roles-and-deployment); these pages say shareholder where a source or scenario does                                                                                                             |
+| NTA                                | Net tangible assets, RG 166                                                                                                                                                                                                                                                                                                                |
+| Operator                           | Either the legal person that operates a deployment, which historical analysis B calls the registry service's operator, or the [software role](../product.md#roles-and-deployment): a deployment's single configuration record, its technical database and signer roles, and the platform staff tooling, none of which is a company mandate |
+| REP                                | An ASIC report                                                                                                                                                                                                                                                                                                                             |
+| RG                                 | An ASIC regulatory guide                                                                                                                                                                                                                                                                                                                   |
+| Registry service, registry product | The registry service is historical analysis B, a platform operator keeping many companies' registers on their written instructions; the registry product is the one product adopted on 3 October 2026, in which companies administer their own registers wherever the software is hosted                                                   |
+| Responsible manager                | The person whose experience an AFSL applicant relies on, RG 105                                                                                                                                                                                                                                                                            |
+| s708                               | The exemptions from disclosure for offers to wholesale, sophisticated, professional and associated investors                                                                                                                                                                                                                               |
+| Tier 2                             | The lighter tier of Australian market licence in RG 172                                                                                                                                                                                                                                                                                    |
 
 Next: [positions](positions.md), then the
 [regulatory pathway](../regulatory-pathway.md).

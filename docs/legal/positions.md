@@ -5,8 +5,8 @@
 **Current positions, recorded from 15 September 2026 and dated individually below.**
 The [3 October 2026 one-product decision](../plans/company-managed-registers/plan.md)
 and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
-postdate the readings on this page, which have not been reconfirmed against
-the current company-managed workflows. Neither product decision establishes a
+postdate the historical readings on this page. Position 4 was reassessed for
+the registry-only scope on 9 November; other positions retain their own dates. Neither product decision establishes a
 legal conclusion, and platform payment, crypto and support functions must be
 assessed on what they actually do. Where a position's "What the code does"
 names platform staff, the [current capability boundaries](../product.md#current-capability-boundaries)
@@ -16,16 +16,17 @@ the rule that no impersonation or fraud verification is added unless a legal
 duty on Ledova requires it, and sends any such duty here to be raised with the
 owner with its source.
 
-The questions the project depends on. Nobody qualified has been asked any of
-them. Each position has the [same parts](README.md#how-a-position-is-written).
+These are the project's positions from primary sources, not professional opinions.
+Each position has the [same parts](README.md#how-a-position-is-written).
 Read the provision before relying on a summary of it; the
 [sources](README.md#sources) are listed once.
 
 Positions 1 to 5 were carried over from the previous [legal note](https://github.com/Ledova/ledova/blob/6ddae7f87ba05d6d7271b43225d261a42b25e111/docs/legal.md) and
 reviewed on 2026-09-15; position 4 was rewritten because a registry that only
 records changes its shape. Position 5 records the owner-directed licence change
-of 2026-09-20. Positions 6 to 11 were drafted on 2026-09-15 by the
-assistant from primary sources and are **not yet confirmed by the owner**.
+of 2026-09-20. Positions 6 to 9 and 11 retain their dated draft status. Position 4 was
+reassessed on 9 November; position 10 records the accepted privacy direction.
+Neither owner acceptance nor source review is professional legal clearance.
 Position 12 records the 9 November 2026 replacement of the earlier PyMuPDF dependency;
 its historical licensing analysis remains in Git history.
 
@@ -38,7 +39,7 @@ position says so.
 | 1   | s169(7) retention of former members                  | The first real company's first real member                                      | A and B                                                          | Reviewed                                                      |
 | 2   | s168, who is obliged to keep the register            | The same moment, plus the terms between operator and company                    | B; in A the company keeps it itself                              | Reviewed; analysis A sentence awaiting sign-off               |
 | 3   | Evidence retention period                            | The first real identity document held                                           | A and B, once investor onboarding or the issuer KYC switch is on | Reviewed                                                      |
-| 4   | Operating without an AFSL, in two halves             | The first fee for a real register; the first real offer of a security           | 4a binds B; 4b binds both                                        | Rewritten, awaiting sign-off                                  |
+| 4   | Financial-services boundaries | Actual real-data activity, before any fee | Current service; historical A/B | Source-based assessment, 2026-11-09 |
 | 5   | Software licensing and commercial permission         | Any commercial use or use of the code for a competing product or service        | A, B and third-party users                                       | Licence policy approved by owner 2026-09-20; not legal advice |
 | 6   | Where and in what form the register is kept          | The first real register                                                         | A and B, with different forms to lodge                           | Drafted                                                       |
 | 7   | Whether a register is a financial market             | Any feature where holders post offers to one another                            | A and B, with a different registrant                             | Drafted                                                       |
@@ -48,10 +49,9 @@ position says so.
 | 11  | The company's own fundraising and scheme obligations | The first issue recorded for a real company                                     | A and B                                                          | Drafted                                                       |
 | 12  | PDF runtime licensing | Backend builds and distributions | A, B and third-party users | PyMuPDF replaced 2026-11-09 |
 
-Position 4 is the one where being wrong is an offence rather than a defect, and
-its second half keeps the original stance: do not reach the trigger without a
-licence, a registration or relief. The [regulatory pathway](../regulatory-pathway.md)
-is the page about how those are obtained.
+Position 4 distinguishes the current recordkeeping assessment from regulated
+expansion. Required legal permissions remain necessary if an activity reaches
+their trigger; a paid opinion is not itself a software release requirement.
 
 ## 1. Section 169(7): members who ceased in the last seven years
 
@@ -172,136 +172,86 @@ requires a company appointee to be identity-verified before their appointment
 is effective; this position is engaged only then. The issuer switch was added to
 this note on 2026-09-21.
 
-## 4. Operating without a licence: the two halves
+## 4. Financial-services boundaries
 
-The original question was what would allow an operator to run this platform
-without an Australian financial services licence (AFSL), and the original answer
-was to not reach the trigger. Historical analysis B splits the question.
-One half can be answered from primary sources; the other keeps the original answer
-and gains a [pathway](../regulatory-pathway.md) for reaching the trigger lawfully.
+**Source-based assessment, checked 9 November 2026.** The owner directs a free,
+company-controlled registry and ownership mirror, without commissioning advisers
+or making a paid opinion a project prerequisite. This is the project's reasoned
+position, not legal advice, regulatory approval or a guarantee of exemption.
+Earlier analysis of the larger trading platform remains in Git history.
 
-### 4a. A registry service acting only on instruction is not a financial service
+### 4a. Company-directed recordkeeping and the administrative boundary
 
-**What the sources say.** Section 766A lists the financial services; keeping a
-register is not among them. Section 766C(2) makes _arranging_ for another person
-to deal a dealing in itself, and s766C(4) provides that a body corporate's
-transaction relating only to its own securities is not dealing — so the company
-issuing its own shares is not dealing, and the question is only whether the
-registry is arranging. Regulation 7.1.29 then provides that a person is taken
-not to provide a financial service where the eligible service is provided in the
-course of, is reasonably necessary for, and is integral to an _exempt service_,
-and paragraph (3)(g) names as an exempt service: _arranging for another person
-to deal "by preparing a document of registration or transfer in order to
-complete administrative tasks on instructions from the person"_. RG 36.41(f)
-lists that exemption. RG 36.52–53 add the warning: clerical work is exempt as
-individual conduct, but "the aggregation of the individual clerical activities
-carried out within that economic entity may (in many, but not all, cases)
-amount to a financial services business of dealing, arranging and/or advising".
-RG 36 Table 3 names the collection and transmission of money and benefits based
-on sales as indicators of arranging; Table 4 says a computer link that is merely
-a processing task the customer could have done themselves is not arranging,
-while a "special direct link" without which the transaction would not occur
-probably is.
+**What the sources say.** The [Corporations Act](https://www.legislation.gov.au/C2004A00818/latest/text)
+requires a company's own register under ss168–169. ASIC receives specified
+notifications, not every underlying record; its
+[members-register guide](https://www.asic.gov.au/for-business-and-companies/companies/company-share-and-shareholder-rules-and-changes/members-register-requirements-and-changes)
+explains the top-20 qualification for larger proprietary-company registers.
+The company must keep its legal register and handle its own required notices.
+A service actually engaged to maintain the statutory register can also have
+inspection/copy duties under s174; calling it a mirror does not decide that fact.
 
-**What the code does.** Today the register is a stored record, and
-the platform retains experimental trading for synthetic/testnet use, disabled by default on fresh
-installations; existing deployments keep their stored setting. Trading is outside the
-[planned registry-only release](../decisions.md#registry-only-public-release-under-blueberry-money).
-Investor classification was removed on 2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)).
-Offerings, subscriptions and payment recording are
-[planned for a later release](../business/offerings.md).
-The [registry service](registry-service.md) page's feature table records what
-the earlier clerk-only service proposal would omit or defer; it is not a list
-of implemented controls. Fresh issues, grants, allotments and non-paid
-transfers are prepared, approved and applied by company appointees, retaining
-the company's authority document and named director with no staff verification
-([implementation index](../plans/company-managed-registers/README.md)). Staff
-review remains only in the retained instruction workflow for earlier direct
-issues and settled market transfers
-([runbook](../business/issuing-shares.md#retained-issue-instructions)), which
-since 2 November 2026 also retains the company's own authority document rather
-than a staff-verified one ([decision](../decisions.md#company-documents-removed)).
+Sections 766A–766C and 911A concern the actual financial services business,
+including advice, dealing and arranging. The own-securities provision in
+s766C(4), subject to s766C(5), concerns the company itself; it is not automatic
+protection for its supplier. Section 18 includes business without a profit
+purpose. **The assessment starts before real operation, not at the first fee.**
 
-**The position.** A hosted register-of-members service is not a financial
-service while all of the following hold: entries are made only on written
-instruction from the company's authorised officers, with a director's approval
-recorded; the service introduces no investors and hosts no offer; it receives no
-subscription money; it holds no shares or tokens for anyone; it is paid a flat
-fee, never per transaction; and it exercises no discretion, since directors
-decide whether to register a transfer (s1072G lets a proprietary company's
-directors refuse for any reason). Each of those clauses maps to an indicator in
-RG 36, so each is a line the product must not cross by accident.
+[Regulation 7.1.29](https://www.legislation.gov.au/F2001B00274/latest/text),
+particularly (1) and (3)(g), addresses administrative registration/transfer
+preparation on instructions, subject to its conditions. It is relevant to the
+proposed boundary, not a blanket exemption for hosted registries.
+[ASIC RG 36](https://download.asic.gov.au/media/wdnk4aja/rg36-published-8-june-2016-20220328.pdf),
+paragraphs 36.42–53 and 36.59, considers the provider's role in bringing a
+transaction about and warns that aggregated clerical activities can amount to a
+financial-services business. Systematic activity need not seek profit. No fee,
+commission or money handling helps describe our scope; none alone proves an exemption.
 
-**What would show this wrong.** ASIC treating a hosted registry business as an
-arranging business in aggregate despite instruction-only conduct; or a court
-reading reg 7.1.29(3)(g) as confined to natural persons. Either would show as
-enforcement against a share registry provider, of which none was found.
+**What the code does.** The [registry-only boundary](../engineering/chain.md#registry-only-execution-boundary)
+refuses new payment, trading, wallet and chain-execution admissions through APIs,
+services and jobs. Company appointees record existing ownership, externally
+arranged capital, awards and company-authorised changes with retained authority,
+evidence and event dates. Ledova neither introduces investors nor collects the
+investment money. Companies retain their legal records and filings. The
+[current capability boundaries](../product.md#current-capability-boundaries)
+and [issue workflows](../business/issuing-shares.md) describe what is delivered.
 
-**Which way to be wrong.** Being wrong here is an offence, so the position leans
-hard: every boundary above is documented, priced into the agreement, and
-enforced by configuration, not by intention.
+**The position.** Keep Ledova a company-directed records tool. Companies choose
+participants and terms, make corporate decisions and supply the authority;
+software validates and records their instructions. Describe those concrete roles
+rather than calling Blueberry an investment intermediary. Open code and no fees
+are useful project characteristics, not substitutes for assessing conduct.
 
-**Binds.** The [registry service](registry-service.md). A
-[company-hosted instance](company-hosted-instance.md) has no operator to ask the
-question of; a provider that only hosts such an instance and never makes an
-entry is an IT supplier, not an arranger.
+**What would show this wrong.** An issue/transfer action that legally brings a
+transaction into effect on another person's behalf, platform discretion over
+investors or terms, introductions or offers, recommendations, money/custody, or
+an actual statutory-register agency arrangement. Trace what **Approve** does
+against this boundary; an external agreement and a disclaimer do not settle the
+question on their own. Narrow or defer conduct whose basis cannot be supported;
+do not infer an exemption from labels or fabricate a licence.
 
-**Trigger.** The first fee charged for keeping a real company's register.
+**Status.** The owner selected this source-based assessment approach on 9 November.
+It is not a finding that every workflow qualifies for the administrative provision.
+Record material uncertainty and revisit it when conduct changes. Paid advice can
+remain optional; legal permissions required by the actual activity cannot.
 
-**Status.** Drafted 2026-09-15, awaiting the owner's sign-off.
+### 4b. Activities beyond the registry scope
 
-### 4b. Issuance, payments and transfers need a licence, a registration or relief
+Investment recommendations, offers or investor introductions, matching or trading,
+collecting money, custody and new chain execution stay outside this release. If a
+future feature involves a regulated activity, obtain its necessary permission or
+leave it unavailable; neither a free service nor a company's disclosure exception
+provides a general platform exemption. The [regulatory pathway](../regulatory-pathway.md)
+records the earlier expansion routes and is not a requirement to commission an
+adviser before doing the current software work.
 
-**The question, as originally put.** The wholesale-client and
-sophisticated-investor exceptions — s708 for offers, s761G for financial-product
-advice — mean no retail disclosure document is required for offers made only to
-investors who qualify. Whether that is the right exception, and whether it
-covers everything the fuller model does, is a different question from whether
-the classification is recorded correctly. The reading here is that it does not:
-s708 relieves the _company_ from disclosure and says nothing about a _platform_
-that arranges the issue, so the platform's question is the licence, not the
-exemption.
+The company's own issue, transfer and employee-scheme obligations remain its
+responsibility ([position 11](#11-the-companys-own-fundraising-and-scheme-obligations)).
+ASIC notifications and a company declaration do not by themselves establish that
+an issue was lawful. We make no such guarantee.
 
-**What the code does.** Since 2 November 2026 the code records no investor
-classification: the qualified accountant's certificate (s708(8)(c)) and
-professional investor (s708(11) / s761G(7)(d)) claims went with company
-eligibility decisions ([decision](../decisions.md#verification-limited-to-id-checks)),
-and the large-investment (s708(8)(a)) and associated-person (s708(12)) categories
-are [planned with offerings](../business/offerings.md#investor-access-and-eligibility).
-The experienced-investor category, s708(10) / s761GA, was left out on purpose: it
-is the only one that turns on the operator holding an AFSL, and there is no
-evidence this deployment does.
-
-**The position: do not reach the trigger without the permission the step needs.**
-Operating a financial services business without a licence where one is
-required is an offence, not a defect — the cost of being wrong is not
-symmetrical with anything else on this page. So the platform stays on testnet
-with synthetic data for issuance, payments and transfers until the operator
-holds the AFSL authorisations, the market registration or the relief that the
-[regulatory pathway](../regulatory-pathway.md) sets out, and the chain guards are
-what make that a mechanism rather than an intention. This half binds both
-historical analyses: in either, the licence question arises the moment the
-platform rather than the company makes or hosts the offer.
-
-**When it is worth paying for, it is one scoped question, not open-ended
-advice.** The categories are enumerated, the provisions are named, the gaps are
-listed, and what the software actually does is written down. A fixed-fee
-opinion on a question that precise costs a small fraction of an open engagement
-that starts with explaining the product.
-
-**Dated follow-up.** The `accountant_certificate` category, removed from the code
-on 2 November 2026, depended on who counts as a qualified accountant, which is set
-by ASIC Corporations (Qualified Accountant) Instrument 2016/786, due to sunset on
-1 October 2026 and proposed to be remade. [RG 154](https://www.asic.gov.au/regulatory-resources/find-a-document/regulatory-guides/rg-154-certificate-by-a-qualified-accountant/)
-is the guide. Recheck the instrument's status before an accountant's certificate
-is recorded again; if the remade instrument changes who may certify, that
-category's evidence rules change with it.
-
-**Status.** Reframed 2026-09-15, awaiting sign-off. The stance that being wrong
-is an offence is carried over; what changed is the release condition, from
-"until someone qualified has answered this" to holding the permission each step
-needs, and the sentence that this is not a question to answer by reading now
-lives in the [folder's conventions](README.md#conventions).
+**Status.** The current registry-only exclusions remain enforced. Any expansion
+needs a new owner decision and an assessment of the actual changed activity.
 
 ## 5. Software licensing and commercial permission
 
@@ -666,9 +616,9 @@ clock is not a universal legal basis for retaining every copy.
 Company exit first verifies authority and supplies existing exports/company pack.
 Complete scoped disposal is **not implemented**. It remains a real-data release gate;
 do not promise complete company deletion, disable database guards or silently keep
-unnecessary records indefinitely. Actual supplier processing locations/agreements,
-identity-data necessity and the scope of any statutory retention must be confirmed
-for the live service. No universal AML duty or AFSL exemption follows from being free
+unnecessary records indefinitely. Confirm actual supplier processing locations/agreements, identity-data necessity
+and any specific retention basis from the live configuration and current sources.
+The owner directs best-effort assessment without a compulsory paid adviser. No universal AML duty or AFSL exemption follows from being free
 or calling the service a mirror.
 
 The new public Terms leave corporate authority, the legal register, lawful inspection
@@ -700,8 +650,8 @@ wrong; what could change is the date compliance stops being voluntary.
 **Trigger.** The first real member's personal information.
 
 **Status.** Policy and prepared Terms accepted 9 November 2026. Account erasure and
-versioned acceptance are implemented; full company disposal and the live supplier/legal
-assessment remain gates before real-data use. The public preview still requires fictional data.
+versioned acceptance are implemented; full company disposal and a recorded source-based assessment of the actual live
+service/suppliers remain gates before real-data use, without a paid-adviser prerequisite. The public preview still requires fictional data.
 
 ## 11. The company's own fundraising and scheme obligations
 
@@ -736,7 +686,7 @@ its date, the number, class and price, the amount paid — and stores the board
 resolution and the offer and acceptance as evidence beside the entry, so the
 company's later scheme reporting and any concession claim can be substantiated
 from the register. Ledova does not prepare, host or send the offer; the moment
-it does, [position 4b](#4b-issuance-payments-and-transfers-need-a-licence-a-registration-or-relief)
+it does, [position 4b](#4b-activities-beyond-the-registry-scope)
 applies. The candidate first client's issue to an employee fits s113(3)(a)(ii)
 and Division 1A without the platform's involvement in the offer.
 
