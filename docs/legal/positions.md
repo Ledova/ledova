@@ -212,7 +212,10 @@ refuses new payment, trading, wallet and chain-execution admissions through APIs
 services and jobs. Company appointees record existing ownership, externally
 arranged capital, awards and company-authorised changes with retained authority,
 evidence and event dates. Ledova neither introduces investors nor collects the
-investment money. Companies retain their legal records and filings. The
+investment money. Allotment and transfer **Approve** can also apply the local
+ledger change and update recorded holdings; a non-paid grant applies separately.
+Those paths make no bank, chain or ASIC call. Unsigned certificates are prepared
+separately. Companies retain their legal records and filings. The
 [current capability boundaries](../product.md#current-capability-boundaries)
 and [issue workflows](../business/issuing-shares.md) describe what is delivered.
 
