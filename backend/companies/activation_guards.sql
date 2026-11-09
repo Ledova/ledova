@@ -45,6 +45,9 @@ AS $function$
 DECLARE
     issuer companies_company;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF current_user = @MIGRATE_ROLE@ THEN
         IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
         RETURN NEW;

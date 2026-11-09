@@ -617,9 +617,13 @@ and document copies remain separate for their identified purpose. The former-mem
 clock is not a universal legal basis for retaining every copy.
 
 Company exit first verifies authority and supplies existing exports/company pack.
-Complete scoped disposal is **not implemented**. It remains a real-data release gate;
-do not promise complete company deletion, disable database guards or silently keep
-unnecessary records indefinitely. Confirm actual supplier processing locations/agreements, identity-data necessity
+The [maintenance-only disposal path](../operations/operator-console.md#company-exit)
+supports a reviewed non-chain company scope, with atomic database deletion and separately
+retryable current-storage cleanup. It refuses retained execution history and preserves
+other companies and accounts. It does not itself verify instruction/handover, resolve holds
+or erase every supplier, support-mail, log or archive copy. Those require recorded treatment;
+do not promise immediate complete erasure, disable guards or silently keep unnecessary
+records indefinitely. Confirm actual supplier processing locations/agreements, identity-data necessity
 and any specific retention basis from the live configuration and current sources.
 The owner directs best-effort assessment without a compulsory paid adviser. No universal AML duty or AFSL exemption follows from being free
 or calling the service a mirror.
@@ -653,7 +657,7 @@ wrong; what could change is the date compliance stops being voluntary.
 **Trigger.** The first real member's personal information.
 
 **Status.** Policy and prepared Terms accepted 9 November 2026. Account erasure and
-versioned acceptance are implemented; full company disposal and a recorded source-based assessment of the actual live
+versioned acceptance and scoped company-disposal software are implemented; a recorded source-based assessment of the actual live
 service/suppliers remain gates before real-data use, without a paid-adviser prerequisite. The public preview still requires fictional data.
 
 ## 11. The company's own fundraising and scheme obligations

@@ -90,6 +90,9 @@ CREATE FUNCTION tokens_guard_employee_award() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain immutable promised employee awards and agreement evidence' USING ERRCODE = '23514';
     END IF;
@@ -155,6 +158,9 @@ CREATE FUNCTION tokens_guard_employee_award_vesting() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; promised tokens_registeraward;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain append-only company-recorded vesting facts and evidence' USING ERRCODE = '23514';
     END IF;
@@ -307,6 +313,9 @@ CREATE OR REPLACE FUNCTION tokens_guard_register_grant() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP = 'DELETE' THEN
         RAISE EXCEPTION 'Retain register grants and their evidence' USING ERRCODE = '23514';
     END IF;
@@ -369,6 +378,9 @@ CREATE OR REPLACE FUNCTION tokens_guard_register_grant_decision() RETURNS trigge
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; at_time timestamptz; proposal tokens_registergrant;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Register grant decisions are append-only' USING ERRCODE = '23514';
     END IF;
@@ -437,6 +449,9 @@ LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp 
 DECLARE principal bigint; promised tokens_registeraward; original tokens_registerawardvesting;
     ending boolean; unvested numeric; vested numeric; reversed numeric; facts jsonb; current_vested numeric; issued numeric;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain append-only entitlement endings and vesting reversals' USING ERRCODE = '23514';
     END IF;
