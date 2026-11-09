@@ -653,8 +653,24 @@ distinguishes selected-region customer content from account/metadata processing;
 establish Australia-only processing or immediate deletion. The owner, Blueberry Money's sole
 director, confirmed authority to use the existing supplier accounts on 9 November. The assessment
 uses the standard published processing terms, without claiming a particular executed version
-or edition-specific controls. Support-mail retention and holds remain unconfirmed; public terms
-alone are not evidence of those tenant settings.
+or edition-specific controls.
+
+The final read-only Admin and Vault review on 9 November resolved support-mail treatment:
+the support group keeps conversation history, the recipient's effective Gmail setting has no
+automatic age expiry, and Vault has no default Gmail/Groups retention rules, custom rules or
+domain, user or group holds. This is a dated observation, not a guarantee about future holds.
+Under the accepted purpose-bound policy, review support correspondence when its support,
+security or specific legal purpose ends, recheck holds and delete unnecessary group and
+mailbox copies separately. Record any retained purpose, hold and review date. Gmail recovery
+and supplier backend deletion remain distinct from immediate permanent erasure; account
+deletion does not itself delete support correspondence. Keep account identifiers and detailed
+operational evidence private. No setting, licence, hold or message was changed.
+
+Google's [Gmail auto-deletion guidance](https://knowledge.workspace.google.com/admin/gmail/advanced/manage-email-storage-with-auto-delete-settings)
+and [cross-matter hold reports](https://knowledge.workspace.google.com/vault/holds/review-all-holds-for-your-organization)
+explain the checks. Its [mail recovery guidance](https://knowledge.workspace.google.com/admin/support/troubleshooting/restore-a-users-permanently-deleted-email)
+and processing terms describe remaining recovery and deletion stages. Recheck actual copies
+for each disposal; this assessment is not proof that a particular person's copies were erased.
 
 Logs rotate by size, which proves no maximum age. Retired archives remain subject to their
 existing retention locks and expiry, not immediate erasure. A bounded server inventory does
@@ -684,9 +700,10 @@ wrong; what could change is the date compliance stops being voluntary.
 
 **Status.** Policy and prepared Terms accepted 9 November 2026. Account erasure and
 versioned acceptance and scoped company-disposal software are implemented. Source minimisation
-and a read-only supplier/copy assessment are recorded above; unresolved support-mail retention/hold facts
-and operational acceptance remain gates before real-data use, without a paid-adviser prerequisite.
-The public preview still requires fictional data.
+and the supplier/copy assessment, including support-mail retention and hold verification, are
+complete for [#1589](https://github.com/Ledova/ledova/issues/1589). Operational acceptance and owner
+launch direction remain under [#1586](https://github.com/Ledova/ledova/issues/1586), without a
+paid-adviser prerequisite. The public preview still requires fictional data.
 
 ## 11. The company's own fundraising and scheme obligations
 

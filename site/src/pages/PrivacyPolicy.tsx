@@ -123,7 +123,11 @@ export function PrivacyPolicy() {
               needed to explain genuine history. Expired session records are removed by daily maintenance. Uncompleted
               signup information without protected history or a pending provider follow-up is erased after 30 days
               without activity. Unused uploads are eligible for cleanup after 24 hours; successful jobs after seven days
-              and unsuccessful jobs after 30 days. Server logs rotate at their configured size limit.
+              and unsuccessful jobs after 30 days. Server logs rotate at their configured size limit. Support
+              correspondence can also be kept in group history and recipient mailboxes, with no automatic expiry. Those
+              copies need separate review and deletion when their support, security or specific legal purpose ends,
+              subject to identified holds and recovery periods. Deleting a Ledova account does not delete them
+              automatically.
             </p>
             <p>
               If an identity provider holds an applicant, deletion starts a separate permanent-erasure request. Our
