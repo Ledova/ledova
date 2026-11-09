@@ -43,6 +43,9 @@ CREATE OR REPLACE FUNCTION tokens_guard_member_document() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; copy tokens_registerevidence; opening tokens_registerimport;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain shareholder document links and categories' USING ERRCODE = '23514';
     END IF;

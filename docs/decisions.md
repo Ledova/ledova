@@ -2607,7 +2607,9 @@ erasure mechanics and periods. Account-only data is erased on closure, abandoned
 signups after thirty inactive days, expired sessions by daily maintenance, and
 provider permanent deletion has a thirty-day target with actual confirmation and
 specific reviewed holds. Company records remain separately purpose-bound; complete
-company disposal is not yet implemented and remains a real-data release gate.
+company disposal was not yet implemented at acceptance. The
+[maintenance-only company-exit path](operations/operator-console.md#company-exit) now implements
+scoped database/current-storage disposal; live supplier and retained-copy acceptance remains pending.
 
 The owner also accepted the operator-specific software permission in
 [LICENSE section 6](../LICENSE), without transferring copyright or granting rights
