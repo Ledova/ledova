@@ -53,10 +53,12 @@ export function PrivacyPolicy() {
             <ul className={LIST}>
               <li>
                 <strong className={LABEL}>When you register:</strong> your email address, a password (kept only as a
-                one-way hash), and your full name, date of birth, phone number and residential address. Web and native
-                signup do not ask for occupation, source of funds or intended use; earlier preview records can include
-                these answers. Contact details support account and identity-check workflows; birth date supports
-                configured identity checks, not company ownership calculations.
+                one-way hash), and your full name. Web signup does not ask for a birth date, phone number or address.
+                You can add or update an address in Profile for linked shareholder particulars. The native app still
+                asks for a birth date, phone number and residential address; reducing that collection is deferred to its
+                release work. Neither signup asks for occupation, source of funds or intended use. Earlier preview
+                records can retain these details. A configured identity check can collect identity details separately;
+                these do not determine company ownership.
               </li>
               <li>
                 <strong className={LABEL}>What you record:</strong> company details, share classes, holdings and awards,
