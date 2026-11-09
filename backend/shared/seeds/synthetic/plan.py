@@ -145,10 +145,6 @@ class Person:
     existing: bool = False
 
     @property
-    def prescreened(self):
-        return self.signup_step not in ("account-type", "pre-screening")
-
-    @property
     def profiled(self):
         return self.signup_step in (None, "financial-profile")
 

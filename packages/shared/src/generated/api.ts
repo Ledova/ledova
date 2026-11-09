@@ -5235,9 +5235,6 @@ export interface ApiComponents {
     };
     PatchedUserProfileRequest: {
       citizenshipCountry?: string;
-      confirmedAustralianResident?: boolean;
-      confirmedIndividualAccount?: boolean;
-      confirmedOver18?: boolean;
       dateOfBirth?: string | null;
       fullName?: string | null;
       isSignupCompleted?: boolean;
@@ -7553,9 +7550,6 @@ export interface ApiComponents {
     UserProfile: {
       citizenshipCountry: string | null;
       citizenshipCountryName: string | null;
-      confirmedAustralianResident?: boolean;
-      confirmedIndividualAccount?: boolean;
-      confirmedOver18?: boolean;
       dateJoined: string;
       dateOfBirth?: string | null;
       email: string;
@@ -7586,9 +7580,6 @@ export interface ApiComponents {
     };
     UserProfileRequest: {
       citizenshipCountry: string;
-      confirmedAustralianResident?: boolean;
-      confirmedIndividualAccount?: boolean;
-      confirmedOver18?: boolean;
       dateOfBirth?: string | null;
       fullName?: string | null;
       isSignupCompleted?: boolean;

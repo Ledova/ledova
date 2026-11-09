@@ -128,9 +128,6 @@ SIGNUP_ANSWERS = {
     "residential_address": None,
     "citizenship_country": None,
     "residence_country": None,
-    "confirmed_over_18": False,
-    "confirmed_australian_resident": False,
-    "confirmed_individual_account": False,
 }
 
 IDENTITY_ANSWERS = {

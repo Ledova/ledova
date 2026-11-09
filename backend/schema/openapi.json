@@ -8647,15 +8647,6 @@
             "format": "uuid",
             "type": "string"
           },
-          "confirmedAustralianResident": {
-            "type": "boolean"
-          },
-          "confirmedIndividualAccount": {
-            "type": "boolean"
-          },
-          "confirmedOver18": {
-            "type": "boolean"
-          },
           "dateOfBirth": {
             "format": "date",
             "nullable": true,
@@ -20524,15 +20515,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "confirmedAustralianResident": {
-            "type": "boolean"
-          },
-          "confirmedIndividualAccount": {
-            "type": "boolean"
-          },
-          "confirmedOver18": {
-            "type": "boolean"
-          },
           "dateJoined": {
             "format": "date-time",
             "readOnly": true,
@@ -20713,15 +20695,6 @@
             "description": "Unique identifier (primary key)",
             "format": "uuid",
             "type": "string"
-          },
-          "confirmedAustralianResident": {
-            "type": "boolean"
-          },
-          "confirmedIndividualAccount": {
-            "type": "boolean"
-          },
-          "confirmedOver18": {
-            "type": "boolean"
           },
           "dateOfBirth": {
             "format": "date",
