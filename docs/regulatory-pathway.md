@@ -43,15 +43,15 @@ Substantiate any exemption, licensing or approval claim.
 
 ## 2. Responsibility allocation to validate
 
-| Party                                          | Proposed allocation                                                                                                                                                                                                                                                                               |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Issuing company and its appointed users        | Share rights, offers and primary-issue terms, disclosures, applicable eligibility requirements, company appointments and decisions, register entries and corrections, corporate actions, payment instructions and register outputs. Actual director authority remains explicit.                   |
-| Selling shareholder                            | Ownership and authority to sell, accurate sale information, applicable sale obligations and transfer authorisation.                                                                                                                                                                               |
-| Buying investor                                | Accurate identity and eligibility information, agreements, investment decision, payment and wallet authorisation.                                                                                                                                                                                 |
-| Other holders and participants                 | Their own particulars, employee or non-paid issue acceptance where required, holder access, votes and signatures; register membership alone is not register-administrator authority.                                                                                                              |
-| Screening or verification provider             | Accurate checks, documented evidence, updates and corrections within its mandate, with an identified accountable customer.                                                                                                                                                                        |
+| Party | Proposed allocation |
+| --- | --- |
+| Issuing company and its appointed users | Share rights, offers and primary-issue terms, disclosures, applicable eligibility requirements, company appointments and decisions, register entries and corrections, corporate actions, payment instructions and register outputs. Actual director authority remains explicit. |
+| Selling shareholder | Ownership and authority to sell, accurate sale information, applicable sale obligations and transfer authorisation. |
+| Buying investor | Accurate identity and eligibility information, agreements, investment decision, payment and wallet authorisation. |
+| Other holders and participants | Their own particulars, employee or non-paid issue acceptance where required, holder access, votes and signatures; register membership alone is not register-administrator authority. |
+| Screening or verification provider | Accurate checks, documented evidence, updates and corrections within its mandate, with an identified accountable customer. |
 | Ledova or another identified platform operator | Infrastructure, security, availability, support and specifically assigned payment or crypto operations, with any obligations arising from those actual functions, required controls, records, complaints and regulatory cooperation. No standing mandate for ordinary company register decisions. |
-| Other regulated providers                      | The functions they actually perform within the scope of their permissions and contractual responsibilities.                                                                                                                                                                                       |
+| Other regulated providers | The functions they actually perform within the scope of their permissions and contractual responsibilities. |
 
 For a regulated expansion, validate delegation and retained accountability, with
 specialist help where available. Identify the actual operator of each activity;
@@ -62,16 +62,16 @@ act for a company, or decide who performs a regulated activity.
 
 ## 3. Questions that determine the pathway
 
-| Area                                    | Question requiring assessment                                                                                                                                 |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Discovery, listings and offers          | Does the actual facility constitute a financial market, and what permission or exclusion applies?                                                             |
-| Applications, acceptance and execution  | Which actions constitute dealing or arranging, and who performs them?                                                                                         |
-| Primary fundraising and secondary sales | Which disclosure, promotion, investor eligibility and company-law rules apply to each offer and participant group?                                            |
-| Money and settlement                    | Do payment coordination or completion mechanisms create payment, client-money or clearing-and-settlement obligations despite the intended absence of custody? |
-| Keys and administrative authority       | Do eligibility publishing, pauses, recovery or upgrade powers alter the custody or control analysis?                                                          |
-| Ownership records                       | When does legal membership change, how does it relate to the token, and how are discrepancies or corrective orders handled?                                   |
-| AML/CTF and sanctions                   | Does any party provide a designated service; what screening, reporting, restriction and recordkeeping duties apply?                                           |
-| Privacy and cooperation                 | What information may be collected, retained, exported or disclosed, and under what authority?                                                                 |
+| Area | Question requiring assessment |
+| --- | --- |
+| Discovery, listings and offers | Does the actual facility constitute a financial market, and what permission or exclusion applies? |
+| Applications, acceptance and execution | Which actions constitute dealing or arranging, and who performs them? |
+| Primary fundraising and secondary sales | Which disclosure, promotion, investor eligibility and company-law rules apply to each offer and participant group? |
+| Money and settlement | Do payment coordination or completion mechanisms create payment, client-money or clearing-and-settlement obligations despite the intended absence of custody? |
+| Keys and administrative authority | Do eligibility publishing, pauses, recovery or upgrade powers alter the custody or control analysis? |
+| Ownership records | When does legal membership change, how does it relate to the token, and how are discrepancies or corrective orders handled? |
+| AML/CTF and sanctions | Does any party provide a designated service; what screening, reporting, restriction and recordkeeping duties apply? |
+| Privacy and cooperation | What information may be collected, retained, exported or disclosed, and under what authority? |
 
 Distinguish identity verification, company eligibility, sanctions and
 designated-service requirements. Assess the actual offers, users,
@@ -80,12 +80,12 @@ company.
 
 ## 4. Operating routes to compare
 
-| Possible route                    | What must be established                                                                                    |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Applicable exclusion or exemption | Exact legal basis, eligible activities and parties, conditions, volume limits and ongoing obligations.      |
-| Licensed operator or partner      | Its actual role, necessary permissions, responsibility, supervision and the remaining Ledova obligations.   |
-| Ledova's own permissions          | The licences or authorisations required for the chosen activities and the resources needed to meet them.    |
-| Specific regulatory relief        | Whether relief is legally available and appropriate, its scope, conditions and implementation requirements. |
+| Possible route | What must be established |
+| --- | --- |
+| Applicable exclusion or exemption | Exact legal basis, eligible activities and parties, conditions, volume limits and ongoing obligations. |
+| Licensed operator or partner | Its actual role, necessary permissions, responsibility, supervision and the remaining Ledova obligations. |
+| Ledova's own permissions | The licences or authorisations required for the chosen activities and the resources needed to meet them. |
+| Specific regulatory relief | Whether relief is legally available and appropriate, its scope, conditions and implementation requirements. |
 
 These are candidates, not findings that Ledova qualifies. An AFSL arrangement
 does not necessarily resolve market-licensing requirements. The distinction is
@@ -138,14 +138,14 @@ This sequence concerns the broader regulated expansion. It does not impose a pai
 adviser on the current registry-only software work. Regulator contact and spending
 still need the owner's explicit instruction.
 
-| Step                         | Lead                                                | Concrete output                                                                                                                               |
-| ---------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Define the operating model   | Owner with product and engineering                  | Actual screens, transaction sequence, parties, users and jurisdictions, projected volume, fee options, and control of keys, assets and money. |
-| Obtain a targeted assessment | Australian corporate and financial-services counsel | Activity-by-activity classification, responsibility allocation, viable operating routes and questions for regulators.                         |
-| Approach ASIC                | Owner and counsel                                   | A concise request describing the complete product and asking about unresolved licensing, market and relief questions.                         |
-| Resolve specialist questions | Owner, counsel and relevant specialists             | Sanctions questions for DFAT's Australian Sanctions Office; AML/CTF assessment and AUSTRAC engagement where relevant.                         |
-| Demonstrate the safeguards   | Engineering and the intended operator               | Evidence that required checks, contract restrictions, corrections, outages, records and portability work as described.                        |
-| Establish the launch basis   | Owner and accountable operator, advised by counsel  | Chosen route, applicable permissions and conditions, responsibilities, operating procedures and release scope.                                |
+| Step | Lead | Concrete output |
+| --- | --- | --- |
+| Define the operating model | Owner with product and engineering | Actual screens, transaction sequence, parties, users and jurisdictions, projected volume, fee options, and control of keys, assets and money. |
+| Obtain a targeted assessment | Australian corporate and financial-services counsel | Activity-by-activity classification, responsibility allocation, viable operating routes and questions for regulators. |
+| Approach ASIC | Owner and counsel | A concise request describing the complete product and asking about unresolved licensing, market and relief questions. |
+| Resolve specialist questions | Owner, counsel and relevant specialists | Sanctions questions for DFAT's Australian Sanctions Office; AML/CTF assessment and AUSTRAC engagement where relevant. |
+| Demonstrate the safeguards | Engineering and the intended operator | Evidence that required checks, contract restrictions, corrections, outages, records and portability work as described. |
+| Establish the launch basis | Owner and accountable operator, advised by counsel | Chosen route, applicable permissions and conditions, responsibilities, operating procedures and release scope. |
 
 ASIC's [Innovation Hub informal assistance](https://www.asic.gov.au/for-business-and-companies/innovation-hub/informal-assistance-for-fintechs-and-regtechs)
 is a route for early discussion. It does not provide legal advice, endorsement
