@@ -166,9 +166,24 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(foreign_terms.status_code, 200, foreign_terms.content)
+        with use_operator():
+            financial_before = list(FinancialProfile.objects.order_by("pk").values())
+        retained_financial = member_client.get("/api/financial-profiles/")
+        self.assertEqual(retained_financial.status_code, 200, retained_financial.content)
+        self.assertEqual([row["uuid"] for row in retained_financial.json()["results"]], [str(financial.pk)])
+        self.assertEqual(retained_financial.json()["results"][0]["occupation"], "Synthetic engineer")
+        refused_financial = member_client.post("/api/financial-profiles/", {"occupation": "New"}, format="json")
+        self.assertEqual(refused_financial.status_code, 405, refused_financial.content)
+        refused_financial = member_client.patch(
+            f"/api/financial-profiles/{financial.pk}/", {"occupation": "Changed"}, format="json"
+        )
+        self.assertEqual(refused_financial.status_code, 404, refused_financial.content)
+        with use_operator():
+            self.assertEqual(list(FinancialProfile.objects.order_by("pk").values()), financial_before)
         exported = member_client.get("/api/user-profiles/export-data/")
         self.assertEqual(exported.status_code, 200, exported.content)
         self.assertEqual(exported.json()["user"]["email"], subject.email)
+        self.assertEqual(exported.json()["financialProfile"]["occupation"], "Synthetic engineer")
         self.assertEqual(len(exported.json()["termsAcceptances"]), 1)
         self.assertEqual(exported.json()["termsAcceptances"][0]["version"], TERMS_VERSION)
         self.assertEqual(exported.json()["termsAcceptances"][0]["statement"], TERMS_STATEMENT)
@@ -206,17 +221,18 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
 
         stale = APIClient()
         stale.force_authenticate(subject)
-        for path, fields in (
-            ("/api/financial-profiles/", {"occupation": "Recreated"}),
+        for path, fields, expected_status in (
+            ("/api/financial-profiles/", {"occupation": "Recreated"}, 405),
             (
                 "/api/device-tokens/register/",
                 {"push_token": "ExponentPushToken[recreated]", "device_type": "ios"},
+                404,
             ),
-            ("/api/user-preferences/", {"transaction_alerts": True}),
+            ("/api/user-preferences/", {"transaction_alerts": True}, 404),
         ):
             with self.subTest(path=path):
                 refused = stale.post(path, fields, format="json")
-                self.assertEqual(refused.status_code, 404, refused.content)
+                self.assertEqual(refused.status_code, expected_status, refused.content)
         for path, fields in (
             (f"/api/financial-profiles/{financial.pk}/", {"occupation": "Restored"}),
             (f"/api/user-profiles/{profile.pk}/", {"full_name": "Restored"}),
