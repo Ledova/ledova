@@ -41,9 +41,6 @@ class UserProfileAdmin(admin.ModelAdmin):
         "terms_and_conditions",
         "created_at",
         "is_signup_completed",
-        "confirmed_over_18",
-        "confirmed_australian_resident",
-        "confirmed_individual_account",
     )
     readonly_fields = ("uuid", "created_at", "updated_at")
     list_select_related = ("user", "citizenship_country")

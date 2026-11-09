@@ -39,7 +39,7 @@ stay here as history and are marked where they appear.
 | [Offerings deferred from the first release](#offerings-deferred-from-the-first-release)                            | 29 October 2026                                | Current; code removed under #1421, design kept in [planned offerings](business/offerings.md); eligibility removed 2 November, sign-up acknowledgement 9 November |
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                              | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
 | [Sign-up wording after offerings were deferred](#sign-up-wording-after-offerings-were-deferred)                    | 8 November 2026                                | Superseded: financial-profile points 8 November (#1589), Eligibility check removed 9 November                                      |
-| [Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up)                                  | 9 November 2026                                | Current; #1567; stored answers kept until the backend cleanup after #1589                                                          |
+| [Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up)                                  | 9 November 2026                                | Current; #1567                                                                                                                     |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital)    | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                          | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
 | [Member particulars requests removed](#member-particulars-requests-removed)                                        | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed and linked members follow their profile (#1492)      |
@@ -1183,9 +1183,9 @@ possible".
 Sign-up no longer has an **Eligibility check** step, on the web or in the app. Investors no longer
 confirm that they are 18 or older, an Australian resident and opening an individual account, or that
 share offerings here are wholesale only. Both account types go from **Account type** straight to
-personal details. The profile's `confirmed_over_18`, `confirmed_australian_resident` and
-`confirmed_individual_account` fields keep answers already given until a backend cleanup removes them
-after [#1589](https://github.com/Ledova/ledova/issues/1589).
+personal details. A follow-up change removed the profile's `confirmed_over_18`,
+`confirmed_australian_resident` and `confirmed_individual_account` fields, with the answers already
+given.
 
 The same day the owner asked to remove "© 2026 Ledova contributors" from the dashboard and website
 footers. "Operated by …" and the licence name stay.

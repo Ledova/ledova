@@ -124,10 +124,6 @@ def _sign_up(person, user, profile, account, seeded):
         with frozen(person.email_verified_at + timedelta(minutes=2)):
             account.role = person.role
             account.save(update_fields=["role", "updated_at"])
-    if person.prescreened:
-        profile.confirmed_over_18 = True
-        profile.confirmed_australian_resident = True
-        profile.confirmed_individual_account = True
     if person.profiled:
         profile.full_name = person.full_name
         profile.phone_country_code = COUNTRY_CODE

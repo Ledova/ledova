@@ -30,10 +30,6 @@ class UserProfile(BaseModel):
     id_document_type = models.CharField(max_length=50, blank=True, null=True)
     id_document_country = models.CharField(max_length=3, blank=True, null=True)
 
-    confirmed_over_18 = models.BooleanField(default=False)
-    confirmed_australian_resident = models.BooleanField(default=False)
-    confirmed_individual_account = models.BooleanField(default=False)
-
     is_id_verified = models.BooleanField(default=False)
     terms_and_conditions = models.BooleanField(default=False)
     is_signup_completed = models.BooleanField(default=False)

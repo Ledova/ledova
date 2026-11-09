@@ -70,9 +70,6 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             profile.phone_number = "400000001"
             profile.citizenship_country = country
             profile.residence_country = country
-            profile.confirmed_over_18 = True
-            profile.confirmed_australian_resident = True
-            profile.confirmed_individual_account = True
             profile.kycaid_applicant_id = "synthetic-retained-verification"
             profile.sumsub_applicant_id = "synthetic-sumsub-verification"
             profile.id_document_type = "PASSPORT"
@@ -293,9 +290,6 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
                 "residence_country",
             ):
                 self.assertIsNone(getattr(profile, field), field)
-            self.assertFalse(profile.confirmed_over_18)
-            self.assertFalse(profile.confirmed_australian_resident)
-            self.assertFalse(profile.confirmed_individual_account)
             self.assertFalse(profile.is_id_verified)
             self.assertIsNone(profile.kycaid_applicant_id)
             self.assertIsNone(profile.sumsub_applicant_id)

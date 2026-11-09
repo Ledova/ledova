@@ -293,7 +293,8 @@ Certificates, with Inspection copies and Company pack for a register reader, as 
 the web's Profile for that company, with Account (accepting an invitation and the app's own settings)
 and Data and privacy beneath it, then the web's Team and Activation where the company can be managed
 ([Profile and Settings](participants.md#profile-and-settings)).
-Mobile signup creates individual accounts only ([investor signup](participants.md#investor-signup)).
+The app's signup offers both account types, as the web does ([investor signup](participants.md#investor-signup),
+[company signup](companies.md#company-signup)).
 
 Each page is described in the domain document for its process below;
 [pages](../engineering/frontend.md#pages) lists every page with its route, its audience and the

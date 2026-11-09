@@ -87,8 +87,8 @@ def unfinished_signup(label, acn):
         )
         profile, account, _, _ = ensure_defaults(user)
         profile.full_name = f"Synthetic {label}"
-        profile.confirmed_over_18 = True
-        profile.save(update_fields=["full_name", "confirmed_over_18"])
+        profile.phone_number = "400000002"
+        profile.save(update_fields=["full_name", "phone_number"])
         account.role = "company"
         account.save(update_fields=["role"])
         FinancialProfile.objects.create(user_profile=profile, occupation="Synthetic")
@@ -288,7 +288,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             profile.refresh_from_db()
             account.refresh_from_db()
             self.assertEqual((starter.email, starter.is_email_verified), ("restart-new@example.test", False))
-            self.assertEqual((profile.full_name, profile.confirmed_over_18, account.role), (None, False, "investor"))
+            self.assertEqual((profile.full_name, profile.phone_number, account.role), (None, None, "investor"))
             self.assertFalse(FinancialProfile.objects.filter(user_profile=profile).exists())
             self.assertTrue(Company.objects.filter(pk=draft.pk, owner=starter).exists())
         submitter, _, _, submitted = unfinished_signup("restart-submitted", "808080800")
