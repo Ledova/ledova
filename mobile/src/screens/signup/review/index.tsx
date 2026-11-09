@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Linking, A
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
-import { ScreenHeader } from '../../../components/header';
+import { ScreenHeader, SignOutLink } from '../../../components/header';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { ClipboardIcon } from 'phosphor-react-native';
@@ -166,6 +166,7 @@ export function ReviewScreen() {
     return (
       <GradientBackground>
         <SafeAreaView style={styles.container}>
+          <SignOutLink />
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.interactive.active} />
             <Text style={styles.loadingText}>Loading review data...</Text>
@@ -179,6 +180,7 @@ export function ReviewScreen() {
     return (
       <GradientBackground>
         <SafeAreaView style={styles.container}>
+          <SignOutLink />
           <View style={styles.errorContainer}>
             <Text style={styles.errorTitle}>Error loading data</Text>
             <Text style={styles.errorMessage}>{error}</Text>
@@ -194,6 +196,7 @@ export function ReviewScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
+        <SignOutLink disabled={busy} />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <ScreenHeader
             icon={

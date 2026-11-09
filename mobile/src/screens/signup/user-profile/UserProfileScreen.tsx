@@ -2,7 +2,7 @@ import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform, Acti
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
-import { ScreenHeader } from '../../../components/header';
+import { ScreenHeader, SignOutLink } from '../../../components/header';
 import { DatePickerField } from '../../../components/date-picker';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
@@ -211,6 +211,7 @@ export function UserProfileScreen() {
   if (isLoading || roleLoading) {
     return (
       <SafeAreaView style={styles.container}>
+        <SignOutLink />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.colors.interactive.active} />
           <Text style={styles.loadingText}>Loading profile data...</Text>
@@ -222,6 +223,7 @@ export function UserProfileScreen() {
   if (generalError && !form.fullName && !isSubmitting) {
     return (
       <SafeAreaView style={styles.container}>
+        <SignOutLink />
         <View style={styles.errorStateContainer}>
           <WarningCircleIcon
             size={theme.icon.sizes.md}
@@ -239,6 +241,7 @@ export function UserProfileScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
+        <SignOutLink disabled={isSubmitting} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <ScreenHeader

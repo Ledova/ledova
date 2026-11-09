@@ -41,6 +41,10 @@ export function CountrySelector({
     flag: {
       fontSize: theme.fontSize.xl,
     },
+    code: {
+      fontSize: theme.fontSize.base,
+      color: theme.colors.text.primary,
+    },
     modalOverlay: {
       flex: 1,
       backgroundColor: overlayColors.modal,
@@ -98,6 +102,7 @@ export function CountrySelector({
         disabled={disabled}
       >
         <Text style={styles.flag}>{selectedCountry.flag}</Text>
+        <Text style={styles.code}>{selectedCountry.phoneCode}</Text>
         <CaretDownIcon
           size={theme.icon.sizes.md}
           color={theme.colors.text.subtle}

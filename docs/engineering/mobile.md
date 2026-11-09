@@ -83,8 +83,9 @@ while a confirmed profile exists. Without one, or when the preferences recheck f
 its error, and a failed sign-in check returns to Sign in. After email verification, Account type
 offers **Individual investor** or **Company representative**. An investor continues through
 personal details and review; a representative continues through
-personal details, Company details and **Complete company setup**. The dashboard's routes and guards
-do not apply.
+personal details, Company details and **Complete company setup**. Once signed in, each sign-up screen
+shows **Sign out** at the top right, as the web's public layout does, so an account still signing up
+can leave. The dashboard's routes and guards do not apply.
 
 Company details uses `useSignupCompanyRegistration`, and review uses `useSignupReview` and
 `useSignupCompanyAuthority`, with the native session and request keys. They reuse saved company

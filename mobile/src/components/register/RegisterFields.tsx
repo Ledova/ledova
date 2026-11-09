@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, Text, TextInput, View, type KeyboardTypeOptions, type TextInputProps } from 'react-native';
 import { CheckIcon } from 'phosphor-react-native';
 import type { UploadFile } from '@ledova/shared';
@@ -23,6 +24,7 @@ export function Field({
   hint,
   error,
   filled,
+  icon,
   onChange,
 }: {
   label: string;
@@ -41,35 +43,50 @@ export function Field({
   hint?: string;
   error?: string | null;
   filled?: boolean;
+  icon?: ReactNode;
   onChange: (value: string) => void;
 }) {
   const theme = useAppTheme();
   const styles = useCompanyStyles();
+  const input = (
+    <TextInput
+      clearButtonMode={clearable ? 'while-editing' : undefined}
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled: !editable }}
+      style={
+        icon
+          ? styles.iconText
+          : [
+              styles.input,
+              filled && styles.filled,
+              multiline && { minHeight: rows * 22 + 2 * theme.spacing.smd, textAlignVertical: 'top' as const },
+            ]
+      }
+      value={value}
+      editable={editable}
+      keyboardType={keyboardType}
+      multiline={multiline}
+      maxLength={maxLength}
+      placeholder={placeholder}
+      placeholderTextColor={theme.colors.form.placeholder}
+      autoCapitalize={autoCapitalize}
+      autoCorrect={autoCorrect}
+      autoFocus={autoFocus}
+      accessibilityHint={error ?? undefined}
+      onChangeText={onChange}
+    />
+  );
   return (
     <View style={[styles.group, filled && styles.filledGroup]}>
       <Text style={filled ? styles.filledLabel : styles.text}>{label}</Text>
-      <TextInput
-        clearButtonMode={clearable ? 'while-editing' : undefined}
-        accessibilityLabel={accessibilityLabel ?? label}
-        accessibilityState={{ disabled: !editable }}
-        style={[
-          styles.input,
-          filled && styles.filled,
-          multiline && { minHeight: rows * 22 + 2 * theme.spacing.smd, textAlignVertical: 'top' as const },
-        ]}
-        value={value}
-        editable={editable}
-        keyboardType={keyboardType}
-        multiline={multiline}
-        maxLength={maxLength}
-        placeholder={placeholder}
-        placeholderTextColor={theme.colors.form.placeholder}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={autoCorrect}
-        autoFocus={autoFocus}
-        accessibilityHint={error ?? undefined}
-        onChangeText={onChange}
-      />
+      {icon ? (
+        <View style={[styles.input, filled && styles.filled, styles.iconField]}>
+          {icon}
+          {input}
+        </View>
+      ) : (
+        input
+      )}
       {!!hint && <Text style={styles.muted}>{hint}</Text>}
       {!!error && <Text style={styles.error}>{error}</Text>}
     </View>

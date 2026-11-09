@@ -28,7 +28,7 @@ import {
 } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
-import { ScreenHeader } from '../../../components/header';
+import { ScreenHeader, SignOutLink } from '../../../components/header';
 
 export function SignUpScreen() {
   const theme = useAppTheme();
@@ -241,6 +241,7 @@ export function SignUpScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
+        <SignOutLink disabled={account.isSubmitting} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <ScreenHeader

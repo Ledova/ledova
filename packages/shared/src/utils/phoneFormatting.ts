@@ -38,5 +38,6 @@ export function formatPhoneWithCountryCode(
   phoneNumber: string | null | undefined,
 ): string {
   if (!phoneCountryCode) return formatPhoneNumber(phoneNumber ?? '');
-  return `${phoneCountryCode} ${formatPhoneForDisplay(phoneNumber ?? '', { phoneCode: phoneCountryCode })}`;
+  const national = (phoneNumber ?? '').trim().replace(/^0\s*/, '');
+  return `${phoneCountryCode} ${formatPhoneForDisplay(national, { phoneCode: phoneCountryCode })}`;
 }

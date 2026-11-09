@@ -138,6 +138,7 @@ export function EmailConfirmationScreen() {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
   const {
+    email,
     verificationCode,
     errors,
     generalError,
@@ -176,6 +177,7 @@ export function EmailConfirmationScreen() {
                 />
               }
               title="Verify your email"
+              subtitle={email ? `Code sent to ${email}` : undefined}
             />
 
             <View style={styles.formContainer}>
