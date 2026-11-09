@@ -1,5 +1,6 @@
 from django.db import connections
 
+from authentication.services.terms import accept_terms
 from shared.db import atomic, current_alias
 from tokens.services.register_particulars import follow_profile
 
@@ -14,6 +15,8 @@ def _mark(actor_id):
 def save_profile(actor, serializer):
     with atomic():
         _mark(str(actor.pk))
+        if serializer.validated_data.pop("terms_version", None) is not None:
+            accept_terms(actor)
         profile = serializer.save()
         _mark("")
         if PARTICULARS & serializer.validated_data.keys():

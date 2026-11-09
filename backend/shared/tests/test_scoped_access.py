@@ -445,21 +445,24 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         invitation_payload = self.invitation_payload()
         invitation = self.client.post("/api/v1/tokens/member-invitations/", invitation_payload, format="json")
         self.assertEqual(invitation.status_code, 201, invitation.content)
+        with use_operator():
+            foreign_account_id = str(self.foreign_profile.user_account.pk)
+            own_account_id = str(self.profile.user_account.pk)
         acceptance = {
             "code": invitation.json()["code"],
-            "user_account": str(self.foreign_profile.user_account.pk),
+            "user_account": foreign_account_id,
             "confirmation": True,
         }
         wrong_recipient = self.client.post(
             "/api/v1/tokens/member-invitations/accept/",
-            {**acceptance, "user_account": str(self.profile.user_account.pk)},
+            {**acceptance, "user_account": own_account_id},
             format="json",
         )
         self.assertEqual(wrong_recipient.status_code, 400, wrong_recipient.content)
         self.sign_in(self.foreign)
         forged_account = self.client.post(
             "/api/v1/tokens/member-invitations/accept/",
-            {**acceptance, "user_account": str(self.profile.user_account.pk)},
+            {**acceptance, "user_account": own_account_id},
             format="json",
         )
         self.assertEqual(forged_account.status_code, 404, forged_account.content)

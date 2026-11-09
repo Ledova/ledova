@@ -4,7 +4,7 @@ export type UserProfile = ApiSchema<'UserProfile'>;
 
 export type UpdateUserProfile = ApiRequest<'api_user_profiles_partial_update'>;
 
-export type CompleteUserProfile = Pick<UpdateUserProfile, 'termsAndConditions' | 'isSignupCompleted'>;
+export type CompleteUserProfile = Pick<UpdateUserProfile, 'termsAndConditions' | 'isSignupCompleted' | 'termsVersion'>;
 
 export interface UserProfileFormData {
   fullName: string;

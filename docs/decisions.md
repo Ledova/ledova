@@ -12,7 +12,7 @@ stay here as history and are marked where they appear.
 
 | Decision                                                                                                           | Date                                           | Status                                                                                                                             |
 | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| [Registry-only public release under Blueberry Money](#registry-only-public-release-under-blueberry-money)             | 8 November 2026                                | Preparation authorised; website first, then TestFlight and App Store; current preview remains synthetic-only                         |
+| [Registry-only public release under Blueberry Money](#registry-only-public-release-under-blueberry-money)          | 8 November 2026                                | Preparation authorised; website first, then TestFlight and App Store; current preview remains synthetic-only                       |
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                            | 3 October 2026                                 | Current; replaces routine register work by platform staff                                                                          |
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                        | 5 October 2026                                 | Current; particulars change rule amended 1 November (#1476) and for linked members 2 November (#1492)                              |
 | [Company representative verification](#company-representative-verification)                                        | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                                       |
@@ -2594,3 +2594,23 @@ and [API gates](engineering/gates.md#the-api-type-drift-gate).
 
 The source no-comments/no-docstrings rule remains an explicit repository choice;
 [development standards](engineering/README.md) defines its scope.
+
+### Registry service Terms, retention and operator permission
+
+On 9 November 2026, under [#1589](https://github.com/Ledova/ledova/issues/1589), the
+owner accepted Terms v2026-11-09 under Blueberry Money Pty Ltd, ACN 691 391 214,
+with the earlier experimental text preserved and explicit versioned acceptance.
+The company keeps its legal register, corporate decisions and filings. The
+[legal position](legal/positions.md#registry-only-launch-preparation) records the
+limits; [security](engineering/security.md#account-closure-and-export) owns the
+erasure mechanics and periods. Account-only data is erased on closure, abandoned
+signups after thirty inactive days, expired sessions by daily maintenance, and
+provider permanent deletion has a thirty-day target with actual confirmation and
+specific reviewed holds. Company records remain separately purpose-bound; complete
+company disposal is not yet implemented and remains a real-data release gate.
+
+The owner also accepted the operator-specific software permission in
+[LICENSE section 6](../LICENSE), without transferring copyright or granting rights
+in other contributors' or suppliers' work. The public noncommercial terms for
+others and earlier grants stay intact. This approves reviewed source changes,
+not live migration, deployment, a compliance finding or admission of real records.

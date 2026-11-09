@@ -114,7 +114,7 @@ WAITING_UNKNOWN = "unknown"
 RECONCILED_ROW = "Reconciled with the chain"
 NEVER_RECONCILED = "never"
 NOT_ON_CHAIN = "not on chain"
-FORMER_MEMBERS_HEADING = "Former members (retained under s169(3) of the Corporations Act)"
+FORMER_MEMBERS_HEADING = "Former members (retained under s169(7) of the Corporations Act)"
 FORMER_MEMBER_HEADERS = [
     "Name",
     "Residential address",
@@ -256,7 +256,13 @@ def _member_identity(addresses, identities, stamps, recorded=None):
             stamp["stamped_at"],
         )
     if recorded is not None:
-        return HolderType.MEMBER.value, recorded.name, recorded.residential_address, IDENTITY_PARTICULARS, None
+        return (
+            HolderType.MEMBER.value,
+            recorded.name,
+            recorded.residential_address,
+            IDENTITY_PARTICULARS,
+            None,
+        )
     named = next((stamp["name"] for stamp in found if stamp["name"]), "")
     return HolderType.UNIDENTIFIED.value, named, "", IDENTITY_RECORDED if named else IDENTITY_NONE, None
 
@@ -869,7 +875,13 @@ def _changed_member_row(member, person, current) -> list:
     _, name, residential_address, _, _ = person
     if current is None:
         return [member, name, residential_address, 0, NOT_RECORDED]
-    return [member, name, residential_address, current["balance"], _paid_or_not_recorded(current["amount_paid"])]
+    return [
+        member,
+        name,
+        residential_address,
+        current["balance"],
+        _paid_or_not_recorded(current["amount_paid"]),
+    ]
 
 
 def prepare_notice_figures(token, requested_by, *, period_from, instruction) -> tuple[bytes, int]:

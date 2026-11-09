@@ -13,7 +13,7 @@ from compliance.constants import (
 )
 from compliance.models import ComplianceAlert
 from shared.db import atomic
-from users.models import UserAccount
+from users.services.accounts import lock_active_profile
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,8 @@ def raise_screening_alert(user_account, match: dict):
     key = match_key(match)
     alert_type, severity = alert_for(match.get("list_types") or [])
     with atomic():
-        UserAccount.objects.select_for_update().get(pk=user_account.pk)
+        if lock_active_profile(user_account.user_profile) is None:
+            return None
         if ComplianceAlert.objects.filter(
             user_account=user_account, triggered_rule=IDENTITY_SCREENING_RULE, alert_data__match_key=key
         ).exists():

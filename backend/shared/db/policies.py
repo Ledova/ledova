@@ -309,6 +309,11 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "users_accounterasureworkitem": "Provider-erasure follow-up for closed accounts or unused duplicate provider "
+    "profiles. The bounded account "
+    "closure service records the minimum applicant identifier and completion contact on the operator connection; "
+    "the operator command confirms permanent provider deletion, delivers confirmation and clears both fields. "
+    "The app role has no grants or direct rows.",
     "tokens_registerpersonregistration": "Append-only company-person registration provenance, with no share effect. "
     "Exact-company reader and prepare commands retain current personal authority, actor and initial particulars; "
     "the app role receives no direct table grant.",
@@ -330,6 +335,9 @@ OPERATOR_ONLY = {
     "auth_group_permissions": "Django's own permission plumbing, joining a group to a permission.",
     "authentication_customuser_groups": "Django's own permission plumbing, joining a user to a group.",
     "authentication_customuser_user_permissions": "Django's own permission plumbing, per-user grants.",
+    "authentication_termsacceptance": "Immutable versioned account Terms receipts, written only by the own-profile "
+    "acceptance command and read only in that account's profile projection on the operator connection. The app "
+    "role has no grants, and forced row-level security admits no direct rows.",
     "companies_companysignuptermsacceptance": "Immutable current signup Terms receipts bound to one company, "
     "appointment and appointee. The bounded acceptance command writes them on the operator connection, and own "
     "appointment serialization reads only that appointee's exact receipt on that connection. The app role has "

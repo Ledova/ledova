@@ -58,7 +58,7 @@ The file has three sections of different widths, separated by an empty row. Read
 
 1. Current members, under a header row that starts with "Member ID": each member's name, residential address, linked wallets, holder type, class, shares held, percentage of issued supply, balance and identity sources, date entered, each wallet's approval status and amount paid. Amount paid is blank where it cannot be established exactly.
 2. The supply summary: issued supply, the total held by listed members, any completed effects still waiting to be recorded, and the latest reconciliation with the chain.
-3. Former members, under the heading "Former members (retained under s169(3) of the Corporations Act)" and a header row of their own, with the time the former-member history was last read.
+3. Former members, under the heading "Former members (retained under s169(7) of the Corporations Act)" and a header row of their own, with the time the former-member history was last read.
 
 A value that begins with `=`, `+`, `-`, `@`, a tab or a carriage return carries a leading apostrophe, so a spreadsheet does not run it as a formula.
 
@@ -155,7 +155,7 @@ A completed issue or settled transfer is entered in the register only once its w
 {% endfor %}
 ### Former members
 
-Each former member must stay on the register for seven years after the date they ceased (s169(3) of the Corporations Act). That obligation passes to whoever keeps the register next. Each class's `former_members.json` gives the date until which each must be kept.
+Each former member must stay on the register for seven years after the date they ceased (s169(7) of the Corporations Act). That obligation passes to whoever keeps the register next. Each class's `former_members.json` gives the date until which each must be kept.
 
 {% if former %}| Class | Name | Ceased on | Keep until |
 | --- | --- | --- | --- |

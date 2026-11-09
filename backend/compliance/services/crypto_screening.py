@@ -18,6 +18,7 @@ from compliance.constants import (
 from compliance.models import ComplianceAlert, TransactionScreening
 from integrations.kyc import get_kyc_provider
 from shared.db import atomic
+from users.services.accounts import lock_active_profile
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,8 @@ def _flagged_signals(signals) -> list:
 
 
 def _locked(screening) -> TransactionScreening:
+    if lock_active_profile(screening.user_account.user_profile) is None:
+        return None
     return TransactionScreening.objects.select_for_update().get(pk=screening.pk)
 
 
@@ -51,30 +54,36 @@ class CryptoScreeningService:
         self.threshold_high = settings.CRYPTO_RISK_THRESHOLD_HIGH
 
     def screen_transaction(self, transaction, user_account) -> TransactionScreening:
-        existing = TransactionScreening.objects.filter(transaction=transaction).first()
-        if existing:
-            return existing
-        screening = TransactionScreening.objects.create(
-            transaction=transaction,
-            user_account=user_account,
-            provider=self.provider_name,
-            provider_transaction_id=str(transaction.pk),
-            to_address=transaction.to_address or "",
-            from_address=transaction.from_address,
-            status=SCREENING_STATUS_PENDING,
-        )
-        blocker = self._blocker(screening)
-        if blocker:
-            screening.status = SCREENING_STATUS_FAILED
-            screening.error_message = blocker
-            screening.save()
-            logger.warning(f"Transaction {transaction.pk} not screened: {blocker}")
-            return screening
+        with atomic():
+            if lock_active_profile(user_account.user_profile) is None:
+                return None
+            existing = TransactionScreening.objects.filter(transaction=transaction).first()
+            if existing:
+                return existing
+            screening = TransactionScreening.objects.create(
+                transaction=transaction,
+                user_account=user_account,
+                provider=self.provider_name,
+                provider_transaction_id=str(transaction.pk),
+                to_address=transaction.to_address or "",
+                from_address=transaction.from_address,
+                status=SCREENING_STATUS_PENDING,
+            )
+            blocker = self._blocker(screening)
+            if blocker:
+                screening.status = SCREENING_STATUS_FAILED
+                screening.error_message = blocker
+                screening.save()
+                logger.warning(f"Transaction {transaction.pk} not screened: {blocker}")
+                return screening
         return self._submit(screening)
 
     def retry_failed_screening(self, screening: TransactionScreening) -> TransactionScreening:
         with atomic():
-            screening = _locked(screening)
+            locked = _locked(screening)
+            if locked is None:
+                return screening
+            screening = locked
             if screening.status != SCREENING_STATUS_FAILED or not self.enabled:
                 logger.warning(f"Cannot retry screening {screening.pk}")
                 return screening
@@ -102,6 +111,8 @@ class CryptoScreeningService:
         profile = screening.user_account.user_profile
         if not profile:
             return "No user profile found"
+        if not profile.user.is_active:
+            return "Account is closed"
         if not profile.active_applicant_id:
             return "No applicant ID - user not KYC verified"
         return ""
@@ -132,7 +143,10 @@ class CryptoScreeningService:
 
     def _fail(self, screening, message, response=None) -> TransactionScreening:
         with atomic():
-            screening = _locked(screening)
+            locked = _locked(screening)
+            if locked is None:
+                return screening
+            screening = locked
             if screening.status == SCREENING_STATUS_COMPLETED:
                 return screening
             screening.status = SCREENING_STATUS_FAILED
@@ -145,7 +159,10 @@ class CryptoScreeningService:
 
     def _process_screening_result(self, screening: TransactionScreening, response: dict) -> TransactionScreening:
         with atomic():
-            screening = _locked(screening)
+            locked = _locked(screening)
+            if locked is None:
+                return screening
+            screening = locked
             if screening.status == SCREENING_STATUS_COMPLETED:
                 return screening
             screening.raw_response = response
