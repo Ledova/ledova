@@ -332,7 +332,7 @@ of support mail, logs, supplier copies or retained archives. The operator must r
 record any lawful remaining purpose/expiry and drain in-flight company work before disposal.
 No command disables triggers or substitutes a universal seven-year period. The
 [supplier assessment](../legal/positions.md#registry-only-launch-preparation) records the current
-processing and copy limitations. Operator/supplier facts remain under
+processing and copy limitations. Support-mail retention/hold facts remain under
 [#1589](https://github.com/Ledova/ledova/issues/1589), with operational mail delivery and
 copy-lifecycle acceptance under [#1586](https://github.com/Ledova/ledova/issues/1586).
 

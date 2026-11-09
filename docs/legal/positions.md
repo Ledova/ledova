@@ -650,9 +650,11 @@ token is registered; reassess those suppliers before enabling them. Support mail
 Google Workspace. [AWS's privacy guidance](https://aws.amazon.com/compliance/data-privacy-faq/)
 distinguishes selected-region customer content from account/metadata processing;
 [Google's processing terms](https://cloud.google.com/terms/data-processing-addendum) do not
-establish Australia-only processing or immediate deletion. Actual operator account authority
-and support-mail terms, retention and holds need confirmation; public terms alone are not
-evidence of the tenant settings.
+establish Australia-only processing or immediate deletion. The owner, Blueberry Money's sole
+director, confirmed authority to use the existing supplier accounts on 9 November. The assessment
+uses the standard published processing terms, without claiming a particular executed version
+or edition-specific controls. Support-mail retention and holds remain unconfirmed; public terms
+alone are not evidence of those tenant settings.
 
 Logs rotate by size, which proves no maximum age. Retired archives remain subject to their
 existing retention locks and expiry, not immediate erasure. A bounded server inventory does
@@ -682,7 +684,7 @@ wrong; what could change is the date compliance stops being voluntary.
 
 **Status.** Policy and prepared Terms accepted 9 November 2026. Account erasure and
 versioned acceptance and scoped company-disposal software are implemented. Source minimisation
-and a read-only supplier/copy assessment are recorded above; unresolved operator/supplier facts
+and a read-only supplier/copy assessment are recorded above; unresolved support-mail retention/hold facts
 and operational acceptance remain gates before real-data use, without a paid-adviser prerequisite.
 The public preview still requires fictional data.
 
