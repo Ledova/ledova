@@ -15,14 +15,11 @@ import { useApiClient } from './useApiClient';
 
 const DEFAULT_COUNTRY = COUNTRIES[0]!;
 
-export const USER_PROFILE_FIELDS: readonly (keyof UserProfileFormData)[] = [
-  'fullName',
-  'dateOfBirth',
-  'residentialAddress',
-  'phoneNumber',
-];
+export const USER_PROFILE_FIELDS = ['fullName', 'dateOfBirth', 'residentialAddress', 'phoneNumber'] as const;
 
-const validateUserProfile = (form: UserProfileFormData): UserProfileFormValidation => {
+type ProfileField = (typeof USER_PROFILE_FIELDS)[number];
+
+const validateUserProfile = (form: UserProfileFormData, fields: readonly ProfileField[]): UserProfileFormValidation => {
   const fullNameValidation = validateUserProfileField.fullName(form.fullName);
   const phoneNumberValidation = validateUserProfileField.phoneNumber(form.phoneNumber);
   const residentialAddressValidation = validateUserProfileField.residentialAddress(form.residentialAddress);
@@ -49,11 +46,13 @@ const validateUserProfile = (form: UserProfileFormData): UserProfileFormValidati
     fullName,
     residentialAddress,
     phoneNumber,
-    isFormValid: fullName.isValid && residentialAddress.isValid && phoneNumber.isValid,
+    isFormValid: Object.entries({ fullName, residentialAddress, phoneNumber }).every(
+      ([field, validation]) => !fields.some((selected) => selected === field) || validation.isValid,
+    ),
   };
 };
 
-export function useSignupUserProfile() {
+export function useSignupUserProfile(fields: readonly ProfileField[] = USER_PROFILE_FIELDS) {
   const apiClient = useApiClient();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<UserProfileFormData>({
@@ -72,8 +71,8 @@ export function useSignupUserProfile() {
   const [selectedCountry, setSelectedCountry] = useState<CountryData>(DEFAULT_COUNTRY);
 
   const formValidation = useMemo(() => {
-    return validateUserProfile(form);
-  }, [form]);
+    return validateUserProfile(form, fields);
+  }, [form, fields]);
 
   const loadUserProfile = useCallback(async () => {
     try {
@@ -164,22 +163,22 @@ export function useSignupUserProfile() {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!form.fullName.trim()) {
+    if (fields.includes('fullName') && !form.fullName.trim()) {
       newErrors.fullName = ['Full name is required'];
     }
 
     const dateOfBirth = form.dateOfBirth.trim();
-    if (!dateOfBirth) {
+    if (fields.includes('dateOfBirth') && !dateOfBirth) {
       newErrors.dateOfBirth = ['Date of birth is required'];
-    } else if (!isCalendarDate(dateOfBirth) || dateOfBirth > utcToday()) {
+    } else if (fields.includes('dateOfBirth') && (!isCalendarDate(dateOfBirth) || dateOfBirth > utcToday())) {
       newErrors.dateOfBirth = [DATE_OF_BIRTH_IN_FUTURE];
     }
 
-    if (!form.residentialAddress.trim()) {
+    if (fields.includes('residentialAddress') && !form.residentialAddress.trim()) {
       newErrors.residentialAddress = ['Residential address is required'];
     }
 
-    if (!form.phoneNumber.trim()) {
+    if (fields.includes('phoneNumber') && !form.phoneNumber.trim()) {
       newErrors.phoneNumber = ['Phone number is required'];
     }
 
@@ -201,13 +200,14 @@ export function useSignupUserProfile() {
     setGeneralError('');
 
     try {
-      const formattedData = {
+      const values = {
         fullName: form.fullName.trim(),
         dateOfBirth: form.dateOfBirth.trim(),
-        phoneCountryCode: selectedCountry.phoneCode,
         phoneNumber: cleanPhoneNumber(form.phoneNumber),
         residentialAddress: form.residentialAddress.trim(),
       };
+      const formattedData = Object.fromEntries(fields.map((field) => [field, values[field]]));
+      if (fields.includes('phoneNumber')) formattedData.phoneCountryCode = selectedCountry.phoneCode;
 
       await updateUserProfile(apiClient, existingProfileUuid, formattedData);
       await queryClient.invalidateQueries({ queryKey: USER_PROFILES_QUERY_KEY });
@@ -217,7 +217,7 @@ export function useSignupUserProfile() {
       console.error(`User profile update failed: ${describeFailure(error)}`);
       const reading = readApiError(error, {
         fallback: 'Failed to save profile. Please try again.',
-        displayedFields: USER_PROFILE_FIELDS,
+        displayedFields: fields,
         unanswered: SIGNUP_NETWORK_ERROR,
       });
       setGeneralError(reading.generalError ?? '');

@@ -244,15 +244,20 @@ risk assessment, transaction and any company decision stay as they are.
 
 ### Member profile
 
-Profile shows Personal information (full name, email, phone, date of birth, address and citizenship).
-Personal-details editing opens inline, with aligned Cancel and save actions.
+Web signup collects a full name after email verification. It does not request a birth date,
+phone or address. The native signup still requests those fields; its minimisation is deferred.
+Optional identity checks can collect the provider's required information separately.
 
-To change your full name, residential address or phone, choose **Edit details**, change
+Profile shows Personal information (full name, email, retained phone and date of birth, address
+and citizenship). Personal-details editing opens inline, with aligned Cancel and save actions.
+
+On web, to change your full name or address, choose **Edit details**, change
 them and choose **Save personal details**. These details are self-reported: editing them verifies
 nothing and leaves existing identity results unchanged. A Profile save creates no company
 appointment, member association or register instruction. While your account is linked to a member of
 a company's register, saving your full name or residential address also updates that register, with
-a dated record in its history; an empty field keeps what the register holds
+a dated record in its history; an empty field keeps what the register holds. An address can be
+postal; Ledova does not require every company administrator to provide a residential address
 ([particulars from Profile](member-records.md#particulars-from-profile);
 [member access](member-records.md#member-access)).
 
@@ -269,7 +274,8 @@ a company invitation: **Settings → Account → Invitations → Company officer
 under company [Shareholders](register.md#the-register-page), on the web and in the app.
 
 **Profile** combines Personal information with permitted Company details. Each editor retains its own
-permissions; changing personal details does not update a company's records. **Activation** retains the
+permissions; personal changes do not edit company information, but linked member particulars follow
+the Profile change described above. **Activation** retains the
 [company activation workflow](companies.md#activation).
 
 **Account** shows **Security** (the identity check's status with **Review**, and the

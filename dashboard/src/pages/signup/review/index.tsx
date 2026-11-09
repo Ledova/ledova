@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { ClipboardTextIcon } from '@phosphor-icons/react';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
-import { COMPANY_TYPES, TERMS_VERSION, formatPhoneWithCountryCode } from '@ledova/shared';
+import { COMPANY_TYPES, TERMS_VERSION } from '@ledova/shared';
 import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
 
@@ -72,14 +72,11 @@ export default function SignupReview() {
               <Row label="Full name" inline>
                 {userProfile.fullName}
               </Row>
-              <Row label="Phone" inline>
-                {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
-              </Row>
-              <Row label="Residential address" inline>
-                <span className="whitespace-pre-wrap break-words">
-                  {userProfile.residentialAddress || 'Not provided'}
-                </span>
-              </Row>
+              {userProfile.residentialAddress && (
+                <Row label="Address" inline>
+                  <span className="whitespace-pre-wrap break-words">{userProfile.residentialAddress}</span>
+                </Row>
+              )}
             </Rows>
           ) : (
             <p className="text-sm text-text-muted">No personal information found.</p>

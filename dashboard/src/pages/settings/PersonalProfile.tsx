@@ -23,8 +23,6 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
   const [savedFor, setSavedFor] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [residentialAddress, setResidentialAddress] = useState('');
-  const [phoneCode, setPhoneCode] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const firstField = useRef<HTMLInputElement>(null);
   const editAction = useRef<HTMLButtonElement>(null);
   const returnFocus = useRef(false);
@@ -45,8 +43,6 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
   function editDetails() {
     setFullName(userProfile?.fullName || '');
     setResidentialAddress(userProfile?.residentialAddress || '');
-    setPhoneCode(userProfile?.phoneCountryCode || '');
-    setPhoneNumber(userProfile?.phoneNumber || '');
     resetUpdate();
     setSavedFor(null);
     setEditing({ source: sourceKey, owner: ownerKey });
@@ -114,8 +110,6 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
                   {
                     fullName: fullName.trim(),
                     residentialAddress: residentialAddress.trim(),
-                    phoneCountryCode: phoneCode,
-                    phoneNumber,
                   },
                   () => {
                     closeEdit();
@@ -139,32 +133,12 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
                   onChange={(event) => setFullName(event.target.value)}
                 />
               </Field>
-              <Field label="Residential address" className="sm:col-span-2">
+              <Field label="Address" className="sm:col-span-2">
                 <TextArea
                   autoComplete="street-address"
                   value={residentialAddress}
                   disabled={blocked}
                   onChange={(event) => setResidentialAddress(event.target.value)}
-                />
-              </Field>
-              <Field label="Country code">
-                <TextInput
-                  maxLength={FIELD_LIMITS.PHONE_COUNTRY_CODE}
-                  type="tel"
-                  autoComplete="tel-country-code"
-                  value={phoneCode}
-                  disabled={blocked}
-                  onChange={(event) => setPhoneCode(event.target.value)}
-                />
-              </Field>
-              <Field label="Phone number">
-                <TextInput
-                  maxLength={FIELD_LIMITS.PHONE}
-                  type="tel"
-                  autoComplete="tel-national"
-                  value={phoneNumber}
-                  disabled={blocked}
-                  onChange={(event) => setPhoneNumber(event.target.value)}
                 />
               </Field>
             </div>

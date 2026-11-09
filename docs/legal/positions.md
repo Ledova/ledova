@@ -637,6 +637,30 @@ guards use the new declaration/version while genuine earlier appointments and re
 remain valid as history. Software permission is addressed separately in
 [position 5](#5-software-licensing-and-commercial-permission).
 
+**Collection and supplier assessment, 9 November 2026.** Web signup now collects only
+name after email verification. Address can be supplied later for linked member particulars;
+phone and DOB are not solicited. Existing values are preserved, and native collection is
+unchanged pending its separate release work. This follows the APP 3 minimisation approach,
+not an assumption that every account holder needs to supply statutory register particulars.
+
+Read-only operational evidence confirmed AWS hosting of current application records/files
+in Sydney and operator-controlled malware scanning. Outgoing application mail is captured,
+not delivered. No configured identity provider or stored applicant was found, and no push
+token is registered; reassess those suppliers before enabling them. Support mail routes to
+Google Workspace. [AWS's privacy guidance](https://aws.amazon.com/compliance/data-privacy-faq/)
+distinguishes selected-region customer content from account/metadata processing;
+[Google's processing terms](https://cloud.google.com/terms/data-processing-addendum) do not
+establish Australia-only processing or immediate deletion. Actual operator account authority
+and support-mail terms, retention and holds need confirmation; public terms alone are not
+evidence of the tenant settings.
+
+Logs rotate by size, which proves no maximum age. Retired archives remain subject to their
+existing retention locks and expiry, not immediate erasure. A bounded server inventory does
+not prove every personal-device/export copy is absent. Exit must record each relevant copy's
+purpose, hold and disposal or expiry confirmation. Keep operational evidence private, and
+working email and copy-lifecycle acceptance under [#1586](https://github.com/Ledova/ledova/issues/1586).
+This assessment changes no live settings and admits no real information.
+
 **Sources checked 9 November 2026:** OAIC
 [APP 3](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-3-app-3-collection-of-solicited-personal-information),
 [APP 5](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-5-app-5-notification-of-the-collection-of-personal-information)
@@ -657,8 +681,10 @@ wrong; what could change is the date compliance stops being voluntary.
 **Trigger.** The first real member's personal information.
 
 **Status.** Policy and prepared Terms accepted 9 November 2026. Account erasure and
-versioned acceptance and scoped company-disposal software are implemented; a recorded source-based assessment of the actual live
-service/suppliers remain gates before real-data use, without a paid-adviser prerequisite. The public preview still requires fictional data.
+versioned acceptance and scoped company-disposal software are implemented. Source minimisation
+and a read-only supplier/copy assessment are recorded above; unresolved operator/supplier facts
+and operational acceptance remain gates before real-data use, without a paid-adviser prerequisite.
+The public preview still requires fictional data.
 
 ## 11. The company's own fundraising and scheme obligations
 

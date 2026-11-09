@@ -43,11 +43,12 @@ it('reuses saved company details and clearly accepts authority and Terms through
   );
   expect(screen.getByRole('heading', { name: 'Complete company setup' })).toBeTruthy();
   expect(screen.getByText('Example Company')).toBeTruthy();
-  expect(screen.getByText('Residential address')).toBeTruthy();
+  expect(screen.getByText('Address')).toBeTruthy();
   expect(screen.getByText(address, { normalizer: (value) => value }).textContent).toBe(address);
   expect(screen.getByRole('button', { name: 'Complete company setup' }).hasAttribute('disabled')).toBe(true);
   expect(screen.queryByRole('checkbox')).toBeNull();
   expect(screen.queryByLabelText('Supporting document')).toBeNull();
+  expect(screen.queryByText('Phone')).toBeNull();
   expect(screen.queryByText('Allow me to appoint company administrators')).toBeNull();
   expect(
     screen.getByText(/By completing setup, you confirm that you are authorised to administer Example Company/),

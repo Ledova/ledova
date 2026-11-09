@@ -306,6 +306,15 @@ caller's retained records. It accepts no new POST or PATCH collection; the retir
 is absent. Existing model/admin records, compliance reads, account summary and account erasure
 remain. No web or native signup sends financial-profile answers.
 
+Web signup submits only the full name through the shared profile hook; birth date, phone and
+address are not requested or sent, including when resuming a profile that already holds them.
+Web Profile edits only name and address, preserving historical phone and identity data for their
+existing display/export and erasure paths. Address supports linked member particulars and can be
+postal; it is not required of every company administrator. Native signup's existing fields are
+unchanged pending its separate release work. Identity providers accept missing account DOB and
+can collect their required details in their own verification flow; verified extraction may populate
+the profile. No identity check is bypassed by reducing signup collection.
+
 Company exit is separate from account deletion. The maintenance-only
 [company-disposal command](../operations/operator-console.md#company-exit) requires verified
 company instruction, export handover and purpose/hold review. It supports the non-chain registry
@@ -321,8 +330,11 @@ Files are removed only after database commit, with a private retryable list. Dat
 current-storage completion are separate states; neither proves delivery to the company or erasure
 of support mail, logs, supplier copies or retained archives. The operator must review those copies,
 record any lawful remaining purpose/expiry and drain in-flight company work before disposal.
-No command disables triggers or substitutes a universal seven-year period. Factual live supplier
-and copy-lifecycle acceptance remains under [#1589](https://github.com/Ledova/ledova/issues/1589).
+No command disables triggers or substitutes a universal seven-year period. The
+[supplier assessment](../legal/positions.md#registry-only-launch-preparation) records the current
+processing and copy limitations. Operator/supplier facts remain under
+[#1589](https://github.com/Ledova/ledova/issues/1589), with operational mail delivery and
+copy-lifecycle acceptance under [#1586](https://github.com/Ledova/ledova/issues/1586).
 
 Versioned Terms acceptance is recorded separately in immutable operator-only
 [receipts](../../backend/authentication/models/terms_acceptance.py). New signup or explicit renewal

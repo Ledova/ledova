@@ -9,6 +9,8 @@ import { useRole, useSignupUserProfile } from '@ledova/shared';
 
 import { ICON_MD } from '@components/iconSizes';
 
+const PROFILE_FIELDS = ['fullName'] as const;
+
 export default function SignupUserProfile() {
   const navigate = useNavigate();
   const { isCompany } = useRole();
@@ -19,13 +21,10 @@ export default function SignupUserProfile() {
     isLoading,
     isSubmitting,
     formValidation,
-    selectedCountry,
-    countries,
     setFieldValue,
-    handleCountryChange,
     handleSubmit,
     retryLoad,
-  } = useSignupUserProfile();
+  } = useSignupUserProfile(PROFILE_FIELDS);
 
   const handleSubmitProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,10 +55,7 @@ export default function SignupUserProfile() {
         generalError={generalError}
         isSubmitting={isSubmitting}
         formValidation={formValidation}
-        selectedCountry={selectedCountry}
-        countries={countries}
         setFieldValue={setFieldValue}
-        onCountryChange={handleCountryChange}
         onSubmit={handleSubmitProfile}
         onBack={handleBack}
       />
