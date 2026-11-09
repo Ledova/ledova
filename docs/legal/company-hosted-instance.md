@@ -31,7 +31,7 @@ itself), no agent, no service agreement, and no one holding the company's data
 on its behalf unless the company chooses a host.
 
 Ledova the project is a software supplier. On the reading in
-[position 4a](positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service),
+[position 4a](positions.md#4a-company-directed-recordkeeping-and-the-administrative-boundary),
 supplying software is not a financial service.
 If the project also hosts or supports the instance, the reading is that it
 becomes an IT supplier to the company: a hosting agreement with a data-processing
@@ -77,7 +77,7 @@ and the [live-operation conditions](../regulatory-pathway.md):
 | Regime | When a company running its own instance crosses it | What it then needs |
 | --- | --- | --- |
 | Market licensing | Only if it opens a board where its shareholders post offers to buy or sell from each other, so that offers are regularly made through a facility it operates (s767A). | Registration with ASIC as a low-volume market: at most 100 completed transactions and $1.5m a year, proposed $2.5m. ASIC's register of 8 September 2026 lists over two hundred companies, most of them community bank companies, doing exactly this in their own shares; their boards list buyers and sellers and leave the parties to settle between themselves ([position 7](positions.md#7-a-register-is-not-a-financial-market)). |
-| Financial services licensing | Not by issuing its own shares, recording transfers or running a notice board. It would cross it by holding shares or tokens for other people as a business, or by arranging deals in other companies' securities, neither of which this model involves ([position 4a](positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service) and [position 11](positions.md#11-the-companys-own-fundraising-and-scheme-obligations)). | Nothing, in this model, on the positions as drafted. |
+| Financial services licensing | Not by issuing its own shares, recording transfers or running a notice board. It would cross it by holding shares or tokens for other people as a business, or by arranging deals in other companies' securities, neither of which this model involves ([position 4a](positions.md#4a-company-directed-recordkeeping-and-the-administrative-boundary) and [position 11](positions.md#11-the-companys-own-fundraising-and-scheme-obligations)). | Nothing, in this model, on the positions as drafted. |
 | Digital assets, from 9 April 2027 | Possibly, if the company holds tokens that represent its own shares "for or on behalf of" its shareholders in wallets it controls. Whether an issuer's internal ledger of its own shares is a digital asset platform has not been verified ([position 9](positions.md#9-digital-assets-and-custody)). | Keep the ledger internal, so that no holder possesses a token through the company, or let holders keep their own keys. |
 | AML/CTF | A company is not a reporting entity for issuing its own shares or keeping its own register, and does not become one by accepting payment into its own account or wallet ([position 8](positions.md#8-amlctf-obligations-of-the-operator)). | Nothing, in this model. Its accountant or lawyer may have duties of their own when they assist a transaction. |
 | Privacy | The company holds its shareholders' names and addresses, as it always has; its obligations follow its own status under the Privacy Act ([position 10](positions.md#10-privacy)). | Build to the Australian Privacy Principles regardless. |

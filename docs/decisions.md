@@ -468,7 +468,7 @@ identity fact is not approval for every company.
 
 The first offerings target wholesale and sophisticated investors. The
 classification categories and the deliberately excluded experienced-investor
-category are recorded in [legal positions](legal/positions.md#4b-issuance-payments-and-transfers-need-a-licence-a-registration-or-relief);
+category are recorded in [legal positions](legal/positions.md#4b-activities-beyond-the-registry-scope);
 two remain since 29 October 2026, and the large-investment and associated-person
 categories are [planned with offerings](business/offerings.md#investor-access-and-eligibility).
 Those positions were taken without advice; deployment stays on test networks
@@ -2607,10 +2607,31 @@ erasure mechanics and periods. Account-only data is erased on closure, abandoned
 signups after thirty inactive days, expired sessions by daily maintenance, and
 provider permanent deletion has a thirty-day target with actual confirmation and
 specific reviewed holds. Company records remain separately purpose-bound; complete
-company disposal is not yet implemented and remains a real-data release gate.
+company disposal was not yet implemented at acceptance. The
+[maintenance-only company-exit path](operations/operator-console.md#company-exit) now implements
+scoped database/current-storage disposal; live supplier and retained-copy acceptance remains pending.
 
 The owner also accepted the operator-specific software permission in
 [LICENSE section 6](../LICENSE), without transferring copyright or granting rights
 in other contributors' or suppliers' work. The public noncommercial terms for
 others and earlier grants stay intact. This approves reviewed source changes,
 not live migration, deployment, a compliance finding or admission of real records.
+
+### Source-based assessment for the free registry
+
+On 9 November 2026, under [#1589](https://github.com/Ledova/ledova/issues/1589),
+the owner directed us to continue the free registry-only work using current
+primary sources and documented assumptions, without commissioning advisers or
+making a paid opinion a mandatory project gate. The
+[assessment](legal/positions.md#4-financial-services-boundaries) distinguishes
+company-directed records from arranging investments. Companies retain their
+legal register, corporate decisions and required ASIC notifications. ASIC does
+not hold every underlying company record.
+
+No fee or public source code establishes a legal exemption. The current software
+licence remains source-available with its existing restrictions and operator
+permission; this instruction does not change it. Actual privacy, security,
+company-exit/disposal and supplier checks remain, as do permissions needed for
+any regulated activity. Uncertainty is recorded and scope kept narrow, not
+presented as compliance or regulatory approval. No live action or spending is
+authorised by this documentation decision.

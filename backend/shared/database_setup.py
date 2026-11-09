@@ -7,6 +7,7 @@ from companies import (
     activation_guards,
     authority_guards,
     database_workflow_guards,
+    disposal_guards,
     signup_terms_guards,
 )
 from companies.database_guards import install as install_companies
@@ -148,6 +149,7 @@ def install(apps, schema_editor):
             install_policies(schema_editor)
             grant_reachable_tables(schema_editor)
             for installer in (
+                disposal_guards.install,
                 install_outgoing,
                 install_companies,
                 install_participants,

@@ -244,6 +244,11 @@ own identity. Allotment identity stamps keep the identity resolved at issue, whi
 relabelling or a current profile guess must not replace. Activation receipts are application
 evidence, not membership rows.
 
+The separate [company-exit command](../operations/operator-console.md#company-exit) is the narrow
+maintenance exception for reviewed disposal of a complete non-chain company scope. It retains
+guards, foreign-key checks, a transaction-bound row manifest and a minimal private receipt. It
+does not grant delete access to the API/admin or erase an account, another company or chain history.
+
 ## Register commands
 
 Every register command follows the prepare, preview, decide and apply protocol of the [company

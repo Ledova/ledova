@@ -8,6 +8,9 @@ DECLARE
     principal bigint;
     requires_identity boolean;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain immutable company signup Terms acceptance' USING ERRCODE = '23514';
     END IF;

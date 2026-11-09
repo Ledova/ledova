@@ -301,13 +301,28 @@ company's recorded purpose; closure neither edits them nor fabricates a company 
 Inactive users lose access. The [account summary](records.md#account-data-export) includes the
 person's Terms receipts but is not every record companies hold about them.
 
-For company exit, verify the representative's current authority, supply the existing ledger
-exports/company pack and identify records still needed, their purpose and any legal hold. There
-is currently **no complete company disposal command**: protected snapshots and file copies cannot
-be removed by ordinary account deletion. A reviewed company-scoped disposal procedure must exist
-before promising company erasure or admitting real records; do not disable triggers or treat the
-seven-year former-member clock as permission to keep every platform copy forever. Track this
-remaining boundary under [#1589](https://github.com/Ledova/ledova/issues/1589).
+The legacy [financial-profile API](../../backend/users/views/financial_profile.py) only lists the
+caller's retained records. It accepts no new POST or PATCH collection; the retired detail route
+is absent. Existing model/admin records, compliance reads, account summary and account erasure
+remain. No web or native signup sends financial-profile answers.
+
+Company exit is separate from account deletion. The maintenance-only
+[company-disposal command](../operations/operator-console.md#company-exit) requires verified
+company instruction, export handover and purpose/hold review. It supports the non-chain registry
+graph, including copied history and evidence, while preserving sign-ins and other companies.
+Runtime application/operator roles cannot use its private receipt or deletion admission. The
+schema-maintenance credential supplies a reviewed, exact-row manifest bound to one company and
+transaction; guards admit only those DELETEs, never ordinary history edits. Unknown relationships
+and retained execution history refuse disposal. Current authority is rechecked before deletion
+and expiry before commit; a stale preview or failed database-deletion transaction removes no
+company rows or files.
+
+Files are removed only after database commit, with a private retryable list. Database disposal and
+current-storage completion are separate states; neither proves delivery to the company or erasure
+of support mail, logs, supplier copies or retained archives. The operator must review those copies,
+record any lawful remaining purpose/expiry and drain in-flight company work before disposal.
+No command disables triggers or substitutes a universal seven-year period. Factual live supplier
+and copy-lifecycle acceptance remains under [#1589](https://github.com/Ledova/ledova/issues/1589).
 
 Versioned Terms acceptance is recorded separately in immutable operator-only
 [receipts](../../backend/authentication/models/terms_acceptance.py). New signup or explicit renewal
@@ -319,7 +334,7 @@ company Terms and appointments are preserved. Public versions remain accessible.
 | Record                                                                 | Clock                                               | Purge                                               |
 | ---------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
 | Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below        |
-| Register decisions, uploads and copies; authority-request uploads      | Purpose/hold review; no automatic expiry            | Company disposal remains unresolved, below          |
+| Register decisions, uploads and copies; authority-request uploads      | Purpose/hold review; no automatic expiry            | Reviewed maintenance-only company exit, above       |
 | Uncompleted signup without protected history or a provider follow-up   | Thirty days without signup/login activity           | Existing daily maintenance erases account-only data |
 | Expired JWT and Django session rows                                    | Token/session expiry                                | Existing daily maintenance removes expired rows     |
 | Successful / unsuccessful jobs                                         | Seven / thirty days                                 | Existing job maintenance                            |
@@ -352,8 +367,10 @@ preparation fall under the orphan sweep.
 The account periods and service Terms were accepted by the owner on 9 November under
 [#1589](https://github.com/Ledova/ledova/issues/1589). The former-member clock implements the
 company-register assumption; it does not erase older names/addresses embedded in immutable
-imports, decisions or evidence. Complete company exit/disposal and the live supplier/retention
-assessment remain release gates. No implementation here authorises real-data use.
+imports, decisions or evidence. Reviewed company exit can remove the supported company-scoped
+records and current storage separately; retained archives and supplier copies need their own
+reviewed treatment. The live supplier/retention assessment remains a release gate. No
+implementation here authorises real-data use.
 
 ## Upload validation
 

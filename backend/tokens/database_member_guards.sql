@@ -30,6 +30,9 @@ CREATE FUNCTION tokens_guard_member_invitation() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; at_time timestamptz;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain immutable intended-recipient invitations' USING ERRCODE = '23514';
     END IF;
@@ -56,6 +59,9 @@ CREATE FUNCTION tokens_guard_member_association() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; invitation tokens_memberinvitation; proof text;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     IF TG_OP = 'DELETE' THEN RAISE EXCEPTION 'Retain exact accepted member associations' USING ERRCODE = '23514'; END IF;
     PERFORM 1 FROM companies_company WHERE uuid = NEW.company_id FOR UPDATE;
@@ -95,6 +101,9 @@ CREATE FUNCTION tokens_guard_member_revocation() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; subject tokens_memberassociation;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN RAISE EXCEPTION 'Retain append-only member revocations' USING ERRCODE = '23514'; END IF;
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     SELECT * INTO subject FROM tokens_memberassociation WHERE uuid = NEW.association_id;

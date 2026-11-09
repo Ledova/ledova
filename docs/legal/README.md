@@ -5,18 +5,18 @@
 **Folder index, first written 15 September 2026.** The
 [3 October 2026 one-product decision](../plans/company-managed-registers/plan.md)
 and the [4 October 2026 minimal-involvement decision](../decisions.md#company-representative-verification)
-postdate the readings in this folder, which have not been reconfirmed against
-the current company-managed workflows. Neither product decision establishes a
+postdate the historical analyses in this folder. Position 4 was reassessed against
+the registry-only scope on 9 November; other positions keep their individual dates. Neither product decision establishes a
 legal conclusion.
 
 This folder records what the project has decided about the law it operates
-under, why, and what it still has to find out. **Nobody qualified has been
-asked any of it.** Each question is worked out from primary sources and
-written down as a position with the [same parts](#how-a-position-is-written)
-every time. Nothing here is legal advice or a legal opinion. The
-[regulatory pathway](../regulatory-pathway.md) defines how counsel is engaged
-— a targeted assessment is step 2 of its engagement sequence — and the
-conditions that must hold before live operation.
+under, why, and what it still has to find out. It records source-based positions, not professional legal advice or a compliance
+guarantee. On 9 November the owner directed us to proceed without making a paid
+adviser a prerequisite. Record assumptions, evidence and unresolved risks in the
+existing positions; keep the process proportionate. Required legal permissions,
+privacy, safe disposal and operational checks remain. The
+[regulatory pathway](../regulatory-pathway.md) describes earlier expansion routes,
+not a mandatory counsel engagement for the free registry-only software work.
 
 | Page | What it holds | Read it when |
 | --- | --- | --- |
@@ -52,11 +52,11 @@ silence:
 - **Which way to be wrong** — where one error is a defect and the other is an
   offence, the position leans towards the defect.
 - **Trigger** — the event that must happen before the question is engaged.
-- **Status** — the sign-off state, dated. *Reviewed* positions were carried
-  over from the previous page and reviewed; *Rewritten* and *Reframed* ones
-  were carried over and changed, and await sign-off; *Drafted* ones were
+- **Status** — the sign-off state, dated. _Reviewed_ positions were carried
+  over from the previous page and reviewed; _Rewritten_ and _Reframed_ ones
+  were carried over and changed, and await sign-off; _Drafted_ ones were
   written by the assistant and are not yet confirmed by the owner; position 5
-  carries *Licence policy approved*, the owner's decision of 2026-09-20, which
+  carries _Licence policy approved_, the owner's decision of 2026-09-20, which
   is not legal advice. A draft is a reading written down; confirming it means
   the owner removes the marker in a later change. Product and legal decisions
   remain the owner's.
@@ -83,9 +83,9 @@ register. The chain guards refuse any mainnet chain id and mainnet configuration
 is absent from the repository. A question about how a register must be kept is
 not engaged by a register of fictional members.
 
-Each position therefore names its trigger. Most triggers are the first real
-company's first real member, the first fee charged for keeping a real register,
-or the first real offer of a security. The software licence applies from the
+Each position therefore names its trigger. Relevant triggers include the first real
+company/member record and the actual financial-service activity, not merely
+the first fee. Free or publicly readable software has no automatic exemption. The software licence applies from the
 outset, synthetic data or not
 ([position 5](positions.md#5-software-licensing-and-commercial-permission)).
 

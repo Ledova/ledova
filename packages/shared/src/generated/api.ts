@@ -152,27 +152,11 @@ export interface ApiPaths {
     };
     get: ApiOperations['api_financial_profiles_list'];
     put?: never;
-    post: ApiOperations['api_financial_profiles_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/financial-profiles/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    patch: ApiOperations['api_financial_profiles_partial_update'];
+    patch?: never;
     trace?: never;
   };
   '/api/notifications/': {
@@ -4450,19 +4434,6 @@ export interface ApiComponents {
       userProfile: string;
       uuid: string;
     };
-    FinancialProfileRequest: {
-      intendedUse?:
-        | (
-            | ApiComponents['schemas']['IntendedUseEnum']
-            | ApiComponents['schemas']['BlankEnum']
-            | ApiComponents['schemas']['NullEnum']
-          )
-        | null;
-      intendedUseOtherText?: string | null;
-      occupation?: string | null;
-      sourceOfFunds?: unknown;
-      sourceOfFundsOtherText?: string | null;
-    };
     FormerMember: {
       ceasedAtBlock: number | null;
       ceasedOn: string;
@@ -5249,19 +5220,6 @@ export interface ApiComponents {
       shareOwnershipWithMembers?: boolean;
       state?: string;
       tradingName?: string;
-    };
-    PatchedFinancialProfileRequest: {
-      intendedUse?:
-        | (
-            | ApiComponents['schemas']['IntendedUseEnum']
-            | ApiComponents['schemas']['BlankEnum']
-            | ApiComponents['schemas']['NullEnum']
-          )
-        | null;
-      intendedUseOtherText?: string | null;
-      occupation?: string | null;
-      sourceOfFunds?: unknown;
-      sourceOfFundsOtherText?: string | null;
     };
     PatchedNotificationRequest: {
       isArchived?: boolean;
@@ -8054,58 +8012,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['PaginatedFinancialProfileList'];
-        };
-      };
-    };
-  };
-  api_financial_profiles_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['FinancialProfileRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['FinancialProfileRequest'];
-        'multipart/form-data': ApiComponents['schemas']['FinancialProfileRequest'];
-      };
-    };
-    responses: {
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['FinancialProfile'];
-        };
-      };
-    };
-  };
-  api_financial_profiles_partial_update: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: {
-      content: {
-        'application/json': ApiComponents['schemas']['PatchedFinancialProfileRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['PatchedFinancialProfileRequest'];
-        'multipart/form-data': ApiComponents['schemas']['PatchedFinancialProfileRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['FinancialProfile'];
         };
       };
     };

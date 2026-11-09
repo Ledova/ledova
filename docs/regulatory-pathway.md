@@ -2,6 +2,8 @@
 
 [Documentation](README.md) · [Product and functionality](product.md) · [Legal and regulatory](legal/README.md)
 
+For the free registry-only scope, use the current [source-based assessment](legal/positions.md#4-financial-services-boundaries). The owner’s 9 November direction makes paid advice optional, not a compulsory software-work gate. This page retains expansion routes; permissions required for an actual regulated activity still apply.
+
 **Regulatory pathway, assessed 19 September 2026; product direction updated
 9 October 2026.** The
 [3 October 2026 one-product decision](plans/company-managed-registers/plan.md),
@@ -12,19 +14,17 @@ actual company-managed workflows. None of them establishes a legal conclusion.
 
 ## Purpose and status
 
-Ledova is intended to provide a multi-company share registry with an
-experimental non-custodial marketplace on a public blockchain. Companies
-administer share issues and ownership records; investors discover companies,
-shareholders advertise shares for sale, and participants make or accept offers
-through the platform.
+The current release is a free, company-controlled registry and ownership mirror.
+The company keeps its legal register, corporate decisions and ASIC notifications;
+Ledova supplies records and visibility. New trading, payments, custody and chain
+execution are unavailable under the [registry-only boundary](engineering/chain.md#registry-only-execution-boundary).
 
-This planning brief identifies the route to lawful operation; it is not a legal
-opinion or regulatory approval. The [product page](product.md) defines the
-agreed features and behaviour.
-
-**Discovery, listings and trading stay in the product under their existing
-controls while the necessary obligations, controls and permissions are
-established.** Bring material trade-offs back to the owner.
+The operating routes and engagement sequence below were prepared for the earlier,
+broader financial-services proposal. They remain reference material for future
+expansion, not current product capabilities or a compulsory adviser engagement.
+The [current position](legal/positions.md#4-financial-services-boundaries) owns the
+source-based assessment for this release. No statement here establishes approval
+or removes a permission required by an actual regulated activity.
 
 ## 1. Regulatory objective
 
@@ -53,8 +53,9 @@ Substantiate any exemption, licensing or approval claim.
 | Ledova or another identified platform operator | Infrastructure, security, availability, support and specifically assigned payment or crypto operations, with any obligations arising from those actual functions, required controls, records, complaints and regulatory cooperation. No standing mandate for ordinary company register decisions. |
 | Other regulated providers | The functions they actually perform within the scope of their permissions and contractual responsibilities. |
 
-Counsel must validate delegation and retained accountability. Identify the
-actual operator of each regulated activity; a partner label is insufficient.
+For a regulated expansion, validate delegation and retained accountability, with
+specialist help where available. Identify the actual operator of each activity;
+a partner label is insufficient.
 Private hosting uses the same product and company authority model. Hosting
 location or an employer's identity does not by itself appoint a human user to
 act for a company, or decide who performs a regulated activity.
@@ -133,6 +134,10 @@ proceeding. Cooperation and records do not waive mandatory requirements.
 
 ## 6. Practical engagement sequence
 
+This sequence concerns the broader regulated expansion. It does not impose a paid
+adviser on the current registry-only software work. Regulator contact and spending
+still need the owner's explicit instruction.
+
 | Step | Lead | Concrete output |
 | --- | --- | --- |
 | Define the operating model | Owner with product and engineering | Actual screens, transaction sequence, parties, users and jurisdictions, projected volume, fee options, and control of keys, assets and money. |
@@ -170,10 +175,9 @@ regulated live activity. Do not rely on best efforts followed by an
 explanation after launch.
 
 When the first design cannot meet a requirement, propose alternatives or
-staged delivery for owner review. Keep the existing experimental marketplace
-under its current controls, with its expansion deferred by the
-[9 October decision](decisions.md#essential-registry-and-development-workflow-priority),
-and state any limitation explicitly.
+staged delivery for owner review. Keep new marketplace, payment and chain execution unavailable under the current
+registry-only boundary; state limitations explicitly instead of treating a
+proposed future route as permission.
 
 Agents need owner authorisation to contact regulators, submit applications or
 launch services. Recheck current law and instruments before relying on the
