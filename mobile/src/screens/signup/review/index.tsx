@@ -166,6 +166,7 @@ export function ReviewScreen() {
     return (
       <GradientBackground>
         <SafeAreaView style={styles.container}>
+          <SignOutLink />
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.colors.interactive.active} />
             <Text style={styles.loadingText}>Loading review data...</Text>
@@ -179,6 +180,7 @@ export function ReviewScreen() {
     return (
       <GradientBackground>
         <SafeAreaView style={styles.container}>
+          <SignOutLink />
           <View style={styles.errorContainer}>
             <Text style={styles.errorTitle}>Error loading data</Text>
             <Text style={styles.errorMessage}>{error}</Text>
@@ -194,7 +196,7 @@ export function ReviewScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <SignOutLink />
+        <SignOutLink disabled={busy} />
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <ScreenHeader
             icon={

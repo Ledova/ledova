@@ -241,7 +241,7 @@ export function SignUpScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <SignOutLink />
+        <SignOutLink disabled={account.isSubmitting} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <ScreenHeader

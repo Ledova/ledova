@@ -108,7 +108,7 @@ export function AccountTypeScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <SignOutLink />
+        <SignOutLink disabled={isSubmitting} />
         <View style={styles.content}>
           <View style={styles.header}>
             <Text accessibilityRole="header" style={styles.title}>

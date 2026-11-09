@@ -3,14 +3,17 @@ import { useAuth } from '@ledova/shared';
 import { useThemedStyles } from '../../contexts';
 import { useSignOut } from '../../hooks/useSignOut';
 
-export function SignOutLink() {
+export function SignOutLink({ disabled = false }: { disabled?: boolean }) {
   const { isAuthenticated } = useAuth();
   const { signOut, signingOut } = useSignOut();
   const styles = useThemedStyles((theme) => ({
     bar: {
       alignItems: 'flex-end' as const,
       paddingHorizontal: theme.spacing.md,
-      paddingTop: theme.spacing.sm,
+    },
+    button: {
+      minHeight: 44,
+      justifyContent: 'center' as const,
     },
     label: {
       fontFamily: theme.fontFamily.medium,
@@ -21,13 +24,16 @@ export function SignOutLink() {
 
   if (!isAuthenticated) return null;
 
+  const unavailable = disabled || signingOut;
+
   return (
     <View style={styles.bar}>
       <TouchableOpacity
         accessibilityRole="button"
-        accessibilityState={{ disabled: signingOut }}
-        disabled={signingOut}
-        hitSlop={12}
+        accessibilityState={{ disabled: unavailable }}
+        disabled={unavailable}
+        hitSlop={{ left: 12, right: 12 }}
+        style={styles.button}
         onPress={() => void signOut()}
       >
         <Text style={styles.label}>{signingOut ? 'Signing out…' : 'Sign out'}</Text>

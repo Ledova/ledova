@@ -79,23 +79,26 @@ export function CompanyRegistrationScreen() {
   if (isLoading || (loadError && !hasLoadedForm)) {
     return (
       <GradientBackground>
-        <SafeAreaView style={styles.waiting}>
-          {isLoading ? (
-            <>
-              <ActivityIndicator color={theme.colors.interactive.active} />
-              <Text style={formStyles.muted}>Loading your company details…</Text>
-            </>
-          ) : (
-            <>
-              <Text accessibilityRole="header" style={formStyles.heading}>
-                Unable to load
-              </Text>
-              <Text accessibilityRole="alert" style={formStyles.error}>
-                {loadError}
-              </Text>
-              <PrimaryButton onPress={retry}>Try again</PrimaryButton>
-            </>
-          )}
+        <SafeAreaView style={styles.container}>
+          <SignOutLink />
+          <View style={styles.waiting}>
+            {isLoading ? (
+              <>
+                <ActivityIndicator color={theme.colors.interactive.active} />
+                <Text style={formStyles.muted}>Loading your company details…</Text>
+              </>
+            ) : (
+              <>
+                <Text accessibilityRole="header" style={formStyles.heading}>
+                  Unable to load
+                </Text>
+                <Text accessibilityRole="alert" style={formStyles.error}>
+                  {loadError}
+                </Text>
+                <PrimaryButton onPress={retry}>Try again</PrimaryButton>
+              </>
+            )}
+          </View>
         </SafeAreaView>
       </GradientBackground>
     );
@@ -104,7 +107,7 @@ export function CompanyRegistrationScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
-        <SignOutLink />
+        <SignOutLink disabled={isSubmitting} />
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             <ScreenHeader
