@@ -35,7 +35,7 @@ The operator also carries its own risk as a business, which is the substance of
 this page. It holds many companies' shareholders' personal information; it is
 paid to act; and the financial services law asks whether a business that is paid
 to act around securities is arranging in them. The reading in
-[position 4a](positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service)
+[position 4a](positions.md#4a-company-directed-recordkeeping-and-the-administrative-boundary)
 is no while the operator stays a clerk, and the rest of this page is about what
 "clerk" means.
 
@@ -65,7 +65,7 @@ following hold:
 
 Each clause maps to an indicator in the guidance, so each is a line the product
 must not cross by accident. Three lines describe what a provider can be, on the
-reading in [position 4a](positions.md#4a-a-registry-service-acting-only-on-instruction-is-not-a-financial-service): a
+reading in [position 4a](positions.md#4a-company-directed-recordkeeping-and-the-administrative-boundary): a
 provider that only hosts a company's own instance and never touches the register
 is an IT supplier ([model A](company-hosted-instance.md)); a provider that makes
 entries on instruction is a clerk, exempt, and must stay exactly that; a provider
