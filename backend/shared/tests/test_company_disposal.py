@@ -127,7 +127,15 @@ class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
         preview = preview_company_disposal(**fields)
         stored = document.file.name
         storage, delete = private_storage(), private_storage().delete
-        with patch.object(CompanyDisposal, "save", side_effect=RuntimeError("Synthetic failure after row deletion")):
+        save = CompanyDisposal.save
+
+        def fail_after_deletion(instance, *args, **kwargs):
+            if "database_disposed_at" in (kwargs.get("update_fields") or []):
+                self.assertFalse(Company.objects.filter(pk=self.company.pk).exists())
+                raise RuntimeError("Synthetic failure after row deletion")
+            return save(instance, *args, **kwargs)
+
+        with patch.object(CompanyDisposal, "save", autospec=True, side_effect=fail_after_deletion):
             with self.assertRaises(RuntimeError):
                 dispose_company(
                     **fields,
