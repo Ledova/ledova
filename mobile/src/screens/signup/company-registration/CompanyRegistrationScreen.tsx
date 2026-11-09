@@ -13,7 +13,7 @@ import { BuildingsIcon } from 'phosphor-react-native';
 import { COMPANY_TYPES, FIELD_LIMITS, useSignupCompanyRegistration } from '@ledova/shared';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
-import { ScreenHeader } from '../../../components/header';
+import { ScreenHeader, SignOutLink } from '../../../components/header';
 import { Field } from '../../../components/register/RegisterFields';
 import { SelectField } from '../../../components/SelectField';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
@@ -51,6 +51,8 @@ export function CompanyRegistrationScreen() {
       gap: theme.spacing.lg,
     },
     problem: { gap: theme.spacing.sm },
+    pair: { flexDirection: 'row' as const, gap: theme.spacing.md },
+    half: { flex: 1 },
     back: { alignSelf: 'center' as const, padding: theme.spacing.sm },
     link: {
       fontFamily: theme.fontFamily.medium,
@@ -102,6 +104,7 @@ export function CompanyRegistrationScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
+        <SignOutLink />
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             <ScreenHeader
@@ -127,6 +130,7 @@ export function CompanyRegistrationScreen() {
               )}
               <Field
                 filled
+                icon={<BuildingsIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
                 label="Registered company name"
                 value={form.name}
                 maxLength={FIELD_LIMITS.COMPANY_NAME}
@@ -154,28 +158,34 @@ export function CompanyRegistrationScreen() {
                 error={errors.companyType?.join(' ')}
                 onChange={(value) => setFieldValue('companyType', value)}
               />
-              <Field
-                filled
-                label="ACN"
-                value={form.acn}
-                maxLength={FIELD_LIMITS.ACN}
-                placeholder="123 456 789"
-                keyboardType="number-pad"
-                editable={!isSubmitting}
-                error={errors.acn?.join(' ')}
-                onChange={(value) => setFieldValue('acn', value)}
-              />
-              <Field
-                filled
-                label="ABN (optional)"
-                value={form.abn}
-                maxLength={FIELD_LIMITS.ABN}
-                placeholder="12 345 678 901"
-                keyboardType="number-pad"
-                editable={!isSubmitting}
-                error={errors.abn?.join(' ')}
-                onChange={(value) => setFieldValue('abn', value)}
-              />
+              <View style={styles.pair}>
+                <View style={styles.half}>
+                  <Field
+                    filled
+                    label="ACN"
+                    value={form.acn}
+                    maxLength={FIELD_LIMITS.ACN}
+                    placeholder="123 456 789"
+                    keyboardType="number-pad"
+                    editable={!isSubmitting}
+                    error={errors.acn?.join(' ')}
+                    onChange={(value) => setFieldValue('acn', value)}
+                  />
+                </View>
+                <View style={styles.half}>
+                  <Field
+                    filled
+                    label="ABN (optional)"
+                    value={form.abn}
+                    maxLength={FIELD_LIMITS.ABN}
+                    placeholder="12 345 678 901"
+                    keyboardType="number-pad"
+                    editable={!isSubmitting}
+                    error={errors.abn?.join(' ')}
+                    onChange={(value) => setFieldValue('abn', value)}
+                  />
+                </View>
+              </View>
               <PrimaryButton
                 loading={isSubmitting}
                 disabled={isSubmitting || !canSubmit}

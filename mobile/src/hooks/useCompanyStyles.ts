@@ -36,4 +36,12 @@ export const useCompanyStyles = () =>
       paddingHorizontal: theme.spacing.md,
       backgroundColor: theme.colors.surface.tertiary,
     },
+    iconField: { flexDirection: 'row' as const, alignItems: 'center' as const, gap: theme.spacing.smd },
+    iconText: {
+      flex: 1,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 16,
+      color: theme.colors.text.primary,
+      padding: 0,
+    },
   }));

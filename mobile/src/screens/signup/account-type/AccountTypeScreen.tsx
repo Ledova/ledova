@@ -4,6 +4,7 @@ import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { WarningCircleIcon, UserIcon, BuildingsIcon } from 'phosphor-react-native';
 import { useSignupAccountType } from '@ledova/shared';
 import { GradientBackground } from '../../../components/GradientBackground';
+import { SignOutLink } from '../../../components/header';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 
@@ -107,6 +108,7 @@ export function AccountTypeScreen() {
   return (
     <GradientBackground>
       <SafeAreaView style={styles.container}>
+        <SignOutLink />
         <View style={styles.content}>
           <View style={styles.header}>
             <Text accessibilityRole="header" style={styles.title}>
