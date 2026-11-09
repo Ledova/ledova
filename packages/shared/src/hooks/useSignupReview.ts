@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { CACHE_TIMING } from '../constants/api';
 import { SIGNUP_COMPLETION_FAILED, SIGNUP_LOAD_FAILED, SIGNUP_NETWORK_ERROR } from '../constants/business/signup';
+import { TERMS_VERSION } from '../constants/business/terms';
 import { canOpen } from '../constants/ui/destinations';
 import { getCompanies, getCompany } from '../services/companies';
 import { getUserProfiles, updateUserProfileCompletion } from '../services/users';
@@ -105,6 +106,7 @@ export function useSignupReview(
         userProfile.uuid,
         {
           termsAndConditions: true,
+          termsVersion: TERMS_VERSION,
           isSignupCompleted: true,
         },
         { ledovaSubmissionGuard: authority.guardCompletion },

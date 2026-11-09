@@ -35,7 +35,7 @@ position says so.
 
 | #   | Question                                             | Triggered by                                                                    | Binds                                                            | Status                                                        |
 | --- | ---------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
-| 1   | s169(3) retention of former members                  | The first real company's first real member                                      | A and B                                                          | Reviewed                                                      |
+| 1   | s169(7) retention of former members                  | The first real company's first real member                                      | A and B                                                          | Reviewed                                                      |
 | 2   | s168, who is obliged to keep the register            | The same moment, plus the terms between operator and company                    | B; in A the company keeps it itself                              | Reviewed; analysis A sentence awaiting sign-off               |
 | 3   | Evidence retention period                            | The first real identity document held                                           | A and B, once investor onboarding or the issuer KYC switch is on | Reviewed                                                      |
 | 4   | Operating without an AFSL, in two halves             | The first fee for a real register; the first real offer of a security           | 4a binds B; 4b binds both                                        | Rewritten, awaiting sign-off                                  |
@@ -53,7 +53,7 @@ its second half keeps the original stance: do not reach the trigger without a
 licence, a registration or relief. The [regulatory pathway](../regulatory-pathway.md)
 is the page about how those are obtained.
 
-## 1. Section 169(3): members who ceased in the last seven years
+## 1. Section 169(7): members who ceased in the last seven years
 
 **What the section says.** The register must include, for each person who
 stopped being a member within the last seven years, the information the register
@@ -64,11 +64,11 @@ entries to be **kept separately** from the rest of the register.
 including the seven-year minimum and the separate former-member export.
 
 **The position.** A derived current-holders view does not on its own satisfy
-169(3), so the stored record exists. Keeping it separately is what the section
+169(7), so the stored record exists. Keeping it separately is what the section
 contemplates rather than a departure from it, which is why the export has two
 sections rather than one merged list.
 
-**What would show this wrong.** That a derived register satisfies 169(3) after
+**What would show this wrong.** That a derived register satisfies 169(7) after
 all — in which case the table is surplus and costs almost nothing. The
 asymmetry is the whole reason to build it: being wrong in this direction wastes
 a table, and being wrong in the other direction means the record that was
@@ -105,14 +105,13 @@ The current plan removes the software modes and assigns ordinary register work
 to companies; the agency reading and any required terms must be revisited
 against the actual replacement service.
 
-**What this leaves undone, and it is not a legal question.** An agency
-relationship has to exist in the terms between the operator and each company.
-There are no such terms. That is a document to write, not advice to buy, and it
-is the gap to close first because it is free to close. In the registry service
-it is also the first onboarding artefact: a registry services agreement
-naming the company's authorised officers, requiring instructions in writing,
-fixing where the data is kept, promising an export on exit, disclaiming advice,
-and capping liability.
+**Current service terms.** The earlier analysis proposed an agency agreement and
+said none existed. The owner has since accepted registry-only Terms v2026-11-09
+under Blueberry Money, preserving company responsibility and promising the
+available exports. They do not claim to appoint Ledova as the company's legal
+register keeper or establish legal sufficiency of that historical agency reading.
+The [launch position](#registry-only-launch-preparation) records remaining live
+supplier/legal assessment and complete company-disposal gates.
 
 **The export trail.** Each register export is recorded durably: the
 requester, share class, register sequence, row counts, time and whether the
@@ -323,8 +322,11 @@ open-source conversion under the new licence.
 **Who needs permission.** A company running the code for its own business and an
 operator hosting it for other companies both need commercial permission. That
 includes Blueberry Money: sponsorship transfers neither copyright nor commercial
-rights. The repository contains no separate commercial agreement with that
-company; this does not establish whether a private agreement exists. Contributors
+rights. On 9 November 2026 the copyright owner accepted the operator-specific permission
+now recorded in section 6 of [LICENSE](../../LICENSE), for the software he owns. It grants
+Blueberry Money use, modification, hosting and distribution for the Ledova service and
+client applications, including commercial use, without transferring copyright. It
+grants no other contributor’s or supplier’s rights. Contributors
 retain their copyright; [contribution terms](../../CONTRIBUTING.md#licensing-of-contributions)
 explain how their material is licensed. Software permission is separate from
 financial-services permissions and the live-operation conditions.
@@ -357,8 +359,10 @@ enforcement action.
 competing product or service, whether or not real securities or funds are involved.
 
 **Status.** Licence policy approved by the owner on 2026-09-20. Implementation
-tracked in [#661](https://github.com/Ledova/ledova/issues/661). No assignment of
-copyright or separate commercial licence is created by this position.
+tracked in [#661](https://github.com/Ledova/ledova/issues/661). The 9 November 2026 operator grant is recorded in LICENSE; this position itself
+assigns no copyright or third-party rights. Git authorship review found no separate
+human contributor in the post-noncommercial change set, but is not proof of ownership
+of every line; earlier grants and third-party notices remain.
 
 ## 6. Where and in what form the register is kept
 
@@ -448,7 +452,7 @@ company's and the product either serves them or causes them to be missed:
 | Copy of the register on a proper request                          | s173(3)             | 7 days                                   |
 | Notice of where the register is kept                              | s172(2)             | 7 days                                   |
 | Notice of a change of storage or inspection place                 | s1301(4)            | 14 days                                  |
-| Former members retained                                           | s169(3)             | 7 years                                  |
+| Former members retained                                           | s169(7)             | 7 years                                  |
 | Non-employee shareholders of a proprietary company                | s113(1)             | 50                                       |
 
 Part 1.2AA (s110–110A) lets a document required or permitted to be signed under
@@ -631,8 +635,8 @@ was found on the OAIC's pages as at 15 September 2026, and vendor claims of one
 should not be relied on.
 
 **What the code does.** The register holds members' names and residential
-addresses; exports include them; former members' records are purged on the
-seven-year clock ([position 1](#1-section-1693-members-who-ceased-in-the-last-seven-years)).
+addresses; exports include them. The seven-year clock removes selected former-member
+rows, not every immutable snapshot or document copy ([position 1](#1-section-1697-members-who-ceased-in-the-last-seven-years)).
 
 **The position.** Assess both the operator and each company's actual activities;
 neither a free service nor low turnover establishes an exemption. Follow the
@@ -643,105 +647,61 @@ for real personal information. No tax file numbers are requested.
 
 ### Registry-only launch preparation
 
-**Accepted direction, 8 November 2026.** Under
-[#1586](https://github.com/Ledova/ledova/issues/1586), the owner selected Blueberry
-Money Pty Ltd to operate a free Australian private-company registry and ownership
-mirror, web first and mobile later. Under
-[#1589](https://github.com/Ledova/ledova/issues/1589), the owner also accepted
-removing legacy financial signup questions, erasing unnecessary account-only
-information on deletion and retaining justified company records separately.
-The web financial questionnaire is removed and bounded account-only erasure is
-implemented as described in [security](../engineering/security.md#account-closure-and-export).
-The decisions below remain pending; the preview still permits fictional records only.
+**Accepted direction, 8–9 November 2026.** The owner selected Blueberry Money Pty Ltd
+(ACN 691 391 214) to operate a free registry and ownership mirror, web first. Its
+[official entity record](https://abr.business.gov.au/ABN/View?abn=34691391214) was checked
+on 9 November. Under [#1589](https://github.com/Ledova/ledova/issues/1589), the owner
+accepted the prepared Terms v2026-11-09, bounded retention periods and operator
+permission. This is acceptance of policy and source changes, not legal advice,
+a compliance finding or authority to launch with real data.
 
-**Implementation direction; retention periods still undecided:**
+[Security](../engineering/security.md#account-closure-and-export) owns the implemented
+erasure scope and clocks. Unnecessary account data is erased on closure; unused
+signup data after thirty inactive days; expired sessions in daily maintenance.
+Provider deletion has a thirty-day target and needs genuine permanent-deletion
+confirmation, with specific reviewed holds. Company particulars, immutable history
+and document copies remain separate for their identified purpose. The former-member
+clock is not a universal legal basis for retaining every copy.
 
-- Collect email, account security information and the person's name for access.
-  The web no longer asks source-of-funds, occupation or intended-use questions;
-  native onboarding remains for the later mobile increment. Justify birth date,
-  phone, country and any other required details by a specific function; preserve existing identity safeguards until their purpose
-  and requirements are settled.
-- On account deletion, erase unnecessary account-only details, financial answers,
-  credentials, verification codes and device tokens, and end sessions. Retain a
-  minimal actor reference where genuine company history requires it. The current
-  [erasure scope](../engineering/security.md#account-closure-and-export) does not
-  establish complete erasure or Apple's full deletion acceptance.
-- Keep company-held member records, approvals and evidence separately only for
-  an identified company purpose, legal requirement or justified legal claim.
-  Define each category's responsible party, period or end condition and disposal
-  mechanism. The former-member seven-year assumption is not a universal rule;
-  closing a sign-in must not erase protected company history.
-- Use short, purpose-specific periods for unused signup information, invitations,
-  security logs and unused uploads. Existing authentication and reset expiry
-  limits stay in [security](../engineering/security.md#authentication-and-sessions);
-  remaining periods need a decision and implementation. Explain retained data and
-  access, correction or deletion requests through the existing privacy contact.
-- Give authorised companies their existing exports and company pack before exit.
-  Agree what exit removes and what remains. Publish actual providers, processing
-  locations and disclosures, including collection of company-supplied member data.
+Company exit first verifies authority and supplies existing exports/company pack.
+Complete scoped disposal is **not implemented**. It remains a real-data release gate;
+do not promise complete company deletion, disable database guards or silently keep
+unnecessary records indefinitely. Actual supplier processing locations/agreements,
+identity-data necessity and the scope of any statutory retention must be confirmed
+for the live service. No universal AML duty or AFSL exemption follows from being free
+or calling the service a mirror.
 
-**Draft service wording, not accepted Terms:**
+The new public Terms leave corporate authority, the legal register, lawful inspection
+and filings with companies; they cover service-related processing, support, proportionate
+suspension and exit, and preserve mandatory Australian rights. The experimental
+v2026-10-14 text remains accessible unchanged. Individuals explicitly accept a version
+through immutable private receipts; old booleans are not backfilled. Company insert
+guards use the new declaration/version while genuine earlier appointments and receipts
+remain valid as history. Software permission is addressed separately in
+[position 5](#5-software-licensing-and-commercial-permission).
 
-> Blueberry Money Pty Ltd provides Ledova as a free recordkeeping and ownership
-> mirror for Australian private companies. We record company-supplied information
-> and authorised instructions. This service does not collect investment money,
-> arrange trading or execute blockchain transactions, and provides no legal,
-> investment or tax advice.
->
-> You must already be authorised to establish and administer a company workspace.
-> Use individual accounts and appoint only people entitled to the permissions you
-> give them. The company is responsible for its information, corporate decisions,
-> legal register, historical records, lawful inspection arrangements and filings.
-> Copying records into Ledova does not establish legal ownership or replace those
-> arrangements.
->
-> Company records remain separate from personal sign-in accounts. Closing an
-> account does not remove company records retained for an identified purpose.
-> Authorised users can obtain the available company exports and company pack.
-> Privacy, access, correction and deletion requests go to hello@ledova.io.
-
-Before acceptance, settle retention and exit, provider disclosures, confidentiality
-and permitted support access. Have availability, suspension, termination, changes,
-mandatory rights and proportionate liability reviewed for this actual service.
-
-Keep the accepted experimental Terms v2026-10-14 unchanged. A real-data agreement
-needs a new version across the backend and shared acceptance contract, with old
-receipts and matching Terms still accessible. The current company
-[receipt](../../backend/companies/models/signup_terms.py) records declaration,
-version and acceptance time, not the full Terms. Individual signup stores only
-writable `terms_and_conditions` and `is_signup_completed` booleans; these are not
-versioned acceptance evidence. Introduce explicit versioned individual acceptance
-without backfilling a version or date from those booleans. Company rollout must
-also update the version/text pins in its database guards through a reviewed
-migration, preserving earlier receipts. The operator's software
-permission ([position 5](#5-software-licensing-and-commercial-permission)) remains
-separate from the [PDF dependency replacement](#12-pymupdf-an-agpl-runtime-dependency);
-a public repository does not grant commercial permission automatically.
-
-**Sources rechecked 8 November 2026:** OAIC's
-[APP 3](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-3-app-3-collection-of-solicited-personal-information)
-on necessary, proportionate collection,
+**Sources checked 9 November 2026:** OAIC
+[APP 3](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-3-app-3-collection-of-solicited-personal-information),
 [APP 5](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-5-app-5-notification-of-the-collection-of-personal-information)
-on collection notices, and
-[APP 11](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-11-app-11-security-of-personal-information)
-on destruction or de-identification with specific retention exceptions;
-[small-business guidance](https://www.oaic.gov.au/privacy/privacy-guidance-for-organisations-and-government-agencies/organisations/small-business)
-on coverage; and Apple's
-[account-deletion requirement](https://developer.apple.com/support/offering-account-deletion-in-your-app/).
-Apple requires removal of associated personal data not legally required to remain;
-deactivation alone is insufficient. Australian applicability, supplier terms and
-record-specific retention still need assessment for this operator and service.
+and [APP 11](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-11-app-11-security-of-personal-information);
+[Corporations Act s169(7)](https://www.legislation.gov.au/C2004A00818/2026-09-19/2026-09-19/text/original/epub/OEBPS/document_1/document_1.html),
+which concerns the company's register, not every platform copy;
+[ACCC contract guidance](https://www.accc.gov.au/consumers/buying-products-and-services/contracts);
+and [Apple account deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/).
+Apple's requirements concern the actual app and associated personal information;
+source changes alone establish no App Store acceptance. Sumsub's
+[deletion guidance](https://support.sumsub.com/data-access-and-deletion) and KYCAID's
+[privacy notice](https://kycaid.com/privacy-policy/) require supplier-specific follow-through;
+reversible deactivation is not proof of permanent deletion.
 
 **What would show this wrong.** Nothing would make building to the principles
 wrong; what could change is the date compliance stops being voluntary.
 
 **Trigger.** The first real member's personal information.
 
-**Status.** Original privacy position drafted 2026-09-15; launch direction and
-data-minimisation direction accepted 2026-11-08. Web collection and account-only erasure are
-implemented; remaining identity-data purposes, retention periods, real-data service Terms and
-software permissions remain pending. Nothing here
-records a compliance determination or permission for live data.
+**Status.** Policy and prepared Terms accepted 9 November 2026. Account erasure and
+versioned acceptance are implemented; full company disposal and the live supplier/legal
+assessment remain gates before real-data use. The public preview still requires fictional data.
 
 ## 11. The company's own fundraising and scheme obligations
 

@@ -4,16 +4,25 @@ from decimal import Decimal
 from uuid import uuid4
 
 from django.db import IntegrityError
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 
 from authentication.email import normalize_email
 from authentication.managers.user import EmailLookupState
+from authentication.models import TermsAcceptance
 from authentication.services import TokenService
 from authentication.services.sessions import resolve_signup_email
 from companies.models import CompanyAppointment, CompanyAuthorityRequest
+from compliance.constants import ALERT_TYPE_PERIODIC_REVIEW, IDENTITY_SCREENING_RULE
+from compliance.models import (
+    ComplianceAlert,
+    CustomerRiskAssessment,
+    TransactionScreening,
+)
+from integrations.kyc.constants import PROVIDER_KYCAID, PROVIDER_SUMSUB
 from portfolios.models import Portfolio
-from shared.db import atomic
+from shared.db import atomic, use_operator
 from shared.utils.token_amounts import plain_amount
 from users.models import (
     DeviceToken,
@@ -24,6 +33,7 @@ from users.models import (
     UserProfile,
 )
 from users.models.user_account import AccountRole
+from users.services.erasure import identity_retention_case, queue_provider_erasure
 from wallets.models import Transaction, Wallet
 from whitelist.services.eligibility_invalidation import invalidation_writer_context
 from whitelist.services.refresh import enqueue_for_account
@@ -31,8 +41,9 @@ from whitelist.services.refresh import enqueue_for_account
 logger = logging.getLogger(__name__)
 
 
-def delete_account(user):
-    with invalidation_writer_context(user):
+def delete_account(user, *, automated=False):
+    actor = None if automated else user
+    with invalidation_writer_context(actor):
         logger.info("Account deletion requested")
 
         account = (
@@ -44,6 +55,7 @@ def delete_account(user):
         cause_fields = [field for field in ("is_active", "is_email_verified") if getattr(user, field)]
 
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        completion_email = user.email
         tombstone = normalize_email(f"deleted_{user.id}_{timestamp}_{uuid4().hex}@deleted.invalid")
         if user.__class__.objects.resolve_email(tombstone).state is not EmailLookupState.ABSENT:
             raise serializers.ValidationError({"error": ["Account deletion could not be completed."]})
@@ -55,7 +67,7 @@ def delete_account(user):
         user.email_verification_sent_at = None
         user.email_verification_attempts = 0
         if cause_fields and account is not None:
-            enqueue_for_account(account.pk, user, cause_fields=cause_fields)
+            enqueue_for_account(account.pk, actor, cause_fields=cause_fields)
         user.save(
             update_fields=[
                 "email",
@@ -74,12 +86,34 @@ def delete_account(user):
 
         try:
             profile = UserProfile.objects.select_for_update(no_key=True).get(user=user)
-            for field, value in SIGNUP_ANSWERS.items():
+            held_case = identity_retention_case(account)
+            for provider, field in (
+                (PROVIDER_KYCAID, "kycaid_applicant_id"),
+                (PROVIDER_SUMSUB, "sumsub_applicant_id"),
+            ):
+                queue_provider_erasure(
+                    user,
+                    provider,
+                    getattr(profile, field),
+                    completion_email,
+                )
+            for field, value in {**SIGNUP_ANSWERS, **IDENTITY_ANSWERS}.items():
                 setattr(profile, field, value)
             profile.full_name = "Deleted User"
-            profile.save(update_fields=[*SIGNUP_ANSWERS, "updated_at"])
+            profile.save(update_fields=[*SIGNUP_ANSWERS, *IDENTITY_ANSWERS, "updated_at"])
             FinancialProfile.objects.filter(user_profile=profile).delete()
             UserPreferences.objects.filter(user_profile=profile).delete()
+            if account is not None:
+                if held_case is None:
+                    CustomerRiskAssessment.objects.filter(user_account=account).delete()
+                    TransactionScreening.objects.filter(user_account=account).update(raw_response={}, error_message="")
+                ComplianceAlert.objects.filter(
+                    Q(triggered_rule=IDENTITY_SCREENING_RULE) | Q(alert_type=ALERT_TYPE_PERIODIC_REVIEW),
+                    user_account=account,
+                    transaction__isnull=True,
+                    smr_required=False,
+                    smr_filed_at__isnull=True,
+                ).delete()
         except UserProfile.DoesNotExist:
             pass
 
@@ -97,6 +131,19 @@ SIGNUP_ANSWERS = {
     "confirmed_over_18": False,
     "confirmed_australian_resident": False,
     "confirmed_individual_account": False,
+}
+
+IDENTITY_ANSWERS = {
+    "id_document_type": None,
+    "id_document_country": None,
+    "is_id_verified": False,
+    "verification_status": None,
+    "review_result": None,
+    "rejection_labels": None,
+    "verified_at": None,
+    "kycaid_applicant_id": None,
+    "sumsub_applicant_id": None,
+    "sumsub_verification_status": None,
 }
 
 
@@ -160,6 +207,13 @@ def restart_signup(user, email, current_password):
 def export_account_data(user):
     logger.info("Data export requested")
 
+    with use_operator():
+        terms_acceptances = list(
+            TermsAcceptance.objects.filter(user_id=user.pk)
+            .order_by("created_at")
+            .values("version", "statement", "created_at")
+        )
+
     data = {
         "exported_at": timezone.now(),
         "user": {
@@ -173,6 +227,7 @@ def export_account_data(user):
         "wallets": [],
         "transactions": [],
         "portfolios": [],
+        "terms_acceptances": terms_acceptances,
     }
 
     profile = getattr(user, "userprofile", None)
@@ -195,7 +250,11 @@ def export_account_data(user):
     data["financial_profile"] = (
         FinancialProfile.objects.filter(user_profile=profile)
         .values(
-            "occupation", "source_of_funds", "source_of_funds_other_text", "intended_use", "intended_use_other_text"
+            "occupation",
+            "source_of_funds",
+            "source_of_funds_other_text",
+            "intended_use",
+            "intended_use_other_text",
         )
         .first()
     )

@@ -134,7 +134,7 @@ BEGIN
         OR NOT NEW.capabilities @> '["admin"]'::jsonb
         OR NEW.expires_at IS DISTINCT FROM proposal.requested_expires_at
         OR NEW.expires_at <= clock_timestamp()
-        OR NEW.declaration_version IS DISTINCT FROM '2026-10-14' OR NEW.declaration_text IS DISTINCT FROM 'I am authorised to set up and administer this company’s workspace, including managing its users, and I accept the Terms of Service (version 2026-10-14) on the company’s behalf. The company is responsible for the company and share information it provides, its ASIC filings and legal obligations.'
+        OR NEW.declaration_version IS DISTINCT FROM '2026-11-09' OR NEW.declaration_text IS DISTINCT FROM 'I am authorised to set up and administer this company’s workspace, including managing its users, and I accept the Terms of Service (version 2026-11-09) on the company’s behalf. The company is responsible for the company and share information it provides, its ASIC filings and legal obligations.'
         OR proposal.company_identity_raw IS DISTINCT FROM jsonb_build_object(
             'name', issuer.name, 'acn', issuer.acn, 'abn', issuer.abn, 'company_type', issuer.company_type)
         OR proposal.person_identity_raw IS DISTINCT FROM jsonb_build_object(

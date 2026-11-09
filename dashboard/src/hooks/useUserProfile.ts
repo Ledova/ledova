@@ -1,7 +1,7 @@
 import { useUserProfile as useSharedUserProfile } from '@ledova/shared';
 
 export function useUserProfile() {
-  const { userProfile, profile, update, updateProfile, sourceKey, ownerKey } = useSharedUserProfile();
+  const { userProfile, profile, update, updateProfile, acceptTerms, sourceKey, ownerKey } = useSharedUserProfile();
   return {
     userProfile,
     isLoading: profile.isLoading,
@@ -9,6 +9,7 @@ export function useUserProfile() {
     isFetching: profile.isFetching,
     refreshProfile: () => profile.refetch(),
     updateProfile,
+    acceptTerms,
     isUpdating: update.isPending,
     updateError: update.error,
     resetUpdate: update.reset,

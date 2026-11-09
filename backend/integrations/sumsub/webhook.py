@@ -21,9 +21,12 @@ from integrations.kyc.constants import (
 )
 from integrations.sumsub import SumSubService
 from integrations.webhooks import is_stale
+from shared.db import atomic
 from shared.db.middleware import RunsOnTheOperatorConnection
 from users.models.user_profile import UserProfile
 from users.services import identity
+from users.services.accounts import lock_active_profile
+from users.services.erasure import queue_provider_erasure
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +38,15 @@ STATUS_BY_EVENT = {
 
 
 def _record_status(user_profile, status):
-    user_profile.sumsub_verification_status = status
-    fields = ["sumsub_verification_status", "updated_at"]
-    if user_profile.kyc_provider == PROVIDER_SUMSUB:
-        user_profile.verification_status = status
-        fields.append("verification_status")
-    user_profile.save(update_fields=fields)
+    with atomic():
+        if lock_active_profile(user_profile) is None:
+            return
+        user_profile.sumsub_verification_status = status
+        fields = ["sumsub_verification_status", "updated_at"]
+        if user_profile.kyc_provider == PROVIDER_SUMSUB:
+            user_profile.verification_status = status
+            fields.append("verification_status")
+        user_profile.save(update_fields=fields)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -74,15 +80,22 @@ class SumSubWebhookView(RunsOnTheOperatorConnection, APIView):
                 return Response({"error": "Missing externalUserId"}, status=status.HTTP_400_BAD_REQUEST)
 
             try:
-                user_profile = UserProfile.objects.get(uuid=external_user_id)
-
-                if user_profile.sumsub_applicant_id != applicant_id:
-                    user_profile.sumsub_applicant_id = applicant_id
-                    user_profile.save(update_fields=["sumsub_applicant_id"])
+                with atomic():
+                    user_profile = UserProfile.objects.get(uuid=external_user_id)
+                    user = lock_active_profile(user_profile)
+                    if user is None:
+                        queue_provider_erasure(user_profile.user, PROVIDER_SUMSUB, applicant_id, "")
+                        return Response({"success": True}, status=status.HTTP_200_OK)
+                    if user_profile.sumsub_applicant_id and user_profile.sumsub_applicant_id != applicant_id:
+                        queue_provider_erasure(user, PROVIDER_SUMSUB, applicant_id, user.email)
+                        return Response({"success": True}, status=status.HTTP_200_OK)
+                    if not user_profile.sumsub_applicant_id:
+                        user_profile.sumsub_applicant_id = applicant_id
+                        user_profile.save(update_fields=["sumsub_applicant_id"])
 
             except (UserProfile.DoesNotExist, ValueError, ValidationError):
                 logger.warning("Rejected webhook: externalUserId matched no profile")
-                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+                return Response({"success": True}, status=status.HTTP_200_OK)
 
             if webhook_type in STATUS_BY_EVENT:
                 _record_status(user_profile, STATUS_BY_EVENT[webhook_type])

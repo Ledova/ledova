@@ -274,9 +274,11 @@ under company [Shareholders](register.md#the-register-page), on the web and in t
 permissions; changing personal details does not update a company's records. **Activation** retains the
 [company activation workflow](companies.md#activation).
 
-**Account** has four cards: **Security** (the identity check's status with **Review**, and the
+**Account** shows **Security** (the identity check's status with **Review**, and the
 password with **Change**), **Account details** (**Member since**, such as "21 Oct 2026", and **Last
-login**, such as "2 Nov 2026, 1:38 pm"), **Invitations** and **Your appointments**. Invitations has a
+login**, such as "2 Nov 2026, 1:38 pm"), **Terms of Service**, **Invitations** and **Your appointments**.
+Terms shows the accepted version’s timestamp or an explicit **Accept Terms** action beside the
+versioned text; earlier booleans are not treated as acceptance. Invitations has a
 **Shareholder invitation** row whose **Accept** opens Member invitation, and a **Company officer
 invitation** row whose **Accept** opens Team's accept form (owner, 3 and 5 November 2026). Your
 appointments lists your company appointments, with **Show the declaration** where one was recorded
@@ -292,15 +294,17 @@ action and what it does on the left, with **Export** or **Delete** on the right.
 - **Export data** downloads an account summary as JSON, separate from company-held records
   ([account-data export](../engineering/records.md#account-data-export)).
 - **Delete account** ends sign-in and erases personal profile and financial answers, preferences,
-  device tokens and inbox notifications. Company particulars, documents and history remain
-  unchanged, as do guarded wallet, verification and session-security records. The confirmation
-  explains this scope; the browser clears account data after success. See
-  [account erasure](../engineering/security.md#account-closure-and-export) for the remaining launch
-  retention work.
+  device tokens, inbox notifications and local identity-provider metadata. Permanent provider
+  erasure is tracked separately, with confirmation and specific reviewed legal holds. Company
+  particulars, documents, history and genuine retained transaction/case evidence remain separate.
+  The confirmation explains this scope; the browser clears account data after success. See
+  [account erasure](../engineering/security.md#account-closure-and-export) for exact clocks and
+  the unresolved full-company disposal boundary.
 
 On mobile, Settings has the same three pages for the selected company, then
 [Team](companies.md#team-invitations-and-appointments) where that company can be managed and
-[Activation](companies.md#activation) where the web shows it, and Account the web's four cards.
+[Activation](companies.md#activation) where the web shows it. Its current Account has **Security**, **Account details**,
+**Invitations** and **Your appointments**; the new web Terms renewal card is not yet a native screen.
 Security shows the identity status but no **Review**, since the app
 has no identity check flow, then **Change** for the password and the biometric sign-in (such as
 **Face ID sign-in**) and **App lock** switches, App lock asking for biometrics when you come back to

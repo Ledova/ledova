@@ -841,7 +841,7 @@ The register CSV, the base of every inspection copy and of each class's `registe
    waiting to be recorded (when there are any, or `unknown`), and Reconciled with the chain: the
    latest result (its status or discrepancy count) with its block and time, `never`, or
    `not on chain` for an import-opened class.
-3. Former members, after an empty row and the heading "Former members (retained under s169(3) of the
+3. Former members, after an empty row and the heading "Former members (retained under s169(7) of the
    Corporations Act)": Name, Residential address, Wallet address, Shares held on ceasing, Date
    ceased, Identity source and Identity recorded at. A final As at row gives the fold's time, block
    and `stale` when stale; `never read` and `stale` before a chain class's first fold; or
@@ -1058,7 +1058,7 @@ one-step edit, whose `evidence` names its supporting copy instead), and `provide
 for a change a linked member made in their profile, `member`. `approvals.json`'s `listed` is computed at the as-at time as the registry would, so
 an active approval past its expiry is not listed, and `contracts.json` takes its registry addresses
 from it. `retain_until` is `FORMER_MEMBER_RETENTION_MONTHS` (84) after the member ceased
-([s169(3)](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years)).
+([s169(7)](../legal/positions.md#1-section-1697-members-who-ceased-in-the-last-seven-years)).
 
 ### Chain evidence
 
@@ -1127,7 +1127,9 @@ as history.
 `GET /api/user-profiles/export-data/` returns the signed-in person's own data as one JSON document
 and takes no identifier. It runs on the application connection under the caller's own row-level
 policies ([tenancy](security.md#tenancy-model)), and `export_account_data` in
-[lifecycle.py](../../backend/users/services/lifecycle.py) selects only the caller's rows. Both
+[lifecycle.py](../../backend/users/services/lifecycle.py) selects only the caller's rows. Its bounded
+Terms-receipt query uses the operator connection for that exact user; it grants no wider receipt
+read to the app. Both
 clients call `exportAccountData` in `@ledova/shared` and name the file `ledova-data-export-<UTC
 date>.json`; the dashboard saves it from Settings, and the mobile app writes one private cache copy
 bound to the session current when the export was requested and hands it to the share sheet
@@ -1137,7 +1139,8 @@ bound to the session current when the export was requested and hands it to the s
 
 The document is `AccountExportData` in the schema: `exportedAt`, `user`, `profile`,
 `financialProfile`, `account`, `wallets`, `transactions` (every transaction of the account's
-wallets) and `portfolios`; a section with no row is `null`, or an empty list. Not in it:
+wallets), `portfolios` and `termsAcceptances` (version, acknowledgement and server recording time);
+a section with no row is `null`, or an empty list. Not in it:
 per-asset holdings, orders, notifications, the transaction-alerts switch and register particulars.
 
 ### Transaction evidence fields

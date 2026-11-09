@@ -82,6 +82,12 @@ class ExportedPortfolioSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField()
 
 
+class ExportedTermsAcceptanceSerializer(serializers.Serializer):
+    version = serializers.CharField()
+    statement = serializers.CharField()
+    created_at = serializers.DateTimeField()
+
+
 class AccountExportDataSerializer(serializers.Serializer):
     exported_at = serializers.DateTimeField()
     user = ExportedUserSerializer()
@@ -91,3 +97,4 @@ class AccountExportDataSerializer(serializers.Serializer):
     wallets = ExportedWalletSerializer(many=True)
     transactions = ExportedTransactionSerializer(many=True)
     portfolios = ExportedPortfolioSerializer(many=True)
+    terms_acceptances = ExportedTermsAcceptanceSerializer(many=True)

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { ClipboardTextIcon } from '@phosphor-icons/react';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
-import { COMPANY_TYPES, formatPhoneWithCountryCode } from '@ledova/shared';
+import { COMPANY_TYPES, TERMS_VERSION, formatPhoneWithCountryCode } from '@ledova/shared';
 import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
 
@@ -118,7 +118,7 @@ export default function SignupReview() {
                 By completing setup, you confirm that you are authorised to administer {company.name}, including
                 managing its users, and accept the{' '}
                 <a
-                  href={`${SITE_URL}${SITE_PATHS.termsOfService}`}
+                  href={`${SITE_URL}${SITE_PATHS.termsOfService}/${TERMS_VERSION}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-brand-light hover:text-brand-subtle underline"
@@ -150,7 +150,7 @@ export default function SignupReview() {
             <p className="text-sm text-text-body leading-relaxed mb-4">
               By completing signup, you accept the{' '}
               <a
-                href={`${SITE_URL}${SITE_PATHS.termsOfService}`}
+                href={`${SITE_URL}${SITE_PATHS.termsOfService}/${TERMS_VERSION}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-brand-light hover:text-brand-subtle underline"

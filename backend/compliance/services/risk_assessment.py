@@ -22,6 +22,8 @@ from compliance.constants import (
     RISK_THRESHOLD_MEDIUM,
 )
 from compliance.models import CustomerRiskAssessment
+from shared.db import atomic
+from users.services.accounts import lock_active_profile
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +92,10 @@ def assessment_reason(customer_score, customer_factors, geographic_score, geogra
 
 class RiskAssessmentService:
     @staticmethod
+    @atomic()
     def create_pending_assessment(user_account) -> CustomerRiskAssessment:
+        if lock_active_profile(user_account.user_profile) is None:
+            return None
         assessment = CustomerRiskAssessment.objects.create(
             user_account=user_account,
             assessment_status=ASSESSMENT_STATUS_PENDING,
@@ -101,8 +106,11 @@ class RiskAssessmentService:
         return assessment
 
     @staticmethod
+    @atomic()
     def calculate_and_create(user_account, pep_data: Optional[Dict] = None) -> CustomerRiskAssessment:
         holder = user_account.user_profile
+        if lock_active_profile(holder) is None:
+            return None
 
         customer_score, customer_factors = customer_risk(holder, pep_data)
         geographic_score, geographic_factors = geographic_risk(holder)

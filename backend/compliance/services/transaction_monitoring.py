@@ -54,6 +54,7 @@ from compliance.models import ComplianceAlert, CustomerRiskAssessment, Monitorin
 from compliance.services.crypto_screening import CryptoScreeningService
 from shared.db import atomic
 from shared.tasks.queue import defer
+from users.services.accounts import lock_active_profile
 from wallets.models import Transaction
 
 logger = logging.getLogger(__name__)
@@ -174,6 +175,8 @@ def _check_address(rule, transaction, user_account) -> RuleResult:
         return False, {}
     logger.info(f"Address screening triggered for transaction {transaction.uuid} (reason: {trigger})")
     screening = CryptoScreeningService().screen_transaction(transaction, user_account)
+    if screening is None:
+        return False, {}
     if screening.status == SCREENING_STATUS_FAILED:
         verdict = "Crypto screening failed - address safety unverified"
     elif screening.result == SCREENING_RESULT_REJECTED:
@@ -375,9 +378,12 @@ class TransactionMonitoringService:
     @classmethod
     def check_recorded_transaction(cls, transaction_uuid):
         with atomic():
-            tx = Transaction.objects.select_for_update().filter(pk=transaction_uuid).first()
+            tx = Transaction.objects.filter(pk=transaction_uuid).first()
             if tx is None:
                 return {"status": "not_found"}
+            if lock_active_profile(tx.wallet.user_account.user_profile) is None:
+                return {"status": "closed_account"}
+            tx = Transaction.objects.select_for_update().get(pk=transaction_uuid)
             if tx.monitoring_completed_at is not None:
                 return {"status": "already_completed"}
             alerts = cls.check_transaction(transaction=tx, user_account=tx.wallet.user_account)
@@ -391,7 +397,9 @@ class TransactionMonitoringService:
         for rule in MonitoringRule.objects.active():
             triggered, details = check_rule(rule, transaction, user_account)
             if triggered:
-                alerts.append(cls._create_alert(rule, user_account, transaction, details))
+                alert = cls._create_alert(rule, user_account, transaction, details)
+                if alert is not None:
+                    alerts.append(alert)
                 logger.info(
                     f"Rule {rule.rule_code} triggered for "
                     f"user_account {user_account.uuid}, transaction {transaction.uuid}"
@@ -409,12 +417,17 @@ class TransactionMonitoringService:
                 status__in=[ALERT_STATUS_NEW, ALERT_STATUS_REVIEWING],
             ).exists()
             if triggered and not already_open:
-                alerts.append(cls._create_alert(rule, user_account, None, details))
+                alert = cls._create_alert(rule, user_account, None, details)
+                if alert is not None:
+                    alerts.append(alert)
                 logger.info(f"Batch rule {rule.rule_code} triggered for user_account {user_account.uuid}")
         return alerts
 
     @staticmethod
+    @atomic()
     def _create_alert(rule: MonitoringRule, user_account, transaction, details: Dict) -> ComplianceAlert:
+        if lock_active_profile(user_account.user_profile) is None:
+            return None
         return ComplianceAlert.objects.create(
             user_account=user_account,
             transaction=transaction,

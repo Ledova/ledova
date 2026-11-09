@@ -277,38 +277,58 @@ classified as retained, with a reason.
 
 The `delete-account` action in [lifecycle.py](../../backend/users/services/lifecycle.py)
 replaces the sign-in email, disables the account and password, clears unused email-verification
-codes and revokes sessions. It clears personal profile answers, including country and financial
-answers, and deletes preferences, device tokens and inbox notifications. These writers check the
-fresh active user under the same account-row lock, so an already-authenticated request cannot
-recreate erased rows after closure. Profile writes keep their existing company-first lock order.
-Notification delivery runs outside its short row-creation transaction.
+codes and revokes sessions. It erases personal profile and identity-provider metadata, financial
+answers, preferences, device tokens and inbox notifications. Account-only risk assessments and
+identity/periodic-review alerts are removed unless linked to an identified retained compliance
+case. Executed transaction journals and specific flagged/filed case evidence remain separate.
+Provider callbacks, profile and account writers recheck the fresh active user under account locks;
+inactive callbacks cannot repopulate erased details. Company-first profile locking is preserved.
 
-The user, profile and account identifiers remain for protected references. Company member
-particulars, associations, decisions, evidence and documentary copies are separate retained
-records; account erasure neither edits them nor fabricates a company revocation. Inactive,
-unverified users lose member access. Provider-controlled identity metadata, wallet history and
-compliance history and revoked-session bookkeeping remain under their existing guards. Their purposes and retention
-still need resolution before real-data use; this increment does not establish complete erasure
-or App Store acceptance.
+If a provider holds an applicant, closure creates a private operator-only erasure work item before
+clearing the profile. A signed callback for an unused duplicate provider profile is tracked in
+the same queue rather than overwriting the current applicant. An operator must request
+**permanent** supplier deletion, not reversible
+deactivation, and record genuine confirmation. The target is thirty days. Applicant IDs and the
+completion address are kept only for that follow-through, then cleared after confirmation and
+notice. A specific legal hold needs its case, reason and review date; it is not a blanket exemption
+for registry users. Pending, overdue and held items remain visible to the operator. No supplier
+request is silently treated as completed. An active account’s current applicant cannot be
+completed as erased; an unused duplicate additionally needs explicit operator confirmation.
 
-The [account-data export](records.md#account-data-export) is a JSON summary, not every piece of
-information held about the person. Company-held particulars and documents have separate access
-and export rules. Other requests use the public privacy contact. The
-[accepted data-minimisation direction](../legal/positions.md#registry-only-launch-preparation)
-removes the web financial questionnaire; native signup is unchanged for the later mobile work.
-Retention periods, real-data service Terms and remaining software permissions are still pending.
+Stable user, profile and account identifiers remain for protected references. Company member
+particulars, associations, decisions, evidence and copied snapshots are retained separately for the
+company's recorded purpose; closure neither edits them nor fabricates a company revocation.
+Inactive users lose access. The [account summary](records.md#account-data-export) includes the
+person's Terms receipts but is not every record companies hold about them.
+
+For company exit, verify the representative's current authority, supply the existing ledger
+exports/company pack and identify records still needed, their purpose and any legal hold. There
+is currently **no complete company disposal command**: protected snapshots and file copies cannot
+be removed by ordinary account deletion. A reviewed company-scoped disposal procedure must exist
+before promising company erasure or admitting real records; do not disable triggers or treat the
+seven-year former-member clock as permission to keep every platform copy forever. Track this
+remaining boundary under [#1589](https://github.com/Ledova/ledova/issues/1589).
+
+Versioned Terms acceptance is recorded separately in immutable operator-only
+[receipts](../../backend/authentication/models/terms_acceptance.py). New signup or explicit renewal
+requires the current version and acknowledgement. Existing booleans are not backfilled; historical
+company Terms and appointments are preserved. Public versions remain accessible.
 
 ### Retention clocks
 
-| Record                                                                 | Clock                                               | Purge                                        |
-| ---------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------- |
-| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below |
-| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                 | None, below                                  |
+| Record                                                                 | Clock                                               | Purge                                               |
+| ---------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
+| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below        |
+| Register decisions, uploads and copies; authority-request uploads      | Purpose/hold review; no automatic expiry            | Company disposal remains unresolved, below          |
+| Uncompleted signup without protected history or a provider follow-up   | Thirty days without signup/login activity           | Existing daily maintenance erases account-only data |
+| Expired JWT and Django session rows                                    | Token/session expiry                                | Existing daily maintenance removes expired rows     |
+| Successful / unsuccessful jobs                                         | Seven / thirty days                                 | Existing job maintenance                            |
+| Unreferenced private uploads                                           | At least 24 hours unchanged                         | Existing orphan sweep                               |
 
 2,557 days is seven years including two leap days. `FORMER_MEMBER_RETENTION_DAYS` has a floor:
 `retention_cutoff` raises `ImproperlyConfigured` below 2,557 days, so the floor cannot be
-configured away and `0` is not a valid value. It implements the accepted, unadvised seven-year assumption for s169(3)
-([legal position 1](../legal/positions.md#1-section-1693-members-who-ceased-in-the-last-seven-years)).
+configured away and `0` is not a valid value. It implements the accepted, unadvised seven-year assumption for s169(7)
+([legal position 1](../legal/positions.md#1-section-1697-members-who-ceased-in-the-last-seven-years)).
 The daily purge removes, once past the cutoff:
 
 - former-holder rows and the cessation records of members who no longer hold shares, measured from
@@ -329,10 +349,11 @@ deleted when company documents were [removed](../decisions.md#company-documents-
 database refuses ordinary deletion of these rows; only copies left by a rolled-back or interrupted
 preparation fall under the orphan sweep.
 
-Production retention is decided before any real data. The existing former-member clock is not a
-universal rule for account data, uploads or identity evidence. Account and company deletion still
-respect the protected register relations; the remaining retention work is tracked under
-[#1589](https://github.com/Ledova/ledova/issues/1589).
+The account periods and service Terms were accepted by the owner on 9 November under
+[#1589](https://github.com/Ledova/ledova/issues/1589). The former-member clock implements the
+company-register assumption; it does not erase older names/addresses embedded in immutable
+imports, decisions or evidence. Complete company exit/disposal and the live supplier/retention
+assessment remain release gates. No implementation here authorises real-data use.
 
 ## Upload validation
 
