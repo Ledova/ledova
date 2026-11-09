@@ -338,6 +338,9 @@ personal and financial details. Companies are never deleted by design, so a
 saved draft company stays with the account instead of being cleared; weakening
 that safeguard was not authorised.
 
+_Since 9 November 2026 signup stores no eligibility answers, so a restart has none to clear
+([Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up))._
+
 ### ABR company lookup at activation
 
 _Superseded on 2 November 2026: activation no longer looks the company up in the ABR
@@ -1183,9 +1186,10 @@ possible".
 Sign-up no longer has an **Eligibility check** step, on the web or in the app. Investors no longer
 confirm that they are 18 or older, an Australian resident and opening an individual account, or that
 share offerings here are wholesale only. Both account types go from **Account type** straight to
-personal details. A follow-up change removed the profile's `confirmed_over_18`,
-`confirmed_australian_resident` and `confirmed_individual_account` fields, with the answers already
-given.
+personal details. Offered the removal of the answers already given as the next change, the owner
+said "go ahead" the same day, so [#1611](https://github.com/Ledova/ledova/pull/1611) removed the
+profile's `confirmed_over_18`, `confirmed_australian_resident` and `confirmed_individual_account`
+fields with their stored answers.
 
 The same day the owner asked to remove "© 2026 Ledova contributors" from the dashboard and website
 footers. "Operated by …" and the licence name stay.
