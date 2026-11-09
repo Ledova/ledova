@@ -10,6 +10,9 @@ CREATE OR REPLACE FUNCTION tokens_guard_register_allotment_decision() RETURNS tr
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; at_time timestamptz; proposal tokens_registerallotment;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Register allotment decisions are append-only' USING ERRCODE = '23514';
     END IF;

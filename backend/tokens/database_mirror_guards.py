@@ -33,9 +33,10 @@ def install(apps, schema_editor):
     source = Path(__file__).with_name("database_guards.sql").read_text()
     guard = _function(source, "tokens_guard_register_import")
     guard = guard.replace(
-        "BEGIN\n",
-        "BEGIN\n    IF (TG_OP = 'DELETE' AND OLD.source_reference <> '') OR NEW.source_reference <> '' THEN\n"
-        "        RETURN tokens_validate_mirror_import(NEW, OLD, TG_OP);\n    END IF;\n",
+        "    IF TG_OP = 'DELETE' THEN\n",
+        "    IF (TG_OP = 'DELETE' AND OLD.source_reference <> '') OR NEW.source_reference <> '' THEN\n"
+        "        RETURN tokens_validate_mirror_import(NEW, OLD, TG_OP);\n    END IF;\n"
+        "    IF TG_OP = 'DELETE' THEN\n",
         1,
     )
     entry = _function(source, "tokens_guard_register_entry").replace(

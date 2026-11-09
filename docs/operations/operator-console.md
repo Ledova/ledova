@@ -45,6 +45,41 @@ What the flags require is in [account standing](../business/participants.md#acco
 (`issuer_kyc_required`). Turn on `issuer_kyc_required` only with a
 [KYC provider configured](configuration.md#identity-verification-providers).
 
+## Company exit
+
+The application command `python manage.py company_disposal` is a maintenance operation, not a
+company or staff-web action. It requires the separate schema-maintenance credential; the normal
+application and operator roles cannot access its receipts or deletion admission. Hosted access
+and execution arrangements belong in private [Ledova/infra](https://github.com/Ledova/infra).
+
+Before using it, verify the company's instruction and current administrator appointment, deliver
+the available company pack and confirm receipt, and review every remaining purpose, hold and copy.
+Keep the supporting review privately; command references are opaque case identifiers, not names,
+emails or legal conclusions. Stop/drain company work and account for captured mail, logs, provider
+copies and archives separately. A remaining hold prevents disposal, not permission to bypass it.
+
+1. `preview --company UUID --appointment UUID --pack delivered-pack.zip` reports a digest, row
+   counts and file count without deleting anything. The pack's company, recorded manifest,
+   contents, class heads and capture time must still match. A company with no classes needs no
+   pack, but its basic-details handover still needs verification.
+2. `dispose` takes those same arguments, `--digest`, `--authorisation-reference`,
+   `--handover-reference` and `--purpose-review-reference`. It also requires
+   `--confirm-company UUID --confirm-no-holds --confirm-copies-reviewed`. These confirmations
+   record the operator's review; they do not perform that review or establish a legal basis.
+3. `status --company UUID` or `status --receipt UUID` finds the durable outcome. Database deletion
+   is atomic; file deletion starts only after commit. If current-storage cleanup is incomplete,
+   resolve the storage problem, recheck any new hold or instruction, and use
+   `retry-files --receipt UUID --confirm-no-holds --confirm-copies-reviewed`. The original receipt
+   is not proof that no later hold exists. A committed database change
+   is not undone by a later file error. The receipt and pending file names remain retryable.
+
+The supported scope is non-chain registry records and current private storage, plus exactly
+linked member inbox/queued notifications and admin audit rows. Users/profiles/accounts and
+unrelated companies/jobs remain. Retained execution journals, other unsupported relationships,
+running company notifications, changed exports or previews, and expired/revoked authority refuse
+the operation. Receipt completion concerns current storage only, not every external/retained copy.
+No automatic company purge or live release is authorised by this procedure.
+
 ## The operator console
 
 The configuration health strip checks the operator's identity fields, `SHARE_TOKEN_FACTORY_ADDRESS`

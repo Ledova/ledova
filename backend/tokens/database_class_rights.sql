@@ -2,6 +2,9 @@ CREATE OR REPLACE FUNCTION tokens_guard_class_rights_revision() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE issuer uuid; principal bigint; last_revision integer; actor_name text;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain the append-only company class-rights descriptions' USING ERRCODE = '23514';
     END IF;

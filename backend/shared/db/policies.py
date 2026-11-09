@@ -309,6 +309,9 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
+    "companies_companydisposal": "Company-exit review receipts and retryable private-file disposal. Only the "
+    "schema-maintenance credential reads or writes them; both runtime roles lack grants. Exact transaction-bound "
+    "manifests admit reviewed company DELETE operations only, never ordinary history edits.",
     "users_accounterasureworkitem": "Provider-erasure follow-up for closed accounts or unused duplicate provider "
     "profiles. The bounded account "
     "closure service records the minimum applicant identifier and completion contact on the operator connection; "

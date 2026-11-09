@@ -87,8 +87,9 @@ export function PrivacyPolicy() {
           <Section title="Where it's kept and who can see it">
             <ul className={LIST}>
               <li>
-                The preview&apos;s application records are stored in Sydney, Australia, using Amazon Web Services. Email
-                you send to hello@ledova.io is handled by Google Workspace.
+                The preview is configured to store application records and files with Amazon Web Services in Sydney,
+                Australia. Uploaded files are checked by an operator-controlled malware scanner. Email you send to
+                hello@ledova.io is handled by Google Workspace and may be processed outside Australia.
               </li>
               <li>
                 Company users see the records their company permissions allow; members see their own records. A company
@@ -106,8 +107,9 @@ export function PrivacyPolicy() {
                 demo account instead.
               </li>
               <li>
-                Apart from email you send us, no other service receives your information. Identity checks and payment
-                services are switched off, push notifications aren&apos;t set up, and there is no error tracking.
+                Optional identity checks and native push can send information to the configured identity provider or
+                Expo. Their purposes, processing locations and retention must be confirmed before real information is
+                sent. Investment payments and trading are unavailable.
               </li>
             </ul>
           </Section>
@@ -135,9 +137,11 @@ export function PrivacyPolicy() {
               remain for the company’s identified recordkeeping purpose or a specific legal requirement or claim. The
               company is responsible for its legal register. Seven-year former-member retention is not a universal
               period for every copy Ledova holds. Authorised companies can obtain ledger exports and a company pack, and
-              contact {CONTACT} to arrange exit and a review of records to keep or dispose of. Complete company disposal
-              is not yet supported, and remains a gate before real records are admitted. The preview may still be reset;
-              keep your own copies of useful test records.
+              contact {CONTACT} to arrange exit and a review of records to keep or dispose of. A reviewed maintenance
+              process can remove supported company records and current stored files. Retained execution history,
+              supplier copies, support correspondence, logs and archives need separate review and treatment; this is not
+              immediate erasure of every copy. Live data-handling acceptance remains pending. The preview may still be
+              reset; keep your own copies of useful test records.
             </p>
           </Section>
           <Section title="Access, correction and complaints">

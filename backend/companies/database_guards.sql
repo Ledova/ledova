@@ -7,6 +7,9 @@ DECLARE
     appointment companies_companyappointment;
     principal bigint;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain immutable company appointment revocations' USING ERRCODE = '23514';
     END IF;
@@ -67,6 +70,9 @@ DECLARE
     principal bigint;
     current_source boolean;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain immutable company team invitations' USING ERRCODE = '23514';
     END IF;
@@ -177,6 +183,9 @@ CREATE OR REPLACE FUNCTION public.companies_guard_legacy_owner_source()
  LANGUAGE plpgsql
 AS $function$
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     RAISE EXCEPTION 'Retain immutable legacy owner sources' USING ERRCODE = '23514';
 END;
 $function$;
@@ -246,6 +255,9 @@ DECLARE
     wallet_account customer_accounts_account;
     wallet_profile users_userprofile;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF current_user = @MIGRATE_ROLE@ THEN
         IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
         RETURN NEW;

@@ -10,6 +10,9 @@ DECLARE
     delegated jsonb;
     principal bigint;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain immutable company authority requests and their evidence' USING ERRCODE = '23514';
     END IF;
@@ -70,6 +73,9 @@ DECLARE
     proposal companies_companyauthorityrequest;
     principal bigint;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain immutable authority request withdrawal history' USING ERRCODE = '23514';
     END IF;
@@ -103,6 +109,9 @@ DECLARE
     principal bigint;
     requires_identity boolean;
 BEGIN
+    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Retain immutable company appointments and declarations' USING ERRCODE = '23514';
     END IF;
