@@ -1,31 +1,26 @@
-# Demo accounts and handover
+# Local demo accounts and handover
 
 [Documentation](README.md) · [Local setup](getting-started.md)
 
-These are intentionally published fictional credentials. The owner authorised them for localhost on
-28 October 2026 (Jordan Ellis's on 29 October 2026) and for ledova.io on 30 October 2026, accepting
-that they are public ([#1435](https://github.com/Ledova/ledova/issues/1435)). Real passwords,
-tokens, cookies and runtime environment files stay outside Git.
+These intentionally published fictional credentials are for the local walkthrough. The owner
+authorised local use on 28 October 2026 (Jordan Ellis's on 29 October 2026). This guide covers
+localhost only; hosted operation and launch acceptance are tracked separately under
+[#1586](https://github.com/Ledova/ledova/issues/1586). Real passwords, tokens, cookies and runtime
+environment files stay outside Git.
 
 Last credential verification: **30 October 2026** (Australia/Sydney). All five accounts signed in
-to the local API with these addresses and passwords, and ledova.io holds the same accounts.
+to the local API with these addresses and passwords. This is not a current hosted-access check.
 
 ## Where they work
 
 | Where     | Sign in at                                     | Data                                                    |
 | --------- | ---------------------------------------------- | ------------------------------------------------------- |
 | This Mac  | **http://localhost:5173/signin**               | `ledova_walkthrough_20261021` in the local PostgreSQL   |
-| ledova.io | **https://ledova.io/signin**, from any network | A copy of the local data and its files, made 30 October |
 
-Both have the same five accounts and the same demo data as of 30 October 2026. They are separate
-copies: a change in one does not reach the other. Neither has a platform staff account, and neither
-sends email: messages such as invitations are saved to files, locally in the walkthrough's private
-mailbox and on ledova.io on the server.
-
-ledova.io has answered from any network since 30 October 2026
-([#1437](https://github.com/Ledova/ledova/issues/1437)), so anyone who reads this guide can sign in
-there and change the demo data or an account's password. Each account takes 10 sign-in attempts an
-hour from everyone together, so give each person a different account.
+The local walkthrough has five demo accounts and no platform staff account. It captures messages
+such as invitations in its private mailbox rather than sending them externally. Local fixtures
+are separate from any hosted records. The [Privacy policy](https://ledova.io/privacy-policy)
+describes the hosted service's current email handling.
 
 ## Sign in
 
@@ -44,8 +39,8 @@ keeping every earlier record except what #1421 removed, and the demo data below 
 | Jordan Ellis        | Second Purpose Demo officer           | `director@blueberry.money` | `sQS6zJDzdXdXO0SsAPCdksvL-kwhP42i`            | Purpose Demo Team and company authority                                          |
 
 The addresses name each account's role, at the owner's domains ledova.io and blueberry.money.
-Until 30 October 2026 they ended in @purpose-demo.test. They were then renamed in place on both
-copies ([#1439](https://github.com/Ledova/ledova/issues/1439)), so each account kept its records
+Until 30 October 2026 they ended in @purpose-demo.test. They were then renamed in place on the local
+walkthrough ([#1439](https://github.com/Ledova/ledova/issues/1439)), so each account kept its records
 and password. Records the app never changes still hold the old addresses:
 
 - a company's member access page lists each invitation's address and the address each member
@@ -118,7 +113,8 @@ At the owner's request, more records were added so that pages are not empty. Two
 directly in the local database through the backend's own services, because no identity provider runs
 locally: Jordan Ellis's account was created, and Taylor, Casey and Quinn, already identity-verified
 since 27 October, were made active. Every other record below went through the API as the real users.
-ledova.io holds a copy of the same records and files, made on 30 October 2026.
+A hosted preview copy was made on 30 October 2026; that historical observation does not establish
+current hosted access or mail behaviour.
 
 - **Purpose Demo:**
   - Eligibility requests, each sharing the investor's name: Quinn's and Taylor's accepted, one of
@@ -148,10 +144,11 @@ ledova.io holds a copy of the same records and files, made on 30 October 2026.
   same passwords, and every other record was added again through the API, so every record has its
   file. The walkthrough now runs from the main checkout, which holds its uploads.
 
-## Current handover — 7 November 2026
+## Historical handover — 7 November 2026
 
-Read current GitHub claims and pull requests before editing. This is a dated handover, not a
-replacement for the issues or the [engineering standards](engineering/README.md).
+The observations below describe earlier revisions, not current hosted access, email delivery or
+launch readiness. Read current GitHub claims and pull requests before editing; this dated handover
+does not replace the issues or the [engineering standards](engineering/README.md).
 
 **Delivered and checked:**
 
@@ -262,4 +259,5 @@ PATH=/Users/ronildo/.nvm/versions/node/v22.22.2/bin:$PATH EXPO_PUBLIC_API_URL=ht
 The backend launcher uses its private local environment and invitation mailbox rather than external
 email. Keep those runtime files, cookie jars and invitation links out of Git and public artifacts.
 Keep `~/Developer/ledova-artifacts/` outside the repository and preserve unrelated evidence.
-Update this guide if a demo password or scenario changes, locally or on ledova.io.
+Update this guide when a local demo password or scenario changes. Keep hosted acceptance separate
+under [#1586](https://github.com/Ledova/ledova/issues/1586).

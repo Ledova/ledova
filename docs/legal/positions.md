@@ -644,8 +644,8 @@ unchanged pending its separate release work. This follows the APP 3 minimisation
 not an assumption that every account holder needs to supply statutory register particulars.
 
 Read-only operational evidence confirmed AWS hosting of current application records/files
-in Sydney and operator-controlled malware scanning. Outgoing application mail is captured,
-not delivered. No configured identity provider or stored applicant was found, and no push
+in Sydney and operator-controlled malware scanning. At that checkpoint, outgoing application
+mail was captured rather than delivered. No configured identity provider or stored applicant was found, and no push
 token is registered; reassess those suppliers before enabling them. Support mail routes to
 Google Workspace. [AWS's privacy guidance](https://aws.amazon.com/compliance/data-privacy-faq/)
 distinguishes selected-region customer content from account/metadata processing;
@@ -654,6 +654,18 @@ establish Australia-only processing or immediate deletion. The owner, Blueberry 
 director, confirmed authority to use the existing supplier accounts on 9 November. The assessment
 uses the standard published processing terms, without claiming a particular executed version
 or edition-specific controls.
+
+**Transactional mail, 10 November 2026.** Following separately approved operational activation,
+Twilio SendGrid delivers signup codes, member invitations and password-reset links. These flows
+send recipient addresses and message content, including their codes and links. The current
+[Twilio processing terms](https://www.twilio.com/en-us/legal/data-protection-addendum) and
+[subprocessor list](https://www.twilio.com/en-us/legal/sub-processors) allow processing outside
+Australia, including the United States; they do not establish Australia-only processing or a
+verified account-specific data centre. Provider retention, recovery, security and specific legal
+requirements remain separate from Ledova account erasure. Deleting an account does not
+automatically erase provider copies or prove immediate complete deletion. This assessment uses
+the published terms, without claiming a particular executed agreement version. Delivery evidence
+and account details remain private under [#1586](https://github.com/Ledova/ledova/issues/1586).
 
 The final read-only Admin and Vault review on 9 November resolved support-mail treatment:
 the support group keeps conversation history, the recipient's effective Gmail setting has no
@@ -677,7 +689,7 @@ existing retention locks and expiry, not immediate erasure. A bounded server inv
 not prove every personal-device/export copy is absent. Exit must record each relevant copy's
 purpose, hold and disposal or expiry confirmation. Keep operational evidence private, and
 working email and copy-lifecycle acceptance under [#1586](https://github.com/Ledova/ledova/issues/1586).
-This assessment changes no live settings and admits no real information.
+This assessment itself changes no live settings and authorises no customer launch.
 
 **Sources checked 9 November 2026:** OAIC
 [APP 3](https://www.oaic.gov.au/privacy/australian-privacy-principles/australian-privacy-principles-guidelines/chapter-3-app-3-collection-of-solicited-personal-information),

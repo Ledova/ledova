@@ -27,7 +27,7 @@ export function PrivacyPolicy() {
     <>
       <PageHeader
         title="Privacy policy"
-        lead="For the ledova.io preview and the public source code · Updated 9&nbsp;November&nbsp;2026"
+        lead="For the ledova.io preview and the public source code · Updated 10&nbsp;November&nbsp;2026"
       />
       <section className="border-t border-border-subtle">
         <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
@@ -82,8 +82,7 @@ export function PrivacyPolicy() {
             <p>
               To provide, secure and support Ledova: creating and securing accounts, showing each person the records
               their role allows, keeping each company&apos;s records, and finding and fixing problems. We don&apos;t
-              sell personal information, use it for marketing or give it to anyone else for their own use. We don&apos;t
-              collect tax file numbers.
+              sell personal information or use it for marketing. We don&apos;t collect tax file numbers.
             </p>
           </Section>
           <Section title="Where it's kept and who can see it">
@@ -104,9 +103,10 @@ export function PrivacyPolicy() {
                 requirement.
               </li>
               <li>
-                Outgoing preview messages are saved on the server rather than delivered. These include sign-up codes,
-                member invitations and password-reset links. Delivery for real accounts has not been established; use a
-                demo account instead.
+                Sign-up codes, member invitations and password-reset links are delivered through Twilio SendGrid. It
+                processes recipient addresses and message content and may process them outside Australia, including in
+                the United States. Its retention, recovery, security and legal requirements apply separately; deleting a
+                Ledova account does not automatically erase those provider copies.
               </li>
               <li>
                 Optional identity checks and native push can send information to the configured identity provider or
