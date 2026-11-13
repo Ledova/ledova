@@ -243,7 +243,11 @@ export function UserProfileScreen() {
       <SafeAreaView style={styles.container}>
         <SignOutLink disabled={isSubmitting} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardView}>
-          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <ScreenHeader
               icon={
                 <UserIcon

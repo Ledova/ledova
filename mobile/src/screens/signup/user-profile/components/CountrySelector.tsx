@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView, Keyboard } from 'react-native';
 import { CaretDownIcon } from 'phosphor-react-native';
 import type { CountryData } from '@ledova/shared';
 import { overlayColors, useAppTheme, useThemedStyles } from '../../../../contexts';
@@ -89,6 +89,12 @@ export function CountrySelector({
   }));
   const [isOpen, setIsOpen] = useState(false);
 
+  const open = () => {
+    if (disabled) return;
+    Keyboard.dismiss();
+    setIsOpen(true);
+  };
+
   const handleCountrySelect = (country: CountryData) => {
     onCountryChange(country);
     setIsOpen(false);
@@ -98,7 +104,7 @@ export function CountrySelector({
     <>
       <TouchableOpacity
         style={[styles.selector, disabled && styles.selectorDisabled]}
-        onPress={() => !disabled && setIsOpen(true)}
+        onPress={open}
         disabled={disabled}
       >
         <Text style={styles.flag}>{selectedCountry.flag}</Text>

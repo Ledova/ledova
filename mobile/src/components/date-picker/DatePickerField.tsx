@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, TouchableOpacity, Platform, Modal } from 'react-native';
+import { View, Text, Pressable, TouchableOpacity, Platform, Modal, Keyboard } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { CalendarIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles, overlayColors } from '../../contexts';
@@ -106,6 +106,7 @@ export function DatePickerField({
 
   const handlePress = () => {
     if (!disabled) {
+      Keyboard.dismiss();
       setShow(true);
     }
   };
