@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { TouchableOpacity, View, Text } from 'react-native';
+import { Keyboard, TouchableOpacity, View, Text } from 'react-native';
 import { ArrowLeftIcon, BellIcon } from 'phosphor-react-native';
 import { StackActions, type NavigationProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +26,10 @@ function NotificationsButton({
       accessibilityRole="button"
       accessibilityLabel={unreadCount > 0 ? `Notifications, ${badgeText} unread` : 'Notifications'}
       accessibilityState={{ expanded }}
-      onPress={() => anchorOf(button.current, onOpen)}
+      onPress={() => {
+        Keyboard.dismiss();
+        anchorOf(button.current, onOpen);
+      }}
       hitSlop={2}
       style={{
         width: 40,
@@ -140,7 +143,13 @@ export function TopBar({
             }
           />
         ) : (
-          <MenuButton expanded={open} onPress={() => setOpen(true)} />
+          <MenuButton
+            expanded={open}
+            onPress={() => {
+              Keyboard.dismiss();
+              setOpen(true);
+            }}
+          />
         )}
         <Text
           accessibilityRole="header"
