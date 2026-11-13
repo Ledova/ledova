@@ -1,7 +1,5 @@
 from shared.db import select_operator, set_principal
 
-PRINCIPAL_MARKER = "sets_the_principal"
-
 
 class SetsThePrincipalOnTheConnection:
     sets_the_principal = True
