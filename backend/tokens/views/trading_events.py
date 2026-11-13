@@ -8,7 +8,6 @@ from django.http import HttpResponse, StreamingHttpResponse
 
 from authentication.classes import HybridJWTAuthentication
 from companies.services.authority_requests import _requester_principal
-from shared.views.principal import sets_the_principal
 from tokens import events
 from tokens.services.trading_events import streamable_token_uuid
 
@@ -109,7 +108,6 @@ async def _event_stream(request, actor_id, token_uuid: str):
                 await client.aclose()
 
 
-@sets_the_principal
 async def trading_events_stream(request):
     user = await _authenticate(request)
     if user is None:
