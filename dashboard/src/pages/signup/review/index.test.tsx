@@ -51,7 +51,7 @@ it('reuses saved company details and clearly accepts authority and Terms through
   expect(screen.queryByText('Phone')).toBeNull();
   expect(screen.queryByText('Allow me to appoint company administrators')).toBeNull();
   expect(
-    screen.getByText(/By completing setup, you confirm that you are authorised to administer Example Company/),
+    screen.getByText(/By completing setup, you confirm that you are authorised to act for Example Company/),
   ).toBeTruthy();
   expect(screen.getByRole('link', { name: /Terms of Service/ }).getAttribute('href')).toContain(
     `/terms-of-service/${TERMS_VERSION}`,

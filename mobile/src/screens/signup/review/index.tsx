@@ -263,12 +263,13 @@ export function ReviewScreen() {
             {isCompany && company ? (
               <View style={styles.infoList}>
                 <Text style={styles.termsText}>
-                  By completing setup, you confirm that you are authorised to administer {company.name}, including
-                  managing its users, and accept the{' '}
+                  By completing setup, you confirm that you are authorised to act for {company.name}, including
+                  administering its workspace and users, and accept the{' '}
                   <Text style={styles.linkText} onPress={handleOpenTerms}>
                     Terms of Service
                   </Text>{' '}
-                  on the company’s behalf.
+                  on its behalf. The company stays responsible for its records, decisions and legal obligations; Ledova
+                  does not review or approve them.
                 </Text>
                 {authorityError ? (
                   <View style={styles.infoList}>

@@ -28,6 +28,7 @@ stay here as history and are marked where they appear.
 | [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; activation itself removed 14 November (#1567)                                                                                             |
 | [Company documents removed](#company-documents-removed)                                                            | 2 November 2026                                | Current; #1491 step 3; retained instructions take the company's own evidence                                                       |
 | [Company activation removed](#company-activation-removed)                                                          | 14 November 2026                               | Current; #1567; a company is Active when its signup completes, with no activation step or review                                                                 |
+| [Terms as technology infrastructure](#terms-as-technology-infrastructure)                                          | 14 November 2026                               | Current; #1567; Terms v2026-11-15, prepared without legal review, for new acceptance                                                                             |
 | [The stored register](#the-stored-register)                                                                        | September 2026; staff review retired 5 October | Current                                                                                                                            |
 | [Register CSV download removed](#register-csv-download-removed)                                                    | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
 | [Company-scoped approvals](#company-scoped-approvals)                                                              | 19 September 2026                              | Current                                                                                                                            |
@@ -2644,6 +2645,32 @@ The owner also accepted the operator-specific software permission in
 in other contributors' or suppliers' work. The public noncommercial terms for
 others and earlier grants stay intact. This approves reviewed source changes,
 not live migration, deployment, a compliance finding or admission of real records.
+
+### Terms as technology infrastructure
+
+**Owner decision, 14 November 2026**, given in the session with the
+[activation removal](#company-activation-removed) and tracked in
+[#1567](https://github.com/Ledova/ledova/issues/1567): update the wording in the app, the Terms
+and the documentation to show that there is no external review or approval. The owner gave these
+reasons: "we cannot afford an external legal or compliance review at this stage. We should therefore
+do our best to establish clear, reasonable terms that assign as much responsibility as legally
+permissible to the companies using Ledova, particularly regarding regulatory compliance,
+shareholder eligibility, identity verification, and the accuracy of company records. The goal is
+to position Ledova as a technology infrastructure provider rather than an intermediary responsible
+for approving or overseeing company activities. However, we should avoid making claims that
+eliminate legal obligations we cannot contractually transfer."
+
+Terms v2026-11-15 replace v2026-11-09 for new acceptance, and both earlier versions stay
+published. They describe Ledova as software that companies direct, which reviews, approves,
+verifies and supervises nothing. The company is responsible for its records, register, decisions,
+regulatory compliance, who may hold its shares and the identity checks it needs. The Terms
+indemnify Blueberry Money against claims arising from a company's own records or breach, except
+where Blueberry Money caused the loss, and exclude liability only as far as the law allows. They
+keep non-excludable rights and the operator's own obligations. The signup declaration now states
+authority to act for the company, as activation used to, and that Ledova does not review or approve
+the company's records. The [legal position](legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)
+records what a contract cannot transfer. Accounts that accepted an earlier version are asked to
+accept the new one, as the Terms promise for material changes.
 
 ### Source-based assessment for the free registry
 

@@ -44,8 +44,9 @@ export function About() {
           <h2 className={SECTION_HEADING}>Companies stay in control</h2>
           <p className="text-base leading-relaxed text-text-muted lg:text-lg">
             Ledova mirrors company-supplied ownership records. Companies keep responsibility for their legal register,
-            historical records, lawful access arrangements, approvals and filings. Ledova provides the tools; company
-            decisions stay with the people authorised to make them.
+            historical records, lawful access arrangements, approvals, regulatory compliance, who may hold their shares,
+            any identity checks they need and their filings. Ledova provides the software; it does not review or approve
+            companies or their records, and company decisions stay with the people authorised to make them.
           </p>
         </div>
       </section>

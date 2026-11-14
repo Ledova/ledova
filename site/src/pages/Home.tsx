@@ -52,7 +52,7 @@ const QUESTIONS = [
   {
     question: 'Does it replace our legal register?',
     answer:
-      'Ledova mirrors company-supplied ownership records. Your company remains responsible for its legal register, approvals, historical records, lawful access arrangements and filings.',
+      'Ledova mirrors company-supplied ownership records. Your company remains responsible for its legal register, approvals, historical records, lawful access arrangements and filings. Ledova does not review or approve them.',
   },
   {
     question: 'Can I use real company data?',

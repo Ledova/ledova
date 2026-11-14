@@ -5,6 +5,7 @@ import { About } from './pages/About';
 import { Contact } from './pages/Contact';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsOfService } from './pages/TermsOfService';
+import { RegistryTerms } from './pages/RegistryTerms';
 import { ExperimentalTerms } from './pages/ExperimentalTerms';
 import { NotFound } from './pages/NotFound';
 
@@ -19,7 +20,8 @@ export default function App() {
           <Route path="contact" element={<Contact />} />
           <Route path="privacy-policy" element={<PrivacyPolicy />} />
           <Route path="terms-of-service" element={<TermsOfService />} />
-          <Route path="terms-of-service/2026-11-09" element={<TermsOfService />} />
+          <Route path="terms-of-service/2026-11-15" element={<TermsOfService />} />
+          <Route path="terms-of-service/2026-11-09" element={<RegistryTerms />} />
           <Route path="terms-of-service/2026-10-14" element={<ExperimentalTerms />} />
           <Route path="*" element={<NotFound />} />
         </Route>
