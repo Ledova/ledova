@@ -61,6 +61,7 @@ export {
   useCompanyOwnership,
 } from './useCompanyOwnership';
 export { useRegisterClasses } from './useRegisterClasses';
+export { useLedgerSetupDue } from './useLedgerSetupDue';
 export { useClassRegister } from './useClassRegister';
 export { useCompanyCertificates } from './useCompanyCertificates';
 export type { CertificateFilterValues } from './useCompanyCertificates';

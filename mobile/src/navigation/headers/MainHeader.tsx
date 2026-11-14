@@ -95,7 +95,7 @@ export function TopBar({
   notificationsOpen,
   unreadCount,
 }: {
-  navigation: NavigationProp<Record<MenuRoute, undefined>>;
+  navigation: NavigationProp<Record<MenuRoute, object | undefined>>;
   route: string;
   title: string | undefined;
   action: ReactNode;
@@ -177,12 +177,12 @@ export function TopBar({
           current={current}
           route={route}
           onClose={() => setOpen(false)}
-          onSelect={(target) => {
+          onSelect={(target, params) => {
             setOpen(false);
             navigation.reset(
               target === 'Dashboard'
                 ? { index: 0, routes: [{ name: 'Dashboard' }] }
-                : { index: 1, routes: [{ name: 'Dashboard' }, { name: target }] },
+                : { index: 1, routes: [{ name: 'Dashboard' }, { name: target, params }] },
             );
           }}
         />

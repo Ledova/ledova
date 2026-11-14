@@ -14,7 +14,7 @@ export function registerKey(owner: OrderSubmissionOwner | null) {
   return [...REGISTER_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid];
 }
 
-export function registerClassesKey(owner: OrderSubmissionOwner) {
+export function registerClassesKey(owner: OrderSubmissionOwner | null) {
   return [...registerKey(owner), 'classes'];
 }
 

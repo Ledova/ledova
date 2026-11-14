@@ -136,19 +136,21 @@ loses focus, and it marks the section the page belongs to: Ledger for Ledger,
 Issue shares, Transfer shares and Corrections, Shareholders for Shareholders, Employee share scheme and
 Member access, Documents for Certificates, Inspection copies and Company pack,
 Settings for Profile, Account, Data and privacy and Team, Dashboard for Invitation. Choosing Dashboard
-returns to it. Ledger opens its overview, Shareholders its people list, Documents opens Certificates
-and Settings opens Profile.
-Like the web's groups, a caret shows a group's pages beneath it, open while one of them is shown.
+returns to it. As on the web, Ledger, Shareholders, Documents and Settings are groups: choosing
+anywhere on a group's row opens or closes its pages beneath it, its caret showing which, and a group
+is open while one of its pages is shown.
 Ledger and Shareholders appear, as on the web, when the selected company's `canReadRegister` allows
-it. Ledger lists Issue shares, Transfer shares and Corrections.
-Shareholders lists Employee scheme (read out as Employee share scheme, the web's tooltip) and Member
-access.
+it. Ledger lists Share classes (its overview), Issue shares, Transfer shares and Corrections, with Set
+up your ledger first, which opens the setup screen, while a company administrator's company has no
+share class (the shared `useLedgerSetupDue`, read while the menu is open).
+Shareholders lists All shareholders (its people list), Employee scheme (read out as Employee share
+scheme, the web's tooltip) and Member access.
 Documents lists Certificates, Inspection copies and Company pack when the selected company's
 `canReadRegister` allows it, as the web's sidebar does, and is otherwise one link to Certificates.
 Settings lists Profile, Account and Data and privacy, then Team when the selected company's `canManage`
 allows it, as on the web. On a Settings page
 the menu doesn't list,
-such as Team opened from Account, Settings itself is marked. Every other choice opens
+such as Team opened from Account, the Settings group opens with no page marked. Every other choice opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
 (`Section`) use the web's phone sizes: 16-point margins and gaps, and cards with 16-point padding and
 corners under a 20-point title; the page's own title is the top bar's. Dashboard

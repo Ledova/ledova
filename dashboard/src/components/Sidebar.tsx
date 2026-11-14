@@ -9,7 +9,7 @@ import {
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
-import { DESTINATIONS, type DestinationKey } from '@ledova/shared';
+import { DESTINATIONS, useLedgerSetupDue, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from './iconSizes';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
@@ -18,7 +18,7 @@ import { NotificationBell } from './NotificationBell';
 import { SignOutButton } from './SignOutButton';
 import { ThemeToggle } from './ThemeToggle';
 import { useCompanyContext } from '@hooks/useCompanyContext';
-import { certificatesLocation } from '@utils/paths';
+import { certificatesLocation, COMPANY_DASHBOARD_PATH } from '@utils/paths';
 import {
   destinationAt,
   pageTitle,
@@ -177,21 +177,15 @@ function GroupLink({
 function NavGroup({
   icon: Icon,
   label,
-  to,
   state,
   active,
-  current,
-  blocked,
   items,
   onNavigate,
 }: {
   icon: Icon;
   label: string;
-  to: string;
   state?: unknown;
   active: boolean;
-  current: boolean;
-  blocked?: boolean;
   items: GroupItem[];
   onNavigate?: () => void;
 }) {
@@ -209,40 +203,24 @@ function NavGroup({
 
   return (
     <div>
-      <div className="flex items-center gap-1">
-        <GroupLink
-          to={to}
-          state={state}
-          current={current}
-          blocked={blocked}
-          onNavigate={onNavigate}
-          className="min-w-0 flex-1"
-        >
-          <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
-          <span>{label}</span>
-        </GroupLink>
-        {items.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setExpanded(!expanded)}
-            aria-label={`${expanded ? 'Collapse' : 'Expand'} ${label} navigation`}
-            aria-expanded={expanded}
-            aria-controls={id}
-            className={`${IDLE_CLASS} flex h-10 w-8 shrink-0 items-center justify-center rounded-lg`}
-          >
-            <Caret size={16} />
-          </button>
-        )}
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-controls={id}
+        className={`${ITEM_CLASS} ${IDLE_CLASS}`}
+      >
+        <Icon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
+        <span className="min-w-0 flex-1 text-left">{label}</span>
+        <Caret size={16} aria-hidden="true" />
+      </button>
+      <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
+        {items.map(({ key, label, ...item }) => (
+          <GroupLink key={key} {...item} state={state} onNavigate={onNavigate}>
+            {label}
+          </GroupLink>
+        ))}
       </div>
-      {items.length > 0 && (
-        <div id={id} hidden={!expanded} className="ml-5 mt-1 space-y-1 border-l border-border-subtle pl-3">
-          {items.map(({ key, label, ...item }) => (
-            <GroupLink key={key} {...item} state={state} onNavigate={onNavigate}>
-              {label}
-            </GroupLink>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -282,24 +260,36 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
         : companyContext?.companyUuid
           ? { registerCompany: companyContext.companyUuid }
           : undefined;
+  const setupDue = useLedgerSetupDue(companyContext?.company);
+  const setupPath = DESTINATIONS.companyRegisterSetup.path;
+  const settingUp = location.pathname === setupPath;
 
   return (
     <NavGroup
       icon={BookOpenIcon}
       label={pageTitle('companyRegister')}
-      to={path}
       state={context}
       active={active}
-      current={active && !selectedTask}
-      blocked={blocks()}
       onNavigate={onNavigate}
-      items={tasks.map(([key, label]) => ({
-        key,
-        label,
-        to: `${path}#${key}`,
-        current: task === key,
-        blocked: blocks(key),
-      }))}
+      items={[
+        ...(setupDue
+          ? [{ key: 'setup', label: pageTitle('companyRegisterSetup'), to: setupPath, current: settingUp }]
+          : []),
+        {
+          key: 'classes',
+          label: 'Share classes',
+          to: path,
+          current: active && !selectedTask && !(setupDue && settingUp),
+          blocked: blocks(),
+        },
+        ...tasks.map(([key, label]) => ({
+          key,
+          label,
+          to: `${path}#${key}`,
+          current: task === key,
+          blocked: blocks(key),
+        })),
+      ]}
     />
   );
 }
@@ -325,20 +315,26 @@ function ShareholdersGroup({ active, onNavigate }: { active: boolean; onNavigate
     <NavGroup
       icon={UsersThreeIcon}
       label={pageTitle('companyRegister', 'shareholders')}
-      to={`${path}#shareholders`}
       state={ledgerContext(location, state, companyContext?.companyUuid)}
       active={active}
-      current={active && !selectedChild}
-      blocked={blocks('shareholders')}
       onNavigate={onNavigate}
-      items={children.map(([key, label]) => ({
-        key,
-        label: key === 'awards' ? 'Employee scheme' : label,
-        title: key === 'awards' ? label : undefined,
-        to: `${path}#${key}`,
-        current: selected === key,
-        blocked: blocks(key),
-      }))}
+      items={[
+        {
+          key: 'shareholders',
+          label: 'All shareholders',
+          to: `${path}#shareholders`,
+          current: active && !selectedChild,
+          blocked: blocks('shareholders'),
+        },
+        ...children.map(([key, label]) => ({
+          key,
+          label: key === 'awards' ? 'Employee scheme' : label,
+          title: key === 'awards' ? label : undefined,
+          to: `${path}#${key}`,
+          current: selected === key,
+          blocked: blocks(key),
+        })),
+      ]}
     />
   );
 }
@@ -367,19 +363,28 @@ function DocumentsGroup({ active, onNavigate }: { active: boolean; onNavigate?: 
     current: selected === key,
     blocked: key === 'certificates' && certificatesBlocked,
   }));
-  const single = items.length === 1;
+  if (items.length === 1)
+    return (
+      <GroupLink
+        to={certificatePath}
+        state={context}
+        current={active}
+        blocked={certificatesBlocked}
+        onNavigate={onNavigate}
+      >
+        <FilesIcon size={ICON_MD} weight={active ? 'fill' : 'regular'} />
+        <span>Documents</span>
+      </GroupLink>
+    );
 
   return (
     <NavGroup
       icon={FilesIcon}
       label="Documents"
-      to={certificatePath}
       state={context}
       active={active}
-      current={single && active}
-      blocked={certificatesBlocked}
       onNavigate={onNavigate}
-      items={single ? [] : items}
+      items={items}
     />
   );
 }
@@ -406,9 +411,7 @@ function SettingsGroup({
     <NavGroup
       icon={GearIcon}
       label="Settings"
-      to={navigation.defaultPath}
       active={active}
-      current={active && !items.some(({ key }) => key === selected)}
       onNavigate={onNavigate}
       items={items.map(({ key, label, to }) => ({ key, label, to, current: selected === key }))}
     />
@@ -440,7 +443,8 @@ export function Sidebar({ onNavigate, withNotifications = false }: SidebarProps 
     { id: 'yours', items: YOURS },
   ];
   const allItems = groups.flatMap((group) => group.items);
-  const activeItem = placesAt(location.pathname, location.hash)
+  const placePath = location.pathname === COMPANY_DASHBOARD_PATH ? DESTINATIONS.home.path : location.pathname;
+  const activeItem = placesAt(placePath, location.hash)
     .map(
       (place) =>
         allItems.find((item) => item.destination === place.destination && item.view === place.view) ??

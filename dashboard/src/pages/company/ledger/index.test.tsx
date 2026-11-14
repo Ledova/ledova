@@ -2969,7 +2969,7 @@ it('shows an account without register access a calm empty state, reads no member
   expect(await screen.findByRole('heading', { name: 'Personal information' })).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(readUrls().sort()).toEqual([REGISTER, APPOINTMENTS, PROFILES].sort());
-  expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Ledger' })).toBeNull();
 
   cleanup();
   client.clear();

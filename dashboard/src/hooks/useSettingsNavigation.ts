@@ -4,7 +4,6 @@ import {
   canOpen,
   ownCompaniesKey,
   OWN_APPOINTMENTS_QUERY_KEY,
-  DESTINATIONS,
   getCompanies,
   readEveryPage,
   useSubmissionOwner,
@@ -53,7 +52,6 @@ export function useSettingsNavigation() {
   const hasOwnedCompany = companyRows.some((company) => company.isOwner === true);
   const canManageCompany = hasCurrentAdminAppointment(own) || companyRows.some(canAdministerCompany) || hasOwnedCompany;
   return {
-    defaultPath: `${DESTINATIONS.settings.path}#profile`,
     isLoading:
       !owner ||
       preferences.isLoading ||

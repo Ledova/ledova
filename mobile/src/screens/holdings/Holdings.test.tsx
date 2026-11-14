@@ -1709,15 +1709,16 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(
     screen.getAllByText(/^(Dashboard|Ledger|Shareholders|Documents|Settings)$/).map(({ props }) => props.children),
   ).toEqual(['Dashboard', 'Ledger', 'Shareholders', 'Documents', 'Settings']);
-  await fireEvent.press(screen.getByRole('button', { name: 'Expand Shareholders navigation' }));
-  expect(screen.getAllByText(/^(Employee scheme|Member access)$/).map(({ props }) => props.children)).toEqual([
-    'Employee scheme',
-    'Member access',
-  ]);
-  await fireEvent.press(screen.getByRole('button', { name: 'Expand Ledger navigation' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Shareholders', expanded: false }));
   expect(
-    screen.getAllByText(/^(Issue shares|Transfer shares|Corrections)$/).map(({ props }) => props.children),
-  ).toEqual(['Issue shares', 'Transfer shares', 'Corrections']);
+    screen.getAllByText(/^(All shareholders|Employee scheme|Member access)$/).map(({ props }) => props.children),
+  ).toEqual(['All shareholders', 'Employee scheme', 'Member access']);
+  await fireEvent.press(screen.getByRole('button', { name: 'Ledger', expanded: false }));
+  expect(
+    screen
+      .getAllByText(/^(Set up your ledger|Share classes|Issue shares|Transfer shares|Corrections)$/)
+      .map(({ props }) => props.children),
+  ).toEqual(['Share classes', 'Issue shares', 'Transfer shares', 'Corrections']);
   await view.rerender(<LedgerScreen />);
   const foundersRow = await screen.findByRole('button', {
     name: /^Founders, 8 issued shares, FND · 2 current shareholders/,

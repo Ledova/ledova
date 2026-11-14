@@ -353,18 +353,20 @@ to add the resolved record's company to an address that has none. A conflicting 
 withholds that record and its form.
 
 The sidebar (`dashboard/src/components/Sidebar.tsx`) names every destination by its `DESTINATIONS`
-key. Ledger's label opens its overview; a separate caret
-expands Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections (`#corrections`),
-marking the active child and opening the group on Ledger routes. The web replaces an incoming
-`#history` with `#corrections` without dropping company/class context; shared task names retain
-History. Shareholders' label opens its people list, with the same caret pattern for Employee scheme
-and Member access.
-Documents opens one Certificates page (`/documents/certificates`), with Inspection copies and Company
+key. Dashboard is a link; Ledger, Shareholders, Documents and Settings are groups whose whole row
+opens or closes their pages ([navigation](frontend-ux.md#navigation)). Ledger lists Share classes
+(its overview), Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections
+(`#corrections`), marking the active child and opening on Ledger routes, with Set up your ledger
+(`/company/ledger/setup`) first while the shared `useLedgerSetupDue` finds no share class for a
+company administrator's company. The web replaces an incoming `#history` with `#corrections` without
+dropping company/class context; shared task names retain History. Shareholders lists All
+shareholders (its people list), Employee scheme and Member access.
+Documents lists one Certificates page (`/documents/certificates`), with Inspection copies and Company
 pack where company access permits them; for a member who reads no register, Documents is one link to
 Certificates. There is no separate Your certificates item. Legacy
 Dashboard `#documents` and company Ledger `#certificates` or `#documents` links redirect to Certificates,
-preserving company, class and navigation state. A group without a meaningful overview opens its
-default child, without an extra Overview page or duplicate navigation.
+preserving company, class and navigation state. Each page is listed once, without an extra Overview
+page.
 Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
 Team where permitted. Its default is Profile (`/settings#profile`), combining personal
 details and permitted company information. Account
@@ -386,7 +388,7 @@ permitted company records and the person's own linked records in one list; compa
 still require register access, and member actions require a current association.
 Direct Settings children have their own active item
 and omit Back to Settings; a contextual page marks its nearest sidebar parent, such as Account
-on Representative authority and Shareholders on a shareholder's page. The register hashes switch the
+on Representative authority and All shareholders on a shareholder's page. The register hashes switch the
 visible view without unmounting register forms or their recovery ([page mechanics](#page-mechanics)).
 The sidebar and phone drawer are 208 pixels wide (`lg:ml-52`), with page content beside them in a
 bounded grid. Its navigation scrolls between the brand header and footer. The footer shows the
