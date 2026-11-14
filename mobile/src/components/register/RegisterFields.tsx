@@ -1,97 +1,51 @@
-import type { ReactNode } from 'react';
-import { Pressable, Text, TextInput, View, type KeyboardTypeOptions, type TextInputProps } from 'react-native';
+import { forwardRef, type ReactNode } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { CheckIcon } from 'phosphor-react-native';
 import type { UploadFile } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { Input, type InputProps, type InputRef } from '../Input';
 import { usePickedDocument } from '../../hooks/usePickedDocument';
 import type { PickedDocument } from '../../services/documentCopies';
 
-export function Field({
-  label,
-  accessibilityLabel,
-  value,
-  editable,
-  keyboardType,
-  multiline,
-  rows = 2,
-  maxLength,
-  placeholder,
-  clearable,
-  autoCapitalize,
-  autoCorrect,
-  autoFocus,
-  hint,
-  error,
-  filled,
-  icon,
-  onChange,
-}: {
+type FieldProps = Omit<InputProps, 'onChange' | 'onChangeText' | 'invalid' | 'leading' | 'style'> & {
   label: string;
-  accessibilityLabel?: string;
-  value: string;
-  editable: boolean;
-  keyboardType?: KeyboardTypeOptions;
-  multiline?: boolean;
-  rows?: number;
-  maxLength?: number;
-  placeholder?: string;
-  clearable?: boolean;
-  autoCapitalize?: TextInputProps['autoCapitalize'];
-  autoCorrect?: boolean;
-  autoFocus?: boolean;
   hint?: string;
   error?: string | null;
-  filled?: boolean;
+  /** Shows the clear button while editing. */
+  clearable?: boolean;
+  /** Icon or control before the text. */
   icon?: ReactNode;
   onChange: (value: string) => void;
-}) {
-  const theme = useAppTheme();
+};
+
+/** A labelled text field: the shared `Input` with its label, hint and error. */
+export const Field = forwardRef<InputRef, FieldProps>(function Field(
+  { label, hint, error, clearable, icon, filled, accessibilityLabel, onChange, ...input },
+  ref,
+) {
   const styles = useCompanyStyles();
-  const input = (
-    <TextInput
-      clearButtonMode={clearable ? 'while-editing' : undefined}
-      accessibilityLabel={accessibilityLabel ?? label}
-      accessibilityState={{ disabled: !editable }}
-      style={
-        icon
-          ? styles.iconText
-          : [
-              styles.input,
-              filled && styles.filled,
-              multiline && { minHeight: rows * 22 + 2 * theme.spacing.smd, textAlignVertical: 'top' as const },
-            ]
-      }
-      value={value}
-      editable={editable}
-      keyboardType={keyboardType}
-      multiline={multiline}
-      maxLength={maxLength}
-      placeholder={placeholder}
-      placeholderTextColor={theme.colors.form.placeholder}
-      autoCapitalize={autoCapitalize}
-      autoCorrect={autoCorrect}
-      autoFocus={autoFocus}
-      accessibilityHint={error ?? undefined}
-      onChangeText={onChange}
-    />
-  );
+  const note = !!hint && <Text style={filled ? styles.filledHint : styles.muted}>{hint}</Text>;
   return (
     <View style={[styles.group, filled && styles.filledGroup]}>
       <Text style={filled ? styles.filledLabel : styles.text}>{label}</Text>
-      {icon ? (
-        <View style={[styles.input, filled && styles.filled, styles.iconField]}>
-          {icon}
-          {input}
-        </View>
-      ) : (
-        input
-      )}
-      {!!hint && <Text style={styles.muted}>{hint}</Text>}
+      {filled && note}
+      <Input
+        ref={ref}
+        {...input}
+        filled={filled}
+        invalid={!!error}
+        leading={icon}
+        clearButtonMode={clearable ? 'while-editing' : input.clearButtonMode}
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityHint={error ?? input.accessibilityHint}
+        onChangeText={onChange}
+      />
+      {!filled && note}
       {!!error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
-}
+});
 
 export function Checkbox({
   label,

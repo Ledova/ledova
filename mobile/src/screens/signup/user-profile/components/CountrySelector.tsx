@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Modal, ScrollView, Keyboard } from 'react
 import { CaretDownIcon } from 'phosphor-react-native';
 import type { CountryData } from '@ledova/shared';
 import { overlayColors, useAppTheme, useThemedStyles } from '../../../../contexts';
+import { useControlFrame } from '../../../../components/Input';
 
 interface CountrySelectorProps {
   countries: CountryData[];
@@ -18,19 +19,9 @@ export function CountrySelector({
   disabled = false,
 }: CountrySelectorProps) {
   const theme = useAppTheme();
+  const frame = useControlFrame();
   const styles = useThemedStyles((theme) => ({
     selector: {
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderTopLeftRadius: theme.borderRadius.md,
-      borderBottomLeftRadius: theme.borderRadius.md,
-      borderTopRightRadius: 0,
-      borderBottomRightRadius: 0,
-      borderRightWidth: 0,
-      height: 48,
-      paddingLeft: 44,
-      paddingRight: theme.spacing.sm,
       flexDirection: 'row',
       alignItems: 'center',
       gap: theme.spacing.xs,
@@ -40,10 +31,6 @@ export function CountrySelector({
     },
     flag: {
       fontSize: theme.fontSize.xl,
-    },
-    code: {
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.primary,
     },
     modalOverlay: {
       flex: 1,
@@ -104,11 +91,12 @@ export function CountrySelector({
     <>
       <TouchableOpacity
         style={[styles.selector, disabled && styles.selectorDisabled]}
+        hitSlop={{ top: 12, bottom: 12 }}
         onPress={open}
         disabled={disabled}
       >
         <Text style={styles.flag}>{selectedCountry.flag}</Text>
-        <Text style={styles.code}>{selectedCountry.phoneCode}</Text>
+        <Text style={frame.text}>{selectedCountry.phoneCode}</Text>
         <CaretDownIcon
           size={theme.icon.sizes.md}
           color={theme.colors.text.subtle}

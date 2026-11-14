@@ -1,13 +1,4 @@
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
@@ -18,17 +9,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth, useSignupRestart, useSignupUser } from '@ledova/shared';
 import { useUserProfile } from '../../../hooks/useUserProfile';
 import { clearTokens } from '../../../services/tokenStorage';
-import {
-  UserPlusIcon,
-  EnvelopeSimpleIcon,
-  LockIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  WarningCircleIcon,
-} from 'phosphor-react-native';
+import { UserPlusIcon, EnvelopeSimpleIcon, LockIcon, WarningCircleIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { ScreenHeader, SignOutLink } from '../../../components/header';
+import { PasswordToggle } from '../../../components/Input';
+import { Field } from '../../../components/register/RegisterFields';
 
 export function SignUpScreen() {
   const theme = useAppTheme();
@@ -72,39 +58,6 @@ export function SignUpScreen() {
     fieldContainer: {
       marginBottom: theme.spacing.lg,
     },
-    label: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.body,
-      marginBottom: theme.spacing.sm,
-    },
-    inputWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.strong,
-      borderRadius: theme.borderRadius.md,
-      paddingHorizontal: theme.spacing.md,
-      height: 48,
-    },
-    inputIcon: {
-      marginRight: theme.spacing.sm,
-    },
-    input: {
-      flex: 1,
-      color: theme.colors.text.primary,
-      fontSize: theme.fontSize.base,
-    },
-    passwordInput: {
-      paddingRight: 40,
-    },
-    eyeButton: {
-      position: 'absolute',
-      right: theme.spacing.md,
-      height: 48,
-      justifyContent: 'center',
-    },
     passwordRequirements: {
       backgroundColor: theme.colors.surface.tertiary,
       borderRadius: theme.borderRadius.md,
@@ -140,11 +93,6 @@ export function SignUpScreen() {
     },
     requirementTextError: {
       color: theme.colors.status.error.icon,
-    },
-    fieldError: {
-      color: theme.colors.status.error.icon,
-      fontSize: theme.fontSize.xs,
-      marginTop: theme.spacing.xs,
     },
     fieldNote: {
       color: theme.colors.text.muted,
@@ -273,32 +221,21 @@ export function SignUpScreen() {
                     </View>
                   )}
                   <View style={styles.fieldContainer}>
-                    <Text style={styles.label}>Email</Text>
-                    <View style={styles.inputWrapper}>
-                      <EnvelopeSimpleIcon
-                        size={theme.icon.sizes.md}
-                        color={theme.colors.text.subtle}
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        accessibilityLabel="Email"
-                        style={styles.input}
-                        placeholder="your@email.com"
-                        placeholderTextColor={theme.colors.form.placeholder}
-                        value={account.email}
-                        onChangeText={account.setEmail}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        editable={!account.isSubmitting}
-                      />
-                    </View>
-                    {account.errors.email ? (
-                      <Text style={styles.fieldError}>{account.errors.email.join(' ')}</Text>
-                    ) : (
-                      !account.changed && (
-                        <Text style={styles.fieldNote}>Verified. Continue to keep your progress.</Text>
-                      )
+                    <Field
+                      filled
+                      label="Email"
+                      icon={<EnvelopeSimpleIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
+                      placeholder="your@email.com"
+                      value={account.email}
+                      onChange={account.setEmail}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!account.isSubmitting}
+                      error={account.errors.email?.join(' ')}
+                    />
+                    {!account.errors.email && !account.changed && (
+                      <Text style={styles.fieldNote}>Verified. Continue to keep your progress.</Text>
                     )}
                   </View>
                   {account.changed && (
@@ -309,53 +246,33 @@ export function SignUpScreen() {
                         account.
                       </Text>
                       <View style={styles.fieldContainer}>
-                        <Text style={styles.label}>Confirm new email</Text>
-                        <View style={styles.inputWrapper}>
-                          <EnvelopeSimpleIcon
-                            size={theme.icon.sizes.md}
-                            color={theme.colors.text.subtle}
-                            style={styles.inputIcon}
-                          />
-                          <TextInput
-                            accessibilityLabel="Confirm new email"
-                            style={styles.input}
-                            placeholder="your@email.com"
-                            placeholderTextColor={theme.colors.form.placeholder}
-                            value={account.confirmEmail}
-                            onChangeText={account.setConfirmEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                            editable={!account.isSubmitting}
-                          />
-                        </View>
-                        {account.errors.confirmEmail && (
-                          <Text style={styles.fieldError}>{account.errors.confirmEmail.join(' ')}</Text>
-                        )}
+                        <Field
+                          filled
+                          label="Confirm new email"
+                          icon={<EnvelopeSimpleIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
+                          placeholder="your@email.com"
+                          value={account.confirmEmail}
+                          onChange={account.setConfirmEmail}
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          editable={!account.isSubmitting}
+                          error={account.errors.confirmEmail?.join(' ')}
+                        />
                       </View>
                       <View style={styles.fieldContainer}>
-                        <Text style={styles.label}>Current password</Text>
-                        <View style={styles.inputWrapper}>
-                          <LockIcon
-                            size={theme.icon.sizes.md}
-                            color={theme.colors.text.subtle}
-                            style={styles.inputIcon}
-                          />
-                          <TextInput
-                            accessibilityLabel="Current password"
-                            style={styles.input}
-                            placeholder="••••••••"
-                            placeholderTextColor={theme.colors.form.placeholder}
-                            value={account.currentPassword}
-                            onChangeText={account.setCurrentPassword}
-                            secureTextEntry
-                            autoCapitalize="none"
-                            editable={!account.isSubmitting}
-                          />
-                        </View>
-                        {account.errors.currentPassword && (
-                          <Text style={styles.fieldError}>{account.errors.currentPassword.join(' ')}</Text>
-                        )}
+                        <Field
+                          filled
+                          label="Current password"
+                          icon={<LockIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
+                          placeholder="••••••••"
+                          value={account.currentPassword}
+                          onChange={account.setCurrentPassword}
+                          secureTextEntry
+                          autoCapitalize="none"
+                          editable={!account.isSubmitting}
+                          error={account.errors.currentPassword?.join(' ')}
+                        />
                       </View>
                     </>
                   )}
@@ -382,60 +299,35 @@ export function SignUpScreen() {
                   )}
 
                   <View style={styles.fieldContainer}>
-                    <Text style={styles.label}>Email</Text>
-                    <View style={styles.inputWrapper}>
-                      <EnvelopeSimpleIcon
-                        size={theme.icon.sizes.md}
-                        color={theme.colors.text.subtle}
-                        style={styles.inputIcon}
-                      />
-                      <TextInput
-                        accessibilityLabel="Email"
-                        style={styles.input}
-                        placeholder="your@email.com"
-                        placeholderTextColor={theme.colors.form.placeholder}
-                        value={form.email}
-                        onChangeText={(text) => setFieldValue('email', text)}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        editable={!isLoading}
-                      />
-                    </View>
-                    {errors.email && !generalError && <Text style={styles.fieldError}>{errors.email.join(' ')}</Text>}
+                    <Field
+                      filled
+                      label="Email"
+                      icon={<EnvelopeSimpleIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
+                      placeholder="your@email.com"
+                      value={form.email}
+                      onChange={(text) => setFieldValue('email', text)}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      editable={!isLoading}
+                      error={generalError ? null : errors.email?.join(' ')}
+                    />
                   </View>
 
                   <View style={styles.fieldContainer}>
-                    <Text style={styles.label}>Password</Text>
-                    <View style={styles.inputWrapper}>
-                      <LockIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} style={styles.inputIcon} />
-                      <TextInput
-                        accessibilityLabel="Password"
-                        style={[styles.input, styles.passwordInput]}
-                        placeholder="••••••••"
-                        placeholderTextColor={theme.colors.form.placeholder}
-                        value={form.password}
-                        onChangeText={(text) => setFieldValue('password', text)}
-                        secureTextEntry={!showPassword}
-                        autoCapitalize="none"
-                        editable={!isLoading}
-                      />
-                      <TouchableOpacity onPress={togglePassword} style={styles.eyeButton} disabled={isLoading}>
-                        {showPassword ? (
-                          <EyeSlashIcon
-                            size={theme.icon.sizes.md}
-                            color={theme.colors.text.subtle}
-                            weight={theme.icon.weights.regular}
-                          />
-                        ) : (
-                          <EyeIcon
-                            size={theme.icon.sizes.md}
-                            color={theme.colors.text.subtle}
-                            weight={theme.icon.weights.regular}
-                          />
-                        )}
-                      </TouchableOpacity>
-                    </View>
+                    <Field
+                      filled
+                      label="Password"
+                      icon={<LockIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
+                      trailing={<PasswordToggle shown={showPassword} disabled={isLoading} onPress={togglePassword} />}
+                      placeholder="••••••••"
+                      value={form.password}
+                      onChange={(text) => setFieldValue('password', text)}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      editable={!isLoading}
+                      error={generalError ? null : errors.password?.join(' ')}
+                    />
 
                     <View style={styles.passwordRequirements}>
                       <Text style={styles.requirementsTitle}>Password must:</Text>
@@ -472,10 +364,6 @@ export function SignUpScreen() {
                         </Text>
                       </View>
                     </View>
-
-                    {errors.password && !generalError && (
-                      <Text style={styles.fieldError}>{errors.password.join(' ')}</Text>
-                    )}
                   </View>
 
                   <PrimaryButton

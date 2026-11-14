@@ -1,14 +1,5 @@
 import { useCallback, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Alert,
-} from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,18 +7,12 @@ import { GradientBackground } from '../../components/GradientBackground';
 import { PrimaryButton } from '../../components/buttons';
 import { useSignIn } from './useSignIn';
 import { useAppLock, useAppTheme, useThemedStyles } from '../../contexts';
-import {
-  LockIcon,
-  EnvelopeSimpleIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  WarningCircleIcon,
-  ScanSmileyIcon,
-  KeyIcon,
-} from 'phosphor-react-native';
+import { LockIcon, EnvelopeSimpleIcon, WarningCircleIcon, ScanSmileyIcon, KeyIcon } from 'phosphor-react-native';
 import { layout } from '../../styles';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { ScreenHeader } from '../../components/header';
+import { PasswordToggle } from '../../components/Input';
+import { Field } from '../../components/register/RegisterFields';
 
 export function SignInScreen() {
   const theme = useAppTheme();
@@ -70,44 +55,6 @@ export function SignInScreen() {
     },
     fieldContainer: {
       marginBottom: theme.spacing.lg,
-    },
-    label: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.body,
-      marginBottom: theme.spacing.sm,
-    },
-    inputWrapper: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.strong,
-      borderRadius: theme.borderRadius.md,
-      paddingHorizontal: theme.spacing.md,
-      height: 48,
-    },
-    inputIcon: {
-      marginRight: theme.spacing.sm,
-    },
-    input: {
-      flex: 1,
-      color: theme.colors.text.primary,
-      fontSize: theme.fontSize.base,
-    },
-    passwordInput: {
-      paddingRight: 40,
-    },
-    eyeButton: {
-      position: 'absolute',
-      right: theme.spacing.md,
-      height: 48,
-      justifyContent: 'center',
-    },
-    fieldError: {
-      color: theme.colors.status.error.icon,
-      fontSize: theme.fontSize.xs,
-      marginTop: theme.spacing.xs,
     },
     signInButton: {
       marginTop: theme.spacing.md,
@@ -282,61 +229,35 @@ export function SignInScreen() {
               )}
 
               <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Email</Text>
-                <View style={styles.inputWrapper}>
-                  <EnvelopeSimpleIcon
-                    size={theme.icon.sizes.md}
-                    color={theme.colors.text.subtle}
-                    style={styles.inputIcon}
-                  />
-                  <TextInput
-                    accessibilityLabel="Email"
-                    style={styles.input}
-                    placeholder="your@email.com"
-                    placeholderTextColor={theme.colors.form.placeholder}
-                    value={form.email}
-                    onChangeText={(text) => setFieldValue('email', text)}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!isLoading}
-                  />
-                </View>
-                {errors.email && !generalError && <Text style={styles.fieldError}>{errors.email.join(' ')}</Text>}
+                <Field
+                  filled
+                  label="Email"
+                  icon={<EnvelopeSimpleIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
+                  placeholder="your@email.com"
+                  value={form.email}
+                  onChange={(text) => setFieldValue('email', text)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!isLoading}
+                  error={generalError ? null : errors.email?.join(' ')}
+                />
               </View>
 
               <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputWrapper}>
-                  <LockIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} style={styles.inputIcon} />
-                  <TextInput
-                    accessibilityLabel="Password"
-                    style={[styles.input, styles.passwordInput]}
-                    placeholder="••••••••"
-                    placeholderTextColor={theme.colors.form.placeholder}
-                    value={form.password}
-                    onChangeText={(text) => setFieldValue('password', text)}
-                    secureTextEntry={!showPassword}
-                    autoCapitalize="none"
-                    editable={!isLoading}
-                  />
-                  <TouchableOpacity onPress={togglePassword} style={styles.eyeButton} disabled={isLoading}>
-                    {showPassword ? (
-                      <EyeSlashIcon
-                        size={theme.icon.sizes.md}
-                        color={theme.colors.text.subtle}
-                        weight={theme.icon.weights.regular}
-                      />
-                    ) : (
-                      <EyeIcon
-                        size={theme.icon.sizes.md}
-                        color={theme.colors.text.subtle}
-                        weight={theme.icon.weights.regular}
-                      />
-                    )}
-                  </TouchableOpacity>
-                </View>
-                {errors.password && !generalError && <Text style={styles.fieldError}>{errors.password.join(' ')}</Text>}
+                <Field
+                  filled
+                  label="Password"
+                  icon={<LockIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
+                  trailing={<PasswordToggle shown={showPassword} disabled={isLoading} onPress={togglePassword} />}
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={(text) => setFieldValue('password', text)}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  editable={!isLoading}
+                  error={generalError ? null : errors.password?.join(' ')}
+                />
               </View>
 
               <PrimaryButton

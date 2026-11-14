@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Alert, Text, TextInput, View } from 'react-native';
+import { Alert, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
 import {
   PASSWORD_PROBLEMS,
@@ -13,6 +13,7 @@ import { Action, Outcome, Rows, Section, Status, SwitchRow } from '../../compone
 import { CustomModal } from '../../components/modal';
 import { useAppLock, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
+import { Field } from '../../components/register/RegisterFields';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { YourAppointments } from './Appointments';
@@ -239,19 +240,16 @@ export function AccountSettings() {
             ['Confirm new password', confirmPassword, setConfirmPassword],
           ] as const
         ).map(([label, value, onChange]) => (
-          <View key={label} style={styles.group}>
-            <Text style={styles.muted}>{label}</Text>
-            <TextInput
-              accessibilityLabel={label}
-              value={value}
-              onChangeText={onChange}
-              style={styles.input}
-              editable={!busy}
-              secureTextEntry={!showPasswords}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
+          <Field
+            key={label}
+            label={label}
+            value={value}
+            onChange={onChange}
+            editable={!busy}
+            secureTextEntry={!showPasswords}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
         ))}
         <Action
           label={showPasswords ? 'Hide passwords' : 'Show passwords'}

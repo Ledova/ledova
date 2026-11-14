@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Keyboard, RefreshControl, Text, TextInput, View } from 'react-native';
+import { Keyboard, RefreshControl, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { randomUUID } from 'expo-crypto';
@@ -50,6 +50,7 @@ import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useShareholderStyles } from './useShareholderStyles';
+import { Input } from '../../components/Input';
 
 const TITLE = 'Shareholders';
 const LEDE = 'Who holds shares and what they hold in each class.';
@@ -187,14 +188,14 @@ function CompanyShareholders({
                 <View style={form.group}>
                   <Text style={form.text}>Search people</Text>
                   <View style={look.line}>
-                    <TextInput
+                    <Input
                       accessibilityLabel="Search people"
                       value={typed}
                       maxLength={100}
                       autoCapitalize="none"
                       autoCorrect={false}
                       onChangeText={setTyped}
-                      style={[form.input, look.fill]}
+                      style={look.fill}
                     />
                     {(!!typed || !!search) && (
                       <Action label="Clear" accessibilityLabel="Clear (Search people)" onPress={clear} />

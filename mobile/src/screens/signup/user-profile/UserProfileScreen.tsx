@@ -1,9 +1,10 @@
-import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
 import { ScreenHeader, SignOutLink } from '../../../components/header';
 import { DatePickerField } from '../../../components/date-picker';
+import { Field } from '../../../components/register/RegisterFields';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { UserIcon, WarningCircleIcon, HouseIcon, PhoneIcon } from 'phosphor-react-native';
@@ -64,68 +65,6 @@ export function UserProfileScreen() {
     },
     fieldContainer: {
       marginBottom: theme.spacing.lg,
-    },
-    label: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.body,
-      marginBottom: theme.spacing.xs,
-    },
-    helperText: {
-      fontSize: theme.fontSize.xs,
-      color: theme.colors.text.subtle,
-      marginBottom: theme.spacing.sm,
-    },
-    inputWrapper: {
-      position: 'relative',
-    },
-    phoneInputWrapper: {
-      flexDirection: 'row',
-      alignItems: 'stretch',
-      position: 'relative',
-    },
-    inputIcon: {
-      position: 'absolute',
-      left: theme.spacing.md,
-      top: 14,
-      zIndex: 1,
-    },
-    inputIconTop: {
-      top: theme.spacing.md,
-    },
-    input: {
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.primary,
-      height: 48,
-    },
-    inputWithIcon: {
-      paddingLeft: 44,
-    },
-    phoneInput: {
-      flex: 1,
-      borderTopLeftRadius: 0,
-      borderBottomLeftRadius: 0,
-      borderLeftWidth: 0,
-      paddingLeft: theme.spacing.sm,
-    },
-    textArea: {
-      height: 96,
-      paddingTop: theme.spacing.md,
-    },
-    inputError: {
-      borderColor: theme.colors.status.error.text,
-      backgroundColor: theme.colors.error.subtle,
-    },
-    fieldError: {
-      color: theme.colors.status.error.icon,
-      fontSize: theme.fontSize.xs,
-      marginTop: theme.spacing.xs,
     },
     continueButton: {
       marginTop: theme.spacing.md,
@@ -272,26 +211,22 @@ export function UserProfileScreen() {
               )}
 
               <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Full name</Text>
-                <View style={styles.inputWrapper}>
-                  <View style={styles.inputIcon}>
+                <Field
+                  filled
+                  label="Full name"
+                  icon={
                     <UserIcon
                       size={theme.icon.sizes.md}
                       color={theme.colors.text.subtle}
                       weight={theme.icon.weights.regular}
                     />
-                  </View>
-                  <TextInput
-                    accessibilityLabel="Full name"
-                    style={[styles.input, styles.inputWithIcon, errors.fullName ? styles.inputError : null]}
-                    placeholder="John Doe"
-                    placeholderTextColor={theme.colors.text.muted}
-                    value={form.fullName}
-                    onChangeText={(text) => setFieldValue('fullName', text)}
-                    editable={!isSubmitting}
-                  />
-                </View>
-                {errors.fullName && <Text style={styles.fieldError}>{errors.fullName.join(' ')}</Text>}
+                  }
+                  placeholder="John Doe"
+                  value={form.fullName}
+                  onChange={(text) => setFieldValue('fullName', text)}
+                  editable={!isSubmitting}
+                  error={errors.fullName?.join(' ')}
+                />
               </View>
 
               <View style={styles.fieldContainer}>
@@ -303,72 +238,58 @@ export function UserProfileScreen() {
                   maximumDate={new Date()}
                   minimumDate={new Date(1900, 0, 1)}
                   disabled={isSubmitting}
+                  error={errors.dateOfBirth?.join(' ')}
                 />
-                {errors.dateOfBirth && <Text style={styles.fieldError}>{errors.dateOfBirth.join(' ')}</Text>}
               </View>
 
               <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Phone number</Text>
-                <View style={styles.phoneInputWrapper}>
-                  <View style={styles.inputIcon}>
-                    <PhoneIcon
-                      size={theme.icon.sizes.md}
-                      color={theme.colors.text.subtle}
-                      weight={theme.icon.weights.regular}
-                    />
-                  </View>
-                  <CountrySelector
-                    countries={countries}
-                    selectedCountry={selectedCountry}
-                    onCountryChange={handleCountryChange}
-                    disabled={isSubmitting}
-                  />
-                  <TextInput
-                    accessibilityLabel="Phone number"
-                    style={[styles.input, styles.phoneInput, errors.phoneNumber ? styles.inputError : null]}
-                    placeholder="416 004 021"
-                    placeholderTextColor={theme.colors.text.muted}
-                    value={form.phoneNumber}
-                    onChangeText={(text) => setFieldValue('phoneNumber', text)}
-                    keyboardType="phone-pad"
-                    editable={!isSubmitting}
-                  />
-                </View>
-                {errors.phoneNumber && <Text style={styles.fieldError}>{errors.phoneNumber.join(' ')}</Text>}
+                <Field
+                  filled
+                  label="Phone number"
+                  icon={
+                    <>
+                      <PhoneIcon
+                        size={theme.icon.sizes.md}
+                        color={theme.colors.text.subtle}
+                        weight={theme.icon.weights.regular}
+                      />
+                      <CountrySelector
+                        countries={countries}
+                        selectedCountry={selectedCountry}
+                        onCountryChange={handleCountryChange}
+                        disabled={isSubmitting}
+                      />
+                    </>
+                  }
+                  placeholder="416 004 021"
+                  value={form.phoneNumber}
+                  onChange={(text) => setFieldValue('phoneNumber', text)}
+                  keyboardType="phone-pad"
+                  editable={!isSubmitting}
+                  error={errors.phoneNumber?.join(' ')}
+                />
               </View>
 
               <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Residential address</Text>
-                <Text style={styles.helperText}>Include street number, city, state and postcode</Text>
-                <View style={styles.inputWrapper}>
-                  <View style={[styles.inputIcon, styles.inputIconTop]}>
+                <Field
+                  filled
+                  label="Residential address"
+                  hint="Include street number, city, state and postcode"
+                  icon={
                     <HouseIcon
                       size={theme.icon.sizes.md}
                       color={theme.colors.text.subtle}
                       weight={theme.icon.weights.regular}
                     />
-                  </View>
-                  <TextInput
-                    accessibilityLabel="Residential address"
-                    style={[
-                      styles.input,
-                      styles.inputWithIcon,
-                      styles.textArea,
-                      errors.residentialAddress ? styles.inputError : null,
-                    ]}
-                    placeholder="123 Main Street&#10;Sydney NSW 2000"
-                    placeholderTextColor={theme.colors.text.muted}
-                    value={form.residentialAddress}
-                    onChangeText={(text) => setFieldValue('residentialAddress', text)}
-                    multiline
-                    numberOfLines={3}
-                    textAlignVertical="top"
-                    editable={!isSubmitting}
-                  />
-                </View>
-                {errors.residentialAddress && (
-                  <Text style={styles.fieldError}>{errors.residentialAddress.join(' ')}</Text>
-                )}
+                  }
+                  placeholder={'123 Main Street\nSydney NSW 2000'}
+                  value={form.residentialAddress}
+                  onChange={(text) => setFieldValue('residentialAddress', text)}
+                  multiline
+                  rows={3}
+                  editable={!isSubmitting}
+                  error={errors.residentialAddress?.join(' ')}
+                />
               </View>
 
               <PrimaryButton onPress={handleContinue} loading={isSubmitting} fullWidth style={styles.continueButton}>

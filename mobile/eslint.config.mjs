@@ -44,7 +44,24 @@ export default tseslint.config(
       'react-hooks/exhaustive-deps': 'off',
 
       'react-hooks/set-state-in-effect': 'off',
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react-native',
+              importNames: ['TextInput'],
+              allowTypeImports: true,
+              message: 'Use Input or Field: src/components/Input.tsx owns the look and geometry of every text field.',
+            },
+          ],
+        },
+      ],
     },
+  },
+  {
+    files: ['src/components/Input.tsx'],
+    rules: { '@typescript-eslint/no-restricted-imports': 'off' },
   },
   {
     files: ['**/*.test.{ts,tsx}'],
