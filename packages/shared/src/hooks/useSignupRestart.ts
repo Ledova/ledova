@@ -5,7 +5,7 @@ import type { FormErrors, SignupRestartRequest } from '../types';
 import { describeFailure, readApiError } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 
-export const SIGNUP_RESTART_FIELDS: readonly (keyof SignupRestartRequest)[] = ['email', 'currentPassword'];
+const SIGNUP_RESTART_FIELDS: readonly (keyof SignupRestartRequest)[] = ['email', 'currentPassword'];
 
 const sameAddress = (left: string, right: string) => left.trim().toLowerCase() === right.trim().toLowerCase();
 

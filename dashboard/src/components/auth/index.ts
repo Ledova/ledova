@@ -8,4 +8,4 @@ export { AuthBack } from './AuthBack';
 export { AuthField } from './AuthField';
 export { AuthInput } from './AuthInput';
 export { AuthSubmit } from './AuthSubmit';
-export { AUTH_BUTTON_CLASS, AUTH_INPUT_CLASS, AUTH_LINK_CLASS, authFieldBorder, authFieldClass } from './classes';
+export { AUTH_BUTTON_CLASS, AUTH_INPUT_CLASS, AUTH_LINK_CLASS, authFieldClass } from './classes';

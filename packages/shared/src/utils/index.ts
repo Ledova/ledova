@@ -19,7 +19,6 @@ export {
   signedShares,
 } from './formatting';
 export {
-  isNumericOnly,
   validatePassword,
   PASSWORD_PROBLEMS,
   changePasswordProblems,
@@ -33,7 +32,7 @@ export {
 } from './validation';
 export { formatPhoneForDisplay, formatPhoneWithCountryCode, cleanPhoneNumber } from './phoneFormatting';
 export { validateUserProfileField } from './user-validation';
-export { getUserVerificationStatus, type VerificationStatusType } from './user-verification';
+export { getUserVerificationStatus } from './user-verification';
 export { assertNextPageAdvances, firstOfEach, getNextPageParam, readEveryPage } from './pagination';
 export {
   createUserFriendlyError,
@@ -47,7 +46,6 @@ export {
   refusalSentence,
   refusalSentences,
 } from './errors';
-export type { SignInErrorReading, ApiErrorReading, ReadApiErrorOptions } from './errors';
 export { readIdentityVerification } from './identity-verification';
 export {
   appointmentDates,
@@ -67,7 +65,6 @@ export {
   isRegisterDecisionReceipt,
   isRegisterEvidenceReceipt,
   registerSteps,
-  type RegisterStep,
   type RegisterSteps,
 } from './register-commands';
 export {
@@ -93,7 +90,6 @@ export {
   preparationProblems,
   statedFigures,
   type AllotmentDraft,
-  type FormerDraft,
   type MemberDraft,
   type PreparationDraft,
 } from './register-import-drafts';
@@ -184,11 +180,5 @@ export {
   type PersonChoice,
 } from './people';
 export { searchEntries, searchMatches, searchRows, type SearchChoice } from './search';
-export {
-  holdingFacts,
-  needsIdentityReview,
-  shareholderList,
-  type Shareholder,
-  type ShareholderHolding,
-} from './shareholders';
+export { holdingFacts, needsIdentityReview, shareholderList } from './shareholders';
 export { isRegisterPersonRegistrationReceipt } from './register-people';

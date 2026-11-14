@@ -34,7 +34,7 @@ export type MemberDraft = {
   identityChoice?: 'existing' | 'award' | 'new';
 };
 
-export type FormerDraft = { id: string; name: string; residentialAddress: string; shares: string; ceasedOn: string };
+type FormerDraft = { id: string; name: string; residentialAddress: string; shares: string; ceasedOn: string };
 
 export type PreparationDraft = {
   registerFile: RegisterDocumentFile | null;

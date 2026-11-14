@@ -6,9 +6,9 @@ import { sharePercentage } from './formatting';
 import type { Person } from './people';
 import { searchRows } from './search';
 
-export type ShareholderHolding = { register: TokenHoldersResponse; holder: TokenHoldersResponse['holders'][number] };
+type ShareholderHolding = { register: TokenHoldersResponse; holder: TokenHoldersResponse['holders'][number] };
 
-export type Shareholder = { member: string; name: string; holdings: ShareholderHolding[] };
+type Shareholder = { member: string; name: string; holdings: ShareholderHolding[] };
 
 export function needsIdentityReview({ holder }: Pick<ShareholderHolding, 'holder'>) {
   return holder.holderType === 'ambiguous' || holder.holderType === 'unidentified';

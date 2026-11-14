@@ -8,7 +8,7 @@ import { describeFailure, readApiError } from '../utils/errors';
 import { newPasswordProblem, validatePassword } from '../utils/validation';
 import { useApiClient } from './useApiClient';
 
-export const SIGNUP_USER_FIELDS: readonly (keyof SignupRequest)[] = ['email', 'password'];
+const SIGNUP_USER_FIELDS: readonly (keyof SignupRequest)[] = ['email', 'password'];
 
 export function useSignupUser(rememberEmail: (email: string) => Promise<void> | void) {
   const apiClient = useApiClient();

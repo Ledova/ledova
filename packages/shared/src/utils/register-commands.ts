@@ -8,7 +8,7 @@ import type {
   RegisterProposal,
 } from '../types';
 
-export type RegisterStep = 'prepare' | RegisterDecisionKind;
+type RegisterStep = 'prepare' | RegisterDecisionKind;
 
 export type RegisterSteps = Partial<Record<RegisterStep, OwnCompanyAppointment>>;
 

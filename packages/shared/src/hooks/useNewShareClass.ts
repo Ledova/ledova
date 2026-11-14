@@ -11,7 +11,7 @@ import { readPeople } from './usePeople';
 import { readRegister } from './useRegisters';
 import type { OrderSubmissionSession } from './useSubmissionOwner';
 
-export type NewShareClassOptions = {
+type NewShareClassOptions = {
   guard: () => void;
   checkCurrent: () => void;
   company: Pick<Company, 'uuid' | 'name'>;

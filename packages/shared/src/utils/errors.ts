@@ -62,7 +62,7 @@ export function describeFailure(error: unknown): string {
   return local.length > 0 ? local.join(': ') : 'unknown failure';
 }
 
-export interface ApiErrorReading {
+interface ApiErrorReading {
   generalError?: string;
   fieldErrors?: Record<string, string[]>;
 }
@@ -90,7 +90,7 @@ function announcementOf(value: unknown): string[] | null {
   return sentenceListOf(value);
 }
 
-export interface ReadApiErrorOptions {
+interface ReadApiErrorOptions {
   fallback: string;
   displayedFields?: readonly string[];
   unanswered?: string;
@@ -181,7 +181,7 @@ export function refusalSentence(
   return Array.isArray(codes) && codes.length > 0 ? refusalSentences(codes, copy, otherwise).join(' ') : null;
 }
 
-export interface SignInErrorReading {
+interface SignInErrorReading {
   generalError?: string;
   fieldErrors?: Record<string, string[]>;
 }
