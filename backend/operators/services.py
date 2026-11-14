@@ -67,12 +67,6 @@ def worklist() -> list[WorklistRow]:
     unnameable = unnameable_addresses(ShareIssuance.objects.distinct_recipient_addresses())
     return [
         WorklistRow(
-            "Company applications waiting",
-            Company.objects.awaiting_review().count(),
-            _changelist("companies", "company", "?status__in=submitted,review,info_required"),
-            SEVERITY_WARNING,
-        ),
-        WorklistRow(
             "Whitelist approvals pending",
             WhitelistApproval.objects.pending().count(),
             _changelist("whitelist", "whitelistentry", "?approvals__status__exact=pending"),

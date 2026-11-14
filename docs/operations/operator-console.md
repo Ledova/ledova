@@ -86,7 +86,7 @@ The configuration health strip checks the operator's identity fields, `SHARE_TOK
 and the settlement deployments. An empty settlement asset set is reported; a fresh install starts
 that way.
 
-The worklists count company applications waiting, pending whitelist approvals, whitelist entries needing [holder standing review](#holder-standing-review),
+The worklists count pending whitelist approvals, whitelist entries needing [holder standing review](#holder-standing-review),
 share issuance and capital increase requests needing attention, share classes stuck deploying, and
 two register identity queues. Each opens the matching admin list and reads the database without
 contacting RPC providers.

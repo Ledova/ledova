@@ -240,6 +240,10 @@ These route groups have no bundled client and are kept deliberately:
   drops the receipt-effect trigger and the activation-source function, and makes each company still
   in Draft or an older onboarding state that already has an initial appointment Active from that
   admission time. Its reverse changes no data.
+- Removing the retired company review ([#1567](https://github.com/Ledova/ledova/issues/1567)):
+  `companies/0009_remove_retired_review` replays the company guard from current source, returns any
+  company still in a review state to Draft, advancing its revision, and drops the review's fourteen
+  columns. Reversing it adds the columns back empty and restores no data.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.

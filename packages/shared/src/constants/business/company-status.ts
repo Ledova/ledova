@@ -1,9 +1,5 @@
-export const COMPANY_STATUS_TONES = new Map<string, 'done' | 'moving' | 'waiting'>([
+export const COMPANY_STATUS_TONES = new Map<string, 'done' | 'waiting'>([
   ['active', 'done'],
-  ['approved', 'done'],
-  ['submitted', 'moving'],
-  ['review', 'moving'],
   ['draft', 'waiting'],
-  ['info_required', 'waiting'],
   ['warning', 'waiting'],
 ]);
