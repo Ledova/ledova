@@ -118,7 +118,7 @@ revocation without changing company authority. The ordinary suite uses fake emai
 cache controls; it establishes no inbox delivery or production worker acceptance.
 
 The company setup journey covers signup without a supporting file, initial representative
-admission, activation with its retained receipt returned again to an identical retry, and a later
+admission, which makes the company Active, and a later
 checked upload of the company's own evidence, with the identity, versioned acknowledgement and company authority checks
 in that path; resuming signup
 uses current administrator authority and a retained current Terms receipt without rewriting

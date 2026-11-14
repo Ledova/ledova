@@ -9,7 +9,6 @@ import {
   ownAppointmentsKey,
   IDENTITY_VERIFICATION_ENDPOINTS,
   IDENTITY_VERIFICATION_QUERY_KEY,
-  USER_PREFERENCES_QUERY_KEY,
 } from '@ledova/shared';
 import { QueryClient } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
@@ -17,8 +16,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { CompanyProfile } from '@pages/settings/CompanyProfile';
 import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 import CompanyTeamPage from './team';
-import ListingPage from './listing';
-import { APPOINTMENT, companyPreferences, companyRecord, renderCompanyPage } from '../../testSupport/company';
+import { APPOINTMENT, companyRecord, renderCompanyPage } from '../../testSupport/company';
 
 const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
@@ -77,7 +75,6 @@ it('shows focused company details, keeps team drafts and retries unavailable ide
   expect(screen.getByText(/Company information is provided by the company/)).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Company administration' })).toBeNull();
   expect(screen.getByText('company@example.invalid')).toBeTruthy();
-  expect(screen.queryByRole('link', { name: 'Activation' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Edit company' })).toBeTruthy();
   expect(screen.queryByText(/Share classes/)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Create share class' })).toBeNull();
@@ -218,103 +215,4 @@ it('shows focused company details, keeps team drafts and retries unavailable ide
   expect(screen.queryByRole('button', { name: 'Start verification' })).toBeNull();
   expect(screen.queryByText('Identity provider widget')).toBeNull();
   expect(api.post).toHaveBeenCalledTimes(1);
-
-  cleanup();
-  client.clear();
-  api.post.mockClear();
-  company = companyRecord({
-    activation: {
-      appointment: '11111111-1111-4111-8111-111111111111',
-      lifecycleRevision: 1,
-      declarationVersion: '2026-10-04',
-      declarationText: 'Synthetic company activation declaration.',
-    },
-  });
-  let pausePreferences = false;
-  let failPreferences = false;
-  let showCompany = true;
-  let releasePreferences: (() => void) | undefined;
-  api.get.mockImplementation(async (url: string) => {
-    if (url === '/api/v1/companies/') return { data: { ...EMPTY, results: showCompany ? [company] : [] } };
-    if (url === COMPANY) return { data: { ...company } };
-    if (url === '/api/user-preferences/') {
-      if (pausePreferences)
-        await new Promise<void>((resolve) => {
-          releasePreferences = resolve;
-        });
-      if (failPreferences) throw new Error('Preferences unavailable');
-      return { data: companyPreferences() };
-    }
-    throw new Error(`Unexpected activation request: ${url}`);
-  });
-  renderCompanyPage(client, <ListingPage />, 'Activation', { entry: '/company/listing', path: '/company/listing' });
-  fireEvent.click(await screen.findByRole('button', { name: 'Review activation' }));
-  const declaration = await screen.findByRole('checkbox', { name: 'I accept this declaration for this company.' });
-  fireEvent.click(declaration);
-  const confirmation = screen.getByRole('form', { name: 'Activate company' });
-  pausePreferences = true;
-  let recheck!: Promise<void>;
-  act(() => {
-    recheck = client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
-    fireEvent.submit(confirmation);
-  });
-  await waitFor(() => expect(releasePreferences).toBeTypeOf('function'));
-  await screen.findByText('Checking current company access…');
-  expect(screen.queryByRole('form', { name: 'Activate company' })).toBeNull();
-  expect((declaration as HTMLInputElement).checked).toBe(true);
-  expect((declaration as HTMLInputElement).disabled).toBe(true);
-  fireEvent.submit(confirmation);
-  expect(api.post).not.toHaveBeenCalled();
-  pausePreferences = false;
-  await act(async () => {
-    releasePreferences!();
-    await recheck;
-  });
-  await waitFor(() => expect(screen.getByRole('form', { name: 'Activate company' })).toBe(confirmation));
-  expect(screen.getByRole('checkbox', { name: 'I accept this declaration for this company.' })).toBe(declaration);
-  expect((declaration as HTMLInputElement).checked).toBe(true);
-
-  failPreferences = true;
-  await act(async () => client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true }));
-  expect((await screen.findByRole('alert')).textContent).toContain('Company information could not be loaded.');
-  expect(screen.queryByRole('form', { name: 'Activate company' })).toBeNull();
-  fireEvent.submit(confirmation);
-  expect(api.post).not.toHaveBeenCalled();
-  failPreferences = false;
-  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-  await waitFor(() => expect(screen.getByRole('form', { name: 'Activate company' })).toBe(confirmation));
-  expect((declaration as HTMLInputElement).checked).toBe(true);
-
-  company = {
-    ...company,
-    activation: { ...company.activation!, lifecycleRevision: 2, declarationText: 'Changed activation declaration.' },
-  };
-  await act(async () => client.refetchQueries({ queryKey: ['company'] }));
-  expect(screen.queryByRole('form', { name: 'Activate company' })).toBeNull();
-  fireEvent.click(await screen.findByRole('button', { name: 'Review activation' }));
-  await screen.findByText('Changed activation declaration.');
-  expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(false);
-  const authorisedCompany = company;
-  company = { ...company, administrativeAccess: { capabilities: [], draftSetup: false }, activation: null };
-  await act(async () => client.refetchQueries({ queryKey: ['companies'] }));
-  await waitFor(() => expect(screen.queryByRole('form', { name: 'Activate company' })).toBeNull());
-  expect(screen.queryByRole('button', { name: 'Review activation' })).toBeNull();
-  expect(api.post).not.toHaveBeenCalled();
-
-  company = authorisedCompany;
-  await act(async () => client.refetchQueries({ queryKey: ['companies'] }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Review activation' }));
-  await screen.findByRole('form', { name: 'Activate company' });
-  showCompany = false;
-  await act(async () => {
-    client.setQueryData(USER_PREFERENCES_QUERY_KEY, {
-      data: {
-        ...companyPreferences(),
-        userProfile: 'another-profile',
-        userAccount: { ...companyPreferences().userAccount!, uuid: 'another-account' },
-      },
-    });
-  });
-  expect(screen.queryByRole('form', { name: 'Activate company' })).toBeNull();
-  expect(api.post).not.toHaveBeenCalled();
 });

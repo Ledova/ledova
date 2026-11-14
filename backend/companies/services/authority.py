@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import connections
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -17,13 +18,14 @@ from companies.models import (
     CompanyCapability,
     CompanyStatus,
 )
+from companies.services.administration import company_operation
 from companies.services.authority_requests import (
     _requester_principal,
     _require_requester,
     _snapshots,
 )
 from operators.models import Operator
-from shared.db import atomic, use_app, use_operator
+from shared.db import atomic, current_alias, use_app, use_operator
 from users.models import UserProfile
 
 DECLARATION_VERSION = "2026-10-04"
@@ -89,6 +91,12 @@ def _existing_admission(company, proposal):
     return appointment
 
 
+def _database_now():
+    with connections[current_alias()].cursor() as cursor:
+        cursor.execute("SELECT clock_timestamp()")
+        return cursor.fetchone()[0]
+
+
 def _retained_request(request_id):
     return CompanyAuthorityRequest.objects.select_related("withdrawal", "appointment__revocation").get(pk=request_id)
 
@@ -97,8 +105,8 @@ def admit_authority_request(*, requester, request_id, declaration_version, accep
     _require_requester(requester)
     _require_declaration(declaration_version, accept_declaration, version=SIGNUP_DECLARATION_VERSION)
     with use_app(), _requester_principal(requester.pk):
-        get_object_or_404(CompanyAuthorityRequest.objects.filter(requester=requester), pk=request_id)
-    with use_operator(), _requester_principal(requester.pk), atomic():
+        requested = get_object_or_404(CompanyAuthorityRequest.objects.filter(requester=requester), pk=request_id)
+    with company_operation(requester, requested.company_id, "admission"), atomic():
         actor, profile, company, proposal = _locked_request(requester, request_id)
         if _existing_admission(company, proposal):
             return _retained_request(proposal.pk)
@@ -114,6 +122,10 @@ def admit_authority_request(*, requester, request_id, declaration_version, accep
             declaration_version=SIGNUP_DECLARATION_VERSION,
             declaration_text=SIGNUP_DECLARATION_TEXT,
         )
+        company.status = CompanyStatus.ACTIVE
+        company.activated_at = _database_now()
+        company.lifecycle_revision += 1
+        company.save(update_fields=["status", "activated_at", "lifecycle_revision", "updated_at"])
         return _retained_request(proposal.pk)
 
 

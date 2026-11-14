@@ -1685,131 +1685,6 @@
         ],
         "type": "object"
       },
-      "CompanyActivateRequest": {
-        "properties": {
-          "acceptDeclaration": {
-            "type": "boolean"
-          },
-          "appointment": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "declarationVersion": {
-            "maxLength": 10,
-            "minLength": 1,
-            "type": "string"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "lifecycleRevision": {
-            "minimum": 0,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "acceptDeclaration",
-          "appointment",
-          "declarationVersion",
-          "idempotencyKey",
-          "lifecycleRevision"
-        ],
-        "type": "object"
-      },
-      "CompanyActivated": {
-        "properties": {
-          "company": {
-            "$ref": "#/components/schemas/CompanyDetail"
-          },
-          "message": {
-            "type": "string"
-          },
-          "receipt": {
-            "$ref": "#/components/schemas/CompanyActivationReceipt"
-          }
-        },
-        "required": [
-          "company",
-          "message",
-          "receipt"
-        ],
-        "type": "object"
-      },
-      "CompanyActivation": {
-        "properties": {
-          "appointment": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "declarationText": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "declarationVersion": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "lifecycleRevision": {
-            "readOnly": true,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "appointment",
-          "declarationText",
-          "declarationVersion",
-          "lifecycleRevision"
-        ],
-        "type": "object"
-      },
-      "CompanyActivationReceipt": {
-        "properties": {
-          "activatedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "appointment": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "declarationText": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "declarationVersion": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "lifecycleRevision": {
-            "readOnly": true,
-            "type": "integer"
-          },
-          "uuid": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "activatedAt",
-          "appointment",
-          "declarationText",
-          "declarationVersion",
-          "idempotencyKey",
-          "lifecycleRevision",
-          "uuid"
-        ],
-        "type": "object"
-      },
       "CompanyAdministrativeAccess": {
         "properties": {
           "capabilities": {
@@ -2204,15 +2079,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "activation": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CompanyActivation"
-              }
-            ],
-            "nullable": true,
-            "readOnly": true
-          },
           "additionalInfoResponse": {
             "readOnly": true,
             "type": "string"
@@ -2421,7 +2287,6 @@
         "required": [
           "acn",
           "activatedAt",
-          "activation",
           "additionalInfoResponse",
           "administrativeAccess",
           "approvedAt",
@@ -24156,68 +24021,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CompanyDetail"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/companies/{uuid}/activate/": {
-      "post": {
-        "operationId": "api_v1_companies_activate_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyActivateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyActivateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/CompanyActivateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyActivated"
                 }
               }
             },

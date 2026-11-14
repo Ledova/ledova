@@ -69,7 +69,6 @@ export const COMPANY_ENDPOINTS = {
   PACKS: (uuid: string) => `/api/v1/companies/${uuid}/packs/` as const,
   BASE: '/api/v1/companies/',
   DETAIL: (uuid: string) => `/api/v1/companies/${uuid}/` as const,
-  ACTIVATE: (uuid: string) => `/api/v1/companies/${uuid}/activate/` as const,
 } as const;
 
 export const COMPANY_TOKEN_ENDPOINTS = {

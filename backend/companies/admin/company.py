@@ -18,8 +18,6 @@ from shared.utils.admin_display import action_buttons
 from tokens.admin._helpers import status_badge
 from wallets.models import Wallet
 
-IMMUTABLE_AFTER_DRAFT = ("company_type", "acn", "abn")
-
 STATUS_COLORS = {
     CompanyStatus.DRAFT: "#6c757d",
     CompanyStatus.SUBMITTED: "#17a2b8",
@@ -100,16 +98,14 @@ for action, spec in TRANSITIONS.items():
 SUSPEND = ("⏸ Suspend", "suspend", "#dc3545")
 DELIST = ("✗ Delist", "delist", "#343a40")
 STATUS_BUTTONS = {
-    CompanyStatus.SUBMITTED: [("Historical submission; awaiting company activation", None, "#e9ecef", "#6c757d")],
-    CompanyStatus.REVIEW: [("Historical review; awaiting company activation", None, "#e9ecef", "#6c757d")],
-    CompanyStatus.INFO_REQUIRED: [
-        ("Historical information request; awaiting company activation", None, "#e9ecef", "#6c757d")
-    ],
-    CompanyStatus.APPROVED: [("Historical approval; awaiting company activation", None, "#e9ecef", "#6c757d")],
+    CompanyStatus.SUBMITTED: [("Historical submission; signup not completed", None, "#e9ecef", "#6c757d")],
+    CompanyStatus.REVIEW: [("Historical review; signup not completed", None, "#e9ecef", "#6c757d")],
+    CompanyStatus.INFO_REQUIRED: [("Historical information request; signup not completed", None, "#e9ecef", "#6c757d")],
+    CompanyStatus.APPROVED: [("Historical approval; signup not completed", None, "#e9ecef", "#6c757d")],
     CompanyStatus.ACTIVE: [("⚠ Issue Warning", "issue-warning", "#ffc107", "black"), SUSPEND, DELIST],
     CompanyStatus.WARNING: [("✓ Resolve Warning", "resolve-warning", "#28a745"), SUSPEND, DELIST],
     CompanyStatus.SUSPENDED: [("↻ Reinstate", "reinstate", "#28a745"), DELIST],
-    CompanyStatus.DRAFT: [("Awaiting company activation", None, "#e9ecef", "#6c757d")],
+    CompanyStatus.DRAFT: [("Signup not completed", None, "#e9ecef", "#6c757d")],
     CompanyStatus.REJECTED: [("Application Rejected", None, "#e9ecef", "#6c757d")],
     CompanyStatus.WITHDRAWN: [("Application Withdrawn", None, "#e9ecef", "#6c757d")],
     CompanyStatus.DELISTED: [("Permanently Delisted", None, "#e9ecef", "#6c757d")],
@@ -334,10 +330,6 @@ class CompanyAdmin(admin.ModelAdmin):
         if "admin" not in access["capabilities"] and not access["draft_setup"]:
             readonly.extend(EDITABLE_FIELDS)
         readonly.append("owner")
-        if obj.status != CompanyStatus.DRAFT:
-            readonly.extend(IMMUTABLE_AFTER_DRAFT)
-        if obj.status not in (CompanyStatus.DRAFT, CompanyStatus.INFO_REQUIRED):
-            readonly.extend(["name", "declarant_name", "board_resolution_reference"])
         return readonly
 
     def get_queryset(self, request):
@@ -397,7 +389,7 @@ class CompanyAdmin(admin.ModelAdmin):
         attestation_required = (
             action in ("resolve-warning", "reinstate")
             and not company.has_officeholder_attestation
-            and not company.has_initial_activation_provenance
+            and company.activated_at is None
         )
         form = TransitionForm(
             request.POST if request.method == "POST" else None,

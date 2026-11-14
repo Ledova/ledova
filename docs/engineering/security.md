@@ -98,7 +98,7 @@ rechecks that authority inside the locked register command (`backend/tokens/serv
 App writes to Company, authority requests, appointments, invitations and
 legacy-owner sources are denied, and the app role has no grants on activation receipts; the
 actor-bound services in `companies/services/` (`administration.py`, `editing.py`,
-`authority_requests.py`, `team.py`, `activation.py`) carry the
+`authority.py`, `authority_requests.py`, `team.py`) carry the
 caller's principal, lock the company before the live account, profile, identity requirement and
 appointments, and check the clock after the wait. Policies scope authority requests to their
 requester, appointments to their appointee and invitations to their inviter; team reads go
@@ -106,8 +106,8 @@ through the administration check and exclude private identity, financial and aut
 Triggers attached in `companies/database_guards.sql`, with functions there and in
 `companies/authority_guards.sql`, refuse any update or deletion of authority requests, withdrawals,
 appointments, invitations, revocations and legacy-owner sources, and check admission, withdrawal,
-acceptance and revocation; those in `companies/activation_guards.sql` do the same for activation
-receipts and check activation.
+acceptance and revocation, including admission making the company Active; those in
+`companies/activation_guards.sql` keep earlier activation receipts read-only.
 
 ### Policy catalogue
 

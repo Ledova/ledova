@@ -21,7 +21,6 @@ import { ShareClassScreen } from '../screens/ledger/ShareClassScreen';
 import { TransferPreparationScreen } from '../screens/ledger/TransferPreparationScreen';
 import { TransferSharesScreen } from '../screens/ledger/TransferSharesScreen';
 import { AccountScreen, DataPrivacyScreen, SettingsScreen } from '../screens/settings';
-import { ActivationScreen } from '../screens/settings/ActivationScreen';
 import { AuthorityRequestScreen } from '../screens/settings/AuthorityRequestScreen';
 import { AuthorityScreen } from '../screens/settings/AuthorityScreen';
 import { TeamScreen } from '../screens/settings/TeamScreen';
@@ -62,7 +61,6 @@ export type SignedInStackParamList = {
   Account: undefined;
   DataPrivacy: undefined;
   Team: { accept?: boolean } | undefined;
-  Activation: undefined;
   Authority: undefined;
   AuthorityRequest: { uuid: string };
   Invitation: undefined;
@@ -161,7 +159,6 @@ export function SignedInNavigator() {
             <Stack.Screen name="Account" component={AccountScreen} options={topBar('Settings')} />
             <Stack.Screen name="DataPrivacy" component={DataPrivacyScreen} options={topBar('Settings')} />
             <Stack.Screen name="Team" component={TeamScreen} options={topBar('Settings')} />
-            <Stack.Screen name="Activation" component={ActivationScreen} options={topBar('Settings')} />
             <Stack.Screen
               name="Authority"
               component={AuthorityScreen}

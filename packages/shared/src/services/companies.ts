@@ -9,8 +9,6 @@ import type {
   CompanyRegistrationResponse,
   CompanyPackRequest,
   CompanyPacks,
-  CompanyActivate,
-  CompanyActivated,
   PaginatedResponse,
 } from '../types';
 
@@ -39,16 +37,6 @@ export const updateCompany = (
   config === undefined
     ? apiClient.patch<CompanyUpdateResponse>(COMPANY_ENDPOINTS.DETAIL(uuid), data)
     : apiClient.patch<CompanyUpdateResponse>(COMPANY_ENDPOINTS.DETAIL(uuid), data, config);
-
-export const activateCompany = (
-  apiClient: AxiosInstance,
-  companyUuid: string,
-  data: CompanyActivate,
-  config?: AxiosRequestConfig,
-) =>
-  config === undefined
-    ? apiClient.post<CompanyActivated>(COMPANY_ENDPOINTS.ACTIVATE(companyUuid), data)
-    : apiClient.post<CompanyActivated>(COMPANY_ENDPOINTS.ACTIVATE(companyUuid), data, config);
 
 export const createCompanyPack = (
   apiClient: AxiosInstance,

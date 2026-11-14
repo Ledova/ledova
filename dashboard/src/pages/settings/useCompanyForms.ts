@@ -50,14 +50,12 @@ export function useEditCompanyForm(props: FormProps) {
   const changes = Object.fromEntries(
     Object.entries(draft).filter(([key, value]) => value !== initial[key as keyof Draft]),
   ) as CompanyUpdate;
-  const canChangeName = company?.status === 'draft' || company?.status === 'info_required';
   const changed = Object.keys(changes).length > 0;
   const available =
     targetAvailable(props) &&
     !!company &&
     read.canAdmin &&
     changed &&
-    (!changes.name || canChangeName) &&
     (changes.shareOwnershipWithMembers === undefined || props.canShareOwnership);
   const problems: Problems<keyof Draft> = { name: !draft.name.trim() && 'Give the company name.' };
   const save = useMutation({
@@ -93,7 +91,6 @@ export function useEditCompanyForm(props: FormProps) {
     draft,
     setDraft,
     pendingRef,
-    canChangeName,
     available,
     problems,
     save,

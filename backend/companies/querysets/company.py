@@ -5,7 +5,7 @@ from django.utils import timezone
 
 class CompanyQuerySet(QuerySet):
 
-    def for_activation(self, user, company_id):
+    def personally_administered_by(self, user, company_id):
         from companies.models import CompanyAppointment, CompanyCapability
 
         sources = CompanyAppointment.objects.current_for(user, company_id, at=timezone.now(), identity_required=False)

@@ -159,7 +159,6 @@ export function useCompanySelection({
       ? {
           ...detail.data,
           isOwner: detail.data.isOwner === true && selectedCompany?.isOwner === true,
-          ...(!personalAdministration && { activation: null }),
           ...(!administration && {
             administrativeAccess:
               selectedCompany && !canAdministerCompany(selectedCompany)

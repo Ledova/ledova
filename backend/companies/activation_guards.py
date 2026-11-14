@@ -3,6 +3,7 @@ from pathlib import Path
 from django.conf import settings
 
 TABLE = "companies_companyactivation"
+SQL = Path(__file__).with_suffix(".sql").read_text()
 
 
 def install(apps, schema_editor):
@@ -17,13 +18,7 @@ def install(apps, schema_editor):
             [settings.RLS_ROLES["operator"], settings.RLS_ROLES["migrate"]],
         )
         operator, migrate = cursor.fetchone()
-        cursor.execute(
-            Path(__file__)
-            .with_suffix(".sql")
-            .read_text()
-            .replace("@OPERATOR_ROLE@", operator)
-            .replace("@MIGRATE_ROLE@", migrate)
-        )
+        cursor.execute(SQL.replace("@OPERATOR_ROLE@", operator).replace("@MIGRATE_ROLE@", migrate))
         cursor.execute(f"ALTER TABLE {TABLE} ENABLE ROW LEVEL SECURITY")
         cursor.execute(f"ALTER TABLE {TABLE} FORCE ROW LEVEL SECURITY")
         cursor.execute(

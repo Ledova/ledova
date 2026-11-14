@@ -50,10 +50,8 @@ export function useSettingsNavigation() {
   const current = !!owner && !!preferences.preferences && !preferences.isError;
   const own = current && appointments.isSuccess && !appointments.isFetching ? appointments.data : [];
   const companyRows = current && companyAudience && companies.isSuccess && !companies.isFetching ? companies.data : [];
-  const canActivate = hasCurrentAdminAppointment(own);
   const hasOwnedCompany = companyRows.some((company) => company.isOwner === true);
-  const canManageCompany = canActivate || companyRows.some(canAdministerCompany) || hasOwnedCompany;
-  const items = SETTINGS_VIEWS.filter(({ key }) => key !== 'activation' || canActivate);
+  const canManageCompany = hasCurrentAdminAppointment(own) || companyRows.some(canAdministerCompany) || hasOwnedCompany;
   return {
     defaultPath: `${DESTINATIONS.settings.path}#profile`,
     isLoading:
@@ -69,7 +67,7 @@ export function useSettingsNavigation() {
       if (refreshed.isError || !owner || boundary.get() !== owner) return;
       await Promise.all([appointments.refetch(), ...(companyAudience ? [companies.refetch()] : [])]);
     },
-    items,
+    items: SETTINGS_VIEWS,
     canManageCompany,
     hasOwnedCompany,
   };

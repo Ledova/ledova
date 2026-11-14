@@ -60,7 +60,7 @@ Today the [users](../product.md#1-who-uses-ledova) act as follows.
 
 | Who                                     | What they do today                                                                                                                                                                                                                                                                                                                                                                     |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Company administrators and appointees   | People the company appoints, each with their own account. Within the capabilities their appointment records, they set up and activate the company, appoint the team, record share classes through the API, run the register, record awards and allotments, invite members and prepare outputs.                                                                                         |
+| Company administrators and appointees   | People the company appoints, each with their own account. Within the capabilities their appointment records, they set up the company, appoint the team, record share classes through the API, run the register, record awards and allotments, invite members and prepare outputs.                                                                                                      |
 | The registering account (company owner) | The account that registered the company. Ownership grants no appointment and supplies no register decision. It keeps some earlier owner-only workflows: submitting the directors' register instructions for settled market transfers and retained issues and opening Representative authority. It can also read the register.                                                          |
 | Members                                 | People entered on a company's register, with or without an account or a wallet. After accepting a company-issued invitation they read their own particulars, holdings, history and awards, ask the company for certificates, and keep their recorded name and address up to date from their Profile ([member records](member-records.md)). Being a member grants no company authority. |
 | Investors                               | People with an investing account. They verify their identity and, through the API, can nominate a wallet to a company ([participants](participants.md)). One person can be an investor, a member and a company appointee at once.                                                                                                                                                      |
@@ -100,7 +100,7 @@ met, and the appointment has neither expired nor been revoked
 
 | Capability (app label)                                   | What it permits today                                                                                                                                                                                                                                                  |
 | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Manage company information and team                      | Edit company information and documents, invite, read and revoke the team, activate the company, invite members to member access and revoke it, and produce the core company pack. It also counts as each register capability below (prepare, approve, apply and read). |
+| Manage company information and team                      | Edit company information and documents, invite, read and revoke the team, invite members to member access and revoke it, and produce the core company pack. It also counts as each register capability below (prepare, approve, apply and read). |
 | Prepare register changes (includes reading the register) | Upload company evidence and prepare register changes, issues, wallet instructions and other company commands.                                                                                                                                                          |
 | Approve register changes (includes reading the register) | Approve or reject a prepared change and acknowledge a reconciliation discrepancy.                                                                                                                                                                                      |
 | Apply authorised changes (includes reading the register) | Apply an approved change so that its effect is recorded.                                                                                                                                                                                                               |
@@ -221,8 +221,8 @@ prepare, approve and apply corrections, bring in, review and confirm the opening
 particulars changes under Corrections, list its
 shareholders, open each one's page, add a person, change particulars, record employee awards and their
 vesting and manage member access under Shareholders, and prepare its certificates and inspection
-copies in Documents, where its administrators also prepare the company pack; Settings holds Team,
-Activation and representative authority
+copies in Documents, where its administrators also prepare the company pack; Settings holds Team
+and representative authority
 ([decision](../decisions.md#mobile-app-like-the-web-at-phone-width)). Account audience
 retains its existing route checks;
 company actions follow the person's current appointments, and
@@ -243,7 +243,7 @@ the company information they may read. The sidebar keeps focused tasks for the s
   Shareholders opens the people list, with Employee scheme and Member access.
   Documents opens one Certificates page for company and member records, with Inspection copies and
   Company pack where company access permits them.
-- Settings comes last whatever company is selected. It keeps personal Profile, Account and Data and privacy, with company information, Team and Activation according
+- Settings comes last whatever company is selected. It keeps personal Profile, Account and Data and privacy, with company information and Team according
   to current access.
 
 The sidebar has no More group or Help & Support link. Investing pages without a sidebar
@@ -257,13 +257,12 @@ retains company/class context for browser Back/Forward. Direct links and invitat
 Failed reads offer retry, an edited form asks before a company change discards it, and held execution
 blocks context changes.
 
-The footer identifies the selected company. Until setup is complete, a personal
-administrator also sees **Getting started**: **Activate your
-company** ([activation](companies.md#activation)) and **Set up your ledger**
-([register setup](register.md#bringing-in-existing-records)). Completed tasks disappear; once both
-are complete, the whole card disappears. Register setup completes once the register of the company
-shown is opened, not when a class is merely created, and it does not wait for activation. Someone
-who can prepare the register but is not an administrator is pointed to Ledger instead.
+The footer identifies the selected company. Until its register is set up, a personal
+administrator also sees **Getting started** with **Set up your ledger**
+([register setup](register.md#bringing-in-existing-records)), which disappears once the register of
+the company shown is opened, not when a class is merely created. A company is Active from the end
+of its signup, with no activation step ([company status](companies.md#company-status)). Someone who
+can prepare the register but is not an administrator is pointed to Ledger instead.
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
 shares, current shareholders (each person counted once across classes) and the number of share
@@ -291,7 +290,7 @@ beneath it, and
 Certificates, with Inspection copies and Company pack for a register reader, as on the web, and
 **Settings** opens
 the web's Profile for that company, with Account (accepting an invitation and the app's own settings)
-and Data and privacy beneath it, then the web's Team and Activation where the company can be managed
+and Data and privacy beneath it, then the web's Team where the company can be managed
 ([Profile and Settings](participants.md#profile-and-settings)).
 The app's signup offers both account types, as the web does ([investor signup](participants.md#investor-signup),
 [company signup](companies.md#company-signup)).
@@ -305,7 +304,7 @@ section that describes it.
 Follow a company and its participants through Ledova:
 
 1. [Company setup and authority](companies.md): signup, the representative's
-   declaration, the team, company information and documents, and activation.
+   declaration, the team, company information and documents, and company status.
 2. [Investors and members](participants.md): accounts and identity checks, the API's wallet
    nominations and approvals, and monitoring.
 3. [Register of members](register.md): opening the mirror from company records, corrections,

@@ -226,8 +226,7 @@ function AuthorityRequestRecord({
                 <Text style={styles.text}>{COMPANY_SIGNUP_DECLARATION}</Text>
                 <Text style={styles.muted}>
                   Declaration version {COMPANY_SIGNUP_DECLARATION_VERSION}. Your appointment uses the exact permissions,
-                  delegation and expiry of this request. It does not activate the company or approve any register
-                  action.
+                  delegation and expiry of this request. It approves no register action.
                 </Text>
                 <Text
                   accessibilityRole="link"
@@ -309,7 +308,7 @@ function AuthorityRequestRecord({
             <Text style={styles.text}>{appointment.declarationText}</Text>
             <Text style={styles.muted}>
               This is your recorded self-declaration. Company information is provided by the company. An appointment
-              does not activate the company or approve any register action.
+              approves no register action.
             </Text>
           </ShowMore>
           <Text style={styles.muted}>

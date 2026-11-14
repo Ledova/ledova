@@ -639,22 +639,6 @@ export interface ApiPaths {
     patch: ApiOperations['api_v1_companies_partial_update'];
     trace?: never;
   };
-  '/api/v1/companies/{uuid}/activate/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_companies_activate_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/companies/{uuid}/pack/': {
     parameters: {
       query?: never;
@@ -3885,33 +3869,6 @@ export interface ApiComponents {
       previousRevision: number;
       summary: string;
     };
-    CompanyActivated: {
-      company: ApiComponents['schemas']['CompanyDetail'];
-      message: string;
-      receipt: ApiComponents['schemas']['CompanyActivationReceipt'];
-    };
-    CompanyActivateRequest: {
-      acceptDeclaration: boolean;
-      appointment: string;
-      declarationVersion: string;
-      idempotencyKey: string;
-      lifecycleRevision: number;
-    };
-    CompanyActivation: {
-      appointment: string;
-      declarationText: string;
-      declarationVersion: string;
-      lifecycleRevision: number;
-    };
-    CompanyActivationReceipt: {
-      activatedAt: string;
-      appointment: string;
-      declarationText: string;
-      declarationVersion: string;
-      idempotencyKey: string;
-      lifecycleRevision: number;
-      uuid: string;
-    };
     CompanyAdministrativeAccess: {
       capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       draftSetup: boolean;
@@ -3976,7 +3933,6 @@ export interface ApiComponents {
       abn?: string;
       acn: string;
       activatedAt: string | null;
-      activation: ApiComponents['schemas']['CompanyActivation'] | null;
       additionalInfoResponse: string;
       addressLine1?: string;
       addressLine2?: string;
@@ -8920,33 +8876,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['CompanyDetail'];
-        };
-      };
-    };
-  };
-  api_v1_companies_activate_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['CompanyActivateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['CompanyActivateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['CompanyActivateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['CompanyActivated'];
         };
       };
     };
