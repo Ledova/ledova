@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from companies.models import Company, CompanyStatus
+from companies.models import Company
 from companies.services.administration import (
     company_operation,
     lock_company_actor,
@@ -82,19 +82,6 @@ def _update_company(current, changes, actor):
         if not Wallet.objects.owned_by(actor).verified_evm().filter(pk=wallet.pk).exists():
             raise ValidationError({"operator_wallet": "Select one of your current verified EVM wallets."})
         changes["operator_wallet"] = wallet
-    if current.status != CompanyStatus.DRAFT and changes.keys() & IDENTIFIERS:
-        raise ValidationError(
-            {field: "Cannot be changed after registration is submitted." for field in changes.keys() & IDENTIFIERS}
-        )
-    if current.status not in (CompanyStatus.DRAFT, CompanyStatus.INFO_REQUIRED) and changes.keys() & (
-        DECLARATION_FIELDS | {"name"}
-    ):
-        raise ValidationError(
-            {
-                field: "Request information before correcting the registered identity or declaration."
-                for field in changes.keys() & (DECLARATION_FIELDS | {"name"})
-            }
-        )
     if "acn" in changes:
         changes["acn"] = checked_acn(changes["acn"])
     if "abn" in changes:
