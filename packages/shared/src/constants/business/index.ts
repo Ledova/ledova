@@ -10,7 +10,7 @@ export * from './company-authority';
 export * from './signup';
 export * from './terms';
 export * from './company-types';
-export * from './company-activation';
+export * from './company-status';
 
 export * from './register-allotments';
 

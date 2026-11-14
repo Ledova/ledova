@@ -2,7 +2,6 @@ import { useMemo, useRef, useEffect } from 'react';
 import { generatePath } from 'react-router-dom';
 import { BuildingsIcon } from '@phosphor-icons/react';
 import {
-  activationStepDue,
   DESTINATIONS,
   formatShareCount,
   ownershipView,
@@ -96,7 +95,6 @@ function SignedInOwnership({
   const record = ready && !memberInvalid && memberSummary ? member.data : undefined;
   const summary = ready && company?.canReadRegister ? ownership.overview.data : undefined;
   const view = useMemo(() => ownershipView(summary, record), [summary, record]);
-  const activated = !activationStepDue(company?.status);
   const registered = !!summary?.classes.some(({ initialized }) => initialized);
   const selected = list.filters.class;
   const selectedClass = view?.classes.find(({ uuid }) => uuid === selected);
@@ -214,9 +212,7 @@ function SignedInOwnership({
               <OwnershipLoading />
             ) : (
               <>
-                {company.canManage && (!activated || !registered) && (
-                  <GettingStarted activated={activated} registered={registered} />
-                )}
+                {company.canManage && !registered && <GettingStarted />}
                 {view ? (
                   <>
                     <Section title="Ownership overview">

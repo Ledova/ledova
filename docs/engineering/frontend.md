@@ -188,7 +188,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   account-bound data (anything read or written for the signed-in account), then parameters. It never
   starts with another resource's root, and an invalidation names the narrowest prefix that covers
   the change. Every signed-in company list starts with `ownCompaniesKey(owner)`, so a company rename or
-  activation refreshes them all.
+  status change refreshes them all.
 - **Paths and titles.** Link and navigate with `DESTINATIONS` paths, filling parameters with React
   Router's `generatePath`, or with the web-only paths in `utils/paths.ts` (the company dashboard,
   sign-in, sign-up and `SIGNUP_STEPS`); source writes no literal path. Titles come from
@@ -366,14 +366,14 @@ Dashboard `#documents` and company Ledger `#certificates` or `#documents` links 
 preserving company, class and navigation state. A group without a meaningful overview opens its
 default child, without an extra Overview page or duplicate navigation.
 Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
-Team and Activation where permitted. Its default is Profile (`/settings#profile`), combining personal
+Team where permitted. Its default is Profile (`/settings#profile`), combining personal
 details and permitted company information. Account
 (`/settings#account`) has Security (identity status with Review, the password with Change), Account
 details, Invitations and Your appointments cards, and Data and privacy (`/settings#data`) holds Export data and
 Delete account in the same rows, with **Export** and **Delete**. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
 sections keep their separate records, editors and authority checks. Existing `/user-profile`,
 `/company` (whatever its hash) and `/settings#company-recorded-details` links, like any other Settings
-hash, redirect to Profile. Activation's identity step links to Account.
+hash, redirect to Profile.
 `useSettingsNavigation` (`dashboard/src/hooks/useSettingsNavigation.ts`) supplies current access;
 Team remains available to everyone for company-invitation acceptance. Account's Invitations card always offers
 the Shareholder invitation row, which opens Member invitation, and the Company officer invitation
@@ -505,11 +505,7 @@ same-account/company directory and class-access checks, including failed or paus
 rows and header controls stay hidden until access is confirmed. Account, company or
 company-reader/member-only access changes reset the choices; certificate source changes still retire
 previews. Leaving or unmounting the page resets its draft.
-Activation keeps its reviewed target and declaration mounted but hidden during a same-account
-company-access recheck, including a failed read followed by Retry. Confirmation still requires settled
-current reads; a changed company, mandate, revision or declaration discards the review. The shared
-hook exposes the retained target separately from its currently usable preview; native screens retain
-their existing gated-preview rendering. A failed
+A failed
 check or a changed account withholds
 private content, including after an account changes in another tab. Mobile clears its cache whenever
 the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload or identity
@@ -766,7 +762,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 | [A shareholder's page](../business/register.md#a-shareholders-page)                                          | `/company/ledger/members/:member?company=`                                                                                                               | everyone |
 | [An employee award's page](../business/issuing-shares.md#employee-awards-and-vesting)                        | `/company/ledger/:uuid/awards/:award?company=`                                                                                                           | everyone |
 | [Share class](../business/register.md#the-share-class-page)                                                  | `/company/ledger/:uuid?company=`                                                                                                                         | everyone |
-| [Company information, Team, Activation](../business/companies.md#the-company-page)                           | `/settings#profile`, `/company/authority` and `/company/authority/requests/:uuid` (company), `/company/team`, `/company/listing`                         | everyone |
+| [Company information, Team](../business/companies.md#the-company-page)                                       | `/settings#profile`, `/company/authority` and `/company/authority/requests/:uuid` (company), `/company/team`                                             | everyone |
 | [Profile and member settings](../business/participants.md#profile-and-settings)                              | `/settings#profile` (default), `/settings#account`, `/settings#data`; aliases `/user-profile`, `/company`, `/settings#company-recorded-details`          | everyone |
 
 ### Page mechanics
@@ -974,17 +970,12 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   its company list, with its session and Expo Crypto's `randomUUID`. The request page's
   `requestScopeLabels` (`packages/shared/src/utils/appointments.ts`) lists capabilities in the order
   the request recorded them, and the status tones (`AUTHORITY_REQUEST_TONES`) are shared too.
-- Activation (`dashboard/src/pages/company/listing`, and the app's Activation screen): both read the
-  selected company through `useCompanySelection` limited to personal administration and confirm
-  through `useCompanyActivation`, with the shared status tones (`COMPANY_STATUS_TONES`). Settings
-  lists Activation for a company that may be managed when `hasCurrentAdminAppointment` finds a
-  current own appointment with `admin`, on the web and in the app.
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
   personal and company sections, keeping each editor's data and authority separate. Account's
   Security, Account details, Invitations and Your appointments cards hold identity status, password,
   account dates, invitation acceptance and the person's appointments; Data and privacy holds export and deletion. Documents and Team
-  stay focused pages; Activation keeps its existing company workflow. Signup and mobile
+  stay focused pages. Signup and mobile
   Settings keep their own navigation.
 - Data and privacy on web: account deletion clears cached account data after the server confirms.
 - Web signup selects only `fullName` in `useSignupUserProfile`; the hook validates and PATCHes

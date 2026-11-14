@@ -19,11 +19,9 @@ from companies.models import (
     CompanyAppointment,
     CompanyCapability,
     CompanySignupTermsAcceptance,
-    CompanyStatus,
 )
 from companies.services import transition_company
 from companies.services.authority import (
-    DECLARATION_TEXT,
     DECLARATION_VERSION,
     SIGNUP_DECLARATION_TEXT,
     SIGNUP_DECLARATION_VERSION,
@@ -331,7 +329,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         profile.refresh_from_db()
         self.assertEqual((company.owner_id, company.status, profile.full_name), (user.pk, "draft", "Ada Example"))
 
-    def test_representative_declaration_and_activation_use_current_company_authority(self):
+    def test_representative_declaration_activates_the_company_with_current_authority(self):
         user, _ = person("representative")
         with use_migrate():
             company = Company.objects.create(owner=user, name="Synthetic Declared Pty Ltd", acn="123456780")
@@ -369,23 +367,9 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(accepted_terms.status_code, 200, accepted_terms.content)
         self.assertEqual(accepted_terms.json()["signupTerms"]["declarationText"], SIGNUP_DECLARATION_TEXT)
         self.assertEqual(CompanySignupTermsAcceptance.objects.count(), 0)
-        activation = {
-            "declaration_version": DECLARATION_VERSION,
-            "accept_declaration": True,
-            "appointment": appointment,
-            "idempotency_key": str(uuid4()),
-            "lifecycle_revision": company.lifecycle_revision,
-        }
-        activated = self.client.post(f"/api/v1/companies/{company.pk}/activate/", activation, format="json")
-        retried = self.client.post(f"/api/v1/companies/{company.pk}/activate/", activation, format="json")
-        self.assertEqual(activated.status_code, 200, activated.content)
-        self.assertEqual(retried.json()["receipt"], activated.json()["receipt"])
-        self.assertEqual(
-            (activated.json()["receipt"]["appointment"], activated.json()["receipt"]["declarationText"]),
-            (appointment, DECLARATION_TEXT),
-        )
         company.refresh_from_db()
-        self.assertEqual(company.status, "active")
+        self.assertEqual((company.status, company.lifecycle_revision), ("active", 1))
+        self.assertIsNotNone(company.activated_at)
         self.assertEqual(CompanyAppointment.objects.get(pk=appointment).appointee_id, user.pk)
         with patch("shared.upload_limits.reserve_request") as reserve:
             uploaded = self.client.post(
@@ -448,7 +432,6 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         signer = Account.create()
         account = UserAccount.objects.filter(user_profile=nominee_profile)
         with use_migrate():
-            Company.objects.filter(pk=self.company.pk).update(status=CompanyStatus.ACTIVE)
             account.update(account_status=ACCOUNT_STATUS_ACTIVE)
         now = timezone.now()
         challenge = generate_verification_challenge(signer.address, now - timedelta(seconds=1))

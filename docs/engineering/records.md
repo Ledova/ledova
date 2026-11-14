@@ -241,7 +241,7 @@ removal of test data still respects. The API deletes neither a company nor a sha
 class instead. Deleting a wallet cascades its whitelist entry and that entry's company approvals and
 leaves the approval on chain; durable [whitelist commands](chain.md#whitelist-changes) keep their
 own identity. Allotment identity stamps keep the identity resolved at issue, which treasury
-relabelling or a current profile guess must not replace. Activation receipts are application
+relabelling or a current profile guess must not replace. Retained activation receipts are application
 evidence, not membership rows.
 
 The separate [company-exit command](../operations/operator-console.md#company-exit) is the narrow

@@ -162,7 +162,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines, an optional `figure` at the right of the
   title, such as an award's promised shares, and an aside. A step in a checklist, such
-  as "Activate your company", and a row that starts a task, such as "Prepare a non-paid
+  as "Set up your ledger", and a row that starts a task, such as "Prepare a non-paid
   transfer", are named for the step or the task; a record's row, such as a share class in Ledger,
   for the record; and a row that opens a section of a page, such as "Documents", for that
   section. Dashboard's class card ends with a **Class details** row, and each of Ledger's class rows
@@ -412,8 +412,7 @@ Other decision families and separate API decisions keep their existing workflow.
 On the web, prefer editing a record's details in its existing card: replace the read view with the
 fields under the same heading, with Cancel and Save together at the bottom right. Focus the first
 field when editing opens and return focus to Edit when it ends, if that action is still available.
-Company information and personal Profile details follow this pattern. Activation reviews its current
-company and declaration on the main page before explicit confirmation.
+Company information and personal Profile details follow this pattern.
 Class rights follows this pattern: Edit replaces its read view and previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured
@@ -490,10 +489,10 @@ opening the people list. Documents uses the same pattern for **Certificates** (t
 **Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
 `/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
 one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
-**Team** and **Activation** where permitted, without an extra overview page; the app's menu has
+**Team** where permitted, without an extra overview page; the app's menu has
 Ledger, without the tasks it doesn't have yet, Shareholders with Employee scheme and Member access,
-Documents' pages, Team and Activation under the same conditions. A group with only one permitted page, such as Documents with only Certificates, is a
-plain link to that page, marked current there. Profile always holds personal information. Team, Activation and
+Documents' pages and Team under the same conditions. A group with only one permitted page, such as Documents with only Certificates, is a
+plain link to that page, marked current there. Profile always holds personal information. Team and
 Company details follow current company access. Personal edits never change company-recorded particulars.
 Account has four cards: **Security** (the identity check's status with **Review**, which the app
 leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
@@ -505,9 +504,7 @@ of the first three has its label on the left
 and its status, value, one compact text action or switch on the right, vertically centred at every
 width; Account details' **Member since** (a short date) and **Last login** use the same rows. Keep
 export and deletion on Data and privacy, in the same rows (Export data with **Export**, Delete
-account with **Delete**), with their existing confirmations. Activation's status card shows
-**Status** on one line, its label on the left and the company's status on the right, and its
-historical record gives each event a short date. The
+account with **Delete**), with their existing confirmations. The
 theme switch sits beside Sign out in the sidebar's footer, not in Settings. Show company
 and member destinations from current access and context; Team stays available for accepting a company
 invitation.
@@ -609,7 +606,6 @@ Where a shared hook only reports that some command is running, `useRunningAction
 (`dashboard/src/hooks`) names the action that was clicked. A few actions show their work another
 way:
 
-- Activation's review hides its action and shows "Checking activation…".
 - A register decision's rejection preview shows "Loading the preview…".
 
 A load error's Try again and recovery actions keep their label while they run; a form's submit
@@ -1036,7 +1032,7 @@ This section covers how a form reports a problem: when it is submitted, and when
     `useErrorSummary` (`packages/shared/src/hooks/useErrorSummary.ts`)
     reads the form's problems, keyed by field, and forms that share one summary, such as Member
     access's invitation, revocation and certificate instruction, check only the fields their action
-    needs. The app's Team, Activation, representative authority, inspection copy, company pack, Add
+    needs. The app's Team, representative authority, inspection copy, company pack, Add
     person, particulars change, member access, employee award, vesting and entitlement-change and
     class rights forms use it too, showing each problem under its field without a summary.
     A box that must be ticked is a `CheckboxField`. Register import names each shareholder and allotment in its summary instead of linking
@@ -1098,8 +1094,7 @@ by a local helper or a browser `toLocale…` call:
 - **Dates** use `formatDate`: "20 October 2026". A calendar date is read in UTC, so it shows the day
   the server recorded. The compact rows of Issue shares, Transfer shares, Corrections, a shareholder's
   page, Employee share scheme, Certificates, Member access, prepared inspection
-  copies, appointments and issued invitations, Account details' Member since, Activation's
-  historical record, authority requests, Set up your ledger's record date and shareholder rows, and an
+  copies, appointments and issued invitations, Account details' Member since, authority requests, Set up your ledger's record date and shareholder rows, and an
   award's agreement and event dates use `formatShortDate`, "20 Oct 2026", read the same way; allotment
   details and an award's Original vesting keep `formatDate`.
 - **Date-times** use `formatDateTime`: "20 Oct 2026, 2:30 pm", in the viewer's local time and the

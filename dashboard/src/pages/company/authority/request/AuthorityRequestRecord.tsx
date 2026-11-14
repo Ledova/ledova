@@ -85,8 +85,7 @@ export function AuthorityRequestRecord({
                 <p className="text-sm text-text-primary">{COMPANY_SIGNUP_DECLARATION}</p>
                 <p className="text-sm text-text-muted">
                   Declaration version {COMPANY_SIGNUP_DECLARATION_VERSION}. Your appointment uses the exact permissions,
-                  delegation and expiry of this request. It does not activate the company or approve any register
-                  action.
+                  delegation and expiry of this request. It approves no register action.
                 </p>
                 <a
                   href={`${SITE_URL}${SITE_PATHS.termsOfService}`}
@@ -172,7 +171,7 @@ export function AuthorityRequestRecord({
             <p className="text-text-primary">{appointment.declarationText}</p>
             <p className="text-text-muted">
               This is your recorded self-declaration. Company information is provided by the company. An appointment
-              does not activate the company or approve any register action.
+              approves no register action.
             </p>
           </div>
           <p className="text-sm text-text-muted">

@@ -60,7 +60,7 @@ while access is rechecked, and the notice
 only once the check settles. Ledger and Shareholders read the selected company's classes and
 holders through `hooks/useCompanyRegisters.ts`. Production screens import no other area's internals.
 Profile, operator, member, company list, appointment and company ownership reads, Team's reads
-and forms, Activation's company read and confirmation, representative authority's reads, actions
+and forms, representative authority's reads, actions
 and request form, Documents' class source, certificate records, preparations and prepared
 outputs, Shareholders' register, people and shareholder reads, list, Add person, particulars change
 and member access form, the employee scheme's award, vesting and grant reads, award, vesting and
@@ -135,7 +135,7 @@ Dark theme switch. It closes when its screen
 loses focus, and it marks the section the page belongs to: Ledger for Ledger,
 Issue shares, Transfer shares and Corrections, Shareholders for Shareholders, Employee share scheme and
 Member access, Documents for Certificates, Inspection copies and Company pack,
-Settings for Profile, Account, Data and privacy, Team and Activation, Dashboard for Invitation. Choosing Dashboard
+Settings for Profile, Account, Data and privacy and Team, Dashboard for Invitation. Choosing Dashboard
 returns to it. Ledger opens its overview, Shareholders its people list, Documents opens Certificates
 and Settings opens Profile.
 Like the web's groups, a caret shows a group's pages beneath it, open while one of them is shown.
@@ -146,8 +146,7 @@ access.
 Documents lists Certificates, Inspection copies and Company pack when the selected company's
 `canReadRegister` allows it, as the web's sidebar does, and is otherwise one link to Certificates.
 Settings lists Profile, Account and Data and privacy, then Team when the selected company's `canManage`
-allows it, and Activation after it when the person also has a current own appointment with `admin`
-(the shared `hasCurrentAdminAppointment`) or Activation is shown, as on the web. On a Settings page
+allows it, as on the web. On a Settings page
 the menu doesn't list,
 such as Team opened from Account, Settings itself is marked. Every other choice opens
 above Dashboard, so Android's Back returns there; iOS's swipe goes back too. Pages (`Page`) and their cards
@@ -169,8 +168,8 @@ current shareholders, largest first, 25 to a page with the web's pager, and the 
 and awards where they hold shares. It has the web's loading, incomplete-total, unopened-class, no
 shareholder and failure states with Try again, and the trail returns from a class the overview no
 longer lists. The class card ends with the web's **Class details** row, which opens the class's page.
-Above the overview, an administrator sees the web's **Getting started** until activation and register
-setup are done: **Activate your company** opens Activation and **Set up your ledger** opens Ledger.
+Above the overview, an administrator sees the web's **Getting started** until the register is set up:
+**Set up your ledger** opens Ledger.
 For a company where the person is only a member, the Ownership
 overview comes from the shared `ownershipView`, read from the member record's shared ownership, or
 from the member's own shares when the company does not share its totals: your shares, issued shares,
@@ -424,8 +423,8 @@ compact rows (`MemberRow` in `ImportRecord.tsx`), with **Edit** and **Remove** i
 allotments** on Review, whose record date, shares held and shareholders are one line each. **Cancel**
 returns to the page that opened it, on every step but Shareholders, where **Back** returns to Share
 details, and a page that cannot show the form still offers it. The top bar's arrow returns to Ledger.
-Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`), Team and
-Activation. Profile, the `Settings` route, is the web's Personal
+Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`) and
+Team. Profile, the `Settings` route, is the web's Personal
 information card: the person's details on one-line rows, and **Edit details** opens their form
 in the card. Pulling down refreshes the profile. Account (`Account`) has the web's four cards. Security
 shows the identity check status from the profile (the app has no identity check flow, so there is no
@@ -477,12 +476,6 @@ while pending, and **Revoke appointment**. Withdrawing and revoking ask first in
 Pulling down rereads the requests while no request form is open and no action is running.
 Its top bar's back arrow returns to Account, and the request page's returns to Representative
 authority; Android's Back and the iOS swipe also return to the previous page.
-Activation (`ActivationScreen.tsx`) is the web's page at phone width, through the shared
-`useCompanySelection`, limited to personal administration of the selected company, and
-`useCompanyActivation`: Activation status with the company's status on one line, wrapping when
-long, **Show the historical record** with short dates, and **Review activation**, which replaces the
-page with the company's declaration, the web's checkbox and **Confirm activation**, and Your
-identity, whose row opens Account, while the company awaits activation. Pulling down rereads the company while no review is open.
 A notification, tapped in that list or as a push, opens its screen: vested shares open Dashboard on
 the award's company (with its class, where the overview lists it) and issued shares Certificates for
 that class, each saying so when that company no longer records you. A certificate-ready notice sent

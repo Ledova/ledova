@@ -52,7 +52,6 @@ export const DESTINATIONS = {
     audience: 'company',
   },
   companyTeam: { path: '/company/team', title: 'Company team', audience: 'everyone' },
-  companyListing: { path: '/company/listing', title: 'Activation', audience: 'everyone' },
   certificates: { path: '/documents/certificates', title: 'Certificates', audience: 'everyone' },
   userProfile: { path: '/user-profile', title: 'Profile', audience: 'everyone' },
   settings: { path: '/settings', title: 'Settings', audience: 'everyone' },
@@ -78,7 +77,6 @@ export const DESTINATION_PARENTS: Partial<Record<DestinationKey, DestinationPare
   companyRegisterAward: { destination: 'companyRegister', view: 'awards' },
   company: { destination: 'settings' },
   companyTeam: { destination: 'settings' },
-  companyListing: { destination: 'settings' },
   userProfile: { destination: 'settings' },
 };
 

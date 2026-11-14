@@ -3,13 +3,13 @@
 [Business processes](README.md) · [Documentation](../README.md)
 
 How a company joins Ledova and who may act for it: signup and the representative's declaration,
-team invitations and appointments, company information, and activation. It is written
+team invitations and appointments, company information and company status. It is written
 for company representatives, support staff and anyone learning how company authority is established. The representative declares their own authority and Ledova does
 not verify it ([self-declaration decision](../decisions.md#company-representative-verification));
 who holds which capability is in [company capabilities](README.md#company-capabilities). All of it
 happens on the web, and the mobile app also has [company signup](#company-signup), the web's
-[Team](#team-invitations-and-appointments),
-[Representative authority](#representative-authority-requests) and [Activation](#activation), and
+[Team](#team-invitations-and-appointments) and
+[Representative authority](#representative-authority-requests), and
 shows a company's administrators and register readers its ownership overview, its
 [Ledger](register.md#the-register-page) with each [share class's page](register.md#the-share-class-page),
 [Issue shares](issuing-shares.md#ways-to-issue-shares),
@@ -25,7 +25,7 @@ shows a company's administrators and register readers its ownership overview, it
 - [What an appointment records](#what-an-appointment-records)
 - [Who may administer a company](#who-may-administer-a-company)
 - [Company information](#company-information)
-- [Activation](#activation)
+- [Company status](#company-status)
 - [Representative identity requirement](#representative-identity-requirement)
 - [The Company page](#the-company-page)
 
@@ -34,8 +34,9 @@ shows a company's administrators and register readers its ownership overview, it
 Company signup and the representative's initial authority finish in one flow on web and mobile
 ([combined signup decision](../decisions.md#combined-company-signup-and-initial-authority),
 as amended the [same day](../decisions.md#simple-signup-documents-and-team-after-registration)).
-Ledova does not look the company up in the ABR or any other register, at signup or at
-[activation](#activation) ([decision](../decisions.md#abr-company-check-removed)).
+Ledova does not look the company up in the ABR or any other register
+([decision](../decisions.md#abr-company-check-removed)), and nobody at Ledova reviews or approves it
+([decision](../decisions.md#company-activation-removed)).
 
 1. Create your account, verify your email and choose **Company representative** as the account
    type.
@@ -65,11 +66,11 @@ the declaration version and text and the admission time.
 
 After signup, invite users at **Settings → Team**. A company keeps no separate documents on Ledova;
 it uploads its own evidence with the register work that needs it
-([decision](../decisions.md#company-documents-removed)). The company remains Draft until a current
-administrator activates it: registration does not incorporate a company with ASIC, appoint a
-director, activate the company or issue shares. Until then, the **Getting started** list
-on the company Dashboard links its personal administrators to unfinished activation and register
-setup tasks; completed tasks disappear ([the Dashboard](README.md#the-app-at-a-glance)).
+([decision](../decisions.md#company-documents-removed)). Completing signup makes the company
+Active ([company status](#company-status)); registration does not incorporate a company with ASIC,
+appoint a director or issue shares. Until the company's register is set up, **Getting started** on
+the company Dashboard links its personal administrators to **Set up your ledger**
+([the Dashboard](README.md#the-app-at-a-glance)).
 
 Resuming an unfinished signup:
 
@@ -113,7 +114,7 @@ choose the file with the device's file picker, and **Download evidence** opens t
    capabilities, the expiry and any file, and shows what it captured.
 5. On the request's page, accept the displayed declaration of your workspace and team authority, which also accepts the
    Terms on the company's behalf, and admit the request. Where your instance requires a verified
-   identity, an unverified one leaves the request pending. Admission does not activate the company.
+   identity, an unverified one leaves the request pending. Admission makes the company Active.
 6. Read the appointment's personal and delegatable capabilities, expiry and status. An attached
    file stays available from the request's page (**Download evidence**).
 7. Withdraw a pending request you no longer want. After admission, **Revoke appointment** asks you
@@ -190,8 +191,8 @@ and revocations cannot be edited or deleted
 ([how company rows are protected](../engineering/security.md#company-rows)).
 
 - Signup admission records the 2026-11-09 workspace and Terms declaration. Invitation acceptance
-  and company activation each keep their own 2026-10-04 declaration; a person accepting a limited
-  invitation does not declare workspace administration. Earlier admitted declarations keep their
+  keeps its own 2026-10-04 declaration, as do the receipts of companies activated before activation
+  was removed; a person accepting a limited invitation does not declare workspace administration. Earlier admitted declarations keep their
   original version and text.
 - An administrator's later acceptance of the current signup Terms is kept separately, with the
   person, profile, company, appointment, version, text and time. It grants no capability and does
@@ -237,45 +238,22 @@ A current company administrator reads and edits the company's basic information 
 
 Rules:
 
-- The ACN, ABN and company type can change only while the company is Draft. The registered name
-  and the officeholder declaration (the declarant's name and the board resolution reference) can
-  change only while it is Draft or, for an older company, Additional Information Required.
+- Administrators can correct the registered name with **Edit company** at any time; Ledova does
+  not freeze a company's details. The ACN, ABN and company type are entered at signup.
 - An ACN and an ABN must pass their check digits, and an ASIC-registered company's ABN must be its
   ACN with two check digits in front. A check-digit pass is a typo filter, not verification: Ledova
   does not confirm that a number belongs to a real company.
 - Changing the registered name, ACN, ABN, company type or officeholder declaration starts a new
-  company revision, which closes any open activation review.
+  company revision.
 
-## Activation
+## Company status
 
-A current personal administrator activates the company on the web or in the mobile app. Activation
-records your declaration and, where your instance requires it, needs your verified identity; the
-company is not looked up in the ABR or any other register
-([decision](../decisions.md#abr-company-check-removed)).
-It establishes no share issue, payment or wallet approval. Before activation, the company's
-administrators can keep its own non-tokenised register records, such as the mirrored register,
-awards, allotments, transfers and member access, but wallet nominations, chain deployments and
-issues, capital increases and company wallet instructions wait for an Active company.
-
-1. Establish your authority first, through signup or an accepted administrator invitation.
-2. Open **Settings → Activation**, shown only to personal administrators, or use the same step in
-   Getting started on the Dashboard. Refresh the company details and your appointment.
-   A company account role or an owned draft does not substitute for an appointment; an appointed
-   investor can use the same page.
-3. Choose **Review activation**, read the company and the exact declaration on the main page, tick **I accept this
-   declaration for this company** and choose **Confirm activation** once.
-4. The company becomes Active. Ledova keeps an activation receipt recording you, your appointment,
-   the declaration and your identity status at that moment.
-
-A change to your appointment, the company details or the declaration invalidates an open
-confirmation. If the reply is lost, the same unchanged request returns the retained receipt without
-activating again. Where your instance requires a verified identity and yours is not verified,
-activation is refused and nothing is recorded; verify your identity and review activation again.
-Activation readiness disappears when personal administration ends. Activation sends no notification.
-
-Companies activated before the ABR check was removed keep their activation receipts; the lookup
-results, and attempts that never activated a company, were deleted
-([decision](../decisions.md#abr-company-check-removed)).
+A company becomes **Active** when its signup completes, that is, when its first administrator's
+request is admitted ([decision](../decisions.md#company-activation-removed)). There is no separate
+activation step, and nobody at Ledova reviews or approves a company: Ledova provides the register
+software, and the company remains responsible for its details, its records and its legal
+obligations. A company whose signup is unfinished stays Draft. Companies activated before the step
+was removed keep their activation receipts as records.
 
 The earlier owner submission and platform-staff review is retired. Its records remain, and older
 companies may still show its states (Submitted for Review, Under Review, Additional Information
@@ -285,9 +263,9 @@ Required, Approved, Rejected or Withdrawn).
 
 Platform staff with the company change permission in admin keep bounded technical controls over an
 active company: issue a compliance warning, suspend, delist, resolve a warning and reinstate.
-Resolving a warning or reinstating returns the company to Active only when it has an activation
-receipt or a historical officeholder attestation. These controls cannot activate a new draft or act
-as company appointment authority, and the status changes send no notification. They exist only in
+Resolving a warning or reinstating returns the company to Active only when it was Active before or
+has a historical officeholder attestation. These controls cannot activate a draft or act as company
+appointment authority, and the status changes send no notification. They exist only in
 admin: there is no API for them, and the database refuses these status changes from a staff account
 without the change permission.
 
@@ -295,11 +273,11 @@ without the change permission.
 
 Each instance chooses whether company representatives must have a verified identity; it is off by
 default. When it is on, the person's verified identity is required for every act of company
-authority: initial admission, accepting an invitation, activation, company administration,
+authority: initial admission, accepting an invitation, company administration,
 member invitations, and register and wallet decisions. Staff technical
 recovery of a company is not affected. A representative becomes verified only through the
 configured identity provider, from **Verify your identity** at signup review or later from
-**Settings → Account** on web with the identity check's **Review**, which Activation's identity step links to. With the requirement on and no
+**Settings → Account** on web with the identity check's **Review**. With the requirement on and no
 provider, every company decision is refused
 ([operator configuration](../operations/operator-console.md#operator-configuration)). The investor
 requirement is separate ([participants](participants.md#account-standing)).
@@ -312,8 +290,8 @@ and address, and whether the ownership overview is shared with members. Administ
 **Edit company**.
 
 On web, select the company in Dashboard. Settings opens Profile, combining personal and permitted
-company sections with separate editors and permissions, beside Account and Data and privacy. Team and
-Activation have their own Settings items, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Account's Your appointments.
+company sections with separate editors and permissions, beside Account and Data and privacy. Team has
+its own Settings item, without a repeated Company administration link card. A member association alone provides no company administration controls. Representative authority is a contextual task in Account's Your appointments.
 
 Share classes are listed and added only in [Ledger](register.md#bringing-in-existing-records).
 

@@ -246,7 +246,6 @@ CREATE OR REPLACE FUNCTION public.companies_guard_administration()
 AS $function$
 DECLARE
     actor authentication_customuser;
-    receipt companies_companyactivation;
     operation text;
     principal bigint;
     allowed text[];
@@ -331,11 +330,7 @@ BEGIN
             OR (ROW(NEW.acn, NEW.abn) IS DISTINCT FROM ROW(OLD.acn, OLD.abn)
                 AND NOT companies_valid_identifiers(NEW.acn, NEW.abn))
             OR NEW.company_type NOT IN ('pty', 'public', 'unlisted') OR NEW.name = ''
-            OR (OLD.status <> 'draft' AND ROW(NEW.acn, NEW.abn, NEW.company_type)
-                IS DISTINCT FROM ROW(OLD.acn, OLD.abn, OLD.company_type))
-            OR (OLD.status NOT IN ('draft', 'info_required') AND ROW(NEW.name, NEW.declarant_name, NEW.board_resolution_reference)
-                IS DISTINCT FROM ROW(OLD.name, OLD.declarant_name, OLD.board_resolution_reference))
-        THEN RAISE EXCEPTION 'Retain protected company identity and review fields' USING ERRCODE = '23514'; END IF;
+        THEN RAISE EXCEPTION 'Retain protected company fields and valid identifiers' USING ERRCODE = '23514'; END IF;
         reviewed := ROW(NEW.name, NEW.acn, NEW.abn, NEW.company_type, NEW.declarant_name, NEW.board_resolution_reference)
             IS DISTINCT FROM ROW(OLD.name, OLD.acn, OLD.abn, OLD.company_type, OLD.declarant_name, OLD.board_resolution_reference);
         IF (reviewed AND NEW.lifecycle_revision IS DISTINCT FROM OLD.lifecycle_revision + 1)
@@ -349,18 +344,17 @@ BEGIN
                 RAISE EXCEPTION 'Current administration must remain effective after wallet locks' USING ERRCODE = '23514';
             END IF;
         END IF;
-    ELSIF operation = 'activation' THEN
-        SELECT * INTO receipt FROM companies_companyactivation WHERE company_id = OLD.uuid FOR SHARE;
+    ELSIF operation = 'admission' THEN
         IF to_jsonb(NEW) - ARRAY['status', 'activated_at', 'lifecycle_revision', 'updated_at']
                 IS DISTINCT FROM to_jsonb(OLD) - ARRAY['status', 'activated_at', 'lifecycle_revision', 'updated_at']
-            OR OLD.status NOT IN ('draft', 'submitted', 'review', 'info_required', 'approved', 'rejected', 'withdrawn')
-            OR OLD.activated_at IS NOT NULL OR NEW.status IS DISTINCT FROM 'active'
-            OR NEW.lifecycle_revision IS DISTINCT FROM OLD.lifecycle_revision + 1
-            OR receipt.uuid IS NULL OR receipt.lifecycle_revision IS DISTINCT FROM OLD.lifecycle_revision
-            OR NEW.activated_at IS DISTINCT FROM receipt.activated_at
-            OR NOT COALESCE(companies_current_activation_source(receipt), false)
-        THEN RAISE EXCEPTION 'Activation requires its exact current personal appointment and declaration receipt'
-            USING ERRCODE = '23514'; END IF;
+            OR OLD.status IS DISTINCT FROM 'draft' OR OLD.activated_at IS NOT NULL OR NEW.status IS DISTINCT FROM 'active'
+            OR NEW.lifecycle_revision IS DISTINCT FROM OLD.lifecycle_revision + 1 OR OLD.owner_id IS DISTINCT FROM principal
+            OR NEW.activated_at IS NULL OR NEW.activated_at < transaction_timestamp() OR NEW.activated_at > clock_timestamp()
+            OR NOT EXISTS (SELECT 1 FROM companies_companyappointment appointment
+                WHERE appointment.company_id = OLD.uuid AND appointment.appointee_id = principal
+                    AND appointment.request_id IS NOT NULL
+                    AND tokens_register_appointment_current(appointment.uuid, OLD.uuid, principal, 'admin', clock_timestamp()))
+        THEN RAISE EXCEPTION 'Signup admission activates only the admitted owner draft' USING ERRCODE = '23514'; END IF;
     ELSIF operation = 'admin_workflow' THEN
         IF NOT (actor.is_superuser OR EXISTS (SELECT 1 FROM auth_permission permission
             JOIN django_content_type kind ON kind.id = permission.content_type_id
@@ -384,11 +378,10 @@ BEGIN
                 OR (OLD.status = 'active' AND NEW.status = 'warning')
                 OR (OLD.status IN ('active', 'warning') AND NEW.status = 'suspended')
                 OR NEW.status = 'delisted'))
-            OR (NEW.status = 'active' AND OLD.status <> 'active'
-                AND NOT EXISTS (SELECT 1 FROM companies_companyactivation activation WHERE activation.company_id = OLD.uuid)
+            OR (NEW.status = 'active' AND OLD.status <> 'active' AND OLD.activated_at IS NULL
                 AND (OLD.officeholder_attested_by_id IS NULL OR OLD.officeholder_attested_at IS NULL
                     OR OLD.declarant_name = '' OR OLD.board_resolution_reference = ''))
-        THEN RAISE EXCEPTION 'Retain technical company recovery and its activation safeguards'
+        THEN RAISE EXCEPTION 'Retain technical company recovery and its safeguards'
             USING ERRCODE = '23514'; END IF;
     ELSE RAISE EXCEPTION 'Use a bounded company command' USING ERRCODE = '23514';
     END IF;

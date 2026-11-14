@@ -37,7 +37,6 @@ export {
   SIGNUP_COMPANY_DETAIL_QUERY_KEY,
 } from './useSignupReview';
 export { useLaterPages } from './useLaterPages';
-export { useCompanyActivation } from './useCompanyActivation';
 export { REGISTER_ALLOTMENT_DECISIONS } from './useRegisterDecision';
 
 export { ownMemberRecordsKey, useMemberRecords } from './useMemberRecords';

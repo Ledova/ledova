@@ -13,7 +13,6 @@ export const CompanyRegisterTransferPage = lazy(() => import('@pages/company/led
 export const CompanyShareholderPage = lazy(() => import('@pages/company/ledger/member'));
 export const CompanyTeamPage = lazy(() => import('@pages/company/team'));
 export const DashboardPage = lazy(() => import('@pages/home'));
-export const ListingPage = lazy(() => import('@pages/company/listing'));
 export const MemberInvitationPage = lazy(() => import('@pages/member-invitation'));
 export const NotFoundPage = lazy(() => import('@pages/not-found'));
 export const SettingsPage = lazy(() => import('@pages/settings'));

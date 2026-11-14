@@ -398,7 +398,7 @@ function SettingsGroup({
   const selected = settingsView(location.pathname, location.hash);
   const items = SETTINGS_VIEWS.filter(
     (item) =>
-      ((item.key !== 'company-team' && item.key !== 'activation') || !!context?.company?.canManage) &&
+      (item.key !== 'company-team' || !!context?.company?.canManage) &&
       (selected === item.key || navigation.items.includes(item)),
   );
 

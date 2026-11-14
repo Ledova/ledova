@@ -182,12 +182,8 @@ class Company(BaseModel):
         if not self.has_officeholder_attestation:
             raise OfficeholderAttestationRequiredException()
 
-    @property
-    def has_initial_activation_provenance(self):
-        return hasattr(self, "activation_receipt")
-
     def _require_activation_basis(self):
-        if not self.has_initial_activation_provenance:
+        if self.activated_at is None:
             self._require_attestation()
 
     def issue_warning(self, reason: str):

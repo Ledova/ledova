@@ -8,8 +8,6 @@ from rest_framework.response import Response
 from companies.filters import CompanyFilter
 from companies.models import Company
 from companies.serializers import (
-    CompanyActivateSerializer,
-    CompanyActivationReceiptSerializer,
     CompanyDetailSerializer,
     CompanyListSerializer,
     CompanyRegistrationSerializer,
@@ -19,7 +17,6 @@ from companies.serializers.pack import (
     CompanyPackRequestSerializer,
     CompanyPacksSerializer,
 )
-from companies.services.activation import activate_company
 from shared.db import set_principal
 from shared.views import AuthenticatedModelViewSet
 from tokens.exceptions import RegisterIntegrityError
@@ -28,11 +25,10 @@ from tokens.services.output_history import company_pack_history
 
 
 class CompanyViewSet(AuthenticatedModelViewSet):
-    operator_actions = frozenset({"list", "retrieve", "activate", "pack", "packs"})
+    operator_actions = frozenset({"list", "retrieve", "pack", "packs"})
     operator_actions_because = (
         "Company metadata reads retain the exact current owner alongside current personal administration. "
-        "The contact remains separately administration-scoped. Activation requires "
-        "the exact current personal administrator appointment and actor-bound service checks. Company pack "
+        "The contact remains separately administration-scoped. Company pack "
         "download captures one supported complete archive, refuses restricted categories and rechecks the "
         "personal administrator and tenant before recording the immutable delivery audit. The list of earlier "
         "packs requires the same current personal administrator and shows only packs recorded as produced through "
@@ -47,7 +43,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
-        if self.action in {"list", "retrieve", "activate"}:
+        if self.action in {"list", "retrieve"}:
             set_principal(request.user.pk)
 
     def get_serializer_class(self):
@@ -57,8 +53,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             return CompanyListSerializer
         if self.action == "partial_update":
             return CompanyUpdateSerializer
-        if self.action == "activate":
-            return CompanyActivateSerializer
         return CompanyDetailSerializer
 
     @extend_schema(
@@ -75,7 +69,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         response_serializer = CompanyDetailSerializer(company, context=self.get_serializer_context())
         return Response(
             {
-                "message": "Company registered successfully. Establish company authority to activate your register.",
+                "message": "Company registered. Complete company setup to establish your authority.",
                 "company": response_serializer.data,
             },
             status=status.HTTP_201_CREATED,
@@ -88,31 +82,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         serializer.is_valid(raise_exception=True)
         company = serializer.save()
         return Response(CompanyDetailSerializer(company, context=self.get_serializer_context()).data)
-
-    @extend_schema(
-        request=CompanyActivateSerializer,
-        responses=inline_serializer(
-            name="CompanyActivated",
-            fields={
-                "message": serializers.CharField(),
-                "company": CompanyDetailSerializer(),
-                "receipt": CompanyActivationReceiptSerializer(),
-            },
-        ),
-    )
-    @action(detail=True, methods=["post"])
-    def activate(self, request, uuid=None):
-        company = self.get_object()
-        serializer = CompanyActivateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        company, receipt = activate_company(actor=request.user, company_id=company.pk, **serializer.validated_data)
-        return Response(
-            {
-                "message": "Company activated.",
-                "company": CompanyDetailSerializer(company, context=self.get_serializer_context()).data,
-                "receipt": CompanyActivationReceiptSerializer(receipt).data,
-            }
-        )
 
     @extend_schema(request=CompanyPackRequestSerializer, responses={(200, "application/zip"): OpenApiTypes.BINARY})
     @action(detail=True, methods=["post"])
@@ -139,8 +108,8 @@ class CompanyViewSet(AuthenticatedModelViewSet):
     def narrow(self, queryset):
         if self.action in {"list", "retrieve"}:
             return queryset.readable_by(self.request.user)
-        if self.action in {"activate", "pack", "packs"}:
-            return queryset.for_activation(self.request.user, self.kwargs.get("uuid"))
+        if self.action in {"pack", "packs"}:
+            return queryset.personally_administered_by(self.request.user, self.kwargs.get("uuid"))
         if self.action == "partial_update":
             return queryset.administrable_by(self.request.user)
         return queryset.owned_by(self.request.user)

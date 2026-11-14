@@ -47,13 +47,3 @@ class TeamInvitationConflictException(APIException):
     default_detail = "This invitation key already records different terms. Create a new invitation."
     default_code = "team_invitation_conflict"
     expose_code = True
-
-
-class CompanyActivationConflictException(APIException):
-    status_code = status.HTTP_409_CONFLICT
-    default_detail = (
-        "This activation request conflicts with its retained company, appointment or terms. "
-        "Refresh and use a new request key."
-    )
-    default_code = "company_activation_conflict"
-    expose_code = True

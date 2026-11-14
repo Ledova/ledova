@@ -25,8 +25,9 @@ stay here as history and are marked where they appear.
 | [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)             | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                                                                                      |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                            | September to 6 October 2026                    | Eligibility superseded 2 November (#1491); offering parts removed under #1421                                                      |
 | [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Current; #1491; supersedes classification, eligibility, payslips, the ABR check and company documents                              |
-| [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; supersedes the 19 October ABR lookup at activation                                                          |
+| [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; activation itself removed 14 November (#1567)                                                                                             |
 | [Company documents removed](#company-documents-removed)                                                            | 2 November 2026                                | Current; #1491 step 3; retained instructions take the company's own evidence                                                       |
+| [Company activation removed](#company-activation-removed)                                                          | 14 November 2026                               | Current; #1567; a company is Active when its signup completes, with no activation step or review                                                                 |
 | [The stored register](#the-stored-register)                                                                        | September 2026; staff review retired 5 October | Current                                                                                                                            |
 | [Register CSV download removed](#register-csv-download-removed)                                                    | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
 | [Company-scoped approvals](#company-scoped-approvals)                                                              | 19 September 2026                              | Current                                                                                                                            |
@@ -463,7 +464,7 @@ payslips and company eligibility decisions were removed. The amount-paid rule an
 `issuer_kyc_required` switch below stand._
 
 Under the 3 October decision, company
-[activation](business/companies.md#activation) and
+activation ([removed 14 November](#company-activation-removed)) and
 company eligibility decisions
 replaced staff company activation and classification review on 6 October 2026
 (#863). The scope, privacy and expiry requirements below remain; a reusable
@@ -602,6 +603,29 @@ view and verify company documents go too, and producing the broader company pack
 **Can view company pack** in their place. This supersedes the company documents of the
 [simple signup](#simple-signup-documents-and-team-after-registration) decision and the Company
 documents page of the [compact sidebar](#ownership-dashboard-and-compact-sidebar).
+
+### Company activation removed
+
+**Owner decision, 14 November 2026**, given in the session while testing the app on the phone and
+tracked in [#1567](https://github.com/Ledova/ledova/issues/1567). Shown that activation, after the
+ABR check went, only repeated the signup declaration (adding "act for this company") and an identity
+check that signup admission already makes where the operator requires it, and that it gated only
+wallet and on-chain actions the apps no longer offer, the owner said: "make sure to remove the review
+activation step entirely, including any related backend logic, APIs, and unused code. I don't see a
+need for this step. When wallet functionality is reintroduced in the future, identity verification
+should be sufficient without requiring an additional activation review."
+
+A company is now Active when its signup completes: the first administrator's admission moves it
+from Draft to Active in the same transaction. There is no activation step, page or API, and nobody at
+Ledova reviews or approves a company; its administrators can correct its details after signup.
+Companies already admitted but still Draft became Active from their admission time, and receipts of
+earlier activations stay as read-only records. Staff warning, suspension and delisting stay, and a
+company returns to Active only if it was Active before or has a historical officeholder attestation.
+When wallet features return, a representative's verified identity, where the operator requires it,
+is the only added condition. This supersedes the activation parts of the
+[ABR company check removed](#abr-company-check-removed),
+[combined signup](#combined-company-signup-and-initial-authority) and
+[simple signup](#simple-signup-documents-and-team-after-registration) decisions.
 
 ## The stored register
 

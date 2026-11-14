@@ -267,16 +267,15 @@ On web, Dashboard selects the company used across company-related pages, without
 pickers or a workspace or role selector. Company appointments and actual member links determine the
 available records and actions; choosing a company grants neither.
 
-Settings opens Profile, with **Account** and **Data and privacy** beside it for everyone. Team and
-Activation appear where company access permits. Team remains reachable for accepting
+Settings opens Profile, with **Account** and **Data and privacy** beside it for everyone. Team
+appears where company access permits. It remains reachable for accepting
 a company invitation: **Settings → Account → Invitations → Company officer invitation** provides
 **Accept**, opening Team's guarded accept form. Member access stays
 under company [Shareholders](register.md#the-register-page), on the web and in the app.
 
 **Profile** combines Personal information with permitted Company details. Each editor retains its own
 permissions; personal changes do not edit company information, but linked member particulars follow
-the Profile change described above. **Activation** retains the
-[company activation workflow](companies.md#activation).
+the Profile change described above.
 
 **Account** shows **Security** (the identity check's status with **Review**, and the
 password with **Change**), **Account details** (**Member since**, such as "21 Oct 2026", and **Last
@@ -306,8 +305,7 @@ action and what it does on the left, with **Export** or **Delete** on the right.
   the unresolved full-company disposal boundary.
 
 On mobile, Settings has the same three pages for the selected company, then
-[Team](companies.md#team-invitations-and-appointments) where that company can be managed and
-[Activation](companies.md#activation) where the web shows it. Its current Account has **Security**, **Account details**,
+[Team](companies.md#team-invitations-and-appointments) where that company can be managed. Its current Account has **Security**, **Account details**,
 **Invitations** and **Your appointments**; the new web Terms renewal card is not yet a native screen.
 Security shows the identity status but no **Review**, since the app
 has no identity check flow, then **Change** for the password and the biometric sign-in (such as

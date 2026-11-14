@@ -16,9 +16,5 @@ export type CompanyRegistration = ApiRequest<'api_v1_companies_create'>;
 
 export type CompanyRegistrationResponse = ApiResponse<'api_v1_companies_create'>;
 
-export type CompanyActivate = ApiRequest<'api_v1_companies_activate_create'>;
-
-export type CompanyActivated = ApiResponse<'api_v1_companies_activate_create'>;
-
 export type CompanyPackRequest = ApiRequest<'api_v1_companies_pack_create'>;
 export type CompanyPacks = ApiResponse<'api_v1_companies_packs_retrieve'>;

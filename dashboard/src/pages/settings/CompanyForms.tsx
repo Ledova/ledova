@@ -9,7 +9,7 @@ import { EDIT_FIELDS, useEditCompanyForm, type FormProps } from './useCompanyFor
 import { Failure } from '@components/Ledger';
 
 export function EditCompanyForm(props: FormProps) {
-  const { company, target, read, onClose, draft, setDraft, pendingRef, canChangeName, available, problems, save } =
+  const { company, target, read, onClose, draft, setDraft, pendingRef, available, problems, save } =
     useEditCompanyForm(props);
   const checks = useErrorSummary(problems);
   const firstField = useRef<HTMLInputElement>(null);
@@ -42,11 +42,6 @@ export function EditCompanyForm(props: FormProps) {
             This draft belongs to a company that is no longer selected.
           </p>
         )}
-        {!canChangeName && (
-          <p className="text-sm text-text-muted">
-            The registered name can change only while the application is a draft or information has been requested.
-          </p>
-        )}
         {reading && (
           <Failure>{reading.generalError ?? 'The company changes were not saved. Check the fields below.'}</Failure>
         )}
@@ -60,10 +55,9 @@ export function EditCompanyForm(props: FormProps) {
               className={['name', 'addressLine1', 'addressLine2'].includes(key) ? 'sm:col-span-2' : undefined}
             >
               <TextInput
-                ref={key === (canChangeName ? 'name' : 'tradingName') ? firstField : undefined}
+                ref={key === 'name' ? firstField : undefined}
                 maxLength={maxLength}
                 value={draft[key]}
-                disabled={key === 'name' && !canChangeName}
                 onChange={(event) => setDraft({ ...draft, [key]: event.target.value })}
               />
             </Field>

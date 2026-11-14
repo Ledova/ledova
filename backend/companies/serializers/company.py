@@ -1,8 +1,7 @@
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from companies.models import Company, CompanyCapability, CompanyStatus
-from companies.services.activation import company_activation
+from companies.models import Company, CompanyCapability
 from companies.services.administration import (
     company_administrative_access,
     company_contact,
@@ -82,40 +81,7 @@ class CompanyListSerializer(_CompanyAdministrativeSerializer):
         read_only_fields = fields
 
 
-class CompanyActivationReceiptSerializer(serializers.Serializer):
-    uuid = serializers.UUIDField(read_only=True)
-    idempotency_key = serializers.UUIDField(read_only=True)
-    appointment = serializers.UUIDField(source="appointment_id", read_only=True)
-    lifecycle_revision = serializers.IntegerField(read_only=True)
-    activated_at = serializers.DateTimeField(read_only=True)
-    declaration_version = serializers.CharField(read_only=True)
-    declaration_text = serializers.CharField(read_only=True)
-
-
-class CompanyActivationSerializer(serializers.Serializer):
-    appointment = serializers.UUIDField(read_only=True)
-    lifecycle_revision = serializers.IntegerField(read_only=True)
-    declaration_version = serializers.CharField(read_only=True)
-    declaration_text = serializers.CharField(read_only=True)
-
-
-class CompanyActivateSerializer(serializers.Serializer):
-    idempotency_key = serializers.UUIDField()
-    appointment = serializers.UUIDField()
-    lifecycle_revision = serializers.IntegerField(min_value=0)
-    declaration_version = serializers.CharField(max_length=10)
-    accept_declaration = serializers.BooleanField()
-
-
 class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
-
-    activation = serializers.SerializerMethodField()
-
-    @extend_schema_field(CompanyActivationSerializer(allow_null=True))
-    def get_activation(self, obj):
-        readiness = company_activation(obj, getattr(self.context.get("request"), "user", None))
-        return CompanyActivationSerializer(readiness).data if readiness is not None else None
-
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     company_type_display = serializers.CharField(
         source="get_company_type_display",
@@ -189,7 +155,6 @@ class CompanyDetailSerializer(_CompanyAdministrativeSerializer):
             "primary_contact",
             "created_at",
             "updated_at",
-            "activation",
             "is_owner",
             "administrative_access",
         ]
@@ -283,32 +248,11 @@ class CompanyUpdateSerializer(serializers.ModelSerializer):
         fields["operator_wallet"].queryset = Wallet.objects.owned_by(getattr(request, "user", None)).verified_evm()
         return fields
 
-    def validate_name(self, value):
-        if self.instance and self.instance.status not in (CompanyStatus.DRAFT, CompanyStatus.INFO_REQUIRED):
-            if value != self.instance.name:
-                raise serializers.ValidationError("Request information before correcting the registered name.")
-        return value
-
     def validate_acn(self, value):
-        instance = self.instance
-        if instance and instance.status != CompanyStatus.DRAFT:
-            if value != instance.acn:
-                raise serializers.ValidationError("ACN cannot be changed after registration is submitted.")
         return checked_acn(value)
 
     def validate_abn(self, value):
-        instance = self.instance
-        if instance and instance.status != CompanyStatus.DRAFT:
-            if value != instance.abn:
-                raise serializers.ValidationError("ABN cannot be changed after registration is submitted.")
         return checked_abn(value)
-
-    def validate_company_type(self, value):
-        instance = self.instance
-        if instance and instance.status != CompanyStatus.DRAFT:
-            if value != instance.company_type:
-                raise serializers.ValidationError("Company type cannot be changed after registration is submitted.")
-        return value
 
     def validate(self, data):
         return with_matching_identifiers(self, data)

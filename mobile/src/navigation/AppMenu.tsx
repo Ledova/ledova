@@ -16,19 +16,11 @@ import {
   XIcon,
   type IconProps,
 } from 'phosphor-react-native';
-import {
-  OWN_APPOINTMENTS_QUERY_KEY,
-  hasCurrentAdminAppointment,
-  ownAppointmentsKey,
-  useOwnAppointments,
-  useSubmissionOwner,
-} from '@ledova/shared';
 import { useAppTheme, useMemberRecordsState, useThemeChoice } from '../contexts';
 import { SignOutModal } from '../components/auth/SignOutModal';
 import { LogoMark } from '../components/LogoMark';
 import { useSignOut } from '../hooks/useSignOut';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { orderSubmissionSession } from '../services/orderSubmissions';
 
 export type Section = 'Dashboard' | 'Ledger' | 'Shareholders' | 'Documents' | 'Settings';
 
@@ -47,8 +39,7 @@ export type MenuRoute =
   | 'Settings'
   | 'Account'
   | 'DataPrivacy'
-  | 'Team'
-  | 'Activation';
+  | 'Team';
 
 type MenuItem = {
   name: Section;
@@ -100,7 +91,7 @@ const sections = (canReadRegister: boolean): MenuItem[] => [
   },
 ];
 
-const yours = (canManage: boolean, activation: boolean): MenuItem[] => [
+const yours = (canManage: boolean): MenuItem[] => [
   {
     name: 'Settings',
     label: 'Settings',
@@ -111,29 +102,11 @@ const yours = (canManage: boolean, activation: boolean): MenuItem[] => [
       { route: 'Account', label: 'Account' },
       { route: 'DataPrivacy', label: 'Data and privacy' },
       ...(canManage ? [{ route: 'Team' as const, label: 'Team' }] : []),
-      ...(canManage && activation ? [{ route: 'Activation' as const, label: 'Activation' }] : []),
     ],
   },
 ];
 
 const MENU_WIDTH = 208;
-
-function useActivationListed() {
-  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const appointments = useOwnAppointments(
-    owner!,
-    () => {
-      if (!owner || boundary.get() !== owner) throw new Error('Your signed-in account changed.');
-    },
-    {
-      queryKey: owner ? ownAppointmentsKey(owner) : [...OWN_APPOINTMENTS_QUERY_KEY, null],
-      enabled: !!owner,
-      passive: true,
-      session: orderSubmissionSession,
-    },
-  );
-  return appointments.isSuccess && !appointments.isFetching && hasCurrentAdminAppointment(appointments.data);
-}
 
 function Wordmark() {
   const theme = useAppTheme();
@@ -208,7 +181,6 @@ export function AppMenu({
   const insets = useSafeAreaInsets();
   const { userProfile } = useUserProfile();
   const { company } = useMemberRecordsState();
-  const activation = useActivationListed();
   const { signOut, signingOut } = useSignOut();
   const [progress] = useState(() => new Animated.Value(0));
   const [shown, setShown] = useState(visible);
@@ -366,9 +338,7 @@ export function AppMenu({
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: theme.spacing.md, gap: theme.spacing.lg }}
           >
             <View style={{ gap: 4 }}>{sections(!!company?.canReadRegister).map(item)}</View>
-            <View style={{ gap: 4 }}>
-              {yours(!!company?.canManage, route === 'Activation' || activation).map(item)}
-            </View>
+            <View style={{ gap: 4 }}>{yours(!!company?.canManage).map(item)}</View>
           </ScrollView>
           <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.border.subtle, padding: 12, gap: 4 }}>
             {person && (

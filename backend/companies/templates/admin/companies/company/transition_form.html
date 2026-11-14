@@ -50,9 +50,9 @@
     </div>
 
     <div class="admin-card">
-        <div class="admin-card-header">Activation and officeholder declaration</div>
+        <div class="admin-card-header">Officeholder declaration</div>
         <div class="admin-card-body">
-            <p>Activation: {% if activation %}declared by {{ activation.activated_by }} on {{ activation.activated_at }}{% else %}No company administrator's activation is recorded.{% endif %}</p>
+            {% if activation %}<p>Earlier activation receipt: declared by {{ activation.activated_by }} on {{ activation.activated_at }}</p>{% endif %}
             <p>Attested by: {{ company.officeholder_attested_by|default:"Not yet attested" }} {{ company.officeholder_attested_at|default:"" }}</p>
         </div>
     </div>

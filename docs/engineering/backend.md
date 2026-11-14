@@ -33,7 +33,7 @@ modules re-exported by `settings/__init__.py`.
 | `operators`      | The single `Operator` configuration row, `GET /api/operator/` (that configuration, read by signed-in clients), and the operator console: `worklist()` and `configuration_health()` rendered by `OperatorAdmin.changelist_view`                                                                              |
 | `authentication` | `CustomUser`, the `AuthViewSet`, JWT sessions, email verification codes                                                                                                                                                                                                                                     |
 | `users`          | Profiles, accounts, preferences (the transaction-alerts switch, on one `UserPreferences` row), financial profiles, device tokens and notifications                                                                                                                                                          |
-| `companies`      | `Company`, its activation receipt (`CompanyActivation`), representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                                           |
+| `companies`      | `Company`, its retained activation receipts (`CompanyActivation`), representative-authority request, appointment, invitation, signup-terms and retained revocation records, and the staff company-pack page                                                                                                 |
 | `tokens`         | `ShareToken`, `ShareIssuanceRequest`, `ShareIssuance`, `CapitalIncreaseRequest`, `MintRequest`, `YieldToken`, the stored register with its company decision records, employee award and vesting records, external capital and allotment records, member access and register outputs, and the trading models |
 | `shareholders`   | No models since shareholder publications were [removed](../decisions.md#shareholder-publications-removed); the app keeps the migrations that created and dropped them ([migrations](#migrations))                                                                                                           |
 | `whitelist`      | `WhitelistEntry`, the per-company `WhitelistApproval` mirror, `WhitelistChange` commands, wallet nominations and company wallet instructions, and the sync from each company's registry                                                                                                                     |
@@ -235,6 +235,11 @@ These route groups have no bundled client and are kept deliberately:
   role. No task served company documents, so it deletes no queued job. It depends on
   `shareholders/0002_remove_publications`, so a database whose publications removal refuses stops
   before any document or file is deleted.
+- Removing activation ([#1567](https://github.com/Ledova/ledova/issues/1567)) kept the receipts.
+  `companies/0007_activate_at_signup` replays the company and receipt guards from current source,
+  drops the receipt-effect trigger and the activation-source function, and makes each company still
+  in Draft or an older onboarding state that already has an initial appointment Active from that
+  admission time. Its reverse changes no data.
 - Where anyone else is working, claim the migration number in a comment on the plan issue before
   pushing it. Where two migrations fork off one parent, the second to land re-points one
   dependency line in its rebase.
@@ -283,7 +288,7 @@ Register decisions, share-class chain decisions and company wallet instructions 
 steps; who may take each is in
 [how a company decision works](../business/README.md#how-a-company-decision-works). Employee
 awards, vesting events and member-access commands prepare under a retry key and take no decision;
-activation, authority requests and team commands take a retry key and, where needed, an exact
+authority requests and team commands take a retry key and, where needed, an exact
 declaration; company detail edits act on the caller's current administration.
 
 1. Prepare. The caller supplies a caller-scoped retry key (`idempotency_key`, or `operation_id`
@@ -316,7 +321,6 @@ never infers success from a lost response.
 | Authority requests                  | `/api/v1/company-authority/requests/`                                                                                                                                                                                  | [Authority](../business/companies.md)                                                                                                                                                                                                                                               |
 | Team invitations and appointments   | `/api/v1/company-authority/invitations/`, `/appointments/`                                                                                                                                                             | [Team](../business/companies.md#team-invitations-and-appointments)                                                                                                                                                                                                                  |
 | Company details                     | `/api/v1/companies/`                                                                                                                                                                                                   | [Company information](../business/companies.md#company-information)                                                                                                                                                                                                                 |
-| Activation                          | `/api/v1/companies/{uuid}/activate/`                                                                                                                                                                                   | [Activation](../business/companies.md#activation)                                                                                                                                                                                                                                   |
 | Wallet nominations and instructions | `/api/v1/whitelist/wallet-nominations/`, `company-wallet-nominations/`, `company-wallet-instructions/`, `company-wallet-targets/`                                                                                      | [Wallet approvals](../business/participants.md#wallet-nominations-and-company-wallet-approvals)                                                                                                                                                                                     |
 | Register evidence and setup         | `/api/v1/tokens/register-evidence/`, `register-member-documents/`, `register-openings/`, `register-links/`, `register-imports/`, `register-corrections/`, `register-particulars-changes/`, `register-reconciliations/` | [Register](../business/register.md)                                                                                                                                                                                                                                                 |
 | Grants, awards and allotments       | `/api/v1/tokens/register-grants/`, `register-awards/`, `register-award-vestings/`, `register-allotments/`                                                                                                              | [Grants](../business/issuing-shares.md#grants-to-walletless-members), [awards](../business/issuing-shares.md#employee-awards-and-vesting), [allotments](../business/issuing-shares.md#external-investor-allotments)                                                                 |
@@ -373,34 +377,19 @@ Shared requirement codes:
 
 Each family adds its own effect requirements.
 
-### Activation
+### Company status
 
-`companies/services/activation.py:activate_company` locks the company, actor, profile, settings and
-appointments, rechecks the caller's current personal `admin` appointment and, with
-`issuer_kyc_required` on, refuses an administrator who is not identity-verified with 400
-`issuer_identity_verification_required` before recording anything. In the same transaction it
-records the immutable `CompanyActivation` receipt (actor, appointment, retry key, company revision,
-declaration version and text, the operator's identity requirement and a snapshot of the actor's
-identity status) and moves the company to `ACTIVE` with the receipt's `activated_at`, taken from the
-database clock. No business register is consulted
-([decision](../decisions.md#abr-company-check-removed)). `CompanyDetail.activation` is null except
-for a current personal administrator, who receives the appointment, company revision and exact
-declaration, never private identity snapshots.
-
-`POST .../activate/` binds the exact `lifecycle_revision` and declaration version `2026-10-04` and
-answers 200 with the company and the receipt. The same key with the exact request returns the
-retained receipt. A declaration version other than `2026-10-04` answers 400 first. Reusing the key
-with any other change, or a new key for a stale revision or a company that is no longer awaiting
-activation, answers 409 `company_activation_conflict`.
-
-The guards in [activation_guards.sql](../../backend/companies/activation_guards.sql) refuse a
-receipt that is not inserted by its own administrator's `activation` command on the operator
-connection, for a company still awaiting activation at its current revision, through a current
-appointment with the exact declaration and identity snapshot, and refuse every later change or
-deletion; a deferred trigger refuses a receipt whose company did not become active with it. The
-company guard admits the `activation` transition only with that company's receipt. The app role has
-no grants on the receipts. Staff warning recovery and reinstatement stay in
-`companies/services/company.py:transition_company`
+`companies/services/authority.py:admit_authority_request` admits the first administrator's request
+and, in the same transaction, moves the company from Draft to `ACTIVE`, setting `activated_at` from
+the database clock and advancing its revision
+([company status](../business/companies.md#company-status)). No business register is consulted and
+no one reviews the company. The company guard admits this `admission` transition only for the
+owner's draft, with that owner's current initial appointment and an `activated_at` taken inside the
+transaction. Receipts from before activation was removed stay read-only:
+[activation_guards.sql](../../backend/companies/activation_guards.sql) refuses any new receipt,
+change or deletion outside migrations, and the app role has no grants on them. Staff warning
+recovery and reinstatement stay in `companies/services/company.py:transition_company`; returning to
+Active needs an earlier `activated_at` or a historical officeholder attestation
 ([rule](../business/companies.md#staff-company-controls)).
 
 ### Authority requests and team
@@ -620,7 +609,7 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 
 | Kind (`data.type`) | Sent by                                                                                            | The bell opens |
 | ------------------ | -------------------------------------------------------------------------------------------------- | -------------- |
-| `company`          | Retained history only: the sender is retired, and no activation or company status change sends one | Activation     |
+| `company`          | Retained history only: the sender is retired, and no company status change sends one     | Profile        |
 | `publication`      | Retained history only: the sender went with shareholder publications                               | Nothing        |
 | `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails           | Nothing        |
 | `identity`         | `users/services/identity.py`, when the identity check's result changes                             | Profile        |

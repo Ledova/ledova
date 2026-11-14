@@ -58,7 +58,6 @@ export const SETTINGS_VIEWS = [
   { key: 'account', label: 'Account', to: `${DESTINATIONS.settings.path}#account` },
   { key: 'data', label: 'Data and privacy', to: `${DESTINATIONS.settings.path}#data` },
   { key: 'company-team', label: 'Team', to: DESTINATIONS.companyTeam.path },
-  { key: 'activation', label: 'Activation', to: DESTINATIONS.companyListing.path },
 ] as const;
 
 type SettingsView = (typeof SETTINGS_VIEWS)[number]['key'];
@@ -72,7 +71,6 @@ export function settingsView(pathname: string, hash: string): SettingsView | und
   if (pathname === DESTINATIONS.companyTeam.path) return 'company-team';
   if (pathname === DESTINATIONS.companyAuthority.path || matchPath(DESTINATIONS.companyAuthorityRequest.path, pathname))
     return 'account';
-  if (pathname === DESTINATIONS.companyListing.path) return 'activation';
   if (pathname === DESTINATIONS.userProfile.path) return 'profile';
   if (pathname === DESTINATIONS.settings.path) return settingsPage(hash)?.key;
   return undefined;
@@ -82,7 +80,6 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   ...DESTINATION_PARENTS,
   company: { destination: 'settings', back: false },
   companyTeam: { destination: 'settings', back: false },
-  companyListing: { destination: 'settings', back: false },
   userProfile: { destination: 'settings', back: false },
   companyAuthority: { destination: 'settings', view: 'account' },
   companyAuthorityRequest: { destination: 'companyAuthority' },

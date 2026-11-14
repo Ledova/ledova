@@ -9,7 +9,7 @@ import type { DestinationKey, Notification } from '@ledova/shared';
 import { LoadError, Loading } from './Ledger';
 
 const NOTICE_PAGES: Record<string, DestinationKey> = {
-  company: 'companyListing',
+  company: 'company',
   identity: 'userProfile',
 };
 

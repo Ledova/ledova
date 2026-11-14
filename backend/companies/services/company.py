@@ -98,7 +98,7 @@ def transition_company(company: Company, method: str, *, actor=None, declaration
     if actor is None:
         raise PermissionDenied("An authenticated company actor is required.")
     if method not in {*ACTIVE_METHODS.values(), "issue_warning", "suspend", "delist"}:
-        raise PermissionDenied("Company activation is instructed by a current personal company administrator.")
+        raise PermissionDenied("Staff can only warn, suspend, delist or recover a company.")
     with company_operation(actor, company.pk, "admin_workflow"), atomic():
         current, actor, _profile, _operator = lock_company_actor(actor, company.pk)
         _require_workflow_actor(actor)
