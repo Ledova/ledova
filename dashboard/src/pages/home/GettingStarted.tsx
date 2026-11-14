@@ -1,6 +1,7 @@
 import { DESTINATIONS, REGISTER_IMPORT_COPY } from '@ledova/shared';
 import { pageTitle } from '@utils/destinations';
-import { LinkRow, Section, Status } from '@components/Ledger';
+import { Section } from '@components/Ledger';
+import { PageLink } from '@components/Page';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 
 export function GettingStarted() {
@@ -8,13 +9,10 @@ export function GettingStarted() {
   const ledger = DESTINATIONS.companyRegister.path;
   return (
     <Section title="Getting started">
-      <LinkRow
-        to={context?.companyPath(ledger) ?? ledger}
-        label={pageTitle('companyRegisterSetup')}
-        aside={<Status tone="waiting">To do</Status>}
-      >
-        <p className="text-text-muted">{REGISTER_IMPORT_COPY.SETUP_NOTE}</p>
-      </LinkRow>
+      <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.SETUP_NOTE}</p>
+      <div>
+        <PageLink primary to={context?.companyPath(ledger) ?? ledger} label={pageTitle('companyRegisterSetup')} />
+      </div>
     </Section>
   );
 }

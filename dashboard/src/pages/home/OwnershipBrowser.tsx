@@ -5,6 +5,7 @@ import {
   DESTINATIONS,
   formatShareCount,
   ownershipView,
+  REGISTER_IMPORT_COPY,
   sharePercentage,
   useCompanyOwnership,
   useSubmissionOwner,
@@ -213,7 +214,13 @@ function SignedInOwnership({
             ) : (
               <>
                 {company.canManage && !registered && <GettingStarted />}
-                {view ? (
+                {!registered && !record ? (
+                  !company.canManage && (
+                    <Section title="Ownership overview">
+                      <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.LEDGER_PENDING}</p>
+                    </Section>
+                  )
+                ) : view ? (
                   <>
                     <Section title="Ownership overview">
                       <p className="text-sm text-text-muted">

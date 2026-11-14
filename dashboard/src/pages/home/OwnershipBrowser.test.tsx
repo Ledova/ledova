@@ -3,6 +3,8 @@
 import {
   CACHE_TIMING,
   COMPANY_TOKEN_ENDPOINTS,
+  DESTINATIONS,
+  REGISTER_IMPORT_COPY,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_ENDPOINTS,
   USER_PREFERENCES_QUERY_KEY,
@@ -369,11 +371,15 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   expect(screen.getAllByText('Not complete')).toHaveLength(2);
   expect(screen.queryByText('9,007,199,254,741,000')).toBeNull();
   expect(screen.queryByText('0 issued shares')).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Getting started' })).toBeNull();
   mode = 'draft-empty';
   await refresh();
-  expect(await screen.findByText('No share classes yet.')).toBeTruthy();
-  expect(screen.getAllByText('Not complete')).toHaveLength(2);
-  expect(screen.queryByText('No issued shares yet.')).toBeNull();
+  expect(await screen.findByText(REGISTER_IMPORT_COPY.SETUP_NOTE)).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Set up your ledger' }).getAttribute('href')).toContain(
+    DESTINATIONS.companyRegister.path,
+  );
+  expect(screen.queryByRole('heading', { name: 'Ownership overview' })).toBeNull();
+  expect(screen.queryByText('Not complete')).toBeNull();
   for (const failed of ['failed', 'inconsistent']) {
     mode = failed;
     await refresh();

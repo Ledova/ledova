@@ -22,7 +22,7 @@ import {
 } from '@ledova/shared';
 import { AwardStatus } from '../../components/AwardStatus';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, Actions, Fact, LinkRow, LoadError, Rows, Section, Status } from '../../components/Ledger';
+import { Action, Actions, Fact, LinkRow, LoadError, Rows, Section } from '../../components/Ledger';
 import { MemberNotice, useMemberRefresh } from '../../components/MemberRecords';
 import { Page } from '../../components/Page';
 import { Pager } from '../../components/Pager';
@@ -341,7 +341,13 @@ function CompanyRegister({
         ) : (
           <>
             {company.canManage && !registered && <GettingStarted />}
-            {view ? (
+            {!registered && !record ? (
+              !company.canManage && (
+                <Section title="Ownership overview">
+                  <Text style={styles.muted}>{REGISTER_IMPORT_COPY.LEDGER_PENDING}</Text>
+                </Section>
+              )
+            ) : view ? (
               <>
                 <Section title="Ownership overview">
                   <Text style={styles.muted}>
@@ -429,17 +435,12 @@ function CompanyRegister({
 function GettingStarted() {
   const styles = useCompanyStyles();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
-  const label = DESTINATIONS.companyRegisterSetup.title;
   return (
     <Section title="Getting started">
-      <LinkRow
-        label={label}
-        accessibilityLabel={`${label}, to do. ${REGISTER_IMPORT_COPY.SETUP_NOTE}`}
-        figure={<Status tone="waiting">To do</Status>}
-        onPress={() => navigation.navigate('Ledger')}
-      >
-        <Text style={styles.muted}>{REGISTER_IMPORT_COPY.SETUP_NOTE}</Text>
-      </LinkRow>
+      <Text style={styles.muted}>{REGISTER_IMPORT_COPY.SETUP_NOTE}</Text>
+      <Actions>
+        <Action label={DESTINATIONS.companyRegisterSetup.title} primary onPress={() => navigation.navigate('Ledger')} />
+      </Actions>
     </Section>
   );
 }

@@ -68,8 +68,8 @@ After signup, invite users at **Settings → Team**. A company keeps no separate
 it uploads its own evidence with the register work that needs it
 ([decision](../decisions.md#company-documents-removed)). Completing signup makes the company
 Active ([company status](#company-status)); registration does not incorporate a company with ASIC,
-appoint a director or issue shares. Until the company's register is set up, **Getting started** on
-the company Dashboard links its personal administrators to **Set up your ledger**
+appoint a director or issue shares. Until the company's register is set up, the company Dashboard
+shows its personal administrators only **Getting started**, with **Set up your ledger**
 ([the Dashboard](README.md#the-app-at-a-glance)).
 
 Resuming an unfinished signup:
