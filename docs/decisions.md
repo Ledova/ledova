@@ -16,8 +16,8 @@ stay here as history and are marked where they appear.
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                            | 3 October 2026                                 | Current; replaces routine register work by platform staff                                                                          |
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                        | 5 October 2026                                 | Current; particulars change rule amended 1 November (#1476) and for linked members 2 November (#1492)                              |
 | [Company representative verification](#company-representative-verification)                                        | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                                       |
-| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                    | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                     |
-| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)       | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148, removed 2 November; company documents removed 2 November (#1491)          |
+| [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                    | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148, removed 2 November (#1491); activation removed 14 November (#1567) |
+| [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)       | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148, removed 2 November; company documents removed 2 November (#1491); activation removed 14 November (#1567) |
 | [Identity verification after signup](#identity-verification-after-signup)                                          | 19 October 2026                                | Current; #1141                                                                                                                     |
 | [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)                  | 19 October 2026                                | Current; #1146                                                                                                                     |
 | [ABR company lookup at activation](#abr-company-lookup-at-activation)                                              | 19 October 2026                                | Superseded 2 November 2026; the ABR check was removed (#1491)                                                                      |
@@ -252,7 +252,8 @@ Existing representative identity, ABR and checked-file safeguards remain. The
 supporting file is a platform requirement for retained evidence, not an ASIC
 extract requirement. A missing file or failed provider does not establish
 authority. Admission does not activate the company, issue shares or invite team
-members, and no new platform-staff approval step is added.
+members, and no new platform-staff approval step is added. (Since 14 November 2026 admission makes
+the company Active: [activation removed](#company-activation-removed).)
 
 This replaces the earlier instruction to leave signup unchanged while retaining
 the delivered dashboard and native navigation. The
@@ -621,8 +622,8 @@ Ledova reviews or approves a company; its administrators can correct its details
 Companies already admitted but still Draft became Active from their admission time, and receipts of
 earlier activations stay as read-only records. Staff warning, suspension and delisting stay, and a
 company returns to Active only if it was Active before or has a historical officeholder attestation.
-When wallet features return, a representative's verified identity, where the operator requires it,
-is the only added condition. This supersedes the activation parts of the
+When wallet features return, the representative's verified identity is enough, with no
+activation review. This supersedes the activation parts of the
 [ABR company check removed](#abr-company-check-removed),
 [combined signup](#combined-company-signup-and-initial-authority) and
 [simple signup](#simple-signup-documents-and-team-after-registration) decisions.

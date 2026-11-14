@@ -133,8 +133,9 @@ activation, was removed on 2 November 2026
 The selected [representative authority route](#representative-verification) is
 self-declaration, followed by scoped in-app delegation. It does not approve pending instructions
 or replace action-specific company approvals.
-Company activation becomes a validated workflow outcome when its configured
-requirements are met, rather than an unconditional platform-staff approval.
+A company becomes Active when its signup completes, with no separate activation
+step or platform-staff approval
+([decision](../../decisions.md#company-activation-removed)).
 Company-appointed approvers control offering publication under recorded terms
 and applicable eligibility rules.
 
@@ -230,8 +231,7 @@ rather than issuing them a second time.
 - Company A's appointee cannot read or act on company B's private records; reject
   foreign company/class/member/document references, even for a shared owner.
 - Initial admission records the representative's authorisation declaration,
-  retaining the existing identity check; activation records its own declaration
-  under the same identity check. Company
+  retaining the existing identity check, and makes the company Active. Company
   details are attributed to the company, with responsibility stated in the terms, and never
   labelled verified by Ledova. Administrator changes require existing company
   administrators or court/regulator direction; own-account recovery remains separate.
@@ -240,7 +240,7 @@ rather than issuing them a second time.
   as that appointment, and shareholder status grants no register admin rights.
 - Opening, exact issue/allotment and resulting certificate complete without any
   platform staff action when required company/participant decisions exist.
-- Fresh company and participant signup reaches evidenced company activation
+- Fresh company and participant signup reaches an Active company
   and the required identity/classification outcomes for the selected action
   without pre-verified fixtures or routine staff approval. Unresolved,
   expired or revoked checks block the affected action; wallet ownership and

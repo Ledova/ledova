@@ -67,13 +67,16 @@ def checked_acn(value):
     return acn
 
 
-def an_acn_no_other_company_holds(value):
+def an_acn_no_other_company_holds(value, other_than=None):
     from companies.models import Company
     from shared.db import use_operator
 
     acn = checked_acn(value)
     with use_operator():
-        if Company.objects.filter(acn=acn).exists():
+        holders = Company.objects.filter(acn=acn)
+        if other_than is not None:
+            holders = holders.exclude(pk=other_than.pk)
+        if holders.exists():
             raise DRFValidationError(ACN_ALREADY_REGISTERED)
     return acn
 

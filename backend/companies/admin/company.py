@@ -18,8 +18,6 @@ from shared.utils.admin_display import action_buttons
 from tokens.admin._helpers import status_badge
 from wallets.models import Wallet
 
-IMMUTABLE_AFTER_DRAFT = ("company_type", "acn", "abn")
-
 STATUS_COLORS = {
     CompanyStatus.DRAFT: "#6c757d",
     CompanyStatus.SUBMITTED: "#17a2b8",
@@ -332,10 +330,6 @@ class CompanyAdmin(admin.ModelAdmin):
         if "admin" not in access["capabilities"] and not access["draft_setup"]:
             readonly.extend(EDITABLE_FIELDS)
         readonly.append("owner")
-        if obj.status != CompanyStatus.DRAFT:
-            readonly.extend(IMMUTABLE_AFTER_DRAFT)
-        if obj.status not in (CompanyStatus.DRAFT, CompanyStatus.INFO_REQUIRED):
-            readonly.extend(["name", "declarant_name", "board_resolution_reference"])
         return readonly
 
     def get_queryset(self, request):
