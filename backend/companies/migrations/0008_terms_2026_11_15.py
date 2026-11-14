@@ -26,7 +26,6 @@ def install_current_terms(apps, schema_editor):
         for source, name in REPLACED:
             cursor.execute(
                 _function(source, name)
-                .replace("CREATE FUNCTION", "CREATE OR REPLACE FUNCTION", 1)
                 .replace("@OPERATOR_ROLE@", operator)
                 .replace("@MIGRATE_ROLE@", migrate)
                 .replace("@APP_ROLE@", app)

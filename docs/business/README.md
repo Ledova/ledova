@@ -27,8 +27,9 @@ company, Ledova mirrors the ownership records the company supplies
   source references it gives are shown as provided by the company, and Ledova staff verify none of
   them ([decision](../decisions.md#company-documents-removed)). Staff review only the directors'
   instructions behind settled transfers and retained issues before applying them.
-- The company is responsible for its information, its ASIC filings and its legal obligations, as
-  the Terms a representative accepts at signup say. Ledova checks neither a company's identifiers
+- The company is responsible for its records and decisions, its legal and regulatory obligations
+  including its ASIC filings, who may hold its shares and the identity checks it needs, as the
+  Terms a representative accepts at signup say. Ledova checks neither a company's identifiers
   and name against a business register nor a representative's mandate.
 - Ledova changes a company's administrators only through its existing administrators or at the
   direction of a court or regulator, and no staff tool appoints one. Recovering your own account is

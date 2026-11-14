@@ -111,10 +111,12 @@ under Blueberry Money, preserving company responsibility and promising the
 available exports. They do not claim to appoint Ledova as the company's legal
 register keeper or establish legal sufficiency of that historical agency reading.
 On 14 November 2026 the owner directed Terms v2026-11-15, prepared without legal
-review: Ledova is described as technology infrastructure that reviews and approves
-nothing, and the company takes responsibility for its records, decisions,
-regulatory compliance, shareholder eligibility and identity checks, with an
-indemnity for claims arising from its own records or breach
+review: Ledova is described as technology infrastructure that does not review or
+approve companies, their representatives' authority, their decisions or their
+records, beyond staff checking the retained directors' instructions they apply
+against the directors' approval. The company takes responsibility for its
+records, decisions, regulatory compliance, shareholder eligibility and identity
+checks, with an indemnity for claims arising from its own records or breach
 ([decision](../decisions.md#terms-as-technology-infrastructure)). The Terms say
 that using Ledova does not make Blueberry Money the company's agent or register
 keeper, but a contract cannot settle what the operator actually does. Nor can

@@ -2662,16 +2662,24 @@ for approving or overseeing company activities. However, we should avoid making 
 eliminate legal obligations we cannot contractually transfer."
 
 Terms v2026-11-15 replace v2026-11-09 for new acceptance, and both earlier versions stay
-published. They describe Ledova as software that companies direct, which reviews, approves,
-verifies and supervises nothing. The company is responsible for its records, register, decisions,
-regulatory compliance, who may hold its shares and the identity checks it needs. The Terms
-indemnify Blueberry Money against claims arising from a company's own records or breach, except
-where Blueberry Money caused the loss, and exclude liability only as far as the law allows. They
-keep non-excludable rights and the operator's own obligations. The signup declaration now states
-authority to act for the company, as activation used to, and that Ledova does not review or approve
-the company's records. The [legal position](legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)
-records what a contract cannot transfer. Accounts that accepted an earlier version are asked to
-accept the new one, as the Terms promise for material changes.
+published. They describe Ledova as software that companies direct, which does not review or
+approve companies, their representatives' authority, their decisions or their records. They name
+the staff check that remains on a company's instructions: staff check the directors' instructions a
+company submits for a class on chain against the directors' approval before applying them
+([retained instructions](business/register.md#retained-director-instructions)). An identity
+check the service asks for confirms a person's identity for their account, not their authority,
+the records or anyone's eligibility to hold shares. The company is responsible for its records,
+register, decisions, regulatory compliance, who may hold its shares and the identity checks it
+needs. As far as the law allows, the Terms exclude liability for loss from a company's own records
+or obligations and indemnify Blueberry Money against claims arising from them or from the
+company's breach, in both cases except where Blueberry Money caused the loss. They keep
+non-excludable rights and the operator's own obligations. The signup declaration
+now states authority to act for the company, as activation used to, and that Ledova does not
+review or approve the company's records. The
+[legal position](legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register) records
+what a contract cannot transfer. An account that accepted an earlier version stays under it until
+it accepts the new one, which only the web's **Settings → Account** offers; the mobile app has no
+Terms control, and a company's acceptance at signup is not renewed.
 
 ### Source-based assessment for the free registry
 

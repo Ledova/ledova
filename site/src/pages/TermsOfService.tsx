@@ -5,7 +5,7 @@ import { INLINE_LINK, PAGE_SECTION } from '../styles';
 const TERMS = [
   [
     'The service',
-    'Blueberry Money Pty Ltd (ACN 691 391 214) provides Ledova, software that Australian private companies use to record and mirror their share ownership and related records. Ledova is technology infrastructure: we host the software and keep it running, and each company directs its own records and changes. We do not review, approve, verify or supervise companies, their representatives, members or records, and we do not act for a company, its shareholders or investors. We do not collect investment money, arrange or execute trades, hold assets or provide legal, financial, investment or tax advice. While the service is marked as a preview, use fictional records and disposable credentials only.',
+    'Blueberry Money Pty Ltd (ACN 691 391 214) provides Ledova, software that Australian private companies use to record and mirror their share ownership and related records. Ledova is technology infrastructure: we host the software and keep it running, and each company directs its own records and changes. We do not review or approve companies, their representatives’ authority, their decisions or the records they enter, and we do not act for a company, its shareholders or investors. Our staff apply the directors’ instructions a company submits for a share class on a blockchain, checking each against the directors’ approval; the decision remains the directors’. If the service asks a person to complete an identity check, our identity provider checks that person’s identity for their Ledova account; it does not confirm their authority, a company’s records or anyone’s eligibility to hold shares. We do not collect investment money, arrange or execute trades, hold assets or provide legal, financial, investment or tax advice. While the service is marked as a preview, use fictional records and disposable credentials only.',
   ],
   [
     'Your account and authority',
@@ -13,7 +13,7 @@ const TERMS = [
   ],
   [
     'What the company is responsible for',
-    'The company is responsible for the accuracy, completeness and lawfulness of everything it records, and for keeping its register of members and other records as the law requires, whether or not it uses Ledova to do so; using Ledova does not make us its agent or register keeper. The company is responsible for its decisions and approvals and the authority behind every change it records; for complying with the laws that apply to it, including corporations, fundraising and disclosure, employee share scheme, tax, anti-money laundering and privacy laws, and for its notices and filings with ASIC and other regulators; for deciding who may acquire or hold its shares or awards, including any investor eligibility or transfer restriction; and for any identity, eligibility or background checks it needs on its officers, members, investors or employees. Ledova’s features, including any identity check the service offers, help a company keep records; they do not carry out these responsibilities for it. Recording something in Ledova does not verify or approve it or establish legal ownership. Registration does not incorporate a company, appoint a director or issue shares, and an award is an entitlement, not issued shares.',
+    'The company is responsible for the accuracy, completeness and lawfulness of everything it records, and for keeping its register of members and other records as the law requires, whether or not it uses Ledova to do so; using Ledova does not make us its agent or register keeper. The company is responsible for its decisions and approvals and the authority behind every change it records; for complying with the laws that apply to it, including corporations, fundraising and disclosure, employee share scheme, tax, anti-money laundering and privacy laws, and for its notices and filings with ASIC and other regulators; for deciding who may acquire or hold its shares or awards, including any investor eligibility or transfer restriction; and for any identity, eligibility or background checks it needs on its officers, members, investors or employees. Ledova’s features, including any identity check the service asks a person to complete, do not carry out these responsibilities for the company. Recording something in Ledova does not verify or approve it or establish legal ownership. Registration does not incorporate a company, appoint a director or issue shares, and an award is an entitlement, not issued shares.',
   ],
   [
     'Documents and privacy',
@@ -25,7 +25,7 @@ const TERMS = [
   ],
   [
     'Liability',
-    'To the extent the law allows, Ledova is provided as is, and we are not liable for loss arising from the records, decisions or instructions a company or its users enter, from a company not meeting its own obligations, or for indirect or consequential loss. Where a guarantee that cannot be excluded applies but our liability for breaching it may be limited, our liability is limited to supplying the service again or paying the cost of having it supplied again. The company indemnifies Blueberry Money against claims by others arising from the records, decisions or instructions entered in its workspace, or from its breach of the law or these terms, except to the extent we caused the loss.',
+    'To the extent the law allows, Ledova is provided as is; we are not liable for loss arising from the records, decisions or instructions a company or its authorised users enter, or from a company not meeting its own obligations, except to the extent we caused the loss; and we are not liable for indirect or consequential loss. Where a guarantee that cannot be excluded applies but our liability for breaching it may be limited, our liability is limited to supplying the service again or paying the cost of having it supplied again. The company indemnifies Blueberry Money against claims by others arising from the records, decisions or instructions the company or its authorised users enter, or from its breach of the law or these terms, except to the extent we caused the claim or loss.',
   ],
   [
     'Leaving Ledova',
@@ -33,7 +33,7 @@ const TERMS = [
   ],
   [
     'Misuse and suspension',
-    'Do not access another person’s private records without permission, upload unlawful or malicious material, or misuse the service. We may restrict access when reasonably necessary to protect people, records or the service, or comply with law. We will explain the reason and provide notice and an opportunity to export where reasonably practical; urgent security or legal restrictions may prevent this.',
+    'Do not access another person’s private records without permission, upload unlawful or malicious material, or misuse the service. We may warn a company or restrict access when reasonably necessary to protect people, records or the service, or comply with law. We will explain the reason and provide notice and an opportunity to export where reasonably practical; urgent security or legal restrictions may prevent this.',
   ],
   [
     'Changes and your rights',
