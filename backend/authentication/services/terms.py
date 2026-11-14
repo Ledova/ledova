@@ -3,7 +3,7 @@ from rest_framework.exceptions import ValidationError
 from authentication.models import TermsAcceptance
 from shared.db import use_operator
 
-TERMS_VERSION = "2026-11-09"
+TERMS_VERSION = "2026-11-15"
 TERMS_STATEMENT = "I accept the Ledova Terms of Service."
 
 

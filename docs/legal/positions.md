@@ -110,6 +110,21 @@ said none existed. The owner has since accepted registry-only Terms v2026-11-09
 under Blueberry Money, preserving company responsibility and promising the
 available exports. They do not claim to appoint Ledova as the company's legal
 register keeper or establish legal sufficiency of that historical agency reading.
+On 14 November 2026 the owner directed Terms v2026-11-15, prepared without legal
+review: Ledova is described as technology infrastructure that does not review or
+approve companies, their representatives' authority, their decisions or their
+records, beyond staff checking the retained directors' instructions they apply
+against the directors' approval. The company takes responsibility for its
+records, decisions, regulatory compliance, shareholder eligibility and identity
+checks, with an indemnity for claims arising from its own records or breach
+([decision](../decisions.md#terms-as-technology-infrastructure)). The Terms say
+that using Ledova does not make Blueberry Money the company's agent or register
+keeper, but a contract cannot settle what the operator actually does. Nor can
+it remove the operator's own obligations: privacy law, the Australian Consumer
+Law guarantees and the unfair contract terms rules for standard-form contracts
+with consumers and small businesses, any licence that actual conduct requires,
+and s174 duties if the service in fact maintains a statutory register. The Terms
+apply their exclusions only as far as the law allows.
 The [launch position](#registry-only-launch-preparation) records remaining live
 supplier/legal assessment and complete company-disposal gates.
 

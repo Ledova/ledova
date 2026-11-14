@@ -6940,7 +6940,7 @@ export interface ApiComponents {
     };
     ReviewResultEnum: 'GREEN' | 'RED' | 'YELLOW';
     RoleEnum: 'investor' | 'company' | 'both';
-    ServiceTermsVersionEnum: '2026-11-09';
+    ServiceTermsVersionEnum: '2026-11-15';
     SettlementApprovalBroadcastRequest: {
       ownerAccountUuid: string;
       settlementDigest: string;

@@ -317,7 +317,7 @@ it('takes a company representative through personal and company details, then re
   expect(review.getByText('Proprietary Limited (Pty Ltd)')).toBeTruthy();
   expect(review.queryByText('Financial profile')).toBeNull();
   expect(review.queryByRole('checkbox')).toBeNull();
-  expect(review.getByText(/By completing setup, you confirm that you are authorised to administer/)).toBeTruthy();
+  expect(review.getByText(/By completing setup, you confirm that you are authorised to act for/)).toBeTruthy();
   expect(review.getByRole('button', { name: 'Complete company setup' })).toBeDisabled();
   await fireEvent.press(review.getByRole('button', { name: 'Complete company setup' }));
   expect(mockComplete).not.toHaveBeenCalled();

@@ -112,8 +112,8 @@ export default function SignupReview() {
           {isCompany && company ? (
             <div className="space-y-3 mb-4 text-sm text-text-body">
               <p className="leading-relaxed">
-                By completing setup, you confirm that you are authorised to administer {company.name}, including
-                managing its users, and accept the{' '}
+                By completing setup, you confirm that you are authorised to act for {company.name}, including
+                administering its workspace and users, and accept the{' '}
                 <a
                   href={`${SITE_URL}${SITE_PATHS.termsOfService}/${TERMS_VERSION}`}
                   target="_blank"
@@ -122,7 +122,8 @@ export default function SignupReview() {
                 >
                   Terms of Service
                 </a>{' '}
-                on the company’s behalf.
+                on its behalf. The company stays responsible for its records, decisions and legal obligations; Ledova
+                does not review or approve them.
               </p>
               {authorityError && (
                 <div role="alert" className="space-y-2 text-error-light">

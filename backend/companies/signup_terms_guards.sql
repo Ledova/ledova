@@ -30,8 +30,8 @@ BEGIN
         OR source.expires_at <= clock_timestamp()
         OR EXISTS (SELECT 1 FROM companies_companyappointmentrevocation WHERE appointment_id = source.uuid)
         OR COALESCE(requires_identity, false) AND NOT profile.is_id_verified
-        OR NEW.declaration_version IS DISTINCT FROM '2026-11-09'
-        OR NEW.declaration_text IS DISTINCT FROM 'I am authorised to set up and administer this company’s workspace, including managing its users, and I accept the Terms of Service (version 2026-11-09) on the company’s behalf. The company is responsible for the company and share information it provides, its ASIC filings and legal obligations.'
+        OR NEW.declaration_version IS DISTINCT FROM '2026-11-15'
+        OR NEW.declaration_text IS DISTINCT FROM 'I am authorised to act for this company, including setting up and administering its workspace and users, and I accept the Terms of Service (version 2026-11-15) on its behalf. The company is responsible for its records and decisions, its legal and regulatory obligations, who may hold its shares and the identity checks it needs, and Ledova does not review or approve them.'
         OR source.request_id IS NOT NULL AND source.declaration_version = NEW.declaration_version
             AND source.declaration_text = NEW.declaration_text
     THEN

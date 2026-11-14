@@ -10,7 +10,7 @@ BEGIN
     IF current_user NOT IN (@OPERATOR_ROLE@, @MIGRATE_ROLE@)
         OR NULLIF(current_setting('app.profile_save', true), '')::bigint IS DISTINCT FROM NEW.user_id
         OR actor.id IS NULL OR NOT actor.is_active OR NOT actor.is_email_verified
-        OR NEW.version IS DISTINCT FROM '2026-11-09'
+        OR NEW.version IS DISTINCT FROM '2026-11-15'
         OR NEW.statement IS DISTINCT FROM 'I accept the Ledova Terms of Service.'
     THEN
         RAISE EXCEPTION 'Terms acceptance requires the signed-in account and current Terms'

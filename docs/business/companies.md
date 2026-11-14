@@ -43,9 +43,9 @@ Ledova does not look the company up in the ABR or any other register
 2. Complete your personal profile.
 3. Enter the company at **Company details** and continue. Saving creates the company as Draft.
 4. Review the saved information. A short statement beside **Complete company setup** says that
-   choosing the button confirms you are authorised to administer this company, including managing
-   its users, and accepts the Terms of Service (version 2026-11-09, which state the company's
-   responsibilities) on the company's behalf. No file, checkbox or delegation choice is needed. If
+   choosing the button confirms you are authorised to act for this company, including administering
+   its workspace and users, and accepts the Terms of Service (version 2026-11-15, which state the
+   company's responsibilities and that Ledova does not review or approve them) on its behalf. No file, checkbox or delegation choice is needed. If
    your instance requires a verified identity for representatives and yours is not verified yet,
    **Complete company setup** waits until the check passes. The web offers **Verify your identity**
    here. The app currently reports the requirement; its native provider journey is tracked separately
@@ -112,8 +112,8 @@ choose the file with the device's file picker, and **Download evidence** opens t
    is required.
 4. Submit the request. The platform freezes the company and representative details, the
    capabilities, the expiry and any file, and shows what it captured.
-5. On the request's page, accept the displayed declaration of your workspace and team authority, which also accepts the
-   Terms on the company's behalf, and admit the request. Where your instance requires a verified
+5. On the request's page, accept the displayed declaration of your authority to act for the company, which also accepts
+   the Terms on its behalf, and admit the request. Where your instance requires a verified
    identity, an unverified one leaves the request pending. Admission makes the company Active.
 6. Read the appointment's personal and delegatable capabilities, expiry and status. An attached
    file stays available from the request's page (**Download evidence**).
@@ -190,7 +190,7 @@ and the declaration they accepted. Appointments, requests, withdrawals, invitati
 and revocations cannot be edited or deleted
 ([how company rows are protected](../engineering/security.md#company-rows)).
 
-- Signup admission records the 2026-11-09 workspace and Terms declaration. Invitation acceptance
+- Signup admission records the 2026-11-15 authority and Terms declaration. Invitation acceptance
   keeps its own 2026-10-04 declaration, as do the receipts of companies activated before activation
   was removed; a person accepting a limited invitation does not declare workspace administration. Earlier admitted declarations keep their
   original version and text.

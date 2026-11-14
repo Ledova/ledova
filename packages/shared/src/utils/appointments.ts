@@ -2,8 +2,7 @@ import {
   COMPANY_AUTHORITY_CAPABILITIES,
   COMPANY_AUTHORITY_DECLARATION,
   COMPANY_AUTHORITY_DECLARATION_VERSION,
-  COMPANY_SIGNUP_DECLARATION,
-  COMPANY_SIGNUP_DECLARATION_VERSION,
+  COMPANY_SIGNUP_DECLARATIONS,
 } from '../constants/business/company-authority';
 import { APPOINTMENT_SOURCE_LABELS, APPOINTMENT_STATUS_LABELS } from '../constants/business/labels';
 import type { CompanyCapability, CompanyTeamAppointment, OwnCompanyAppointment } from '../types';
@@ -115,8 +114,9 @@ export function appointmentReceipt(data: OwnCompanyAppointment) {
       : (data.declarationVersion === COMPANY_AUTHORITY_DECLARATION_VERSION &&
           data.declarationText === COMPANY_AUTHORITY_DECLARATION) ||
         (data.source === 'initial' &&
-          data.declarationVersion === COMPANY_SIGNUP_DECLARATION_VERSION &&
-          data.declarationText === COMPANY_SIGNUP_DECLARATION)) &&
+          COMPANY_SIGNUP_DECLARATIONS.some(
+            ({ version, text }) => data.declarationVersion === version && data.declarationText === text,
+          ))) &&
     Number.isFinite(Date.parse(data.createdAt)) &&
     (data.expiresAt === null || Number.isFinite(Date.parse(data.expiresAt))) &&
     (data.revokedAt === null || Number.isFinite(Date.parse(data.revokedAt))) &&
