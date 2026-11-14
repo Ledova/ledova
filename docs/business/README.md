@@ -240,10 +240,12 @@ company-related pages, without repeated company choices. A person who both
 administers a company and holds its shares sees that company once, with their own position alongside
 the company information they may read. The sidebar keeps focused tasks for the selected company:
 
-- Ledger opens the class overview, with Issue shares, Transfer shares and Corrections beneath it.
-  Shareholders opens the people list, with Employee scheme and Member access.
-  Documents opens one Certificates page for company and member records, with Inspection copies and
+- Ledger groups Share classes (the class overview), Issue shares, Transfer shares and Corrections,
+  with Set up your ledger first until an administrator's company has its first share class.
+  Shareholders groups All shareholders (the people list), Employee scheme and Member access.
+  Documents groups one Certificates page for company and member records, with Inspection copies and
   Company pack where company access permits them.
+- Choosing a group opens or closes its pages; only the pages themselves open anything.
 - Settings comes last whatever company is selected. It keeps personal Profile, Account and Data and privacy, with company information and Team according
   to current access.
 

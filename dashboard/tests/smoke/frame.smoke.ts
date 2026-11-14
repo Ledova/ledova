@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 
 type Role = 'investor' | 'company' | 'both';
 
@@ -184,6 +184,13 @@ async function serveASignedInAccount(page: Page, role: Role) {
   return reads;
 }
 
+async function openGroup(aside: Locator, name: string) {
+  const group = aside.getByRole('button', { name, exact: true });
+  if ((await group.getAttribute('aria-expanded')) !== 'true') await group.click();
+  await expect(group).toHaveAttribute('aria-expanded', 'true');
+  return aside.locator(`[id="${await group.getAttribute('aria-controls')}"]`);
+}
+
 async function visibleSidebar(page: Page) {
   if (page.viewportSize()!.width < 1024) {
     const opener = page.getByRole('button', { name: 'Open navigation' });
@@ -256,12 +263,11 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(page).toHaveURL(/\/home\?company=other-company$/);
     await expect(page.getByRole('button', { name: 'Explore Ordinary shares (ORD)', exact: true })).toContainText('12');
     let aside = await visibleSidebar(page);
-    await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(0);
+    await expect(aside.getByRole('button', { name: 'Ledger', exact: true })).toHaveCount(0);
     await closeSidebar(page);
     await chooseCompany('harbour robotics', new RegExp(`^${LONG_NAME}`));
     aside = await visibleSidebar(page);
-    const documents = aside.getByRole('link', { name: 'Documents', exact: true }).locator('../..');
-    await documents.getByRole('button', { name: 'Expand Documents navigation' }).click();
+    const documents = await openGroup(aside, 'Documents');
     await expect(documents.getByRole('link', { name: 'Certificates', exact: true })).toHaveAttribute(
       'href',
       '/documents/certificates?company=company',
@@ -283,8 +289,7 @@ async function openTheSidebar(page: Page, role: Role) {
       'href',
       '/documents/certificates?company=company',
     );
-    const documents = sidebar.getByRole('link', { name: 'Documents', exact: true }).locator('../..');
-    await expect(documents.getByRole('button', { name: 'Expand Documents navigation' })).toHaveCount(0);
+    await expect(sidebar.getByRole('button', { name: 'Documents', exact: true })).toHaveCount(0);
     await expect(sidebar.getByRole('link', { name: 'Eligibility', exact: true })).toHaveCount(0);
     await expect(sidebar.getByRole('link', { name: 'Company files', exact: true })).toHaveCount(0);
   } else {
@@ -300,9 +305,14 @@ async function openTheSidebar(page: Page, role: Role) {
     'href',
     '/home?company=company',
   );
-  await expect(aside.getByRole('link', { name: 'Ledger', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
+  await expect(aside.getByRole('button', { name: 'Ledger', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
   if (role === 'both') {
-    await aside.getByRole('button', { name: 'Expand Ledger navigation' }).click();
+    const ledger = await openGroup(aside, 'Ledger');
+    await expect(ledger.getByRole('link', { name: 'Share classes', exact: true })).toHaveAttribute(
+      'href',
+      '/company/ledger?company=company',
+    );
+    await expect(ledger.getByRole('link', { name: 'Set up your ledger', exact: true })).toHaveCount(0);
     for (const [name, hash] of [
       ['Issue shares', 'issue'],
       ['Transfer shares', 'transfer'],
@@ -316,12 +326,16 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(page.getByRole('heading', { level: 1, name: 'Corrections', exact: true })).toBeVisible();
     aside = await visibleSidebar(page);
     await expect(aside.getByRole('link', { name: 'Corrections', exact: true })).toHaveAttribute('aria-current', 'page');
-    await aside.getByRole('link', { name: 'Ledger', exact: true }).click();
+    await (await openGroup(aside, 'Ledger')).getByRole('link', { name: 'Share classes', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Ledger', exact: true })).toBeVisible();
     await expect(page).toHaveURL(/\/company\/ledger\?company=company$/);
     await expect(page.getByRole('combobox', { name: 'Company', exact: true })).toHaveCount(0);
     aside = await visibleSidebar(page);
-    await aside.getByRole('button', { name: 'Expand Shareholders navigation' }).click();
+    const shareholders = await openGroup(aside, 'Shareholders');
+    await expect(shareholders.getByRole('link', { name: 'All shareholders', exact: true })).toHaveAttribute(
+      'href',
+      '/company/ledger?company=company#shareholders',
+    );
     await expect(aside.getByRole('link', { name: 'Employee scheme', exact: true })).toHaveAttribute(
       'href',
       '/company/ledger?company=company#awards',
@@ -330,7 +344,7 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(page.getByRole('heading', { level: 1, name: 'Employee share scheme', exact: true })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Company', exact: true })).toHaveCount(0);
     aside = await visibleSidebar(page);
-    await aside.getByRole('link', { name: 'Documents', exact: true }).click();
+    await (await openGroup(aside, 'Documents')).getByRole('link', { name: 'Certificates', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Certificates', exact: true })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Company', exact: true })).toHaveCount(0);
     aside = await visibleSidebar(page);
@@ -354,10 +368,8 @@ async function openTheSidebar(page: Page, role: Role) {
     aside = await visibleSidebar(page);
     await expect(aside.getByRole('link', { name: 'Company files', exact: true })).toHaveCount(0);
   }
-  const settings = aside.getByRole('link', { name: 'Settings', exact: true }).locator('../..');
-  const settingsLink = settings.getByRole('link', { name: 'Settings', exact: true });
-  await expect(settingsLink).toHaveAttribute('href', '/settings?company=company#profile');
-  await settings.getByRole('button', { name: 'Expand Settings navigation' }).click();
+  await expect(aside.getByRole('link', { name: 'Settings', exact: true })).toHaveCount(0);
+  const settings = await openGroup(aside, 'Settings');
   for (const [name, hash] of [
     ['Profile', 'profile'],
     ['Account', 'account'],
@@ -369,7 +381,7 @@ async function openTheSidebar(page: Page, role: Role) {
     );
   await expect(settings.getByRole('link', { name: 'Team', exact: true })).toHaveCount(role === 'investor' ? 0 : 1);
   await expect(settings.getByRole('link', { name: 'Documents', exact: true })).toHaveCount(0);
-  await settingsLink.click();
+  await settings.getByRole('link', { name: 'Profile', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Profile', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: /records you$/ })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Company details', exact: true })).toHaveCount(

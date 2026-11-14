@@ -188,6 +188,11 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
         </ApiClientProvider>
       </QueryClientProvider>,
     );
+  const openLedger = async () => {
+    if (!screen.queryByRole('link', { name: 'Share classes' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Ledger' }));
+    fireEvent.click(screen.getByRole('link', { name: 'Share classes' }));
+  };
   try {
     show();
     expect(await screen.findByText('Unified overview')).toBeTruthy();
@@ -195,12 +200,15 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     expect(screen.queryByRole('combobox', { name: 'Workspace' })).toBeNull();
     expect(screen.getByLabelText('Selected company').textContent).toBe('Company A');
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
-    const ledgerLink = await screen.findByRole('link', { name: 'Ledger' });
+    const ledgerGroup = await screen.findByRole('button', { name: 'Ledger' });
+    expect(ledgerGroup.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(ledgerGroup);
+    const ledgerLink = screen.getByRole('link', { name: 'Share classes' });
     expect(ledgerLink.getAttribute('href')).toBe('/company/ledger?company=company-a');
     expect(screen.getByRole('link', { name: 'Explicit company record' }).getAttribute('href')).toBe(
       '/company/ledger?company=company-b',
     );
-    const documentsToggle = screen.getByRole('button', { name: 'Expand Documents navigation' });
+    const documentsToggle = screen.getByRole('button', { name: 'Documents' });
     fireEvent.click(documentsToggle);
     const certificates = screen.getByRole('link', { name: 'Certificates' });
     expect(document.getElementById(documentsToggle.getAttribute('aria-controls')!)?.contains(certificates)).toBe(true);
@@ -219,7 +227,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     fireEvent.click(screen.getByRole('button', { name: 'Change company on Dashboard' }));
     expect(screen.getByLabelText('Company address').textContent).toBe('/home?company=company-b');
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
-    fireEvent.click(await screen.findByRole('link', { name: 'Ledger' }));
+    await openLedger();
     fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
       target: { value: 'Unfinished draft' },
     });
@@ -263,7 +271,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     fireEvent.click(screen.getByRole('link', { name: 'Choose company on Dashboard' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Leave page' }));
     expect(await screen.findByText('Unified overview')).toBeTruthy();
-    fireEvent.click(screen.getByRole('link', { name: 'Ledger' }));
+    await openLedger();
     fireEvent.click(screen.getByRole('button', { name: 'Hold action' }));
     fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Leave this page?' })).toBeNull());
@@ -276,16 +284,16 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     fireEvent.click(screen.getByRole('button', { name: 'Choose company B' }));
     expect(await screen.findByText('Unified overview')).toBeTruthy();
     expect(screen.getByLabelText('Selected company').textContent).toBe('Company B');
-    expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Ledger' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Your certificates' })).toBeNull();
     const memberDocuments = screen.getByRole('link', { name: 'Documents' });
     expect(memberDocuments.getAttribute('href')).toBe('/documents/certificates?company=company-b');
     fireEvent.click(memberDocuments);
     expect(screen.getByRole('link', { name: 'Documents' }).getAttribute('aria-current')).toBe('page');
-    expect(screen.queryByRole('button', { name: 'Expand Documents navigation' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Documents' })).toBeNull();
     expect(screen.queryByRole('link', { name: 'Inspection copies' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
-    await screen.findByRole('link', { name: 'Ledger' });
+    await screen.findByRole('button', { name: 'Ledger' });
     const framed = renderHook(() => useSignupFinished(), {
       wrapper: ({ children }) => (
         <QueryClientProvider client={client}>
@@ -298,7 +306,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     const recheck = client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY });
     await waitFor(() => expect(releasePreferences).toBeTypeOf('function'));
     expect(framed.result.current).toBe(true);
-    expect(screen.getByRole('link', { name: 'Ledger' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Ledger' })).toBeTruthy();
     await act(async () => {
       releasePreferences!();
       await recheck;
@@ -307,9 +315,9 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
     await waitFor(() => expect(client.isFetching()).toBe(0));
     fireEvent.click(screen.getByRole('link', { name: 'Unavailable company record' }));
     expect(screen.getByLabelText('Selected company').textContent).toBe('No company selected');
-    expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Ledger' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Choose company A' }));
-    await screen.findByRole('link', { name: 'Ledger' });
+    await screen.findByRole('button', { name: 'Ledger' });
     const oldOwner = client.getQueryData<{ data: ReturnType<typeof companyPreferences> }>(
       USER_PREFERENCES_QUERY_KEY,
     )!.data;
@@ -322,7 +330,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
       client.setQueryData(companyKey, [{ ...company, isOwner: false }]);
       client.setQueryData(ownAppointmentsKey(owner), []);
     });
-    await waitFor(() => expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Ledger' })).toBeNull());
     const managedMemberDocuments = screen.getByRole('link', { name: 'Documents' });
     expect(managedMemberDocuments.getAttribute('href')).toBe('/documents/certificates?company=company-a');
     fireEvent.click(managedMemberDocuments);
@@ -332,7 +340,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
       client.setQueryData(companyKey, [company]);
       client.setQueryData(ownAppointmentsKey(owner), [APPOINTMENT]);
     });
-    await screen.findByRole('link', { name: 'Ledger' });
+    await screen.findByRole('button', { name: 'Ledger' });
     delayCompanies = true;
     const staleRead = client.refetchQueries({
       queryKey: ownershipCompaniesKey({ userUuid: oldOwner.userProfile, ownerAccountUuid: oldOwner.userAccount!.uuid }),
@@ -355,7 +363,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
       await staleRead;
     });
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(screen.queryByRole('link', { name: 'Ledger' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Ledger' })).toBeNull();
     expect(screen.getByLabelText('Selected company').textContent).toBe('No company selected');
     cleanup();
     client.clear();

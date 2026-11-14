@@ -488,12 +488,12 @@ it('preserves original preparation and combined approval recovery through refres
   fireEvent.click(transferTask());
   expect(taskClass().value).toBe(REGISTER.token.uuid);
   expect(allotments.getByRole('button', { name: /^Recover approve receipt/ })).toBeTruthy();
-  expect(screen.getByRole('link', { name: /^Documents$/ }).getAttribute('aria-disabled')).toBe('true');
-  fireEvent.click(screen.getByRole('link', { name: /^Documents$/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Documents' }));
+  const certificates = screen.getByRole('link', { name: 'Certificates' });
+  expect(certificates.getAttribute('aria-disabled')).toBe('true');
+  fireEvent.click(certificates);
   expect(screen.getByRole('heading', { level: 1, name: 'Issue shares' })).toBeTruthy();
   expect(allotments.getByRole('button', { name: /^Recover approve receipt/ })).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Expand Documents navigation' }));
-  expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(screen.getByRole('link', { name: 'Inspection copies' }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Inspection copies' })).toBeTruthy();
   expect(screen.getAllByRole('button', { name: 'Prepare inspection copy' })).toHaveLength(1);
@@ -911,12 +911,13 @@ it('preserves original preparation and combined approval recovery through refres
   await screen.findByRole('button', { name: /^Recover approve receipt [(]transfer/ });
   expect(transferClass().disabled).toBe(true);
   expect(issueLink().getAttribute('aria-disabled')).toBe('true');
-  expect(screen.getByRole('link', { name: /^Documents$/ }).getAttribute('aria-disabled')).toBe('true');
-  fireEvent.click(screen.getByRole('link', { name: /^Documents$/ }));
+  if (!screen.queryByRole('link', { name: 'Certificates' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Documents' }));
+  const heldCertificates = screen.getByRole('link', { name: 'Certificates' });
+  expect(heldCertificates.getAttribute('aria-disabled')).toBe('true');
+  fireEvent.click(heldCertificates);
   expect(screen.getByRole('heading', { level: 1, name: 'Transfer shares' })).toBeTruthy();
   expect(screen.getByRole('button', { name: /^Recover approve receipt [(]transfer/ })).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Expand Documents navigation' }));
-  expect(screen.getByRole('link', { name: 'Certificates' }).getAttribute('aria-disabled')).toBe('true');
   fireEvent.click(screen.getByRole('link', { name: 'Inspection copies' }));
   expect(await screen.findByRole('heading', { level: 1, name: 'Inspection copies' })).toBeTruthy();
   expect(transferLink().getAttribute('aria-disabled')).toBeNull();

@@ -16,17 +16,20 @@ import {
   XIcon,
   type IconProps,
 } from 'phosphor-react-native';
+import { DESTINATIONS, useLedgerSetupDue } from '@ledova/shared';
 import { useAppTheme, useMemberRecordsState, useThemeChoice } from '../contexts';
 import { SignOutModal } from '../components/auth/SignOutModal';
 import { LogoMark } from '../components/LogoMark';
 import { useSignOut } from '../hooks/useSignOut';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { orderSubmissionSession } from '../services/orderSubmissions';
 
 export type Section = 'Dashboard' | 'Ledger' | 'Shareholders' | 'Documents' | 'Settings';
 
 export type MenuRoute =
   | 'Dashboard'
   | 'Ledger'
+  | 'RegisterSetup'
   | 'IssueShares'
   | 'TransferShares'
   | 'Corrections'
@@ -41,15 +44,14 @@ export type MenuRoute =
   | 'DataPrivacy'
   | 'Team';
 
-type MenuItem = {
-  name: Section;
-  label: string;
-  icon: ComponentType<IconProps>;
-  route: MenuRoute;
-  items?: { route: MenuRoute; label: string; hint?: string }[];
-};
+type MenuChild = { route: MenuRoute; label: string; hint?: string; params?: object; overview?: boolean };
 
-const sections = (canReadRegister: boolean): MenuItem[] => [
+type MenuItem = { name: Section; label: string; icon: ComponentType<IconProps> } & (
+  | { route: MenuRoute; items?: never }
+  | { route?: never; items: MenuChild[] }
+);
+
+const sections = (canReadRegister: boolean, setupFor: string | null): MenuItem[] => [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
   ...(canReadRegister
     ? [
@@ -57,8 +59,17 @@ const sections = (canReadRegister: boolean): MenuItem[] => [
           name: 'Ledger' as const,
           label: 'Ledger',
           icon: BookOpenIcon,
-          route: 'Ledger' as const,
           items: [
+            ...(setupFor
+              ? [
+                  {
+                    route: 'RegisterSetup' as const,
+                    label: DESTINATIONS.companyRegisterSetup.title,
+                    params: { company: setupFor },
+                  },
+                ]
+              : []),
+            { route: 'Ledger' as const, label: 'Share classes', overview: true },
             { route: 'IssueShares' as const, label: 'Issue shares' },
             { route: 'TransferShares' as const, label: 'Transfer shares' },
             { route: 'Corrections' as const, label: 'Corrections' },
@@ -68,27 +79,26 @@ const sections = (canReadRegister: boolean): MenuItem[] => [
           name: 'Shareholders' as const,
           label: 'Shareholders',
           icon: UsersThreeIcon,
-          route: 'Shareholders' as const,
           items: [
+            { route: 'Shareholders' as const, label: 'All shareholders', overview: true },
             { route: 'EmployeeScheme' as const, label: 'Employee scheme', hint: 'Employee share scheme' },
             { route: 'MemberAccess' as const, label: 'Member access' },
           ],
         },
       ]
     : []),
-  {
-    name: 'Documents',
-    label: 'Documents',
-    icon: FilesIcon,
-    route: 'Certificates',
-    items: canReadRegister
-      ? [
+  canReadRegister
+    ? {
+        name: 'Documents',
+        label: 'Documents',
+        icon: FilesIcon,
+        items: [
           { route: 'Certificates', label: 'Certificates' },
           { route: 'InspectionCopies', label: 'Inspection copies' },
           { route: 'CompanyPack', label: 'Company pack' },
-        ]
-      : undefined,
-  },
+        ],
+      }
+    : { name: 'Documents', label: 'Documents', icon: FilesIcon, route: 'Certificates' },
 ];
 
 const yours = (canManage: boolean): MenuItem[] => [
@@ -96,7 +106,6 @@ const yours = (canManage: boolean): MenuItem[] => [
     name: 'Settings',
     label: 'Settings',
     icon: GearIcon,
-    route: 'Settings',
     items: [
       { route: 'Settings', label: 'Profile' },
       { route: 'Account', label: 'Account' },
@@ -174,7 +183,7 @@ export function AppMenu({
   visible: boolean;
   current: Section | undefined;
   route: string;
-  onSelect: (route: MenuRoute) => void;
+  onSelect: (route: MenuRoute, params?: object) => void;
   onClose: () => void;
 }) {
   const theme = useAppTheme();
@@ -186,6 +195,7 @@ export function AppMenu({
   const [shown, setShown] = useState(visible);
   const [confirming, setConfirming] = useState(false);
   const [toggled, setToggled] = useState<Partial<Record<Section, boolean>>>({});
+  const setupDue = useLedgerSetupDue(company, visible, orderSubmissionSession);
   if (visible && !shown) setShown(true);
   useEffect(() => {
     Animated.timing(progress, {
@@ -215,42 +225,42 @@ export function AppMenu({
   });
   const item = (section: MenuItem) => {
     const active = section.name === current;
-    const here = active && !section.items?.some((child) => child.route === route);
-    const expanded = toggled[section.name] ?? active;
     const Icon = section.icon;
+    if (!section.items) {
+      const here = active;
+      return (
+        <TouchableOpacity
+          key={section.name}
+          accessibilityRole="button"
+          accessibilityState={{ selected: here }}
+          onPress={() => onSelect(section.route)}
+          style={row(here)}
+        >
+          <Icon
+            size={theme.icon.sizes.md}
+            color={here ? theme.colors.brand.light : theme.colors.text.secondary}
+            weight={active ? 'fill' : 'regular'}
+          />
+          <Text style={label(here)}>{section.label}</Text>
+        </TouchableOpacity>
+      );
+    }
+    const children = section.items;
+    const listed = children.some((child) => child.route === route);
+    const expanded = toggled[section.name] ?? active;
     const Caret = expanded ? CaretDownIcon : CaretRightIcon;
-    const link = (
-      <TouchableOpacity
-        key={section.name}
-        accessibilityRole="button"
-        accessibilityState={{ selected: here }}
-        onPress={() => onSelect(section.route)}
-        style={[row(here), !!section.items && { flex: 1 }]}
-      >
-        <Icon
-          size={theme.icon.sizes.md}
-          color={here ? theme.colors.brand.light : theme.colors.text.secondary}
-          weight={active ? 'fill' : 'regular'}
-        />
-        <Text style={label(here)}>{section.label}</Text>
-      </TouchableOpacity>
-    );
-    if (!section.items) return link;
     return (
       <View key={section.name}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          {link}
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={`${expanded ? 'Collapse' : 'Expand'} ${section.label} navigation`}
-            accessibilityState={{ expanded }}
-            onPress={() => setToggled((shown) => ({ ...shown, [section.name]: !expanded }))}
-            hitSlop={{ top: 2, bottom: 2, left: 6, right: 6 }}
-            style={{ width: 32, height: 40, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Caret size={theme.icon.sizes.sm} color={theme.colors.text.secondary} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityState={{ expanded }}
+          onPress={() => setToggled((shown) => ({ ...shown, [section.name]: !expanded }))}
+          style={row(false)}
+        >
+          <Icon size={theme.icon.sizes.md} color={theme.colors.text.secondary} weight={active ? 'fill' : 'regular'} />
+          <Text style={[label(false), { flex: 1 }]}>{section.label}</Text>
+          <Caret size={theme.icon.sizes.sm} color={theme.colors.text.secondary} />
+        </TouchableOpacity>
         {expanded && (
           <View
             style={{
@@ -262,18 +272,21 @@ export function AppMenu({
               borderLeftColor: theme.colors.border.subtle,
             }}
           >
-            {section.items.map((child) => (
-              <TouchableOpacity
-                key={child.route}
-                accessibilityRole="button"
-                accessibilityHint={child.hint}
-                accessibilityState={{ selected: child.route === route }}
-                onPress={() => onSelect(child.route)}
-                style={row(child.route === route)}
-              >
-                <Text style={label(child.route === route)}>{child.label}</Text>
-              </TouchableOpacity>
-            ))}
+            {children.map((child) => {
+              const here = child.route === route || (!!child.overview && active && !listed);
+              return (
+                <TouchableOpacity
+                  key={child.route}
+                  accessibilityRole="button"
+                  accessibilityHint={child.hint}
+                  accessibilityState={{ selected: here }}
+                  onPress={() => onSelect(child.route, child.params)}
+                  style={row(here)}
+                >
+                  <Text style={label(here)}>{child.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
       </View>
@@ -337,7 +350,9 @@ export function AppMenu({
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: theme.spacing.md, gap: theme.spacing.lg }}
           >
-            <View style={{ gap: 4 }}>{sections(!!company?.canReadRegister).map(item)}</View>
+            <View style={{ gap: 4 }}>
+              {sections(!!company?.canReadRegister, setupDue && company ? company.uuid : null).map(item)}
+            </View>
             <View style={{ gap: 4 }}>{yours(!!company?.canManage).map(item)}</View>
           </ScrollView>
           <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.border.subtle, padding: 12, gap: 4 }}>

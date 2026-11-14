@@ -202,8 +202,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   platforms (the app's `LinkRow` takes a status element as its `figure`), then its ACN and short
   submission date.
 - Optional content uses `ShowMore`, which keeps it mounted while hidden so unfinished input
-  survives. The sidebar's group caret is a separate navigation
-  button. Substantial record reviews use the main page; brief confirmations can use dialogs.
+  survives. A sidebar group's whole row opens or closes it ([navigation](#navigation)).
+  Substantial record reviews use the main page; brief confirmations can use dialogs.
 - `Popover`: compact secondary controls, such as filters and notifications, may open an anchored
   panel without moving page content. Filters use `FilterPopover`
   (`dashboard/src/components/FilterPopover.tsx`), which shares Headless UI's `Popover`,
@@ -453,9 +453,9 @@ authorises.
 
 ## Navigation
 
-The web sidebar (`dashboard/src/components/Sidebar.tsx`) is a `<nav>` labelled "Main" whose items
-are links, and the current page's item carries `aria-current="page"`; a page that isn't an item
-marks its nearest parent that is. Below 1024 pixels the header's menu button opens the same sidebar
+The web sidebar (`dashboard/src/components/Sidebar.tsx`) is a `<nav>` labelled "Main" whose pages
+are links, grouped under buttons that report `aria-expanded`; the current page's link carries
+`aria-current="page"`, and a page that isn't an item marks its nearest parent that is. Below 1024 pixels the header's menu button opens the same sidebar
 as a Headless UI `Dialog`: the button reports `aria-expanded`, focus stays inside the drawer while it
 is open, and Escape or a choice closes it. The first Tab on a signed-in page reaches "Skip to main
 content", which moves focus to the page's heading.
@@ -480,19 +480,20 @@ direct links and invitations without forcing a visit through Dashboard. Protect 
 changing the company selection, and block those changes during held execution.
 Recheck the account and current location before confirming navigation.
 
-The sidebar owns navigation between sections. A related group has one level of children: its label
-opens a meaningful overview or the default child, and a separate caret expands the children, without
-an extra Overview page or item.
-Ledger groups **Issue shares**, **Transfer shares** and **Corrections** this way.
-Shareholders uses the same web pattern for **Employee scheme** and **Member access**, with its parent
-opening the people list. Documents uses the same pattern for **Certificates** (the default),
-**Inspection copies** and **Company pack** where permitted, with its label opening Certificates at
-`/documents/certificates`. Do not add a separate Your certificates item or workspace switch. Settings uses the same
-one-level group for **Profile** (the default), **Account** and **Data and privacy**, for everyone, then
-**Team** where permitted, without an extra overview page; the app's menu has
-Ledger, without the tasks it doesn't have yet, Shareholders with Employee scheme and Member access,
-Documents' pages and Team under the same conditions. A group with only one permitted page, such as Documents with only Certificates, is a
-plain link to that page, marked current there. Profile always holds personal information. Team and
+The sidebar owns navigation between sections, with one pattern on web and app (owner, 15 November
+2026). A related group has one level of children. Choosing anywhere on a group's row opens or closes
+it, and the row opens no page; its caret only shows whether it is open. The group's pages are its
+children, its overview first, each listed once. Ledger groups **Share classes** (its overview),
+**Issue shares**, **Transfer shares** and **Corrections**, with **Set up your ledger** first while a
+company administrator's company has no share class. Shareholders groups **All shareholders** (its
+people list), **Employee scheme** and **Member access**. Documents groups **Certificates** (at
+`/documents/certificates`), **Inspection copies** and **Company pack** where permitted. Do not add a
+separate Your certificates item or workspace switch. Settings groups **Profile**, **Account** and
+**Data and privacy**, for everyone, then **Team** where permitted; the app's menu has the same groups
+and pages under the same conditions. A group opens by itself while one of its pages, or a page
+under it, is shown; under a group's overview, such as on a share class or a shareholder's page, the
+overview is marked. A group with only one permitted page, such as Documents with only Certificates,
+is a plain link to that page, marked current there. Profile always holds personal information. Team and
 Company details follow current company access. Personal edits never change company-recorded particulars.
 Account has four cards: **Security** (the identity check's status with **Review**, which the app
 leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
