@@ -327,43 +327,44 @@ export function SignUpScreen() {
                       autoCapitalize="none"
                       editable={!isLoading}
                       error={generalError ? null : errors.password?.join(' ')}
+                      below={
+                        <View style={styles.passwordRequirements}>
+                          <Text style={styles.requirementsTitle}>Password must:</Text>
+                          <View style={styles.requirement}>
+                            <View
+                              style={[
+                                styles.requirementDot,
+                                form.password && !passwordValidation.lengthValid && styles.requirementDotError,
+                              ]}
+                            />
+                            <Text
+                              style={[
+                                styles.requirementText,
+                                form.password && !passwordValidation.lengthValid && styles.requirementTextError,
+                              ]}
+                            >
+                              Be at least 8 characters long
+                            </Text>
+                          </View>
+                          <View style={styles.requirement}>
+                            <View
+                              style={[
+                                styles.requirementDot,
+                                form.password && !passwordValidation.notNumeric && styles.requirementDotError,
+                              ]}
+                            />
+                            <Text
+                              style={[
+                                styles.requirementText,
+                                form.password && !passwordValidation.notNumeric && styles.requirementTextError,
+                              ]}
+                            >
+                              Not be entirely numeric
+                            </Text>
+                          </View>
+                        </View>
+                      }
                     />
-
-                    <View style={styles.passwordRequirements}>
-                      <Text style={styles.requirementsTitle}>Password must:</Text>
-                      <View style={styles.requirement}>
-                        <View
-                          style={[
-                            styles.requirementDot,
-                            form.password && !passwordValidation.lengthValid && styles.requirementDotError,
-                          ]}
-                        />
-                        <Text
-                          style={[
-                            styles.requirementText,
-                            form.password && !passwordValidation.lengthValid && styles.requirementTextError,
-                          ]}
-                        >
-                          Be at least 8 characters long
-                        </Text>
-                      </View>
-                      <View style={styles.requirement}>
-                        <View
-                          style={[
-                            styles.requirementDot,
-                            form.password && !passwordValidation.notNumeric && styles.requirementDotError,
-                          ]}
-                        />
-                        <Text
-                          style={[
-                            styles.requirementText,
-                            form.password && !passwordValidation.notNumeric && styles.requirementTextError,
-                          ]}
-                        >
-                          Not be entirely numeric
-                        </Text>
-                      </View>
-                    </View>
                   </View>
 
                   <PrimaryButton

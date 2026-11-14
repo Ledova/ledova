@@ -61,7 +61,13 @@ export function SelectField<T extends string>({
         accessibilityHint={error ?? undefined}
         disabled={disabled}
         onPress={() => setOpen((shown) => !shown)}
-        style={[frame.frame, filled && frame.filled, open && styles.open, disabled && styles.disabled]}
+        style={[
+          frame.frame,
+          filled && frame.filled,
+          filled && !!error && frame.invalid,
+          open && styles.open,
+          disabled && styles.disabled,
+        ]}
       >
         <Text numberOfLines={1} style={[frame.text, styles.value]}>
           {current}

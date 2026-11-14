@@ -1,4 +1,4 @@
-import { forwardRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
   TextInput,
   TouchableOpacity,
@@ -26,12 +26,15 @@ export function useControlFrame() {
     },
     filled: { paddingHorizontal: theme.spacing.md, backgroundColor: theme.colors.surface.tertiary },
     invalid: { borderColor: theme.colors.status.error.text, backgroundColor: theme.colors.error.subtle },
-    text: { fontFamily: theme.fontFamily.regular, fontSize: theme.fontSize.base, color: theme.colors.text.primary },
+    text: {
+      fontFamily: theme.fontFamily.regular,
+      fontSize: theme.fontSize.base,
+      letterSpacing: 0,
+      color: theme.colors.text.primary,
+    },
     placeholder: { color: theme.colors.form.placeholder },
   }));
 }
-
-export type InputRef = TextInput;
 
 export type InputProps = Omit<TextInputProps, 'style'> & {
   filled?: boolean;
@@ -45,23 +48,20 @@ export type InputProps = Omit<TextInputProps, 'style'> & {
 
 const LINE = 22;
 
-export const Input = forwardRef<InputRef, InputProps>(function Input(
-  {
-    filled = false,
-    invalid = false,
-    leading,
-    trailing,
-    rows = 2,
-    style,
-    textStyle,
-    multiline,
-    editable = true,
-    accessibilityState,
-    placeholderTextColor,
-    ...props
-  },
-  ref,
-) {
+export function Input({
+  filled = false,
+  invalid = false,
+  leading,
+  trailing,
+  rows = 2,
+  style,
+  textStyle,
+  multiline,
+  editable = true,
+  accessibilityState,
+  placeholderTextColor,
+  ...props
+}: InputProps) {
   const theme = useAppTheme();
   const frame = useControlFrame();
   const own = useThemedStyles((theme) => ({
@@ -78,7 +78,6 @@ export const Input = forwardRef<InputRef, InputProps>(function Input(
     >
       {slot(leading)}
       <TextInput
-        ref={ref}
         {...props}
         multiline={multiline}
         editable={editable}
@@ -89,7 +88,7 @@ export const Input = forwardRef<InputRef, InputProps>(function Input(
       {slot(trailing)}
     </View>
   );
-});
+}
 
 export function PasswordToggle({
   shown,

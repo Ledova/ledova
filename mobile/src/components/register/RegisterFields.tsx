@@ -1,10 +1,10 @@
-import { forwardRef, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { CheckIcon } from 'phosphor-react-native';
 import type { UploadFile } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { Input, type InputProps, type InputRef } from '../Input';
+import { Input, type InputProps } from '../Input';
 import { usePickedDocument } from '../../hooks/usePickedDocument';
 import type { PickedDocument } from '../../services/documentCopies';
 
@@ -14,13 +14,22 @@ type FieldProps = Omit<InputProps, 'onChange' | 'onChangeText' | 'invalid' | 'le
   error?: string | null;
   clearable?: boolean;
   icon?: ReactNode;
+  below?: ReactNode;
   onChange: (value: string) => void;
 };
 
-export const Field = forwardRef<InputRef, FieldProps>(function Field(
-  { label, hint, error, clearable, icon, filled, accessibilityLabel, onChange, ...input },
-  ref,
-) {
+export function Field({
+  label,
+  hint,
+  error,
+  clearable,
+  icon,
+  below,
+  filled,
+  accessibilityLabel,
+  onChange,
+  ...input
+}: FieldProps) {
   const styles = useCompanyStyles();
   const note = !!hint && <Text style={filled ? styles.filledHint : styles.muted}>{hint}</Text>;
   return (
@@ -28,7 +37,6 @@ export const Field = forwardRef<InputRef, FieldProps>(function Field(
       <Text style={filled ? styles.filledLabel : styles.text}>{label}</Text>
       {filled && note}
       <Input
-        ref={ref}
         {...input}
         filled={filled}
         invalid={!!error}
@@ -39,10 +47,11 @@ export const Field = forwardRef<InputRef, FieldProps>(function Field(
         onChangeText={onChange}
       />
       {!filled && note}
+      {below}
       {!!error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
-});
+}
 
 export function Checkbox({
   label,
