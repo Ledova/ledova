@@ -1,11 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8"><title>Member invitation</title></head>
-<body>
-  <h1>{{ company }} invited you to view your shares</h1>
-  <p>You have been invited to view {{ member }}’s share records.</p>
-  <p><a href="{{ invitation_url }}">View invitation</a></p>
-  <p>Sign in with the email address this invitation was sent to, then review it before accepting.</p>
-  <p>This invitation expires on {{ deadline|date:"j F Y, H:i T" }}.</p>
-</body>
-</html>
+{% extends "email/base.html" %}
+{% block title %}Member invitation{% endblock %}
+{% block heading %}{{ company }} invited you to view your shares{% endblock %}
+{% block content %}
+<p style="margin:0 0 24px;">You have been invited to view {{ member }}’s share records.</p>
+{% include "email/button.html" with url=invitation_url label="View invitation" %}
+<p style="margin:24px 0 0;">Sign in with the email address this invitation was sent to, then review it before accepting.</p>
+<p style="margin:24px 0 0;">This invitation expires on {{ deadline|date:"j F Y, H:i T" }}.</p>
+{% endblock %}
