@@ -40,11 +40,22 @@ Shared register UI (fields, the file picker's `FileField` and document sharing) 
 `components/register`, and its styles and picked-file hook (`usePickedDocument.ts`) in `hooks/`; the
 award chart that Dashboard and an award's page share is `components/AwardStatus.tsx`, and the
 searchable list that a person or a shareholder is chosen from is `components/SearchSelect.tsx`, which
-Shareholders' `PersonSelect.tsx` wraps. The signed-in
-member records state is a context (`mobile/src/contexts/MemberRecordsContext.tsx`), with its notices and
-pull to refresh in `mobile/src/components/MemberRecords.tsx`, and the account check, company notice
-and register access notice that several areas show (`AccountCheck.tsx`, `CompanyContextNotice.tsx`,
-`RegisterAccess.tsx`) in `components/`. `RegisterAccess` shows loading while access is rechecked, and the notice
+Shareholders' `PersonSelect.tsx` wraps.
+
+Every text field goes through `components/Input.tsx`, and a lint rule keeps React Native's
+`TextInput` there. `Input` draws the frame, the text, a leading slot (an icon, or the phone number's
+country picker) and a trailing slot (`PasswordToggle`), multi-line rows, and the in-app look or the
+`filled` sign-in and sign-up card look with its error frame, as on the web. Its frame has a minimum
+height, never a fixed one: iOS confines the text being edited to the input's own box, so a fixed
+height with vertical padding cuts off letters such as "g" while the keyboard is up. `Field`
+(`components/register`) adds the label, hint and error and passes input props through, and
+`useControlFrame()` gives selects and the date field the same frame.
+
+The signed-in member records state is a context (`mobile/src/contexts/MemberRecordsContext.tsx`),
+with its notices and pull to refresh in `mobile/src/components/MemberRecords.tsx`, and the account
+check, company notice and register access notice that several areas show (`AccountCheck.tsx`,
+`CompanyContextNotice.tsx`, `RegisterAccess.tsx`) in `components/`. `RegisterAccess` shows loading
+while access is rechecked, and the notice
 only once the check settles. Ledger and Shareholders read the selected company's classes and
 holders through `hooks/useCompanyRegisters.ts`. Production screens import no other area's internals.
 Profile, operator, member, company list, appointment and company ownership reads, Team's reads

@@ -5,6 +5,8 @@ import { CalendarIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles, overlayColors } from '../../contexts';
 import { Action, useCardStyles } from '../Ledger';
 import { ModalActions, useDialogInsets } from '../modal';
+import { useControlFrame } from '../Input';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 
 interface DatePickerFieldProps {
   label: string;
@@ -14,6 +16,7 @@ interface DatePickerFieldProps {
   minimumDate?: Date;
   maximumDate?: Date;
   disabled?: boolean;
+  error?: string | null;
 }
 
 export function DatePickerField({
@@ -24,41 +27,15 @@ export function DatePickerField({
   minimumDate,
   maximumDate,
   disabled = false,
+  error,
 }: DatePickerFieldProps) {
   const theme = useAppTheme();
   const insets = useDialogInsets();
   const card = useCardStyles();
+  const form = useCompanyStyles();
+  const frame = useControlFrame();
   const styles = useThemedStyles((theme) => ({
-    container: {
-      gap: theme.spacing.xs,
-    },
-    label: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.body,
-      marginBottom: theme.spacing.xs,
-    },
-    input: {
-      backgroundColor: theme.colors.surface.tertiary,
-      borderColor: theme.colors.border.default,
-      borderWidth: 1,
-      borderRadius: theme.borderRadius.md,
-      paddingHorizontal: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.sm,
-      height: 56,
-    },
-    inputText: {
-      fontSize: theme.fontSize.base,
-      color: theme.colors.text.primary,
-      fontWeight: theme.fontWeight.medium,
-      flex: 1,
-    },
-    placeholder: {
-      color: theme.colors.text.muted,
-    },
+    value: { flex: 1 },
     modalOverlay: {
       flex: 1,
       justifyContent: 'flex-end',
@@ -119,21 +96,25 @@ export function DatePickerField({
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[form.group, form.filledGroup]}>
+      <Text style={form.filledLabel}>{label}</Text>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityValue={{ text: value ? formatDate(value) : placeholder }}
         accessibilityState={{ disabled, expanded: show }}
         disabled={disabled}
-        style={styles.input}
+        accessibilityHint={error ?? undefined}
+        style={[frame.frame, frame.filled, !!error && frame.invalid]}
         onPress={handlePress}
         onAccessibilityTap={handlePress}
       >
         <CalendarIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} weight={theme.icon.weights.regular} />
-        <Text style={[styles.inputText, !value && styles.placeholder]}>{value ? formatDate(value) : placeholder}</Text>
+        <Text style={[frame.text, styles.value, !value && frame.placeholder]}>
+          {value ? formatDate(value) : placeholder}
+        </Text>
       </Pressable>
+      {!!error && <Text style={form.error}>{error}</Text>}
 
       {Platform.OS === 'ios' ? (
         <Modal visible={show} transparent animationType="slide" onRequestClose={handleCancel}>

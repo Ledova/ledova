@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { View, Text, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
@@ -11,6 +11,7 @@ import { EnvelopeOpenIcon, CheckCircleIcon, WarningCircleIcon } from 'phosphor-r
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { ScreenHeader } from '../../../components/header';
+import { Field } from '../../../components/register/RegisterFields';
 
 export function EmailConfirmationScreen() {
   const theme = useAppTheme();
@@ -70,29 +71,10 @@ export function EmailConfirmationScreen() {
     fieldContainer: {
       marginBottom: theme.spacing.lg,
     },
-    label: {
-      fontSize: theme.fontSize.sm,
-      fontWeight: theme.fontWeight.medium,
-      color: theme.colors.text.body,
-      marginBottom: theme.spacing.sm,
-    },
-    codeInput: {
-      backgroundColor: theme.colors.surface.tertiary,
-      borderWidth: 1,
-      borderColor: theme.colors.border.strong,
-      borderRadius: theme.borderRadius.md,
-      paddingHorizontal: theme.spacing.md,
-      height: 56,
+    code: {
+      fontFamily: theme.fontFamily.semibold,
       fontSize: theme.fontSize.xxl,
-      color: theme.colors.text.primary,
       textAlign: 'center',
-      letterSpacing: 8,
-      fontWeight: theme.fontWeight.semibold,
-    },
-    fieldError: {
-      color: theme.colors.status.error.icon,
-      fontSize: theme.fontSize.xs,
-      marginTop: theme.spacing.xs,
     },
     verifyButton: {
       marginTop: theme.spacing.md,
@@ -208,14 +190,12 @@ export function EmailConfirmationScreen() {
               )}
 
               <View style={styles.fieldContainer}>
-                <Text style={styles.label}>Verification code</Text>
-                <TextInput
-                  accessibilityLabel="Verification code"
-                  style={styles.codeInput}
+                <Field
+                  filled
+                  label="Verification code"
                   placeholder="000000"
-                  placeholderTextColor={theme.colors.form.placeholder}
                   value={verificationCode}
-                  onChangeText={(text) => {
+                  onChange={(text) => {
                     const cleaned = formatVerificationToken(text).slice(0, EMAIL_CONFIRMATION_VALIDATION.TOKEN_LENGTH);
                     setVerificationCode(cleaned);
                   }}
@@ -223,8 +203,9 @@ export function EmailConfirmationScreen() {
                   maxLength={6}
                   autoFocus
                   editable={!isLoading}
+                  error={errors.token?.join(' ')}
+                  textStyle={styles.code}
                 />
-                {errors.token && <Text style={styles.fieldError}>{errors.token.join(' ')}</Text>}
               </View>
 
               <PrimaryButton

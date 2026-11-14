@@ -1,22 +1,12 @@
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { CheckIcon } from 'phosphor-react-native';
 import { searchRows, type OwnershipCompany } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
+import { Input } from '../../components/Input';
 
 function usePickerStyles() {
   return useThemedStyles((theme) => ({
-    input: {
-      paddingHorizontal: 12,
-      paddingVertical: theme.spacing.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.raised,
-      fontFamily: theme.fontFamily.regular,
-      fontSize: 16,
-      color: theme.colors.text.primary,
-    },
     list: { marginTop: theme.spacing.sm },
     row: {
       flexDirection: 'row' as const,
@@ -76,14 +66,12 @@ export function CompanyPicker({
   const found = searchRows(companies, (row) => `${row.name} ${detailOf(row)}`, query);
   return (
     <View>
-      <TextInput
+      <Input
         accessibilityLabel="Your companies"
         placeholder="Type a company name"
-        placeholderTextColor={theme.colors.text.muted}
         value={query}
         onChangeText={setQuery}
         autoCorrect={false}
-        style={styles.input}
       />
       <View style={styles.list}>
         {found.length === 0 ? (

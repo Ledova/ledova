@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Keyboard, Pressable, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, Text, View } from 'react-native';
 import { CaretDownIcon, CheckIcon } from 'phosphor-react-native';
 import { formatShareCount, searchEntries, searchMatches, type SearchChoice } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../contexts';
 import { useCompanyStyles } from '../hooks/useCompanyStyles';
+import { Input, useControlFrame } from './Input';
 
 const SHOWN = 50;
 const NONE: readonly SearchChoice[] = [];
@@ -32,39 +33,18 @@ export function SearchSelect({
 }) {
   const theme = useAppTheme();
   const form = useCompanyStyles();
+  const frame = useControlFrame();
   const styles = useThemedStyles((theme) => ({
-    control: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: theme.spacing.sm,
-      padding: theme.spacing.smd,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.raised,
-    },
     open: { borderColor: theme.colors.brand.mid },
     disabled: { opacity: 0.5 },
-    value: { flex: 1, fontFamily: theme.fontFamily.regular, fontSize: 16, color: theme.colors.text.primary },
-    placeholder: { color: theme.colors.form.placeholder },
+    value: { flex: 1 },
     options: {
       borderWidth: 1,
       borderColor: theme.colors.border.default,
       borderRadius: theme.borderRadius.md,
       overflow: 'hidden' as const,
     },
-    search: {
-      margin: theme.spacing.sm,
-      paddingHorizontal: 12,
-      paddingVertical: theme.spacing.sm,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.raised,
-      fontFamily: theme.fontFamily.regular,
-      fontSize: 16,
-      color: theme.colors.text.primary,
-    },
+    search: { margin: theme.spacing.sm },
     option: {
       flexDirection: 'row' as const,
       alignItems: 'flex-start' as const,
@@ -110,19 +90,18 @@ export function SearchSelect({
         accessibilityHint={error ?? undefined}
         disabled={disabled}
         onPress={() => (open ? close() : setOpen(true))}
-        style={[styles.control, open && styles.open, disabled && styles.disabled]}
+        style={[frame.frame, open && styles.open, disabled && styles.disabled]}
       >
-        <Text numberOfLines={1} style={[styles.value, !chosen && styles.placeholder]}>
+        <Text numberOfLines={1} style={[frame.text, styles.value, !chosen && frame.placeholder]}>
           {chosen?.label ?? placeholder}
         </Text>
         <CaretDownIcon size={theme.icon.sizes.sm} color={theme.colors.text.primary} />
       </Pressable>
       {open && !disabled && (
         <View style={styles.options}>
-          <TextInput
+          <Input
             accessibilityLabel={`Search ${label.toLowerCase()}`}
             placeholder={placeholder}
-            placeholderTextColor={theme.colors.form.placeholder}
             value={query}
             autoCorrect={false}
             onChangeText={setQuery}

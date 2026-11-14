@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 import { CaretDownIcon, CheckIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
 import { useCompanyStyles } from '../hooks/useCompanyStyles';
+import { useControlFrame } from './Input';
 
 export function SelectField<T extends string>({
   label,
@@ -23,20 +24,11 @@ export function SelectField<T extends string>({
 }) {
   const theme = useAppTheme();
   const form = useCompanyStyles();
+  const frame = useControlFrame();
   const styles = useThemedStyles((theme) => ({
-    control: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      gap: theme.spacing.sm,
-      padding: theme.spacing.smd,
-      borderWidth: 1,
-      borderColor: theme.colors.border.default,
-      borderRadius: theme.borderRadius.md,
-      backgroundColor: theme.colors.surface.raised,
-    },
     open: { borderColor: theme.colors.brand.mid },
     disabled: { opacity: 0.5 },
-    value: { flex: 1, fontFamily: theme.fontFamily.regular, fontSize: 16, color: theme.colors.text.primary },
+    value: { flex: 1 },
     options: {
       borderWidth: 1,
       borderColor: theme.colors.border.default,
@@ -69,9 +61,15 @@ export function SelectField<T extends string>({
         accessibilityHint={error ?? undefined}
         disabled={disabled}
         onPress={() => setOpen((shown) => !shown)}
-        style={[styles.control, filled && form.filled, open && styles.open, disabled && styles.disabled]}
+        style={[
+          frame.frame,
+          filled && frame.filled,
+          filled && !!error && frame.invalid,
+          open && styles.open,
+          disabled && styles.disabled,
+        ]}
       >
-        <Text numberOfLines={1} style={styles.value}>
+        <Text numberOfLines={1} style={[frame.text, styles.value]}>
           {current}
         </Text>
         <CaretDownIcon size={theme.icon.sizes.sm} color={theme.colors.text.primary} />
@@ -91,7 +89,7 @@ export function SelectField<T extends string>({
                 }}
                 style={[styles.option, filled && styles.filledOption, selected && styles.chosen]}
               >
-                <Text style={styles.value}>{labelOf(option)}</Text>
+                <Text style={[frame.text, styles.value]}>{labelOf(option)}</Text>
                 {selected && <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.brand.light} />}
               </Pressable>
             );
