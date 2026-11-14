@@ -5,5 +5,5 @@
 <p style="margin:0 0 24px;">You have been invited to view {{ member }}’s share records.</p>
 {% include "email/button.html" with url=invitation_url label="View invitation" %}
 <p style="margin:24px 0 0;">Sign in with the email address this invitation was sent to, then review it before accepting.</p>
-<p style="margin:24px 0 0;font-size:14px;line-height:20px;color:#5b5f66;">This invitation expires on {{ deadline|date:"j F Y, H:i T" }}.</p>
+<p style="margin:24px 0 0;">This invitation expires on {{ deadline|date:"j F Y, H:i T" }}.</p>
 {% endblock %}
