@@ -432,31 +432,40 @@ function CompanyRegister({
 }
 
 function GettingStarted({ activated, registered }: { activated: boolean; registered: boolean }) {
-  const styles = useCompanyStyles();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   return (
     <Section title="Getting started">
       <Rows>
         {!activated && (
-          <LinkRow
+          <SetupStep
             label={COMPANY_ACTIVATION_COPY.STEP}
-            figure={<Status tone="waiting">To do</Status>}
+            note={COMPANY_ACTIVATION_COPY.NOTE}
             onPress={() => navigation.navigate('Activation')}
-          >
-            <Text style={styles.muted}>{COMPANY_ACTIVATION_COPY.NOTE}</Text>
-          </LinkRow>
+          />
         )}
         {!registered && (
-          <LinkRow
+          <SetupStep
             label={DESTINATIONS.companyRegisterSetup.title}
-            figure={<Status tone="waiting">To do</Status>}
+            note={REGISTER_IMPORT_COPY.SETUP_NOTE}
             onPress={() => navigation.navigate('Ledger')}
-          >
-            <Text style={styles.muted}>{REGISTER_IMPORT_COPY.SETUP_NOTE}</Text>
-          </LinkRow>
+          />
         )}
       </Rows>
     </Section>
+  );
+}
+
+function SetupStep({ label, note, onPress }: { label: string; note: string; onPress: () => void }) {
+  const styles = useCompanyStyles();
+  return (
+    <LinkRow
+      label={label}
+      accessibilityLabel={`${label}, to do. ${note}`}
+      figure={<Status tone="waiting">To do</Status>}
+      onPress={onPress}
+    >
+      <Text style={styles.muted}>{note}</Text>
+    </LinkRow>
   );
 }
 
