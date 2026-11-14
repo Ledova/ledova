@@ -1,5 +1,4 @@
 export { ApiClientProvider, useApiClient } from './useApiClient';
-export type { ApiClientProviderProps } from './useApiClient';
 export { AUTH_QUERY_KEY, useAuth, AUTH_QUERY_ROOT } from './useAuth';
 export { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 export { useRole } from './useRole';
@@ -17,7 +16,7 @@ export {
   REGISTER_TRANSFER_DECISIONS,
   useRegisterDecision,
 } from './useRegisterDecision';
-export type { RegisterDecisionFamily, RegisterDecisionOptions, RegisterDecisionTarget } from './useRegisterDecision';
+export type { RegisterDecisionFamily } from './useRegisterDecision';
 export {
   canAdministerCompany,
   canPersonallyAdministerCompany,
@@ -25,12 +24,12 @@ export {
   COMPANY_QUERY_KEY,
   ownCompaniesKey,
 } from './useCompanySelection';
-export { SIGNUP_USER_FIELDS, useSignupUser } from './useSignupUser';
-export { SIGNUP_RESTART_FIELDS, useSignupRestart } from './useSignupRestart';
-export { EMAIL_VERIFICATION_FIELDS, useEmailVerification } from './useEmailVerification';
+export { useSignupUser } from './useSignupUser';
+export { useSignupRestart } from './useSignupRestart';
+export { useEmailVerification } from './useEmailVerification';
 export { useSignupAccountType } from './useSignupAccountType';
-export { USER_PROFILE_FIELDS, useSignupUserProfile } from './useSignupUserProfile';
-export { COMPANY_REGISTRATION_FIELDS, useSignupCompanyRegistration } from './useSignupCompanyRegistration';
+export { useSignupUserProfile } from './useSignupUserProfile';
+export { useSignupCompanyRegistration } from './useSignupCompanyRegistration';
 export {
   useSignupReview,
   USER_PROFILES_QUERY_KEY,
@@ -128,6 +127,5 @@ export {
 export { importRegisterKey, useImportRegister } from './useImportRegister';
 export { useStartedClasses } from './useStartedClasses';
 export { useNewShareClass } from './useNewShareClass';
-export type { NewShareClassOptions } from './useNewShareClass';
 export { useImportPreparation } from './useImportPreparation';
 export type { ImportPreparationOptions } from './useImportPreparation';

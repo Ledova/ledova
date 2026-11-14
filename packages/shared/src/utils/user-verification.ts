@@ -1,6 +1,6 @@
 import type { ReviewAnswer, UserProfile, VerificationStatus as KycStatus } from '../types';
 
-export type VerificationStatusType = 'verified' | 'pending' | 'rejected' | 'not_started' | 'not_verified' | 'unknown';
+type VerificationStatusType = 'verified' | 'pending' | 'rejected' | 'not_started' | 'not_verified' | 'unknown';
 
 interface VerificationStatus {
   type: VerificationStatusType;

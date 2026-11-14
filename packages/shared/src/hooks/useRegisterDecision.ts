@@ -97,14 +97,14 @@ export const REGISTER_CORRECTION_DECISIONS: RegisterDecisionFamily<
   copy: REGISTER_CORRECTION_COPY,
 };
 
-export type RegisterDecisionTarget<Preview> = {
+type RegisterDecisionTarget<Preview> = {
   uuid: string;
   signature: string;
   request: RegisterDecideRequest;
   preview: Preview;
 };
 
-export type RegisterDecisionOptions<Proposal> = {
+type RegisterDecisionOptions<Proposal> = {
   appointment: string | undefined;
   newKey: () => string;
   guard: () => void;

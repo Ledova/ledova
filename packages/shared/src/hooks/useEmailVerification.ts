@@ -10,7 +10,7 @@ import { useApiClient } from './useApiClient';
 
 type Verification = Awaited<ReturnType<typeof verifyEmail>>;
 
-export const EMAIL_VERIFICATION_FIELDS = ['token'] as const;
+const EMAIL_VERIFICATION_FIELDS = ['token'] as const;
 
 export function useEmailVerification(email: string, onVerified: (verification: Verification) => Promise<void> | void) {
   const apiClient = useApiClient();

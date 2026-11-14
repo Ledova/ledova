@@ -1,6 +1,6 @@
 import type { PasswordValidation, EmailConfirmationValidation } from '../types';
 
-export function isNumericOnly(str: string): boolean {
+function isNumericOnly(str: string): boolean {
   return /^\d+$/.test(str);
 }
 

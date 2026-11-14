@@ -15,7 +15,7 @@ import { useApiClient } from './useApiClient';
 
 const DEFAULT_COUNTRY = COUNTRIES[0]!;
 
-export const USER_PROFILE_FIELDS = ['fullName', 'dateOfBirth', 'residentialAddress', 'phoneNumber'] as const;
+const USER_PROFILE_FIELDS = ['fullName', 'dateOfBirth', 'residentialAddress', 'phoneNumber'] as const;
 
 type ProfileField = (typeof USER_PROFILE_FIELDS)[number];
 

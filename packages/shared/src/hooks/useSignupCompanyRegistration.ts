@@ -33,7 +33,7 @@ const initialFormData: CompanyFormData = {
   abn: '',
 };
 
-export const COMPANY_REGISTRATION_FIELDS = Object.keys(initialFormData) as (keyof CompanyFormData)[];
+const COMPANY_REGISTRATION_FIELDS = Object.keys(initialFormData) as (keyof CompanyFormData)[];
 
 interface FormOwner {
   uuid: string | null | undefined;

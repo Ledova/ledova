@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 const ApiClientContext = createContext<AxiosInstance | null>(null);
 
-export interface ApiClientProviderProps {
+interface ApiClientProviderProps {
   client: AxiosInstance;
   children: ReactNode;
 }
