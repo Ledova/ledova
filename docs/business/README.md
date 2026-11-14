@@ -259,11 +259,12 @@ Failed reads offer retry, an edited form asks before a company change discards i
 blocks context changes.
 
 The footer identifies the selected company. Until its register is set up, a personal
-administrator also sees **Getting started** with **Set up your ledger**
-([register setup](register.md#bringing-in-existing-records)), which disappears once the register of
-the company shown is opened, not when a class is merely created. A company is Active from the end
-of its signup, with no activation step ([company status](companies.md#company-status)). Someone who
-can prepare the register but is not an administrator is pointed to Ledger instead.
+administrator sees only **Getting started**: a note on what the Dashboard shows once the ledger is
+set up, and a **Set up your ledger** button
+([register setup](register.md#bringing-in-existing-records)). Other company readers see a one-line
+note instead. Both give way to the overview once the register of the company shown is opened, not
+when a class is merely created. A company is Active from the end of its signup, with no activation
+step ([company status](companies.md#company-status)).
 
 Once a register exists, the Dashboard shows the selected company's recorded ownership: issued
 shares, current shareholders (each person counted once across classes) and the number of share

@@ -288,9 +288,8 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(sidebar.getByRole('link', { name: 'Eligibility', exact: true })).toHaveCount(0);
     await expect(sidebar.getByRole('link', { name: 'Company files', exact: true })).toHaveCount(0);
   } else {
-    await expect(page.getByRole('region', { name: 'Company ownership summary' })).toContainText(
-      'Issued sharesNot complete',
-    );
+    await expect(page.getByRole('link', { name: 'Set up your ledger', exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Company ownership summary' })).toHaveCount(0);
   }
   expect(await page.locator('html').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
   let aside = await visibleSidebar(page);

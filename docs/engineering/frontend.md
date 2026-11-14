@@ -791,8 +791,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   association-bound read. A real member link, not a matching name or company appointment, supplies
   the personal position. No full-register reads are needed just to list companies.
   Static, data-free placeholders reserve loading space, and confirmed figures appear directly.
-  Getting started lists only incomplete company-administrator tasks and disappears once they are
-  complete. Read-only awards remain separate entitlements, with the promise and nonzero lifecycle
+  Until the register is opened, the Ownership overview stays hidden unless the person has their own
+  member record: an administrator sees Getting started, a short note with a **Set up your ledger**
+  button, and other readers a one-line note. Read-only awards remain separate entitlements, with the promise and nonzero lifecycle
   quantities above their full breakdown and terms in **Show award details**.
 - The Certificates page (`dashboard/src/pages/documents/certificates/index.tsx`) shows a register
   reader the company's certificate preparation and a member who is not one their own entries, in one

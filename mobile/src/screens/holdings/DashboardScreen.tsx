@@ -22,7 +22,7 @@ import {
 } from '@ledova/shared';
 import { AwardStatus } from '../../components/AwardStatus';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, Actions, Fact, LinkRow, LoadError, Rows, Section, Status } from '../../components/Ledger';
+import { Action, Actions, Fact, LinkRow, LoadError, Rows, Section } from '../../components/Ledger';
 import { MemberNotice, useMemberRefresh } from '../../components/MemberRecords';
 import { Page } from '../../components/Page';
 import { Pager } from '../../components/Pager';
@@ -322,13 +322,15 @@ function CompanyRegister({
   const summary = registerReady && company.canReadRegister ? ownership.overview.data : undefined;
   const view = useMemo(() => ownershipView(summary, record), [summary, record]);
   const registered = !!summary?.classes.some(({ initialized }) => initialized);
+  const ledgerPending = registerReady && company.canReadRegister && !registered;
+  const awaitingLedger = ledgerPending && !record;
   const failed =
     company.canReadRegister && (ownership.classes.isError || ownership.overview.isError || ownership.scopeError);
   const selected = view?.classes.find(({ uuid }) => uuid === chosen?.token);
   const { holders } = ownership;
   return (
     <>
-      {chosen && <Trail symbol={selected?.symbol} onBack={() => onChoose(null)} />}
+      {chosen && !awaitingLedger && <Trail symbol={selected?.symbol} onBack={() => onChoose(null)} />}
       <View style={look.cards}>
         {failed ? (
           <LoadError retry={retry} busy={busy}>
@@ -340,8 +342,14 @@ function CompanyRegister({
           </Section>
         ) : (
           <>
-            {company.canManage && !registered && <GettingStarted />}
-            {view ? (
+            {company.canManage && ledgerPending && <GettingStarted />}
+            {awaitingLedger ? (
+              !company.canManage && (
+                <Section title="Ownership overview">
+                  <Text style={styles.muted}>{REGISTER_IMPORT_COPY.LEDGER_PENDING}</Text>
+                </Section>
+              )
+            ) : view ? (
               <>
                 <Section title="Ownership overview">
                   <Text style={styles.muted}>
@@ -429,17 +437,12 @@ function CompanyRegister({
 function GettingStarted() {
   const styles = useCompanyStyles();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
-  const label = DESTINATIONS.companyRegisterSetup.title;
   return (
     <Section title="Getting started">
-      <LinkRow
-        label={label}
-        accessibilityLabel={`${label}, to do. ${REGISTER_IMPORT_COPY.SETUP_NOTE}`}
-        figure={<Status tone="waiting">To do</Status>}
-        onPress={() => navigation.navigate('Ledger')}
-      >
-        <Text style={styles.muted}>{REGISTER_IMPORT_COPY.SETUP_NOTE}</Text>
-      </LinkRow>
+      <Text style={styles.muted}>{REGISTER_IMPORT_COPY.SETUP_NOTE}</Text>
+      <Actions>
+        <Action label={DESTINATIONS.companyRegisterSetup.title} primary onPress={() => navigation.navigate('Ledger')} />
+      </Actions>
     </Section>
   );
 }
@@ -602,12 +605,8 @@ function OwnershipClasses({
       <Text style={styles.muted}>
         {personalOnly ? 'Your issued shares by class' : 'Company ownership by issued share count'}
       </Text>
-      {!complete && (
-        <Text style={styles.muted}>
-          {classes.length
-            ? 'Company totals are incomplete until every class has an opened ledger.'
-            : 'Set up the ledger to record company ownership.'}
-        </Text>
+      {!complete && classes.length > 0 && (
+        <Text style={styles.muted}>Company totals are incomplete until every class has an opened ledger.</Text>
       )}
       {total === '0' && <Text style={styles.muted}>No issued shares yet.</Text>}
       <Rows>

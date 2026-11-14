@@ -168,8 +168,9 @@ current shareholders, largest first, 25 to a page with the web's pager, and the 
 and awards where they hold shares. It has the web's loading, incomplete-total, unopened-class, no
 shareholder and failure states with Try again, and the trail returns from a class the overview no
 longer lists. The class card ends with the web's **Class details** row, which opens the class's page.
-Above the overview, an administrator sees the web's **Getting started** until the register is set up:
-**Set up your ledger** opens Ledger.
+Until the register is set up, an administrator sees the web's **Getting started** in place of the
+overview, a short note with a **Set up your ledger** button that opens Ledger, and other readers see
+the web's one-line note.
 For a company where the person is only a member, the Ownership
 overview comes from the shared `ownershipView`, read from the member record's shared ownership, or
 from the member's own shares when the company does not share its totals: your shares, issued shares,
