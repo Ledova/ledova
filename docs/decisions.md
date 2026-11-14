@@ -2679,7 +2679,7 @@ review or approve the company's records. The
 [legal position](legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register) records
 what a contract cannot transfer. An account that accepted an earlier version stays under it until
 it accepts the new one, which only the web's **Settings → Account** offers; the mobile app has no
-Terms control, and a company's acceptance at signup is not renewed.
+Terms renewal control, and a company's acceptance at signup is not renewed.
 
 ### Source-based assessment for the free registry
 

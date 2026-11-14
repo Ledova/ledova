@@ -9,6 +9,10 @@ export const COMPANY_SIGNUP_DECLARATION = `I am authorised to act for this compa
 
 export const COMPANY_SIGNUP_DECLARATIONS: readonly { version: string; text: string }[] = [
   {
+    version: '2026-10-14',
+    text: 'I am authorised to set up and administer this company’s workspace, including managing its users, and I accept the Terms of Service (version 2026-10-14) on the company’s behalf. The company is responsible for the company and share information it provides, its ASIC filings and legal obligations.',
+  },
+  {
     version: '2026-11-09',
     text: 'I am authorised to set up and administer this company’s workspace, including managing its users, and I accept the Terms of Service (version 2026-11-09) on the company’s behalf. The company is responsible for the company and share information it provides, its ASIC filings and legal obligations.',
   },
