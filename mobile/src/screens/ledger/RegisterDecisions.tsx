@@ -12,7 +12,7 @@ import {
   type RegisterSteps,
 } from '@ledova/shared';
 import { Action, FormActions, Loading, useCardStyles } from '../../components/Ledger';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useLedgerStyles } from './useLedgerStyles';

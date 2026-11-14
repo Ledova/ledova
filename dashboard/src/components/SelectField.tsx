@@ -2,7 +2,7 @@ import { Select } from '@headlessui/react';
 import { Field } from '@components/Field';
 import { FIELD_CLASS } from '@components/fieldClass';
 
-export interface SelectOption {
+interface SelectOption {
   value: string;
   label: string;
   reference?: string;

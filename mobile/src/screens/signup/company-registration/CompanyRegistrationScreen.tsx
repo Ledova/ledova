@@ -14,7 +14,7 @@ import { COMPANY_TYPES, FIELD_LIMITS, useSignupCompanyRegistration } from '@ledo
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
 import { ScreenHeader, SignOutLink } from '../../../components/header';
-import { Field } from '../../../components/register/RegisterFields';
+import { Field } from '../../../components/Field';
 import { SelectField } from '../../../components/SelectField';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useCompanyStyles } from '../../../hooks/useCompanyStyles';

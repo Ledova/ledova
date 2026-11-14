@@ -45,7 +45,7 @@ import { Action, Fact, FormActions, LoadError, Loading, Rows, Section } from '..
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
-import { Choices, Field } from '../../components/register/RegisterFields';
+import { Choices, Field } from '../../components/Field';
 import { useMemberRecordsState, useThemedStyles } from '../../contexts';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';

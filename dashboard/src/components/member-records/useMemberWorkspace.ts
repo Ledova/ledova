@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { useMemberRecords } from '@ledova/shared';
 
-export type MemberWorkspace = {
+type MemberWorkspace = {
   read: ReturnType<typeof useMemberRecords>;
   held: boolean;
   token: string;

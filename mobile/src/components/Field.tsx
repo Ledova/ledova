@@ -2,11 +2,11 @@ import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { CheckIcon } from 'phosphor-react-native';
 import type { UploadFile } from '@ledova/shared';
-import { useAppTheme, useThemedStyles } from '../../contexts';
-import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { Input, type InputProps } from '../Input';
-import { usePickedDocument } from '../../hooks/usePickedDocument';
-import type { PickedDocument } from '../../services/documentCopies';
+import { useAppTheme, useThemedStyles } from '../contexts';
+import { useCompanyStyles } from '../hooks/useCompanyStyles';
+import { Input, type InputProps } from './Input';
+import { usePickedDocument } from '../hooks/usePickedDocument';
+import type { PickedDocument } from '../services/documentCopies';
 
 type FieldProps = Omit<InputProps, 'onChange' | 'onChangeText' | 'invalid' | 'leading' | 'style'> & {
   label: string;

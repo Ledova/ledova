@@ -979,7 +979,7 @@ Some messages keep their own form:
   shows it passes `showUploadHint`, and its hint then starts with "PDF, PNG or JPEG, up to 10 MB."
   (class rights, bringing records, award adjustments and document attachments). Validation stays
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
-  of up to 10 MB." on the field. The app's `FileField` (`mobile/src/components/register/RegisterFields.tsx`)
+  of up to 10 MB." on the field. The app's `FileField` (`mobile/src/components/Field.tsx`)
   is the same **Choose file** control over the system's file picker, with the same rule, hint and refusal.
 - **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
   has a rule, and its label or message names the time zone where it matters.

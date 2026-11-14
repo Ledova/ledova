@@ -15,7 +15,7 @@ import {
 const STORAGE_KEY = 'settings.biometricsEnabled';
 const LOCK_DELAY_MS = 3000;
 
-export type BiometricRefreshTokenResult = { token: string; missing: false } | { token: null; missing: boolean };
+type BiometricRefreshTokenResult = { token: string; missing: false } | { token: null; missing: boolean };
 
 interface AppLockContextType {
   isLocked: boolean;

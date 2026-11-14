@@ -69,7 +69,7 @@ import { MemberRecordsProvider } from '../../contexts';
 import { AppMenu } from '../../navigation/AppMenu';
 import { apiClient } from '../../services/apiClient';
 import { getSessionEpoch, invalidateSessionScope } from '../../services/sessionScope';
-import { FileField } from '../../components/register/RegisterFields';
+import { FileField } from '../../components/Field';
 import { useRetainedScope } from '../../hooks/useRetainedScope';
 import type { PickedDocument } from '../../services/documentCopies';
 import { REGISTER, awardFrom, vestingFrom } from '../../../../packages/shared/tests/fixtures/employee-awards';

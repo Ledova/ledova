@@ -4,7 +4,7 @@ import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
 import { ScreenHeader, SignOutLink } from '../../../components/header';
 import { DatePickerField } from '../../../components/date-picker';
-import { Field } from '../../../components/register/RegisterFields';
+import { Field } from '../../../components/Field';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { UserIcon, WarningCircleIcon, HouseIcon, PhoneIcon } from 'phosphor-react-native';

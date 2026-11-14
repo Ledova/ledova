@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { FIELD_LIMITS, failureSentence, formatDate } from '@ledova/shared';
 import { Action, Actions, Fact, FormActions, Outcome, Rows, Section } from '../../components/Ledger';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { useUserProfile } from '../../hooks/useUserProfile';

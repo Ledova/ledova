@@ -16,7 +16,7 @@ import {
   type ImportPreparationOptions,
 } from '@ledova/shared';
 import { Action, Fact, FormActions, Rows, Section, ShowMore, Status } from '../../components/Ledger';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ImportShareholders, Problems } from './ImportShareholders';
@@ -24,7 +24,7 @@ import { MemberRecords, MemberRow } from './ImportRecord';
 import { DATE, FormSteps } from './IssueForms';
 import { useLedgerStyles } from './useLedgerStyles';
 
-export type ImportFormProps = Omit<ImportPreparationOptions, 'newKey' | 'session'> & {
+type ImportFormProps = Omit<ImportPreparationOptions, 'newKey' | 'session'> & {
   shareClass?: { name: string; symbol: string };
   classFields?: ReactNode;
   onCancel: () => void;

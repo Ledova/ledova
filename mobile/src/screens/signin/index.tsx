@@ -12,7 +12,7 @@ import { layout } from '../../styles';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import { ScreenHeader } from '../../components/header';
 import { PasswordToggle } from '../../components/Input';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 
 export function SignInScreen() {
   const theme = useAppTheme();

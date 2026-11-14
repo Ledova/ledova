@@ -16,7 +16,7 @@ import { LoadMore, TABLE_SCROLL_CLASS, TABLE_HEADER_CLASS } from '@components/Li
 import { ClassCertificate } from './ClassCertificate';
 
 export type CertificateClass = Pick<OwnMemberRecord['classes'][number], 'uuid' | 'name' | 'symbol'>;
-export type CompanyCertificateSource = {
+type CompanyCertificateSource = {
   owner: OrderSubmissionOwner;
   register: TokenHoldersResponse;
   entries: RegisterEntry[];
@@ -25,7 +25,7 @@ export type CompanyCertificateSource = {
   readReady: boolean;
   more: { hasMore: boolean; failed: boolean; loading: boolean; onLoad: () => unknown };
 };
-export type OwnCertificateSource = Pick<OwnMemberRecord, 'member' | 'name'> & { entries: OwnMemberEntry[] };
+type OwnCertificateSource = Pick<OwnMemberRecord, 'member' | 'name'> & { entries: OwnMemberEntry[] };
 type CertificateRecord = { uuid: string; company?: RegisterEntry; own?: OwnMemberEntry };
 
 const COMPANY_COLUMNS =

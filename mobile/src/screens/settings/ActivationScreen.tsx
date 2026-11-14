@@ -26,7 +26,7 @@ import {
 } from '../../components/Ledger';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Page } from '../../components/Page';
-import { Checkbox } from '../../components/register/RegisterFields';
+import { Checkbox } from '../../components/Field';
 import { useAppTheme, useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';

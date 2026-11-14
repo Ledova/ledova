@@ -21,7 +21,7 @@ import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Action, Actions, FormActions, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';

@@ -3,7 +3,7 @@ export interface FileDelivery {
   save: (data: Blob | ArrayBuffer, name: string, type: string) => unknown;
 }
 
-export interface DownloadedFile {
+interface DownloadedFile {
   data: Blob | ArrayBuffer;
   type: string;
   size: number;

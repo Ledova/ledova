@@ -30,7 +30,7 @@ import {
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { useRetainedScope } from '../../hooks/useRetainedScope';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';

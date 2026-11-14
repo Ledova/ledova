@@ -32,7 +32,7 @@ import {
   Section,
   ShowMore,
 } from '../../components/Ledger';
-import { Checkbox, Field, FileField } from '../../components/register/RegisterFields';
+import { Checkbox, Field, FileField } from '../../components/Field';
 import { SelectField } from '../../components/SelectField';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useLedgerStyles } from './useLedgerStyles';

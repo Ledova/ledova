@@ -13,7 +13,7 @@ import { Action, Outcome, Rows, Section, Status, SwitchRow } from '../../compone
 import { CustomModal } from '../../components/modal';
 import { useAppLock, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { YourAppointments } from './Appointments';

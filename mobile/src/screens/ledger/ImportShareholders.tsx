@@ -24,7 +24,7 @@ import {
 } from '@ledova/shared';
 import { Action, Actions, FormActions, Rows, ShowMore } from '../../components/Ledger';
 import { PersonSelect } from '../../components/PersonSelect';
-import { Field, FileField } from '../../components/register/RegisterFields';
+import { Field, FileField } from '../../components/Field';
 import { SelectField } from '../../components/SelectField';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { DATE } from './IssueForms';
