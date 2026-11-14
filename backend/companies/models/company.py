@@ -20,18 +20,10 @@ from shared.models import BaseModel
 
 class CompanyStatus(models.TextChoices):
     DRAFT = "draft", "Draft"
-    SUBMITTED = "submitted", "Submitted for Review"
-    REVIEW = "review", "Under Review"
-    INFO_REQUIRED = "info_required", "Additional Information Required"
-    APPROVED = "approved", "Approved"
-
     ACTIVE = "active", "Active"
     WARNING = "warning", "Compliance Warning"
     SUSPENDED = "suspended", "Suspended"
     DELISTED = "delisted", "Delisted"
-
-    REJECTED = "rejected", "Rejected"
-    WITHDRAWN = "withdrawn", "Withdrawn"
 
 
 class CompanyType(models.TextChoices):
@@ -83,48 +75,12 @@ class Company(BaseModel):
     postcode = models.CharField(max_length=10, blank=True)
     country = models.CharField(max_length=50, default="Australia", blank=True)
 
-    submitted_at = models.DateTimeField(null=True, blank=True)
-    submitted_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="submitted_company_applications",
-    )
-
-    review_started_at = models.DateTimeField(null=True, blank=True)
-    review_completed_at = models.DateTimeField(null=True, blank=True)
-    approved_at = models.DateTimeField(null=True, blank=True)
-    approved_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="approved_companies",
-    )
-
-    info_requested_at = models.DateTimeField(null=True, blank=True)
-    info_request_reason = models.TextField(blank=True)
-    additional_info_response = models.TextField(blank=True)
-
-    rejection_reason = models.TextField(blank=True)
-    rejection_at = models.DateTimeField(null=True, blank=True)
-    rejected_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="rejected_companies",
-    )
-
     warning_issued_at = models.DateTimeField(null=True, blank=True)
     warning_reason = models.TextField(blank=True)
     suspended_at = models.DateTimeField(null=True, blank=True)
     suspension_reason = models.TextField(blank=True)
     delisted_at = models.DateTimeField(null=True, blank=True)
     delisting_reason = models.TextField(blank=True)
-    withdrawn_at = models.DateTimeField(null=True, blank=True)
-    withdrawal_reason = models.TextField(blank=True)
 
     activated_at = models.DateTimeField(null=True, blank=True)
 
@@ -224,18 +180,6 @@ class Company(BaseModel):
     @property
     def is_active(self) -> bool:
         return self.status == CompanyStatus.ACTIVE
-
-    @property
-    def is_approved(self) -> bool:
-        return self.status in [CompanyStatus.APPROVED, CompanyStatus.ACTIVE]
-
-    @property
-    def is_pending_review(self) -> bool:
-        return self.status in [
-            CompanyStatus.SUBMITTED,
-            CompanyStatus.REVIEW,
-            CompanyStatus.INFO_REQUIRED,
-        ]
 
     @property
     def can_issue_tokens(self) -> bool:

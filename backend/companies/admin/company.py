@@ -20,16 +20,10 @@ from wallets.models import Wallet
 
 STATUS_COLORS = {
     CompanyStatus.DRAFT: "#6c757d",
-    CompanyStatus.SUBMITTED: "#17a2b8",
-    CompanyStatus.REVIEW: "#007bff",
-    CompanyStatus.INFO_REQUIRED: "#fd7e14",
-    CompanyStatus.APPROVED: "#20c997",
     CompanyStatus.ACTIVE: "#28a745",
     CompanyStatus.WARNING: ("#ffc107", "black"),
     CompanyStatus.SUSPENDED: "#dc3545",
     CompanyStatus.DELISTED: "#343a40",
-    CompanyStatus.REJECTED: "#6c757d",
-    CompanyStatus.WITHDRAWN: "#adb5bd",
 }
 
 
@@ -98,16 +92,10 @@ for action, spec in TRANSITIONS.items():
 SUSPEND = ("⏸ Suspend", "suspend", "#dc3545")
 DELIST = ("✗ Delist", "delist", "#343a40")
 STATUS_BUTTONS = {
-    CompanyStatus.SUBMITTED: [("Historical submission; signup not completed", None, "#e9ecef", "#6c757d")],
-    CompanyStatus.REVIEW: [("Historical review; signup not completed", None, "#e9ecef", "#6c757d")],
-    CompanyStatus.INFO_REQUIRED: [("Historical information request; signup not completed", None, "#e9ecef", "#6c757d")],
-    CompanyStatus.APPROVED: [("Historical approval; signup not completed", None, "#e9ecef", "#6c757d")],
     CompanyStatus.ACTIVE: [("⚠ Issue Warning", "issue-warning", "#ffc107", "black"), SUSPEND, DELIST],
     CompanyStatus.WARNING: [("✓ Resolve Warning", "resolve-warning", "#28a745"), SUSPEND, DELIST],
     CompanyStatus.SUSPENDED: [("↻ Reinstate", "reinstate", "#28a745"), DELIST],
     CompanyStatus.DRAFT: [("Signup not completed", None, "#e9ecef", "#6c757d")],
-    CompanyStatus.REJECTED: [("Application Rejected", None, "#e9ecef", "#6c757d")],
-    CompanyStatus.WITHDRAWN: [("Application Withdrawn", None, "#e9ecef", "#6c757d")],
     CompanyStatus.DELISTED: [("Permanently Delisted", None, "#e9ecef", "#6c757d")],
 }
 
@@ -158,25 +146,14 @@ class CompanyAdmin(admin.ModelAdmin):
         "officeholder_attested_by",
         "officeholder_attested_at",
         "officeholder_attestation",
-        "info_request_reason",
-        "rejection_reason",
         "warning_reason",
         "suspension_reason",
         "delisting_reason",
-        "withdrawal_reason",
         "uuid",
-        "submitted_at",
-        "review_started_at",
-        "review_completed_at",
-        "approved_at",
         "activated_at",
-        "rejection_at",
-        "info_requested_at",
-        "additional_info_response",
         "warning_issued_at",
         "suspended_at",
         "delisted_at",
-        "withdrawn_at",
         "created_at",
         "updated_at",
         "status_actions",
@@ -203,6 +180,7 @@ class CompanyAdmin(admin.ModelAdmin):
             {
                 "fields": [
                     "status",
+                    "activated_at",
                     "status_actions",
                 ],
             },
@@ -220,35 +198,15 @@ class CompanyAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Application Tracking",
+            "Compliance",
             {
                 "fields": [
-                    "submitted_at",
-                    "review_started_at",
-                    "info_requested_at",
-                    "info_request_reason",
-                    "additional_info_response",
-                    "review_completed_at",
-                    "approved_at",
-                    "activated_at",
-                ],
-                "classes": ["collapse"],
-            },
-        ),
-        (
-            "Rejection / Compliance",
-            {
-                "fields": [
-                    "rejection_reason",
-                    "rejection_at",
                     "warning_reason",
                     "warning_issued_at",
                     "suspension_reason",
                     "suspended_at",
                     "delisting_reason",
                     "delisted_at",
-                    "withdrawal_reason",
-                    "withdrawn_at",
                 ],
                 "classes": ["collapse"],
             },

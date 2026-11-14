@@ -256,9 +256,8 @@ software, and the company remains responsible for its details, its records and i
 obligations. A company whose signup is unfinished stays Draft. Companies activated before the step
 was removed keep their activation receipts as records.
 
-The earlier owner submission and platform-staff review is retired. Its records remain, and older
-companies may still show its states (Submitted for Review, Under Review, Additional Information
-Required, Approved, Rejected or Withdrawn).
+The earlier owner submission and platform-staff review was removed with its states and records
+([decision](../decisions.md#retired-company-review-removed)).
 
 ### Staff company controls
 

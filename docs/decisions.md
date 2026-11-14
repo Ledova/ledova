@@ -29,6 +29,7 @@ stay here as history and are marked where they appear.
 | [Company documents removed](#company-documents-removed)                                                            | 2 November 2026                                | Current; #1491 step 3; retained instructions take the company's own evidence                                                       |
 | [Company activation removed](#company-activation-removed)                                                          | 14 November 2026                               | Current; #1567; a company is Active when its signup completes, with no activation step or review                                                                 |
 | [Terms as technology infrastructure](#terms-as-technology-infrastructure)                                          | 14 November 2026                               | Current; #1567; Terms v2026-11-15, prepared without legal review, for new acceptance                                                                             |
+| [Retired company review removed](#retired-company-review-removed)                                                  | 15 November 2026                               | Current; #1567; review states and fields deleted, companies left in them return to Draft                                                                         |
 | [The stored register](#the-stored-register)                                                                        | September 2026; staff review retired 5 October | Current                                                                                                                            |
 | [Register CSV download removed](#register-csv-download-removed)                                                    | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
 | [Company-scoped approvals](#company-scoped-approvals)                                                              | 19 September 2026                              | Current                                                                                                                            |
@@ -2680,6 +2681,22 @@ review or approve the company's records. The
 what a contract cannot transfer. An account that accepted an earlier version stays under it until
 it accepts the new one, which only the web's **Settings → Account** offers; the mobile app has no
 Terms renewal control, and a company's acceptance at signup is not renewed.
+
+### Retired company review removed
+
+**Owner decision, 15 November 2026**, tracked in
+[#1567](https://github.com/Ledova/ledova/issues/1567). With activation removed, the code still
+carried the company application review that platform staff ran until evidenced activation replaced
+it on 5 October 2026: six statuses (Submitted for Review, Under Review, Additional Information
+Required, Approved, Rejected and Withdrawn) and the company fields that recorded submissions,
+reviews, information requests and responses, approvals, rejections and withdrawals. Removing them
+deletes that history, so it was put to the owner, who answered: "Delete it".
+
+The statuses and fields are gone from the model, the API, the admin, the operator console's
+worklist and the synthetic seed. A company still in one of those states returns to Draft, the state
+for a company whose signup is unfinished, and its review record is deleted with the columns. Staff
+company controls, their reasons and the historical officeholder attestation they rely on are
+unchanged ([company status](business/companies.md#company-status)).
 
 ### Source-based assessment for the free registry
 
