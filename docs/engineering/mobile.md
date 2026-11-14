@@ -36,11 +36,12 @@ folder names, with relative imports and no path aliases:
 | `services/`           | `services/`             | `apiClient`, the session scope, token storage, document copies, notifications |
 | `config/`, `styles/`  |                         | Network policy and public links; the theme                                    |
 
-Shared register UI (fields, the file picker's `FileField` and document sharing) lives in
-`components/register`, and its styles and picked-file hook (`usePickedDocument.ts`) in `hooks/`; the
-award chart that Dashboard and an award's page share is `components/AwardStatus.tsx`, and the
-searchable list that a person or a shareholder is chosen from is `components/SearchSelect.tsx`, which
-Shareholders' `PersonSelect.tsx` wraps.
+The form kit (`Field`, `Checkbox`, `Choices` and the file picker's `FileField`) is
+`components/Field.tsx`, beside `Input.tsx`, with its styles and picked-file hook
+(`usePickedDocument.ts`) in `hooks/`; shared register document UI lives in `components/register`;
+the award chart that Dashboard and an award's page share is `components/AwardStatus.tsx`, and the
+searchable list that a person or a shareholder is chosen from is `components/SearchSelect.tsx`,
+which Shareholders' `PersonSelect.tsx` wraps.
 
 Every text field goes through `components/Input.tsx`, and a lint rule keeps React Native's
 `TextInput` there. `Input` draws the frame, the text, a leading slot (an icon, or the phone number's
@@ -48,7 +49,7 @@ country picker) and a trailing slot (`PasswordToggle`), multi-line rows, and the
 `filled` sign-in and sign-up card look with its error frame, as on the web. Its frame has a minimum
 height, never a fixed one: iOS confines the text being edited to the input's own box, so a fixed
 height with vertical padding cuts off letters such as "g" while the keyboard is up. `Field`
-(`components/register`) adds the label, hint and error and passes input props through, and
+(`components/Field.tsx`) adds the label, hint and error and passes input props through, and
 `useControlFrame()` gives selects and the date field the same frame.
 
 The signed-in member records state is a context (`mobile/src/contexts/MemberRecordsContext.tsx`),

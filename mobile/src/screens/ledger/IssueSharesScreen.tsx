@@ -19,7 +19,7 @@ import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { FilterPopover } from '../../components/FilterPopover';
 import { Action, Actions, FormActions, LoadError, Loading, Section, useCardStyles } from '../../components/Ledger';
 import { Page } from '../../components/Page';
-import { Choices } from '../../components/register/RegisterFields';
+import { Choices } from '../../components/Field';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';

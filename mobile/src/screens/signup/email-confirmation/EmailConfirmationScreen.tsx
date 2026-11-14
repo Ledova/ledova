@@ -11,7 +11,7 @@ import { EnvelopeOpenIcon, CheckCircleIcon, WarningCircleIcon } from 'phosphor-r
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { ScreenHeader } from '../../../components/header';
-import { Field } from '../../../components/register/RegisterFields';
+import { Field } from '../../../components/Field';
 
 export function EmailConfirmationScreen() {
   const theme = useAppTheme();

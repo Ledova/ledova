@@ -14,7 +14,7 @@ import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { ScreenHeader, SignOutLink } from '../../../components/header';
 import { PasswordToggle } from '../../../components/Input';
-import { Field } from '../../../components/register/RegisterFields';
+import { Field } from '../../../components/Field';
 
 export function SignUpScreen() {
   const theme = useAppTheme();

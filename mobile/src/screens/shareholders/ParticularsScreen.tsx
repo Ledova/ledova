@@ -17,7 +17,7 @@ import {
 import { Action, Fact, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useRetainedScope } from '../../hooks/useRetainedScope';

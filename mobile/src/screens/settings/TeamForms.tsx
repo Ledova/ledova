@@ -14,7 +14,7 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { Action, FormActions, Outcome } from '../../components/Ledger';
-import { Checkbox, Field } from '../../components/register/RegisterFields';
+import { Checkbox, Field } from '../../components/Field';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';

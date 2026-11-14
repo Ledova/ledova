@@ -13,7 +13,7 @@ import {
   type RegisterAward,
 } from '@ledova/shared';
 import { Action, FormActions } from '../../components/Ledger';
-import { Field, FileField } from '../../components/register/RegisterFields';
+import { Field, FileField } from '../../components/Field';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';

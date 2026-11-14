@@ -18,7 +18,7 @@ const GATED_OPTIONS: SecureStore.SecureStoreOptions = {
   requireAuthentication: true,
 };
 
-export interface TokenPair {
+interface TokenPair {
   accessToken: string;
   refreshToken: string;
 }

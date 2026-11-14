@@ -17,7 +17,7 @@ import {
 import { FilterPopover } from '../../components/FilterPopover';
 import { Action, FormActions, LoadError, LoadMore, Loading, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';

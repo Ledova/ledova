@@ -151,7 +151,7 @@ export function MemberRecords({ members }: { members: RegisterImportMemberRow[] 
   );
 }
 
-export function ImportPreview({ preview }: { preview: RegisterImportDecisionPreview }) {
+function ImportPreview({ preview }: { preview: RegisterImportDecisionPreview }) {
   const look = useLedgerStyles();
   const stated = importFigures(preview.statedTotal, preview.statedMemberCount);
   return (

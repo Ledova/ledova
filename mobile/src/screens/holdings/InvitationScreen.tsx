@@ -18,7 +18,7 @@ import {
 import { Action, Actions, Fact, FormActions, Rows, Section } from '../../components/Ledger';
 import { MemberNotice } from '../../components/MemberRecords';
 import { Page } from '../../components/Page';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';

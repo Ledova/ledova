@@ -96,7 +96,7 @@ export interface ReadApiErrorOptions {
   unanswered?: string;
 }
 
-export function unansweredSentence(error: unknown, otherwise: string): string | null {
+function unansweredSentence(error: unknown, otherwise: string): string | null {
   const failure = error as (Partial<UserFriendlyError> & { response?: unknown }) | null | undefined;
   if (failure?.response) return null;
   return failure?.isUserFriendly === true && typeof failure.message === 'string' && failure.message.trim()

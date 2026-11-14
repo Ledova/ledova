@@ -17,7 +17,7 @@ import { Action, Actions, FormActions, LoadError, Loading, Outcome, Section, Sho
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { useRetainedScope } from '../../hooks/useRetainedScope';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';

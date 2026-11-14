@@ -9,7 +9,7 @@ import {
   type CompanyListItem,
 } from '@ledova/shared';
 import { Action, FormActions } from '../../components/Ledger';
-import { Checkbox, Field, FileField } from '../../components/register/RegisterFields';
+import { Checkbox, Field, FileField } from '../../components/Field';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';

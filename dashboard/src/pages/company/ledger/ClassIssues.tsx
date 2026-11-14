@@ -15,7 +15,7 @@ const KINDS = [
 
 type IssueKind = (typeof KINDS)[number][0];
 
-export interface IssueRequest {
+interface IssueRequest {
   key: string;
   member?: string;
   award?: string;

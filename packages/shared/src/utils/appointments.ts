@@ -27,7 +27,7 @@ export function hasCurrentAdminAppointment(appointments: OwnCompanyAppointment[]
   );
 }
 
-export function invitationOpen(invitation: { acceptedAt: string | null; acceptanceDeadline: string }) {
+function invitationOpen(invitation: { acceptedAt: string | null; acceptanceDeadline: string }) {
   return !invitation.acceptedAt && Date.parse(invitation.acceptanceDeadline) > Date.now();
 }
 

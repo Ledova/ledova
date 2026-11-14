@@ -28,7 +28,7 @@ import { MemberRecords, MemberRow } from '@pages/company/ledger/shared/MemberRec
 const IMPORT_NOTE =
   'Coming soon. Import will read a document into these same editable forms. Review and correct the records before saving.';
 
-export type ImportFormProps = Omit<ImportPreparationOptions, 'onPrepared' | 'onFinished' | 'newKey' | 'session'> & {
+type ImportFormProps = Omit<ImportPreparationOptions, 'onPrepared' | 'onFinished' | 'newKey' | 'session'> & {
   shareClass?: { name: string; symbol: string };
   classFields?: ReactNode;
 };

@@ -31,7 +31,7 @@ import {
 import { AccountCheck } from '../../components/AccountCheck';
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
-import { Checkbox } from '../../components/register/RegisterFields';
+import { Checkbox } from '../../components/Field';
 import { PUBLIC_LINKS } from '../../config/publicLinks';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';

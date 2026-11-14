@@ -7,7 +7,7 @@ import {
   type DestinationParent,
 } from '@ledova/shared';
 
-export interface Place {
+interface Place {
   destination: DestinationKey;
   view?: string;
 }
@@ -61,7 +61,7 @@ export const SETTINGS_VIEWS = [
   { key: 'activation', label: 'Activation', to: DESTINATIONS.companyListing.path },
 ] as const;
 
-export type SettingsView = (typeof SETTINGS_VIEWS)[number]['key'];
+type SettingsView = (typeof SETTINGS_VIEWS)[number]['key'];
 
 export function settingsPage(hash: string) {
   return SETTINGS_VIEWS.find(({ to }) => to === `${DESTINATIONS.settings.path}${hash}`);

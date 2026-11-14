@@ -12,7 +12,7 @@ export const TABLE_HEADER_CLASS = 'text-xs text-text-muted';
 
 const counted = (count: number, [one, many]: Noun) => `${formatShareCount(String(count))} ${count === 1 ? one : many}`;
 
-export interface Column {
+interface Column {
   label: string;
   detail?: string;
   align?: 'right';

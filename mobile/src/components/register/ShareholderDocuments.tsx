@@ -9,7 +9,7 @@ import {
   type RegisterMemberDocumentCategory,
 } from '@ledova/shared';
 import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../Ledger';
-import { FileField } from './RegisterFields';
+import { FileField } from '../Field';
 import { SearchSelect } from '../SearchSelect';
 import { SelectField } from '../SelectField';
 import { useThemedStyles } from '../../contexts';

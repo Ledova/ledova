@@ -24,7 +24,7 @@ import {
 import { Action, Fact, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
-import { Choices, Field, FileField } from '../../components/register/RegisterFields';
+import { Choices, Field, FileField } from '../../components/Field';
 import { useMemberRecordsState } from '../../contexts';
 import { useRetainedScope } from '../../hooks/useRetainedScope';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';

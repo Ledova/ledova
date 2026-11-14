@@ -40,7 +40,7 @@ import {
 } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { Pager } from '../../components/Pager';
-import { Field } from '../../components/register/RegisterFields';
+import { Field } from '../../components/Field';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
