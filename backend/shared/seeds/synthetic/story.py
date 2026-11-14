@@ -19,7 +19,6 @@ from shared.seeds.synthetic.plan import (
     DEFAULT_INVESTORS,
     MINIMUM_INVESTORS,
     SEED,
-    STEP_STATUS,
     WINDOW_DAYS,
     Attempt,
     CompanyPlan,
@@ -110,26 +109,6 @@ OTHER_FUND_SOURCES = ("Distribution from a family trust", "Proceeds of a busines
 INTENDED_OTHER = "Building a position in companies I know personally"
 
 COMPANY_STREETS = ("Gantry Way", "Foundry Lane", "Harbourview Parade", "Commerce Rise", "Innovation Walk")
-INFO_REQUESTS = {
-    "coralgum": (
-        "Upload a signed beneficial ownership declaration; the copy provided is unsigned.",
-        "Signed declaration uploaded.",
-    ),
-    "saltbush": (
-        "The ASIC company extract is more than 12 months old. Upload one issued in the last three months.",
-        "",
-    ),
-}
-HISTORICAL_APPLICATION_NOTIFICATIONS = {
-    "submit": ("Application submitted", "{name} was submitted for review."),
-    "resubmit": ("Application resubmitted", "{name} was resubmitted with your response."),
-    "start_review": ("Review started", "The review of {name} has started."),
-    "request_info": ("More information requested", "More information requested: {reason}"),
-    "approve": ("Application approved", "{name} has been approved."),
-    "reject": ("Application rejected", "{name} was rejected: {reason}"),
-    "activate": ("Company activated", "{name} is now active."),
-    "withdraw": ("Application withdrawn", "{name} was withdrawn."),
-}
 
 
 class CompanySpec(NamedTuple):
@@ -192,7 +171,7 @@ COMPANY_SPECS = (
         2022,
         "SA",
         44,
-        "info_required",
+        "draft",
     ),
     CompanySpec(
         "bilbyline",
@@ -204,10 +183,9 @@ COMPANY_SPECS = (
         2023,
         "WA",
         16,
-        "submitted",
+        "unverified",
     ),
 )
-COMPANY_NAMES = {spec.key: spec.name for spec in (DEMO_COMPANY, *COMPANY_SPECS)}
 
 
 def build_plan(now, investors=DEFAULT_INVESTORS, seed=SEED):
@@ -635,20 +613,10 @@ class Story:
             )
         return tuple(devices)
 
-    def _finish(self, person, company_steps=(), company_key=None):
+    def _finish(self, person):
         raw = [self._identity_note(attempt.result, attempt.at) for attempt in person.attempts]
         if person.kyc and person.kyc.result in REVIEW_OUTCOME_MESSAGES:
             raw.append(self._identity_note(person.kyc.result, person.kyc.decided_at))
-        for step in company_steps:
-            title, body = HISTORICAL_APPLICATION_NOTIFICATIONS[step.method]
-            data = {
-                "type": "company",
-                "event": step.method,
-                "company_id": Ref("company", company_key),
-                "status": STEP_STATUS[step.method],
-            }
-            text = body.format(name=COMPANY_NAMES[company_key], reason=step.reason)
-            raw.append((step.at + timedelta(seconds=2), title, text, "general", data))
         for wallet in person.wallets:
             for transfer in wallet.transfers:
                 if transfer.app_sent:
@@ -676,22 +644,9 @@ class Story:
         return Note(at=at, title=title, body=body, kind=kind, data=data, read_at=read_at, archived=archived)
 
     def _company_steps(self, spec, ready):
-        steps = [Step("submit", self.after(ready, 180, 2880))]
-        if spec.target == "submitted":
-            return steps
-        steps.append(Step("start_review", self.after(steps[-1].at, 1200, 3000)))
-        info = INFO_REQUESTS.get(spec.key)
-        if info:
-            steps.append(Step("request_info", self.after(steps[-1].at, 1440, 4320), info[0]))
-            if spec.target == "info_required":
-                return steps
-            steps.append(Step("resubmit", self.after(steps[-1].at, 1440, 5760), info[1]))
-            steps.append(Step("start_review", self.after(steps[-1].at, 1080, 2400)))
-        steps.append(Step("approve", self.after(steps[-1].at, 2880, 7200)))
-        steps.append(Step("activate", self.after(steps[-1].at, 120, 1560)))
-        return steps
+        return [Step("activate", self.after(ready, 180, 2880))] if spec.target == "active" else []
 
-    def _company(self, spec, owner_key, owner_name, registered, operator_wallet, acn):
+    def _company(self, spec, owner_key, registered, operator_wallet, acn):
         steps = self._company_steps(spec, self.after(registered, 1440, 7200))
         suburb, _, postcode = self.rng.choice(
             [entry for entry in identities.SUBURBS if entry[1] == spec.state] or identities.SUBURBS
@@ -716,8 +671,6 @@ class Story:
             postcode=postcode,
             owner=owner_key,
             registered_at=registered,
-            declarant_name=owner_name,
-            board_resolution_reference=f"Board resolution {registered:%Y}-{self.rng.randint(2, 9):02d}",
             operator_wallet=operator_wallet,
             steps=tuple(steps),
             existing=spec.key == DEMO_COMPANY.key,
@@ -731,7 +684,7 @@ class Story:
             piece = keys.hardware_keys(keys.secret("keystone", key), [0])[0]
             registered = self.after(decided, 600, 4000)
             wallet = self._wallet("base", piece.key, registered, True, "hardware", "Keystone", piece.derivation)
-        elif spec.target in ("active", "info_required"):
+        elif spec.target in ("active", "draft"):
             wallet = self._wallet("base", keys.secret("wallet", key, 0), self.after(decided, 600, 4000), name="Company")
         else:
             return ()
@@ -747,7 +700,7 @@ class Story:
         joined = self.moment(spec.owner_days, 8, 18)
         completed = self.after(joined, 20, 45)
         phone, birth, address = self._contact()
-        pending = spec.target == "submitted"
+        pending = spec.target == "unverified"
         submitted = self.after(joined, 6, 12)
         decided = submitted if pending else self.after(submitted, 5, 240)
         result = None if pending else "GREEN"
@@ -755,7 +708,7 @@ class Story:
         wallets = self._founder_wallet(spec, key, decided, tester)
         operator = wallets[0].address if wallets and spec.target == "active" else None
         acn = DEMO_ACN if tester else self._new_acn()
-        company = self._company(spec, key, full_name, self.after(joined, 12, 30), operator, acn)
+        company = self._company(spec, key, self.after(joined, 12, 30), operator, acn)
         person = Person(
             key=key,
             email=email,
@@ -775,7 +728,7 @@ class Story:
             wallets=wallets,
             existing=tester,
         )
-        return self._finish(person, company.steps, spec.key), company
+        return self._finish(person), company
 
     def _investor_tester_wallets(self, decided):
         hardhat = keys.hardhat_keys(range(5))

@@ -289,16 +289,10 @@ BEGIN
             OR NOT companies_valid_identifiers(NEW.acn, NEW.abn)
             OR NEW.company_type NOT IN ('pty', 'public', 'unlisted') OR NEW.name = ''
             OR NEW.owner_id IS DISTINCT FROM actor.id OR NEW.status IS DISTINCT FROM 'draft'
-            OR NEW.lifecycle_revision <> 0
-            OR NEW.submitted_by_id IS NOT NULL OR NEW.submitted_at IS NOT NULL
-            OR NEW.review_started_at IS NOT NULL OR NEW.review_completed_at IS NOT NULL
-            OR NEW.approved_by_id IS NOT NULL OR NEW.approved_at IS NOT NULL OR NEW.activated_at IS NOT NULL
-            OR NEW.rejected_by_id IS NOT NULL OR NEW.rejection_at IS NOT NULL OR NEW.rejection_reason <> ''
-            OR NEW.info_requested_at IS NOT NULL OR NEW.info_request_reason <> '' OR NEW.additional_info_response <> ''
+            OR NEW.lifecycle_revision <> 0 OR NEW.activated_at IS NOT NULL
             OR NEW.warning_issued_at IS NOT NULL OR NEW.warning_reason <> ''
             OR NEW.suspended_at IS NOT NULL OR NEW.suspension_reason <> ''
             OR NEW.delisted_at IS NOT NULL OR NEW.delisting_reason <> ''
-            OR NEW.withdrawn_at IS NOT NULL OR NEW.withdrawal_reason <> ''
             OR NEW.declarant_name <> '' OR NEW.board_resolution_reference <> ''
             OR NEW.officeholder_attested_by_id IS NOT NULL OR NEW.officeholder_attested_at IS NOT NULL
             OR NEW.officeholder_attestation <> '{}'::jsonb OR NEW.operator_wallet_id IS NOT NULL

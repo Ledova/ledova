@@ -3933,11 +3933,9 @@ export interface ApiComponents {
       abn?: string;
       acn: string;
       activatedAt: string | null;
-      additionalInfoResponse: string;
       addressLine1?: string;
       addressLine2?: string;
       administrativeAccess: ApiComponents['schemas']['CompanyAdministrativeAccess'];
-      approvedAt: string | null;
       canIssueTokens: boolean;
       city?: string;
       companyType?: ApiComponents['schemas']['CompanyTypeEnum'];
@@ -3949,12 +3947,8 @@ export interface ApiComponents {
       email: string | null;
       foundedYear?: number | null;
       industry?: string;
-      infoRequestedAt: string | null;
-      infoRequestReason: string;
       isActive: boolean;
-      isApproved: boolean;
       isOwner: boolean;
-      isPendingReview: boolean;
       name: string;
       operatorWallet: string | null;
       ownershipSharingChangedAt: string | null;
@@ -3962,19 +3956,13 @@ export interface ApiComponents {
       phone?: string;
       postcode?: string;
       primaryContact: ApiComponents['schemas']['_CompanyUserProfile'] | null;
-      rejectionAt: string | null;
-      rejectionReason: string;
-      reviewStartedAt: string | null;
       shareOwnershipWithMembers: boolean;
       state?: string;
       status: ApiComponents['schemas']['CompanyStatusEnum'];
       statusDisplay: string;
-      submittedAt: string | null;
       tradingName?: string;
       updatedAt: string;
       uuid: string;
-      withdrawalReason: string;
-      withdrawnAt: string | null;
     };
     CompanyList: {
       acn: string;
@@ -3986,7 +3974,6 @@ export interface ApiComponents {
       displayName: string;
       industry: string;
       isActive: boolean;
-      isApproved: boolean;
       isOwner: boolean;
       name: string;
       state: string;
@@ -4041,18 +4028,7 @@ export interface ApiComponents {
       declarationText: string;
       declarationVersion: string;
     };
-    CompanyStatusEnum:
-      | 'draft'
-      | 'submitted'
-      | 'review'
-      | 'info_required'
-      | 'approved'
-      | 'active'
-      | 'warning'
-      | 'suspended'
-      | 'delisted'
-      | 'rejected'
-      | 'withdrawn';
+    CompanyStatusEnum: 'draft' | 'active' | 'warning' | 'suspended' | 'delisted';
     CompanyTeamAppointment: {
       capabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       company: string;

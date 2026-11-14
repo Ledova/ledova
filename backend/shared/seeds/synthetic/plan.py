@@ -175,8 +175,6 @@ class CompanyPlan:
     postcode: str
     owner: str
     registered_at: datetime
-    declarant_name: str
-    board_resolution_reference: str
     operator_wallet: str | None = None
     steps: tuple = ()
     existing: bool = False
@@ -186,14 +184,7 @@ class CompanyPlan:
         return STEP_STATUS[self.steps[-1].method] if self.steps else "draft"
 
 
-STEP_STATUS = {
-    "submit": "submitted",
-    "start_review": "review",
-    "request_info": "info_required",
-    "resubmit": "submitted",
-    "approve": "approved",
-    "activate": "active",
-}
+STEP_STATUS = {"activate": "active"}
 
 
 @dataclass(frozen=True)
