@@ -144,12 +144,10 @@ function GroupLink({
   current,
   blocked = false,
   onNavigate,
-  className = '',
   children,
 }: Omit<GroupItem, 'key' | 'label'> & {
   state?: unknown;
   onNavigate?: () => void;
-  className?: string;
   children: ReactNode;
 }) {
   const context = useCompanyContext();
@@ -167,7 +165,7 @@ function GroupLink({
       }}
       aria-current={current ? 'page' : undefined}
       aria-disabled={blocked || undefined}
-      className={`${ITEM_CLASS} ${className} ${current ? CURRENT_CLASS : IDLE_CLASS} ${blocked ? 'cursor-not-allowed opacity-50' : ''}`}
+      className={`${ITEM_CLASS} ${current ? CURRENT_CLASS : IDLE_CLASS} ${blocked ? 'cursor-not-allowed opacity-50' : ''}`}
     >
       {children}
     </Link>

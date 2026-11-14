@@ -46,13 +46,10 @@ export type MenuRoute =
 
 type MenuChild = { route: MenuRoute; label: string; hint?: string; params?: object; overview?: boolean };
 
-type MenuItem = {
-  name: Section;
-  label: string;
-  icon: ComponentType<IconProps>;
-  route: MenuRoute;
-  items?: MenuChild[];
-};
+type MenuItem = { name: Section; label: string; icon: ComponentType<IconProps> } & (
+  | { route: MenuRoute; items?: never }
+  | { route?: never; items: MenuChild[] }
+);
 
 const sections = (canReadRegister: boolean, setupFor: string | null): MenuItem[] => [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
@@ -62,7 +59,6 @@ const sections = (canReadRegister: boolean, setupFor: string | null): MenuItem[]
           name: 'Ledger' as const,
           label: 'Ledger',
           icon: BookOpenIcon,
-          route: 'Ledger' as const,
           items: [
             ...(setupFor
               ? [
@@ -83,7 +79,6 @@ const sections = (canReadRegister: boolean, setupFor: string | null): MenuItem[]
           name: 'Shareholders' as const,
           label: 'Shareholders',
           icon: UsersThreeIcon,
-          route: 'Shareholders' as const,
           items: [
             { route: 'Shareholders' as const, label: 'All shareholders', overview: true },
             { route: 'EmployeeScheme' as const, label: 'Employee scheme', hint: 'Employee share scheme' },
@@ -92,19 +87,18 @@ const sections = (canReadRegister: boolean, setupFor: string | null): MenuItem[]
         },
       ]
     : []),
-  {
-    name: 'Documents',
-    label: 'Documents',
-    icon: FilesIcon,
-    route: 'Certificates',
-    items: canReadRegister
-      ? [
+  canReadRegister
+    ? {
+        name: 'Documents',
+        label: 'Documents',
+        icon: FilesIcon,
+        items: [
           { route: 'Certificates', label: 'Certificates' },
           { route: 'InspectionCopies', label: 'Inspection copies' },
           { route: 'CompanyPack', label: 'Company pack' },
-        ]
-      : undefined,
-  },
+        ],
+      }
+    : { name: 'Documents', label: 'Documents', icon: FilesIcon, route: 'Certificates' },
 ];
 
 const yours = (canManage: boolean): MenuItem[] => [
@@ -112,7 +106,6 @@ const yours = (canManage: boolean): MenuItem[] => [
     name: 'Settings',
     label: 'Settings',
     icon: GearIcon,
-    route: 'Settings',
     items: [
       { route: 'Settings', label: 'Profile' },
       { route: 'Account', label: 'Account' },

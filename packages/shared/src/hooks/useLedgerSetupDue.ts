@@ -15,7 +15,7 @@ export function useLedgerSetupDue(
     },
     [boundary, owner],
   );
-  const available = enabled && !!company?.canManage && !!company.canReadRegister;
-  const classes = useRegisterClasses(owner, guard, session, available);
-  return available && classes.isSuccess && !classes.data.some((row) => row.companyUuid === company.uuid);
+  const manages = !!company?.canManage && !!company.canReadRegister;
+  const classes = useRegisterClasses(owner, guard, session, enabled && manages);
+  return manages && classes.isSuccess && !classes.data.some((row) => row.companyUuid === company.uuid);
 }
