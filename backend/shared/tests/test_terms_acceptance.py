@@ -9,7 +9,10 @@ from authentication.models import TermsAcceptance
 from authentication.services.terms import TERMS_STATEMENT, TERMS_VERSION
 from companies import authority_guards
 from companies.models import CompanyAppointment
-from companies.services.authority import SIGNUP_DECLARATION_TEXT, is_company_appointment_effective
+from companies.services.authority import (
+    SIGNUP_DECLARATION_TEXT,
+    is_company_appointment_effective,
+)
 from shared.db import atomic, use_operator
 from shared.tests.core_fixtures import company_for, person
 from tokens.database_mirror_guards import _function
