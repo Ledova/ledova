@@ -68,7 +68,7 @@ it uploads its own evidence with the register work that needs it
 ([decision](../decisions.md#company-documents-removed)). The company remains Draft until a current
 administrator activates it: registration does not incorporate a company with ASIC, appoint a
 director, activate the company or issue shares. Until then, the **Getting started** list
-on the web company Dashboard links its personal administrators to unfinished activation and register
+on the company Dashboard links its personal administrators to unfinished activation and register
 setup tasks; completed tasks disappear ([the Dashboard](README.md#the-app-at-a-glance)).
 
 Resuming an unfinished signup:
@@ -258,8 +258,8 @@ awards, allotments, transfers and member access, but wallet nominations, chain d
 issues, capital increases and company wallet instructions wait for an Active company.
 
 1. Establish your authority first, through signup or an accepted administrator invitation.
-2. Open **Settings → Activation**, shown only to personal administrators, or, on web, use the same
-   step in Getting started on the Dashboard. Refresh the company details and your appointment.
+2. Open **Settings → Activation**, shown only to personal administrators, or use the same step in
+   Getting started on the Dashboard. Refresh the company details and your appointment.
    A company account role or an owned draft does not substitute for an appointment; an appointed
    investor can use the same page.
 3. Choose **Review activation**, read the company and the exact declaration on the main page, tick **I accept this
