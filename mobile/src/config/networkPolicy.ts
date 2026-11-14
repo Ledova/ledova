@@ -1,6 +1,6 @@
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '10.0.2.2']);
 
-export function isPrivateIPv4(value: string): boolean {
+function isPrivateIPv4(value: string): boolean {
   const octets = value.split('.');
   if (octets.length !== 4 || octets.some((part) => !/^(0|[1-9]\d{0,2})$/.test(part) || Number(part) > 255)) {
     return false;
@@ -9,7 +9,7 @@ export function isPrivateIPv4(value: string): boolean {
   return first === 10 || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168);
 }
 
-export function validateNetworkUrl(
+function validateNetworkUrl(
   value: string,
   development = __DEV__,
   privateHost = process.env.EXPO_PUBLIC_DEV_API_HOST || '',

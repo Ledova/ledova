@@ -37,11 +37,11 @@ folder names, with relative imports and no path aliases:
 | `config/`, `styles/`  |                         | Network policy and public links; the theme                                    |
 
 The form kit (`Field`, `Checkbox`, `Choices` and the file picker's `FileField`) is
-`components/Field.tsx`, beside `Input.tsx`, with its styles and picked-file hook (`usePickedDocument.ts`)
-in `hooks/`; shared register document UI lives in `components/register`; the
-award chart that Dashboard and an award's page share is `components/AwardStatus.tsx`, and the
-searchable list that a person or a shareholder is chosen from is `components/SearchSelect.tsx`, which
-Shareholders' `PersonSelect.tsx` wraps.
+`components/Field.tsx`, beside `Input.tsx`, with its styles and picked-file hook
+(`usePickedDocument.ts`) in `hooks/`; shared register document UI lives in `components/register`;
+the award chart that Dashboard and an award's page share is `components/AwardStatus.tsx`, and the
+searchable list that a person or a shareholder is chosen from is `components/SearchSelect.tsx`,
+which Shareholders' `PersonSelect.tsx` wraps.
 
 Every text field goes through `components/Input.tsx`, and a lint rule keeps React Native's
 `TextInput` there. `Input` draws the frame, the text, a leading slot (an icon, or the phone number's
