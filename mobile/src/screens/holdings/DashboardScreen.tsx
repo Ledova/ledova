@@ -322,13 +322,15 @@ function CompanyRegister({
   const summary = registerReady && company.canReadRegister ? ownership.overview.data : undefined;
   const view = useMemo(() => ownershipView(summary, record), [summary, record]);
   const registered = !!summary?.classes.some(({ initialized }) => initialized);
+  const ledgerPending = registerReady && company.canReadRegister && !registered;
+  const awaitingLedger = ledgerPending && !record;
   const failed =
     company.canReadRegister && (ownership.classes.isError || ownership.overview.isError || ownership.scopeError);
   const selected = view?.classes.find(({ uuid }) => uuid === chosen?.token);
   const { holders } = ownership;
   return (
     <>
-      {chosen && <Trail symbol={selected?.symbol} onBack={() => onChoose(null)} />}
+      {chosen && !awaitingLedger && <Trail symbol={selected?.symbol} onBack={() => onChoose(null)} />}
       <View style={look.cards}>
         {failed ? (
           <LoadError retry={retry} busy={busy}>
@@ -340,8 +342,8 @@ function CompanyRegister({
           </Section>
         ) : (
           <>
-            {company.canManage && !registered && <GettingStarted />}
-            {!registered && !record ? (
+            {company.canManage && ledgerPending && <GettingStarted />}
+            {awaitingLedger ? (
               !company.canManage && (
                 <Section title="Ownership overview">
                   <Text style={styles.muted}>{REGISTER_IMPORT_COPY.LEDGER_PENDING}</Text>
@@ -603,12 +605,8 @@ function OwnershipClasses({
       <Text style={styles.muted}>
         {personalOnly ? 'Your issued shares by class' : 'Company ownership by issued share count'}
       </Text>
-      {!complete && (
-        <Text style={styles.muted}>
-          {classes.length
-            ? 'Company totals are incomplete until every class has an opened ledger.'
-            : 'Set up the ledger to record company ownership.'}
-        </Text>
+      {!complete && classes.length > 0 && (
+        <Text style={styles.muted}>Company totals are incomplete until every class has an opened ledger.</Text>
       )}
       {total === '0' && <Text style={styles.muted}>No issued shares yet.</Text>}
       <Rows>

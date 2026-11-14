@@ -97,6 +97,8 @@ function SignedInOwnership({
   const summary = ready && company?.canReadRegister ? ownership.overview.data : undefined;
   const view = useMemo(() => ownershipView(summary, record), [summary, record]);
   const registered = !!summary?.classes.some(({ initialized }) => initialized);
+  const ledgerPending = ready && !!company?.canReadRegister && !registered;
+  const awaitingLedger = ledgerPending && !record;
   const selected = list.filters.class;
   const selectedClass = view?.classes.find(({ uuid }) => uuid === selected);
   const details = useRef<HTMLHeadingElement>(null);
@@ -173,7 +175,7 @@ function SignedInOwnership({
         </Section>
       ) : (
         <>
-          {selected && (
+          {selected && !awaitingLedger && (
             <nav aria-label="Ownership trail" className="flex min-w-0 flex-wrap items-center gap-3 text-sm">
               <button
                 type="button"
@@ -213,8 +215,8 @@ function SignedInOwnership({
               <OwnershipLoading />
             ) : (
               <>
-                {company.canManage && !registered && <GettingStarted />}
-                {!registered && !record ? (
+                {company.canManage && ledgerPending && <GettingStarted />}
+                {awaitingLedger ? (
                   !company.canManage && (
                     <Section title="Ownership overview">
                       <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.LEDGER_PENDING}</p>

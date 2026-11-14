@@ -33,9 +33,9 @@ export const REGISTER_IMPORT_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_IMPORT_COPY = {
   SETUP_NOTE:
-    "Bring in your company's existing share records to set up your ledger. Your dashboard then shows the " +
-    "company's issued shares, current shareholders and share classes.",
-  LEDGER_PENDING: "Ownership appears here once the company's ledger is set up.",
+    'Bring in the company’s existing share records to set up its ledger. Your dashboard then shows the ' +
+    'company’s issued shares, current shareholders and share classes.',
+  LEDGER_PENDING: 'Ownership appears here once the company’s ledger is set up.',
   TITLE: 'Register mirror',
   EMPTY: 'Bring in the company’s existing records for this share class.',
   PREPARE: 'Bring records',
