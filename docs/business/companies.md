@@ -238,8 +238,9 @@ A current company administrator reads and edits the company's basic information 
 
 Rules:
 
-- Administrators can correct the registered name with **Edit company** at any time; Ledova does
-  not freeze a company's details. The ACN, ABN and company type are entered at signup.
+- Administrators can correct the registered name and contact details with **Edit company** at any
+  time, and Ledova does not freeze a company's details after signup. Edit company does not offer the
+  ACN, ABN or company type, which are entered at signup.
 - An ACN and an ABN must pass their check digits, and an ASIC-registered company's ABN must be its
   ACN with two check digits in front. A check-digit pass is a typo filter, not verification: Ledova
   does not confirm that a number belongs to a real company.

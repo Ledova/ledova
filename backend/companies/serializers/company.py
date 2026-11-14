@@ -11,7 +11,6 @@ from companies.services.editing import update_company
 from companies.validators import (
     an_acn_no_other_company_holds,
     checked_abn,
-    checked_acn,
     with_matching_identifiers,
 )
 from wallets.models import Wallet
@@ -249,7 +248,7 @@ class CompanyUpdateSerializer(serializers.ModelSerializer):
         return fields
 
     def validate_acn(self, value):
-        return checked_acn(value)
+        return an_acn_no_other_company_holds(value, other_than=self.instance)
 
     def validate_abn(self, value):
         return checked_abn(value)
