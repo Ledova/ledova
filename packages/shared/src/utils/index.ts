@@ -180,5 +180,5 @@ export {
   type PersonChoice,
 } from './people';
 export { searchEntries, searchMatches, searchRows, type SearchChoice } from './search';
-export { holdingFacts, needsIdentityReview, shareholderList, type Shareholder } from './shareholders';
+export { holdingFacts, needsIdentityReview, shareholderList } from './shareholders';
 export { isRegisterPersonRegistrationReceipt } from './register-people';
