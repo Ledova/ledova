@@ -12,14 +12,11 @@ type FieldProps = Omit<InputProps, 'onChange' | 'onChangeText' | 'invalid' | 'le
   label: string;
   hint?: string;
   error?: string | null;
-  /** Shows the clear button while editing. */
   clearable?: boolean;
-  /** Icon or control before the text. */
   icon?: ReactNode;
   onChange: (value: string) => void;
 };
 
-/** A labelled text field: the shared `Input` with its label, hint and error. */
 export const Field = forwardRef<InputRef, FieldProps>(function Field(
   { label, hint, error, clearable, icon, filled, accessibilityLabel, onChange, ...input },
   ref,

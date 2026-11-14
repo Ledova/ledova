@@ -11,13 +11,6 @@ import {
 import { EyeIcon, EyeSlashIcon } from 'phosphor-react-native';
 import { useAppTheme, useThemedStyles } from '../contexts';
 
-/**
- * The frame every form control shares: text inputs, selects and the date field. The default is the
- * in-app look and `filled` the sign-in and sign-up card look, as on the web (`FIELD_BASE` and
- * `AUTH_INPUT_CLASS`). The frame has a minimum height, never a fixed one. iOS confines the text being
- * edited to the input's own box, so a fixed height with vertical padding cuts off letters that hang
- * below the line, such as "g", while the keyboard is up.
- */
 export function useControlFrame() {
   return useThemedStyles((theme) => ({
     frame: {
@@ -41,25 +34,17 @@ export function useControlFrame() {
 export type InputRef = TextInput;
 
 export type InputProps = Omit<TextInputProps, 'style'> & {
-  /** The sign-in and sign-up card look. */
   filled?: boolean;
-  /** Shows the error frame on the filled look; the in-app look shows errors as text, as on the web. */
   invalid?: boolean;
-  /** Icon or control before the text, such as the phone number's country picker. */
   leading?: ReactNode;
-  /** Control after the text, such as the show-password button. */
   trailing?: ReactNode;
-  /** Visible lines when `multiline`. */
   rows?: number;
-  /** The frame's place in its parent, such as `flex` or a margin. */
   style?: StyleProp<ViewStyle>;
-  /** Text overrides, such as the verification code's size. Never a height. */
   textStyle?: StyleProp<TextStyle>;
 };
 
 const LINE = 22;
 
-/** The app's one text input. `Field` adds a label, a hint and an error around it. */
 export const Input = forwardRef<InputRef, InputProps>(function Input(
   {
     filled = false,
@@ -106,7 +91,6 @@ export const Input = forwardRef<InputRef, InputProps>(function Input(
   );
 });
 
-/** The show-password button for an `Input`'s `trailing` slot. */
 export function PasswordToggle({
   shown,
   disabled,
