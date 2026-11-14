@@ -728,9 +728,10 @@ value; the generator fails if the themes would emit different variables. The sit
 `border-border-faint` and `brand-tint`. Never edit either file: `make check`, which CI runs, fails
 when they differ from the generator's `--check` output.
 
-The backend's emails cannot use those stylesheets, because mail clients drop external CSS. The
-layout in `backend/shared/templates/email/` and the templates extending it repeat the Paper values
-inline and nothing checks them, so a change to the Paper palette updates them by hand.
+The backend's emails cannot use those stylesheets, which are built into the web bundles, and many
+mail clients drop linked CSS anyway. The email layout in `backend/shared/templates/email/` and some
+of the templates extending it repeat Paper values inline, and nothing checks them, so a change to
+the Paper palette updates them by hand.
 
 Before the first paint, a script in `dashboard/index.html` applies Dark (`data-theme="dark"` on `<html>`,
 with its `theme-color`) only when `ledova.theme` (`THEME_STORAGE_KEY`) in browser storage is exactly
