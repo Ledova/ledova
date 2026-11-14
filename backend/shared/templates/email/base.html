@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>{% block title %}{% endblock %}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f6f3ec;-webkit-text-size-adjust:100%;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f6f3ec;">
+<tr>
+<td align="center" style="padding:32px 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+<tr>
+<td style="padding:0 0 20px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td aria-hidden="true" style="padding:0 10px 0 0;vertical-align:middle;">
+<div style="width:25px;height:25px;border:1.5px solid #17191e;border-radius:7px;font-size:0;line-height:0;">
+<div style="width:8px;height:12px;margin:5px 0 0 8px;border-left:2px solid #2e6a57;border-bottom:2px solid #2e6a57;font-size:0;line-height:0;"></div>
+</div>
+</td>
+<td style="vertical-align:middle;font-family:Newsreader,Georgia,'Times New Roman',serif;font-size:26px;font-weight:500;line-height:28px;letter-spacing:-0.26px;color:#17191e;">Ledova</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td style="background-color:#ffffff;border:1px solid #d6d0c3;border-radius:12px;padding:32px 24px;font-family:'Instrument Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:24px;color:#3d4148;">
+<h1 style="margin:0 0 16px;font-family:Newsreader,Georgia,'Times New Roman',serif;font-size:28px;font-weight:400;line-height:34px;letter-spacing:-0.28px;color:#17191e;">{% block heading %}{% endblock %}</h1>
+{% block content %}{% endblock %}
+</td>
+</tr>
+<tr>
+<td style="padding:20px 0 0;font-family:'Instrument Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;color:#686b72;">Ledova, the share register for private companies.</td>
+</tr>
+</table>
+</td>
+</tr>
+</table>
+</body>
+</html>

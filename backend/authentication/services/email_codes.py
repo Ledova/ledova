@@ -51,11 +51,16 @@ class EmailCodeService:
                     ]
                 )
 
-            email_body = render_to_string("email/verify_email.html", {"user": user, "token": code})
+            minutes = int(CODE_LIFETIME.total_seconds() // 60)
             result = sendgrid_client.send_email(
                 to_email=user.email,
-                subject="Verify Your Email Address",
-                html_content=email_body,
+                subject="Your Ledova verification code",
+                html_content=render_to_string("email/verify_email.html", {"token": code, "minutes": minutes}),
+                text_content=(
+                    f"Your Ledova verification code is {code}.\n\n"
+                    f"Enter it in Ledova to verify your email address. It expires in {minutes} minutes.\n\n"
+                    "If you did not sign up for Ledova, you can ignore this email."
+                ),
             )
 
             if not result.get("success"):

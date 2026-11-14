@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.db.models.deletion import Collector, ProtectedError, RestrictedError
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from compliance.models import ComplianceAlert
@@ -99,7 +100,7 @@ def complete_provider_erasure(identifier, reference, hold_release_reference="", 
             result = sendgrid_client.send_email(
                 to_email=item.completion_email,
                 subject="Ledova verification-data deletion completed",
-                html_content=f"<p>{message}</p>",
+                html_content=render_to_string("email/verification_data_deleted.html", {"message": message}),
                 text_content=message,
             )
             if result.get("success") is not True:
