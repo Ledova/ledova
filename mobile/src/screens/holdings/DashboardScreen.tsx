@@ -3,11 +3,15 @@ import { Pressable, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp, type RouteProp } from '@react-navigation/native';
 import { BuildingsIcon, CaretRightIcon } from 'phosphor-react-native';
 import {
+  activationStepDue,
+  COMPANY_ACTIVATION_COPY,
+  DESTINATIONS,
   formatDate,
   formatShareCount,
   ownershipColorIndex,
   ownershipView,
   rankOwnershipClasses,
+  REGISTER_IMPORT_COPY,
   sharePercentage,
   useCompanyOwnership,
   useSubmissionOwner,
@@ -20,7 +24,7 @@ import {
 } from '@ledova/shared';
 import { AwardStatus } from '../../components/AwardStatus';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, Actions, Fact, LinkRow, LoadError, Rows, Section } from '../../components/Ledger';
+import { Action, Actions, Fact, LinkRow, LoadError, Rows, Section, Status } from '../../components/Ledger';
 import { MemberNotice, useMemberRefresh } from '../../components/MemberRecords';
 import { Page } from '../../components/Page';
 import { Pager } from '../../components/Pager';
@@ -319,6 +323,8 @@ function CompanyRegister({
       !ownership.overview.isFetching);
   const summary = registerReady && company.canReadRegister ? ownership.overview.data : undefined;
   const view = useMemo(() => ownershipView(summary, record), [summary, record]);
+  const activated = !activationStepDue(company.status);
+  const registered = !!summary?.classes.some(({ initialized }) => initialized);
   const failed =
     company.canReadRegister && (ownership.classes.isError || ownership.overview.isError || ownership.scopeError);
   const selected = view?.classes.find(({ uuid }) => uuid === chosen?.token);
@@ -337,6 +343,9 @@ function CompanyRegister({
           </Section>
         ) : (
           <>
+            {company.canManage && (!activated || !registered) && (
+              <GettingStarted activated={activated} registered={registered} />
+            )}
             {view ? (
               <>
                 <Section title="Ownership overview">
@@ -419,6 +428,35 @@ function CompanyRegister({
         )}
       </View>
     </>
+  );
+}
+
+function GettingStarted({ activated, registered }: { activated: boolean; registered: boolean }) {
+  const styles = useCompanyStyles();
+  const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
+  return (
+    <Section title="Getting started">
+      <Rows>
+        {!activated && (
+          <LinkRow
+            label={COMPANY_ACTIVATION_COPY.STEP}
+            figure={<Status tone="waiting">To do</Status>}
+            onPress={() => navigation.navigate('Activation')}
+          >
+            <Text style={styles.muted}>{COMPANY_ACTIVATION_COPY.NOTE}</Text>
+          </LinkRow>
+        )}
+        {!registered && (
+          <LinkRow
+            label={DESTINATIONS.companyRegisterSetup.title}
+            figure={<Status tone="waiting">To do</Status>}
+            onPress={() => navigation.navigate('Ledger')}
+          >
+            <Text style={styles.muted}>{REGISTER_IMPORT_COPY.SETUP_NOTE}</Text>
+          </LinkRow>
+        )}
+      </Rows>
+    </Section>
   );
 }
 

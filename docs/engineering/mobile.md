@@ -169,8 +169,9 @@ current shareholders, largest first, 25 to a page with the web's pager, and the 
 and awards where they hold shares. It has the web's loading, incomplete-total, unopened-class, no
 shareholder and failure states with Try again, and the trail returns from a class the overview no
 longer lists. The class card ends with the web's **Class details** row, which opens the class's page.
-The app does not yet have the web's Getting started card. For a company where the person is only a
-member, the Ownership
+Above the overview, an administrator sees the web's **Getting started** until activation and register
+setup are done: **Activate your company** opens Activation and **Set up your ledger** opens Ledger.
+For a company where the person is only a member, the Ownership
 overview comes from the shared `ownershipView`, read from the member record's shared ownership, or
 from the member's own shares when the company does not share its totals: your shares, issued shares,
 current shareholders and share classes, then each class, ranked by the shared `rankOwnershipClasses`,

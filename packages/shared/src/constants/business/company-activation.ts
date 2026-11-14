@@ -8,6 +8,12 @@ const AWAITING_ACTIVATION: readonly string[] = [
   'withdrawn',
 ];
 
+const ACTIVATION_STEP_DUE: readonly string[] = ['draft', 'submitted', 'review', 'info_required', 'approved'];
+
+export function activationStepDue(status?: string) {
+  return ACTIVATION_STEP_DUE.includes(status ?? '');
+}
+
 export const COMPANY_ACTIVATION_COPY = {
   STEP: 'Activate your company',
   NOTE: 'Activation records your declaration and, where required, your verified identity.',
