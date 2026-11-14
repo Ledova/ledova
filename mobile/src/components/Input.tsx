@@ -26,12 +26,7 @@ export function useControlFrame() {
     },
     filled: { paddingHorizontal: theme.spacing.md, backgroundColor: theme.colors.surface.tertiary },
     invalid: { borderColor: theme.colors.status.error.text, backgroundColor: theme.colors.error.subtle },
-    text: {
-      fontFamily: theme.fontFamily.regular,
-      fontSize: theme.fontSize.base,
-      letterSpacing: 0,
-      color: theme.colors.text.primary,
-    },
+    text: { fontFamily: theme.fontFamily.regular, fontSize: theme.fontSize.base, color: theme.colors.text.primary },
     placeholder: { color: theme.colors.form.placeholder },
   }));
 }

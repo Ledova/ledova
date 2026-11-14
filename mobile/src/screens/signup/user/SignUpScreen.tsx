@@ -64,7 +64,7 @@ export function SignUpScreen() {
       borderWidth: 1,
       borderColor: theme.colors.border.default,
       padding: theme.spacing.md,
-      marginTop: theme.spacing.md,
+      marginTop: theme.spacing.sm,
     },
     requirementsTitle: {
       fontSize: theme.fontSize.xs,

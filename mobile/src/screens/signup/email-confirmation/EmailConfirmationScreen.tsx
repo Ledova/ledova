@@ -75,7 +75,6 @@ export function EmailConfirmationScreen() {
       fontFamily: theme.fontFamily.semibold,
       fontSize: theme.fontSize.xxl,
       textAlign: 'center',
-      letterSpacing: 8,
     },
     verifyButton: {
       marginTop: theme.spacing.md,

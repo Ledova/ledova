@@ -52,9 +52,10 @@ height with vertical padding cuts off letters such as "g" while the keyboard is 
 `useControlFrame()` gives selects and the date field the same frame.
 
 The signed-in member records state is a context (`mobile/src/contexts/MemberRecordsContext.tsx`),
-with its notices and pull to refresh in `mobile/src/components/MemberRecords.tsx`, and the account check, company notice
-and register access notice that several areas show (`AccountCheck.tsx`, `CompanyContextNotice.tsx`,
-`RegisterAccess.tsx`) in `components/`. `RegisterAccess` shows loading while access is rechecked, and the notice
+with its notices and pull to refresh in `mobile/src/components/MemberRecords.tsx`, and the account
+check, company notice and register access notice that several areas show (`AccountCheck.tsx`,
+`CompanyContextNotice.tsx`, `RegisterAccess.tsx`) in `components/`. `RegisterAccess` shows loading
+while access is rechecked, and the notice
 only once the check settles. Ledger and Shareholders read the selected company's classes and
 holders through `hooks/useCompanyRegisters.ts`. Production screens import no other area's internals.
 Profile, operator, member, company list, appointment and company ownership reads, Team's reads
