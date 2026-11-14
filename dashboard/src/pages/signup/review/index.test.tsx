@@ -9,6 +9,7 @@ import {
   COMPANY_AUTHORITY_DECLARATION_VERSION,
   COMPANY_SIGNUP_DECLARATION,
   COMPANY_SIGNUP_DECLARATION_VERSION,
+  COMPANY_SIGNUP_DECLARATIONS,
   TERMS_VERSION,
   appointmentReceipt,
 } from '@ledova/shared';
@@ -136,6 +137,10 @@ it('reuses saved company details and clearly accepts authority and Terms through
   expect(appointmentReceipt(revoked)).toBe(true);
   expect(appointmentReceipt({ ...revoked, source: 'invitation' })).toBe(false);
   expect(appointmentReceipt({ ...revoked, declarationText: 'Changed terms' })).toBe(false);
+  const [earlier] = COMPANY_SIGNUP_DECLARATIONS;
+  const earlierDeclaration = { declarationVersion: earlier!.version, declarationText: earlier!.text };
+  expect(appointmentReceipt({ ...revoked, ...earlierDeclaration })).toBe(true);
+  expect(appointmentReceipt({ ...revoked, ...earlierDeclaration, source: 'invitation' })).toBe(false);
   expect(
     appointmentReceipt({
       ...revoked,
