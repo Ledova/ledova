@@ -211,9 +211,11 @@ web and, at phone width, in the app:
    Alternatively, choose Corrections, the class, then Bring records
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
    class not yet set up. Share classes are created only through register setup, in Ledger.
-2. Share details: continue the selected unfinished class, or choose a common class (Ordinary
+2. **Share class**: continue the selected unfinished class, or choose a common class (Ordinary
    ORD, Preference PRF or Redeemable RED) or Another class with the company's own name, code and
-   type. The company choices come from current personal administrator or preparer appointments,
+   type. Name, code, type and record date sit together in the first step of one **Ledger setup**
+   card. Existing class details use the inline editor where permitted; saving those details is
+   separate from confirming the copied opening. The company choices come from current personal administrator or preparer appointments,
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
    limit instead of authorised capital. Repeat for each class.
@@ -257,9 +259,9 @@ Inviting members is optional ([member access](member-records.md#member-access)).
 kept only in the open page and are lost if you leave it. After a failed or uncertain response, use Recover saved records or Recover
 confirmation in setup ([uncertain outcomes](README.md#when-the-outcome-is-uncertain)); another
 appointee can resume review or confirmation without preparation access. The step headings above the
-form move between Share details, Shareholders and Review. Going forward, from a heading or **Continue**,
+form move between Share class, Shareholders and Review. Going forward, from a heading or **Continue**,
 checks the current step first, and reaching Review saves the draft, so there is no separate save
-button. Choosing Share details or Shareholders on Review retires the saved draft for editing and needs
+button. Choosing Share class or Shareholders on Review retires the saved draft for editing and needs
 preparation and rejection authority.
 
 Award recipients without shares appear in the same list as members, marked as such. Select the

@@ -32,7 +32,7 @@ import type { SignedInStackParamList } from '../../navigation/SignedInNavigator'
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ClassRights } from './ClassRights';
-import { ClassDetails } from './ClassDetails';
+import { ClassDetails, ClassDetailsContent } from './ClassDetails';
 import { ClassSetup, NewClassSetup } from './ClassSetup';
 import { ShareholderDocuments } from '../../components/register/ShareholderDocuments';
 import { useLedgerStyles } from './useLedgerStyles';
@@ -265,6 +265,7 @@ function ClassPage({
     data.register.isSuccess &&
     data.register.fetchStatus === 'idle';
   const register = registerReady ? data.register.data : undefined;
+  const sourceError = data.token.isError || data.register.isError || appointments.isError;
   const refresh = async () => {
     if (!owner) return;
     if (preferences.isError) await preferences.refetch();
@@ -297,8 +298,8 @@ function ClassPage({
         />
       }
     >
-      {listed && classDetailsVisible && (
-        <View style={(data.token.isError || data.register.isError || appointments.isError) && look.hidden}>
+      {setup === false && listed && classDetailsVisible && (
+        <View style={sourceError && look.hidden}>
           <ClassDetails token={listed} details={details} available={detailsAvailable} />
         </View>
       )}
@@ -308,40 +309,17 @@ function ClassPage({
         <LoadError retry={() => data.token.refetch()} busy={data.token.isFetching}>
           This share class could not be loaded. It may be unavailable to this account.
         </LoadError>
+      ) : setup !== false && data.register.isError ? (
+        <LoadError retry={() => data.register.refetch()} busy={data.register.isFetching}>
+          The current ownership could not be loaded.
+        </LoadError>
+      ) : setup !== false && appointments.isError ? (
+        <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+          Your class setup access could not be loaded.
+        </LoadError>
       ) : setup === null ? (
-        data.register.isError ? (
-          <LoadError retry={() => data.register.refetch()} busy={data.register.isFetching}>
-            The current ownership could not be loaded.
-          </LoadError>
-        ) : appointments.isError ? (
-          <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
-            Your class setup access could not be loaded.
-          </LoadError>
-        ) : (
-          <Loading>Loading the share class…</Loading>
-        )
-      ) : setup ? (
-        <ClassSetup
-          owner={owner}
-          currentOwner={() => {
-            data.guard();
-            return owner;
-          }}
-          accountOwner={() => {
-            data.accountGuard();
-            return owner;
-          }}
-          available={available}
-          company={company}
-          token={token}
-          record={record}
-          externalHeld={data.readingPaused && !setupHeld}
-          onHeldChange={heldSetup}
-          onRecordsChanged={recordsChanged}
-          showClassDetails={!classDetailsVisible}
-          {...flow}
-        />
-      ) : (
+        <Loading>Loading the share class…</Loading>
+      ) : setup ? null : (
         <Section title="Summary">
           {requested && !canSetUp && <Text style={look.muted}>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</Text>}
           {!classDetailsVisible && (
@@ -396,6 +374,31 @@ function ClassPage({
             </View>
           )}
         </Section>
+      )}
+      {setup === true && listed && (
+        <View style={sourceError && look.hidden}>
+          <ClassSetup
+            owner={owner}
+            currentOwner={() => {
+              data.guard();
+              return owner;
+            }}
+            accountOwner={() => {
+              data.accountGuard();
+              return owner;
+            }}
+            available={available && !sourceError}
+            company={company}
+            token={token}
+            record={record}
+            externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
+            classHeld={details.held}
+            classFields={<ClassDetailsContent token={listed} details={details} available={detailsAvailable} />}
+            onHeldChange={heldSetup}
+            onRecordsChanged={recordsChanged}
+            {...flow}
+          />
+        </View>
       )}
       <ClassRights rights={rights} />
       {listed && owner && (

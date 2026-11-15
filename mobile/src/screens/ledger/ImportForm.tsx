@@ -25,17 +25,18 @@ import { DATE, FormSteps } from './IssueForms';
 import { useLedgerStyles } from './useLedgerStyles';
 
 type ImportFormProps = Omit<ImportPreparationOptions, 'newKey' | 'session'> & {
-  shareClass?: { name: string; symbol: string };
-  classFields?: ReactNode;
+  shareClass: { name: string; symbol: string; type?: string };
+  classFields: ReactNode;
+  classHeld?: boolean;
   onCancel: () => void;
 };
 
 const SOURCE = 'Company-provided share records';
 
-export function ImportForm({ shareClass, classFields, onCancel, ...options }: ImportFormProps) {
+export function ImportForm({ shareClass, classFields, classHeld = false, onCancel, ...options }: ImportFormProps) {
   const look = useLedgerStyles();
   const styles = useCompanyStyles();
-  const { register, steps, blocked, correction, emptyOpeningAllowed = false, visible = true } = options;
+  const { steps, blocked, correction, emptyOpeningAllowed = false, visible = true } = options;
   const model = useImportPreparation({ ...options, newKey: randomUUID, session: orderSubmissionSession });
   const [running, setRunning] = useState<string | null>(null);
   const track = (key: string, work: Promise<unknown>) => {
@@ -47,10 +48,6 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
   const editable = visible && mutable && canPrepare;
   const reviewing = visible && !mutable && proposal?.status === 'submitted';
   const recorded = visible && !mutable && proposal?.status === 'applied';
-  const title =
-    [shareClass?.name ?? register?.token.name, shareClass?.symbol ?? register?.token.symbol]
-      .filter(Boolean)
-      .join(' · ') || 'New share class';
   const submit = () => {
     Keyboard.dismiss();
     if (phase === 'details') {
@@ -70,7 +67,7 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
       !!proposal.asicEvidence);
   const total = proposal ? formatShareCount(registerImportTotals(proposal.members).total) : '';
   return (
-    <Section title={title}>
+    <Section title={COPY.SETUP_TITLE}>
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps
           label="Ledger setup steps"
@@ -83,16 +80,10 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
           }}
         />
       )}
-      <View style={[look.fields, !editable && look.hidden]}>
+      <View style={[look.fields, (!visible || phase !== 'details') && look.hidden]}>{classFields}</View>
+      <View style={[look.fields, (!editable || classHeld) && look.hidden]}>
         <Problems problems={model.attempted ? (phase === 'details' ? model.detailProblems : model.problems) : []} />
         <View style={[look.fields, phase !== 'details' && look.hidden]}>
-          {classFields ??
-            (register && (
-              <Rows>
-                <Fact label="Share class">{register.token.name}</Fact>
-                <Fact label="Class code">{register.token.symbol}</Fact>
-              </Rows>
-            ))}
           <Field
             label="Record date"
             value={draft.asAt}
@@ -146,6 +137,15 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
         >
           {proposal.status === 'applied' && <Status tone="done">Recorded</Status>}
           <Rows>
+            <Fact label="Class name" inline>
+              {shareClass.name}
+            </Fact>
+            <Fact label="Class code" inline>
+              {shareClass.symbol}
+            </Fact>
+            <Fact label="Class type" inline>
+              {shareClass.type || 'Not recorded'}
+            </Fact>
             <Fact label="Record date" inline>
               {formatShortDate(proposal.asAt)}
             </Fact>
@@ -273,12 +273,12 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
           Refresh current company access before showing these records or starting another action.
         </Text>
       )}
-      {!model.holderEditor && (
+      {!model.holderEditor && !classHeld && (
         <FormActions>
           {editable && !uncertain && phase === 'shareholders' && (
             <Action
               label="Back"
-              accessibilityLabel="Back (share details)"
+              accessibilityLabel="Back (share class)"
               disabled={locked}
               onPress={() => {
                 Keyboard.dismiss();

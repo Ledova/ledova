@@ -408,14 +408,20 @@ corrections, opening records and particulars changes while none is.
 Class setup (`ClassSetup.tsx`, rendered by `ShareClassScreen.tsx`) is the web's register setup at phone width, through the
 shared `useImportPreparation`, `useNewShareClass`, `useImportRegister` and `useStartedClasses`
 (`ImportForm.tsx`, `ImportShareholders.tsx`). Opened from **Add share class**, it is the web's three
-steps for a new class: Share details (Ordinary, Preference, Redeemable or Another class with its name,
+steps for a new class: Share class (Ordinary, Preference, Redeemable or Another class with its name,
 code and type, any class already started as links, and the record date), Shareholders (each opening
 shareholder chosen from the company's people or New person, with their name, address, first date and
 current shares, the optional **Allocation history** and **Documents**, and **Show company source copies** for the register copy and ASIC extract), then Review, where **Confirm** records the review
 and the confirmation together and returns to Dashboard. Class creation and resumed records use the same class workspace; the `RegisterSetup` stack route remains an entry for new classes and saved/correction links, not another implementation. The web's disabled **Import** is left out. Opened
 for an unfinished class, or from Corrections, it brings records into its unopened register,
 or replaces the latest applied opening's shareholder rows in full with a reason, and resumes a saved
-draft for review. Dates are typed as `YYYY-MM-DD` (UTC). Each save and decision keeps the web's retry
+draft for review. One **Ledger setup** card owns the steps: the first groups name, code, type and
+record date, with the existing inline metadata editor and safe deletion where permitted. It replaces
+the separate Class details card during setup; completed and read-only class views keep their details.
+The metadata task's explicit Save/Cancel or recovery controls replace the opening footer while held;
+the opening fields stay mounted and hidden, and step changes are blocked without losing the draft.
+Class rights remains separate below.
+Dates are typed as `YYYY-MM-DD` (UTC). Each save and decision keeps the web's retry
 of an uncertain result, and the step headings (`FormSteps` with `goTo`) move between steps as on the web,
 retiring a prepared draft for editing when chosen from Review. Shareholders are
 compact rows (`MemberRow` in `ImportRecord.tsx`), with **Edit** and **Remove** in the draft and **Show
@@ -424,10 +430,10 @@ moves to the next step, saving the draft on the way to Review. Saving keeps the 
 retained form mounted while required reads refresh; the read-only Class details rows keep their
 layout, and Review stays visible, with actions blocked
 until current records and authority are ready. Read failures show Retry, and account or company
-changes still hide the previous scope. A valid jump from Share details to Review stays on the
+changes still hide the previous scope. A valid jump from Share class to Review stays on the
 current step until its saved review is ready; invalid shareholder records open Shareholders.
 **Cancel** returns to the page that
-opened it, on every step but Shareholders, where **Back** returns to Share details, and a page that
+opened it, on every step but Shareholders, where **Back** returns to Share class, and a page that
 cannot show the form still offers it. The top bar's arrow returns to Ledger.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`) and
 Team. Profile, the `Settings` route, is the web's Personal

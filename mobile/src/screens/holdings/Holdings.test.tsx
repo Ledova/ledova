@@ -172,8 +172,8 @@ jest.mock('expo-file-system', () => {
   }
   return { Directory, File, Paths: { cache: new Directory('file:///cache'), document: new Directory('file:///docs') } };
 });
-jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }));
-const api = { get: jest.mocked(apiClient.get), post: jest.mocked(apiClient.post) };
+jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn(), patch: jest.fn() } }));
+const api = { get: jest.mocked(apiClient.get), post: jest.mocked(apiClient.post), patch: jest.mocked(apiClient.patch) };
 const client = new QueryClient({
   defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: 0 } },
 });
@@ -661,6 +661,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let thirdHolder = false;
   let documentClasses = false;
   let unopenedPreference = false;
+  let preferenceName = PREFERENCE.name;
+  let preferenceUpdatedAt = '2026-11-15T00:00:00Z';
   let importsWait: Promise<void> | null = null;
   let classesWait: Promise<void> | null = null;
   let importsReadFailure = false;
@@ -702,7 +704,15 @@ it('associates a member by invitation code, switches to their company on Dashboa
         { ...FOUNDERS, companyUuid: ADMINISTERED.uuid, tokenTypeDisplay: 'Ordinary', totalSupply: '1000' },
         { ...ELSEWHERE, companyUuid: ELSEWHERE_COMPANY },
         ...(documentClasses || unopenedPreference
-          ? [{ ...FOUNDERS, ...PREFERENCE, companyUuid: ADMINISTERED.uuid, tokenTypeDisplay: 'Preference' }]
+          ? [
+              {
+                ...FOUNDERS,
+                ...PREFERENCE,
+                name: preferenceName,
+                companyUuid: ADMINISTERED.uuid,
+                tokenTypeDisplay: 'Preference',
+              },
+            ]
           : []),
       ];
       return page(classes.filter((item) => !company || item.companyUuid === company));
@@ -782,16 +792,20 @@ it('associates a member by invitation code, switches to their company on Dashboa
       return { data: { ...FOUNDERS, ...company, status: 'draft', tokenTypeDisplay: 'Ordinary', totalSupply: '1000' } };
     }
     if (url === URLS.DETAIL(PREFERENCE.uuid)) {
+      if (classReadFailure) throw new Error('Synthetic class read failure');
       const company = { company: ADMINISTERED.uuid, companyUuid: ADMINISTERED.uuid, companyName: ADMINISTERED.name };
       return {
         data: {
           ...FOUNDERS,
           ...PREFERENCE,
+          name: preferenceName,
           ...company,
           status: 'draft',
+          tokenType: 'preference',
           tokenTypeDisplay: 'Preference',
           totalSupply: TECHNICAL_SHARE_LIMIT,
           canEditDetails: true,
+          updatedAt: preferenceUpdatedAt,
         },
       };
     }
@@ -1340,6 +1354,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
       };
     }
     throw new Error(`Unexpected POST ${url}`);
+  });
+  api.patch.mockReset().mockImplementation(async (url, changes) => {
+    if (url !== URLS.DETAIL(PREFERENCE.uuid)) throw new Error(`Unexpected PATCH ${url}`);
+    preferenceName = (changes as { name: string }).name;
+    preferenceUpdatedAt = '2026-11-15T01:00:00Z';
+    throw new Error('Synthetic lost class save reply');
   });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={client}>
@@ -2304,6 +2324,57 @@ it('associates a member by invitation code, switches to their company on Dashboa
   });
   const unopened = { company: ADMINISTERED.uuid, token: PREFERENCE.uuid };
   await view.rerender(<ShareClassScreen route={{ key: 'unopened-class', name: 'ShareClass', params: unopened }} />);
+  expect(await screen.findByRole('header', { name: 'Ledger setup' })).toBeTruthy();
+  expect(screen.queryByRole('header', { name: 'Class details' })).toBeNull();
+  expect(screen.getByLabelText('Class code: PRF')).toBeTruthy();
+  const openingDate = '2026-11-14';
+  await fireEvent.changeText(screen.getByLabelText('Record date'), openingDate);
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit Class details', disabled: false }));
+  expect(screen.getByLabelText('Class name').props.value).toBe(PREFERENCE.name);
+  expect(screen.queryByLabelText('Record date')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
+  expect(screen.getByRole('button', { name: '2. Shareholders', disabled: true })).toBeTruthy();
+  await fireEvent.changeText(screen.getByLabelText('Class name'), 'Discarded class name');
+  await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+  expect((await screen.findByLabelText('Record date')).props.value).toBe(openingDate);
+  expect(screen.getByLabelText(`Class name: ${PREFERENCE.name}`)).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit Class details', disabled: false }));
+  await fireEvent.changeText(screen.getByLabelText('Class name'), 'Updated preference shares');
+  const metadataEditor = screen.getByLabelText('Edit class details');
+  await fireEvent.press(screen.getByRole('button', { name: 'Save', disabled: false }));
+  expect(await screen.findByRole('button', { name: 'Check original save', disabled: false })).toBeTruthy();
+  classReadFailure = true;
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: [...shareClassKey(PREFERENCE.uuid), owner.userUuid, owner.ownerAccountUuid],
+    });
+  });
+  expect(
+    await screen.findByText('This share class could not be loaded. It may be unavailable to this account.'),
+  ).toBeTruthy();
+  expect(screen.queryByLabelText('Edit class details')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Check original save' })).toBeNull();
+  classReadFailure = false;
+  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  await screen.findByRole('button', { name: 'Check original save', disabled: false });
+  expect(screen.getByLabelText('Edit class details') === metadataEditor).toBe(true);
+  await fireEvent.press(screen.getByRole('button', { name: 'Check original save', disabled: false }));
+  expect(await screen.findByText('Class details saved.')).toBeTruthy();
+  expect((await screen.findByLabelText('Record date')).props.value).toBe(openingDate);
+  expect(screen.getByLabelText('Class name: Updated preference shares')).toBeTruthy();
+  expect(api.patch.mock.calls).toEqual([
+    [
+      URLS.DETAIL(PREFERENCE.uuid),
+      {
+        name: 'Updated preference shares',
+        symbol: 'PRF',
+        tokenType: 'preference',
+        expectedUpdatedAt: '2026-11-15T00:00:00Z',
+      },
+      expect.anything(),
+    ],
+  ]);
+  await fireEvent.changeText(screen.getByLabelText('Record date'), utcToday());
   await fireEvent.press(await screen.findByRole('button', { name: 'Continue' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Add a shareholder' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Company shareholder: none chosen' }));
@@ -2331,9 +2402,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
     expect(screen.queryByText('Loading the register…')).toBeNull();
     expect(screen.queryByText('Checking current class access…')).toBeNull();
     expect(screen.getByLabelText('Class code: PRF')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Edit Class details', disabled: true })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Edit Class details' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Confirm', disabled: true })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '1. Share details', disabled: true })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '1. Share class', disabled: true })).toBeTruthy();
   } finally {
     await act(async () => {
       importsWait = null;
@@ -2397,7 +2468,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Show company source copies' }));
   expect(screen.getByRole('button', { name: 'Current share register, synthetic.pdf. Choose file' })).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Back (share details)' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Back (share class)' }));
   await fireEvent.changeText(screen.getByLabelText('Record date'), '2026-10-25');
   const beforeInvalid = preparePosts().length;
   await fireEvent.press(screen.getByRole('button', { name: '3. Review' }));
@@ -2408,7 +2479,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     ),
   ).toBeTruthy();
   expect(preparePosts()).toHaveLength(beforeInvalid);
-  await fireEvent.press(screen.getByRole('button', { name: 'Back (share details)' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Back (share class)' }));
   await fireEvent.changeText(screen.getByLabelText('Record date'), '2026-10-26');
   await fireEvent.press(screen.getByRole('button', { name: '3. Review' }));
   await screen.findByLabelText('Review ledger');
@@ -2431,6 +2502,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ]);
   await view.rerender(<></>);
   unopenedPreference = false;
+  preferenceName = PREFERENCE.name;
+  preferenceUpdatedAt = '2026-11-15T00:00:00Z';
   imports = imports.filter((proposal) => proposal.token !== PREFERENCE.uuid);
   await act(async () => {
     await client.invalidateQueries({

@@ -35,7 +35,14 @@ except Shareholders, which lists each person with only the classes they hold bel
 A stepped preparation (register setup, an investor issue, a transfer) is one card: its title names the class or
 the task, `FormSteps` sits at its top, each step has a small heading unless it would repeat the step's name, as in
 register setup, and one primary action ends the step.
-Register setup's card is titled with the class being set up, and a recorded ledger shows its state as a `Status`.
+Register setup uses one **Ledger setup** card, with **Share class**, **Shareholders** and **Review**
+steps. The class name stays in the page header. Its first step groups name, code, type and record
+date, reusing the inline metadata editor rather than a separate Class details card or nested card.
+New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
+While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
+Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and
+ledger confirmation remain separate commands. Class rights stays separate below setup, and a
+recorded ledger shows its state as a `Status`.
 Company information, authority records and company team use this workspace frame too.
 Team is the selected company's page: its Appointments, **Invite a company user** and the invitations you
 issued (owner, 5 November 2026). Inviting replaces the collection with one focused inline task, a

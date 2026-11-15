@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { FIELD_LIMITS, REGISTER_CLASS_TYPES, type CompanyShareToken, type useClassDetails } from '@ledova/shared';
 import { Choices, Field } from '../../components/Field';
-import { Action, Fact, FormActions, Loading, Outcome, Rows, Section } from '../../components/Ledger';
+import { Action, Fact, FormActions, Outcome, Rows, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useLedgerStyles } from './useLedgerStyles';
 
 type Details = ReturnType<typeof useClassDetails>;
+type ClassDetailsProps = { token: CompanyShareToken; details: Details; available: boolean };
 
 function ClassDetailsEditor({ details, available }: { details: Details; available: boolean }) {
   const look = useLedgerStyles();
@@ -21,7 +22,7 @@ function ClassDetailsEditor({ details, available }: { details: Details; availabl
     draft.tokenType === editor.target.tokenType;
   const locked = details.busy || details.pending || !available;
   return (
-    <View accessibilityLabel="Edit class details" style={[look.fields, !available && look.hidden]}>
+    <View accessibilityLabel="Edit class details" style={look.fields}>
       <Field
         label="Class name"
         value={draft.name}
@@ -78,20 +79,20 @@ function ClassDetailsEditor({ details, available }: { details: Details; availabl
   );
 }
 
-export function ClassDetails({
-  token,
-  details,
-  available,
-}: {
-  token: CompanyShareToken;
-  details: Details;
-  available: boolean;
-}) {
+export function ClassDetails(props: ClassDetailsProps) {
+  return (
+    <Section title="Class details">
+      <ClassDetailsContent {...props} />
+    </Section>
+  );
+}
+
+export function ClassDetailsContent({ token, details, available }: ClassDetailsProps) {
   const look = useLedgerStyles();
   const target = details.deleting;
   const currentDelete = available && target?.updatedAt === token.updatedAt && token.canDelete;
   return (
-    <Section title="Class details">
+    <>
       {details.editor ? (
         <ClassDetailsEditor details={details} available={available} />
       ) : (
@@ -108,24 +109,26 @@ export function ClassDetails({
             </Fact>
           </Rows>
           {!!token.deletionBlockedReason && <Text style={look.muted}>{token.deletionBlockedReason}</Text>}
-          <FormActions>
-            {(token.canDelete || token.deletionBlockedReason) && (
-              <Action
-                label="Delete"
-                accessibilityLabel="Delete share class"
-                disabled={!available || details.held || !token.canDelete}
-                onPress={() => details.open('delete')}
-              />
-            )}
-            {token.canEditDetails && (
-              <Action
-                label="Edit"
-                accessibilityLabel="Edit Class details"
-                disabled={!available || details.held}
-                onPress={() => details.open('edit')}
-              />
-            )}
-          </FormActions>
+          {(token.canDelete || token.deletionBlockedReason || token.canEditDetails) && (
+            <FormActions>
+              {(token.canDelete || token.deletionBlockedReason) && (
+                <Action
+                  label="Delete"
+                  accessibilityLabel="Delete share class"
+                  disabled={!available || details.held || !token.canDelete}
+                  onPress={() => details.open('delete')}
+                />
+              )}
+              {token.canEditDetails && (
+                <Action
+                  label="Edit"
+                  accessibilityLabel="Edit Class details"
+                  disabled={!available || details.held}
+                  onPress={() => details.open('edit')}
+                />
+              )}
+            </FormActions>
+          )}
           {!!details.outcome && <Outcome>{details.outcome}</Outcome>}
           {!target && !!details.error && (
             <Text accessibilityRole="alert" style={look.smallError}>
@@ -134,7 +137,6 @@ export function ClassDetails({
           )}
         </View>
       )}
-      {!available && !!details.editor && <Loading>Checking current class access…</Loading>}
       <CustomModal
         visible={!!target && available}
         onClose={details.close}
@@ -166,6 +168,6 @@ export function ClassDetails({
           </Text>
         )}
       </CustomModal>
-    </Section>
+    </>
   );
 }

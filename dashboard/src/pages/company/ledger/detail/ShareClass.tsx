@@ -25,7 +25,7 @@ import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { AccountCheck } from '@components/AccountCheck';
 import { ClassSetup } from './ClassSetup';
-import { ClassDetails } from './ClassDetails';
+import { ClassDetails, ClassDetailsContent } from './ClassDetails';
 import { useClassDetails } from './useClassDetails';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 
@@ -142,8 +142,10 @@ function ShareClassWorkspace({
   }, [rights.editor, rights.pending, rights.busy, data.holdReads]);
   return (
     <>
-      {data.token.data && classDetailsVisible && (
-        <ClassDetails token={data.token.data} details={details} available={detailsAvailable} />
+      {setup === false && data.token.data && classDetailsVisible && (
+        <div hidden={data.token.isError || data.register.isError || appointments.isError}>
+          <ClassDetails token={data.token.data} details={details} available={detailsAvailable} />
+        </div>
       )}
       <ShareClassDetails
         key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
@@ -167,9 +169,15 @@ function ShareClassWorkspace({
               uuid={uuid}
               owner={owner}
               guard={data.guard}
-              externalHeld={data.readingPaused && !setupHeld}
+              available={data.token.isSuccess && !data.register.isError && !appointments.isError}
+              externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
+              classHeld={details.held}
               onHeldChange={heldSetup}
-              showClassDetails={!classDetailsVisible}
+              classDetails={
+                data.token.data && (
+                  <ClassDetailsContent token={data.token.data} details={details} available={detailsAvailable} />
+                )
+              }
               onRecordsChanged={recordsChanged}
             />
           ) : undefined
@@ -203,82 +211,77 @@ function ShareClassDetails({
     data.register.isSuccess &&
     data.register.fetchStatus === 'idle';
   const token = data.token.data;
-  if (data.token.isPending)
-    return (
-      <>
-        <Loading>Loading the share class…</Loading>
-        {rights}
-      </>
-    );
-  if (data.token.isError || !token)
-    return (
-      <>
-        <LoadError retry={data.token.refetch} busy={data.token.isFetching}>
-          This share class could not be loaded. It may be unavailable to this account.
-        </LoadError>
-        {rights}
-      </>
-    );
+  const unavailable = data.token.isPending || data.token.isError || !token;
   const register = registerReady ? data.register.data : undefined;
   return (
     <>
-      {setup ?? (
-        <Section title="Summary">
-          {showClassDetails && (
-            <p className="text-sm text-text-muted">
-              {token.symbol} · {token.tokenTypeDisplay}
-            </p>
-          )}
-          {preferencesRead?.status === 'error' ? (
-            <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-              Your account could not be loaded.
-            </LoadError>
-          ) : data.register.isError ? (
-            <LoadError retry={data.register.refetch} busy={data.register.isFetching}>
-              The current ownership could not be loaded.
-            </LoadError>
-          ) : !register ? (
-            <Loading>Loading current ownership…</Loading>
-          ) : (
-            <section aria-label="Current ownership" className="space-y-3">
-              <Rows>
-                <Row inline label="Issued shares">
-                  {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
-                </Row>
-                <Row inline label="Current shareholders">
-                  {register.initialized ? formatShareCount(String(register.totalHolders)) : 'Not recorded'}
-                </Row>
-                {token.totalSupply !== TECHNICAL_SHARE_LIMIT && (
-                  <Row inline label="Authorised shares">
-                    {formatShareCount(token.totalSupply)}
-                  </Row>
-                )}
-              </Rows>
-              {!register.initialized && (
-                <p className="text-xs text-text-muted">
-                  <Status tone="waiting">Ledger not opened</Status>
+      {data.token.isPending ? (
+        <Loading>Loading the share class…</Loading>
+      ) : unavailable ? (
+        <LoadError retry={data.token.refetch} busy={data.token.isFetching}>
+          This share class could not be loaded. It may be unavailable to this account.
+        </LoadError>
+      ) : null}
+      <div hidden={unavailable}>
+        {setup ??
+          (token && (
+            <Section title="Summary">
+              {showClassDetails && (
+                <p className="text-sm text-text-muted">
+                  {token.symbol} · {token.tokenTypeDisplay}
                 </p>
               )}
-              {!token.isTransferable && (
-                <p className="text-sm text-text-muted">This share class is recorded as non-transferable.</p>
+              {preferencesRead?.status === 'error' ? (
+                <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+                  Your account could not be loaded.
+                </LoadError>
+              ) : data.register.isError ? (
+                <LoadError retry={data.register.refetch} busy={data.register.isFetching}>
+                  The current ownership could not be loaded.
+                </LoadError>
+              ) : !register ? (
+                <Loading>Loading current ownership…</Loading>
+              ) : (
+                <section aria-label="Current ownership" className="space-y-3">
+                  <Rows>
+                    <Row inline label="Issued shares">
+                      {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
+                    </Row>
+                    <Row inline label="Current shareholders">
+                      {register.initialized ? formatShareCount(String(register.totalHolders)) : 'Not recorded'}
+                    </Row>
+                    {token.totalSupply !== TECHNICAL_SHARE_LIMIT && (
+                      <Row inline label="Authorised shares">
+                        {formatShareCount(token.totalSupply)}
+                      </Row>
+                    )}
+                  </Rows>
+                  {!register.initialized && (
+                    <p className="text-xs text-text-muted">
+                      <Status tone="waiting">Ledger not opened</Status>
+                    </p>
+                  )}
+                  {!token.isTransferable && (
+                    <p className="text-sm text-text-muted">This share class is recorded as non-transferable.</p>
+                  )}
+                  {!register.initialized ? (
+                    <p className="text-sm text-text-muted">{REGISTER_COPY.NOT_OPENED_NOTE}</p>
+                  ) : register.waitingEffects === null ? (
+                    <p role="status" className="text-sm text-text-muted">
+                      {REGISTER_COPY.WAITING_UNKNOWN_NOTE}
+                    </p>
+                  ) : register.waitingEffects > 0 ? (
+                    <p role="status" className="text-sm text-text-muted">
+                      {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
+                    </p>
+                  ) : null}
+                </section>
               )}
-              {!register.initialized ? (
-                <p className="text-sm text-text-muted">{REGISTER_COPY.NOT_OPENED_NOTE}</p>
-              ) : register.waitingEffects === null ? (
-                <p role="status" className="text-sm text-text-muted">
-                  {REGISTER_COPY.WAITING_UNKNOWN_NOTE}
-                </p>
-              ) : register.waitingEffects > 0 ? (
-                <p role="status" className="text-sm text-text-muted">
-                  {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
-                </p>
-              ) : null}
-            </section>
-          )}
-        </Section>
-      )}
+            </Section>
+          ))}
+      </div>
       {rights}
-      {data.owner && (
+      {!unavailable && data.owner && token && (
         <MemberDocuments
           title="Shareholder documents"
           readsPaused={data.readingPaused}

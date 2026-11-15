@@ -23,6 +23,7 @@ import { ErrorSummary } from '@components/ErrorSummary';
 import { useId, useRef, useState, type ReactNode } from 'react';
 
 import { BringRecords } from './BringRecords';
+import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 import { MemberRecords, MemberRow } from '@pages/company/ledger/shared/MemberRecords';
 
 const STEP_ORDER = REGISTER_SETUP_STEPS.map((step) => step.id);
@@ -31,8 +32,10 @@ const IMPORT_NOTE =
   'Coming soon. Import will read a document into these same editable forms. Review and correct the records before saving.';
 
 type ImportFormProps = Omit<ImportPreparationOptions, 'onPrepared' | 'onFinished' | 'newKey' | 'session'> & {
-  shareClass?: { name: string; symbol: string };
+  shareClass?: { name: string; symbol: string; type?: string };
   classFields?: ReactNode;
+  classDetails?: ReactNode;
+  classHeld?: boolean;
 };
 
 export function ImportForm({
@@ -49,6 +52,8 @@ export function ImportForm({
   correction,
   saved,
   classFields,
+  classDetails,
+  classHeld = false,
   classProblems = [],
   resolveRegister,
   companyMembers,
@@ -124,13 +129,8 @@ export function ImportForm({
     onFinished: () => navigate(COMPANY_DASHBOARD_PATH, { state: { registerCompany: company } }),
   });
 
-  const title =
-    [shareClass?.name ?? register?.token.name, shareClass?.symbol ?? register?.token.symbol]
-      .filter(Boolean)
-      .join(' · ') || 'New share class';
-
   return (
-    <Section title={title}>
+    <Section title={REGISTER_IMPORT_COPY.SETUP_TITLE}>
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps
           label="Ledger setup steps"
@@ -144,7 +144,8 @@ export function ImportForm({
           }}
         />
       )}
-      {visible && (
+      <div hidden={!visible || !mutable || phase !== 'details'}>{classDetails}</div>
+      <div hidden={!visible || classHeld}>
         <>
           {mutable ? (
             canPrepare ? (
@@ -176,14 +177,7 @@ export function ImportForm({
                     phase === 'details' ? 'grid min-w-0 items-start gap-6 md:grid-cols-2' : 'min-w-0 space-y-5'
                   }
                 >
-                  {phase === 'details' &&
-                    (classFields ??
-                      (register && (
-                        <Rows>
-                          <Row label="Share class">{register.token.name}</Row>
-                          <Row label="Class code">{register.token.symbol}</Row>
-                        </Rows>
-                      )))}
+                  {phase === 'details' && classFields}
                   <BringRecords
                     draft={draft}
                     today={today}
@@ -210,7 +204,7 @@ export function ImportForm({
                     {phase === 'shareholders' && (
                       <PageAction
                         label="Back"
-                        context="share details"
+                        context="share class"
                         disabled={busy || blocked || holderEditor}
                         onClick={() => {
                           setAttempted(false);
@@ -220,6 +214,14 @@ export function ImportForm({
                     )}
                     {phase === 'details' && (
                       <>
+                        <PageAction
+                          label="Cancel"
+                          disabled={busy || blocked}
+                          onClick={() => {
+                            const place = registerPlace({ company, token: register?.token.uuid });
+                            navigate(place.to, { state: place.state });
+                          }}
+                        />
                         <button
                           type="button"
                           aria-disabled="true"
@@ -249,6 +251,7 @@ export function ImportForm({
               <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>
             )
           ) : (
+            visible &&
             proposal && (
               <section
                 aria-label={proposal.status === 'applied' ? 'Recorded ledger' : 'Review ledger'}
@@ -260,6 +263,17 @@ export function ImportForm({
                   </p>
                 )}
                 <Rows>
+                  <Row label="Class name" inline>
+                    {shareClass?.name ?? register?.token.name ?? 'Not recorded'}
+                  </Row>
+                  <Row label="Class code" inline>
+                    {shareClass?.symbol ?? register?.token.symbol ?? 'Not recorded'}
+                  </Row>
+                  {shareClass?.type && (
+                    <Row label="Class type" inline>
+                      {shareClass.type}
+                    </Row>
+                  )}
                   <Row label="Record date" inline>
                     <time dateTime={proposal.asAt}>{formatShortDate(proposal.asAt)}</time>
                   </Row>
@@ -418,7 +432,7 @@ export function ImportForm({
             )
           )}
         </>
-      )}
+      </div>
       {uncertain && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">

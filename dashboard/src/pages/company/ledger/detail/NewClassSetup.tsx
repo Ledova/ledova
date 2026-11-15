@@ -205,7 +205,7 @@ function FreshClass({
       guard={guard}
       newEffectGuard={check}
       company={company.uuid}
-      shareClass={{ name, symbol }}
+      shareClass={{ name, symbol, type: REGISTER_CLASS_TYPES.find(([value]) => value === tokenType)?.[1] }}
       companyMembers={companyMembers}
       appointment={steps.prepare!}
       steps={steps}
