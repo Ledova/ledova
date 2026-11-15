@@ -16,20 +16,17 @@ import {
   XIcon,
   type IconProps,
 } from 'phosphor-react-native';
-import { DESTINATIONS, useLedgerSetupDue } from '@ledova/shared';
 import { useAppTheme, useMemberRecordsState, useThemeChoice } from '../contexts';
 import { SignOutModal } from '../components/auth/SignOutModal';
 import { LogoMark } from '../components/LogoMark';
 import { useSignOut } from '../hooks/useSignOut';
 import { useUserProfile } from '../hooks/useUserProfile';
-import { orderSubmissionSession } from '../services/orderSubmissions';
 
 export type Section = 'Dashboard' | 'Ledger' | 'Shareholders' | 'Documents' | 'Settings';
 
 export type MenuRoute =
   | 'Dashboard'
   | 'Ledger'
-  | 'RegisterSetup'
   | 'IssueShares'
   | 'TransferShares'
   | 'Corrections'
@@ -48,9 +45,7 @@ type MenuChild = {
   route: MenuRoute;
   label: string;
   hint?: string;
-  params?: object;
   overview?: boolean;
-  over?: boolean;
 };
 
 type MenuItem = { name: Section; label: string; icon: ComponentType<IconProps> } & (
@@ -58,7 +53,7 @@ type MenuItem = { name: Section; label: string; icon: ComponentType<IconProps> }
   | { route?: never; items: MenuChild[] }
 );
 
-const sections = (canReadRegister: boolean, setupFor: string | null): MenuItem[] => [
+const sections = (canReadRegister: boolean): MenuItem[] => [
   { name: 'Dashboard', label: 'Dashboard', icon: HouseIcon, route: 'Dashboard' },
   ...(canReadRegister
     ? [
@@ -67,16 +62,6 @@ const sections = (canReadRegister: boolean, setupFor: string | null): MenuItem[]
           label: 'Ledger',
           icon: BookOpenIcon,
           items: [
-            ...(setupFor
-              ? [
-                  {
-                    route: 'RegisterSetup' as const,
-                    label: DESTINATIONS.companyRegisterSetup.title,
-                    params: { company: setupFor },
-                    over: true,
-                  },
-                ]
-              : []),
             { route: 'Ledger' as const, label: 'Share classes', overview: true },
             { route: 'IssueShares' as const, label: 'Issue shares' },
             { route: 'TransferShares' as const, label: 'Transfer shares' },
@@ -191,7 +176,7 @@ export function AppMenu({
   visible: boolean;
   current: Section | undefined;
   route: string;
-  onSelect: (route: MenuRoute, params?: object, over?: boolean) => void;
+  onSelect: (route: MenuRoute) => void;
   onClose: () => void;
 }) {
   const theme = useAppTheme();
@@ -203,7 +188,6 @@ export function AppMenu({
   const [shown, setShown] = useState(visible);
   const [confirming, setConfirming] = useState(false);
   const [toggled, setToggled] = useState<Partial<Record<Section, boolean>>>({});
-  const setupDue = useLedgerSetupDue(company, visible, orderSubmissionSession);
   if (visible && !shown) setShown(true);
   useEffect(() => {
     Animated.timing(progress, {
@@ -288,7 +272,7 @@ export function AppMenu({
                   accessibilityRole="button"
                   accessibilityHint={child.hint}
                   accessibilityState={{ selected: here }}
-                  onPress={() => onSelect(child.route, child.params, child.over)}
+                  onPress={() => onSelect(child.route)}
                   style={row(here)}
                 >
                   <Text style={label(here)}>{child.label}</Text>
@@ -358,9 +342,7 @@ export function AppMenu({
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: theme.spacing.md, gap: theme.spacing.lg }}
           >
-            <View style={{ gap: 4 }}>
-              {sections(!!company?.canReadRegister, setupDue && company ? company.uuid : null).map(item)}
-            </View>
+            <View style={{ gap: 4 }}>{sections(!!company?.canReadRegister).map(item)}</View>
             <View style={{ gap: 4 }}>{yours(!!company?.canManage).map(item)}</View>
           </ScrollView>
           <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.border.subtle, padding: 12, gap: 4 }}>

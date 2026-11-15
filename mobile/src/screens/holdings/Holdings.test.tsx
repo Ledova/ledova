@@ -23,6 +23,8 @@ import {
   ownershipCompaniesKey,
   registerClassesKey,
   sydneyToday,
+  shareClassKey,
+  classRightsKey,
   utcToday,
   type ClassRightsRequest,
   type ClassRightsRevision,
@@ -88,7 +90,6 @@ import { CorrectionPreparationScreen } from '../ledger/CorrectionPreparationScre
 import { CorrectionsScreen } from '../ledger/CorrectionsScreen';
 import { IssueSharesScreen } from '../ledger/IssueSharesScreen';
 import { LedgerScreen } from '../ledger/LedgerScreen';
-import { RegisterSetupScreen } from '../ledger/RegisterSetupScreen';
 import { ShareClassScreen } from '../ledger/ShareClassScreen';
 import { TransferPreparationScreen } from '../ledger/TransferPreparationScreen';
 import { TransferSharesScreen } from '../ledger/TransferSharesScreen';
@@ -120,6 +121,7 @@ jest.mock('@react-navigation/native', () => ({
     setParams: mockSetParams,
   }),
   useIsFocused: () => true,
+  usePreventRemove: jest.fn(),
   useFocusEffect: (effect: () => void) =>
     jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
 }));
@@ -663,6 +665,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let loseInvitationReply = true;
   let appointmentsWait: Promise<void> | null = null;
   let loseVestingReply = false;
+  let classReadFailure = false;
   const supportingDocuments: RegisterMemberDocument[] = [];
   let allotments: RegisterAllotment[] = [];
   let grants: RegisterGrant[] = [];
@@ -766,6 +769,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.REGISTER_ENTRIES(FOUNDERS.uuid)) return { data: { results: [CERTIFIED], next: null, count: 1 } };
     if (url === URLS.REGISTER_ENTRIES(PREFERENCE.uuid)) return page([]);
     if (url === URLS.DETAIL(FOUNDERS.uuid)) {
+      if (classReadFailure) throw new Error('Synthetic class read failure');
       const company = { company: ADMINISTERED.uuid, companyUuid: ADMINISTERED.uuid, companyName: ADMINISTERED.name };
       return { data: { ...FOUNDERS, ...company, status: 'draft', tokenTypeDisplay: 'Ordinary', totalSupply: '1000' } };
     }
@@ -1557,7 +1561,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
       }}
     />,
     <EmployeeSchemeScreen key="scheme" />,
-    <LedgerScreen key="ledger" />,
+    <LedgerScreen key="ledger" route={{ key: 'ledger', name: 'Ledger' }} />,
     <IssueSharesScreen key="issues" route={{ key: 'issues', name: 'IssueShares', params: undefined }} />,
     <TransferSharesScreen key="transfers" route={{ key: 'transfers', name: 'TransferShares', params: undefined }} />,
     <CorrectionsScreen key="corrections" route={{ key: 'corrections', name: 'Corrections', params: undefined }} />,
@@ -1569,7 +1573,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
         params: { company: MEMBER_RECORD.company.uuid, token, entry: MEMBER_ENTRY.uuid },
       }}
     />,
-    <RegisterSetupScreen
+    <ShareClassScreen
       key="setup"
       route={{ key: 'setup', name: 'RegisterSetup', params: { company: MEMBER_RECORD.company.uuid } }}
     />,
@@ -1719,7 +1723,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
       .getAllByText(/^(Set up your ledger|Share classes|Issue shares|Transfer shares|Corrections)$/)
       .map(({ props }) => props.children),
   ).toEqual(['Share classes', 'Issue shares', 'Transfer shares', 'Corrections']);
-  await view.rerender(<LedgerScreen />);
+  await view.rerender(<LedgerScreen route={{ key: 'ledger', name: 'Ledger' }} />);
   const foundersRow = await screen.findByRole('button', {
     name: /^Founders, 8 issued shares, FND · 2 current shareholders/,
   });
@@ -2232,7 +2236,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ]);
   await fireEvent.press(screen.getByRole('button', { name: 'Correct copied opening (Founders)' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('RegisterSetup', bringing);
-  await view.rerender(<RegisterSetupScreen route={{ key: 'opening', name: 'RegisterSetup', params: bringing }} />);
+  await view.rerender(<ShareClassScreen route={{ key: 'opening', name: 'RegisterSetup', params: bringing }} />);
   await fireEvent.changeText(
     await screen.findByLabelText('Reason for correcting the mirror'),
     'Synthetic opening correction',
@@ -2263,7 +2267,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(mockNavigate).toHaveBeenLastCalledWith('Corrections', { company: ADMINISTERED.uuid, token: FOUNDERS.uuid });
   await settled();
   const posted = importPosts().length;
-  await view.rerender(<RegisterSetupScreen route={{ key: 'new-class', name: 'RegisterSetup', params: setup }} />);
+  await view.rerender(<ShareClassScreen route={{ key: 'new-class', name: 'RegisterSetup', params: setup }} />);
   await fireEvent.press(await screen.findByRole('radio', { name: 'Preference (PRF)' }));
   await settled();
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
@@ -2285,7 +2289,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm', disabled: false }));
   await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('Dashboard'));
   const opened = imports[0];
-  expect(mockSetParams).toHaveBeenLastCalledWith({ token: PREFERENCE.uuid, record: opened.uuid });
+  expect(mockNavigate).toHaveBeenCalledWith('ShareClass', {
+    company: ADMINISTERED.uuid,
+    token: PREFERENCE.uuid,
+    record: opened.uuid,
+  });
   const allocation = {
     allottedOn: '2026-10-26',
     fullyPaid: true,
@@ -2391,16 +2399,30 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ).toBeNull();
   expect(correctionPosts()).toHaveLength(5);
   const decidedImports = importPosts().length;
-  await view.rerender(<LedgerScreen />);
+  await view.rerender(<LedgerScreen route={{ key: 'ledger', name: 'Ledger' }} />);
   expect(await screen.findByRole('button', { name: /^Founders, / })).toBeTruthy();
   await settled();
   expect(screen.queryByRole('button', { name: 'Add share class' })).toBeNull();
-  await view.rerender(
-    <RegisterSetupScreen route={{ key: 'read-only-setup', name: 'RegisterSetup', params: bringing }} />,
-  );
+  await view.rerender(<ShareClassScreen route={{ key: 'read-only-setup', name: 'RegisterSetup', params: bringing }} />);
   expect(await screen.findByText(REGISTER_IMPORT_COPY.READ_ONLY_NOTE)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Continue|Confirm)$/ })).toBeNull();
   expect(importPosts()).toHaveLength(decidedImports);
+  await view.rerender(<></>);
+  client.removeQueries({
+    queryKey: [...shareClassKey(FOUNDERS.uuid), owner.userUuid, owner.ownerAccountUuid],
+    exact: true,
+  });
+  classReadFailure = true;
+  await view.rerender(<ShareClassScreen route={{ key: 'failed-class', name: 'ShareClass', params: founders }} />);
+  expect(
+    await screen.findByText('This share class could not be loaded. It may be unavailable to this account.'),
+  ).toBeTruthy();
+  expect(screen.queryByText('Loading the share class…')).toBeNull();
+  classReadFailure = false;
+  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: classRightsKey(owner, FOUNDERS.uuid) });
+  });
   await view.rerender(<ShareClassScreen route={{ key: 'founders', name: 'ShareClass', params: founders }} />);
   expect(await screen.findByText('No rights recorded.')).toBeTruthy();
   expect(screen.getByText('FND · Ordinary')).toBeTruthy();

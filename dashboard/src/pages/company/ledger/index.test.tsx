@@ -33,6 +33,7 @@ import {
   type RegisterMemberDocument,
   type RegisterMemberDocumentRequest,
   peopleKey,
+  importRegisterKey,
   readPeople,
   blankAllotment,
   blankMember,
@@ -864,7 +865,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   await waitFor(() => expect(client.isFetching()).toBe(0));
 
   pauseHolders = true;
-  const holderKey = ['token', 'ordinary', 'profile-one', 'account-one', 'holders'];
+  const holderKey = importRegisterKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }, 'ordinary');
   let refreshing!: Promise<void>;
   act(() => {
     refreshing = client.refetchQueries({ queryKey: holderKey, exact: true });
@@ -1919,8 +1920,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect((screen.getByRole('button', { name: 'Record review' }) as HTMLButtonElement).disabled).toBe(true);
   expect(editStep().disabled).toBe(true);
   const importPath = DESTINATIONS.companyRegisterImport.path.replace(':uuid', token.uuid);
+  const holdersBeforeResume = api.get.mock.calls.filter(
+    ([url]) => url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid),
+  ).length;
   reopen('apply', importPath);
   expect(await screen.findByText('Example Shareholder')).toBeTruthy();
+  expect(api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid))).toHaveLength(
+    holdersBeforeResume + 1,
+  );
   expect((screen.getByRole('button', { name: 'Confirm' }) as HTMLButtonElement).disabled).toBe(true);
   expect(screen.getByText(/review access must review them/)).toBeTruthy();
   reopen('approve', `${importPath}?record=${proposal!.uuid}`);

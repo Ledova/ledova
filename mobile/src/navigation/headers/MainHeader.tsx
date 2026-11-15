@@ -175,16 +175,12 @@ export function TopBar({
           current={current}
           route={route}
           onClose={() => setOpen(false)}
-          onSelect={(target, params, over) => {
+          onSelect={(target) => {
             setOpen(false);
-            if (over) {
-              navigation.dispatch(StackActions.push(target, params));
-              return;
-            }
             navigation.reset(
               target === 'Dashboard'
                 ? { index: 0, routes: [{ name: 'Dashboard' }] }
-                : { index: 1, routes: [{ name: 'Dashboard' }, { name: target, params }] },
+                : { index: 1, routes: [{ name: 'Dashboard' }, { name: target }] },
             );
           }}
         />

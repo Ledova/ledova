@@ -117,8 +117,7 @@ ledger, Back to Employee share scheme on an award, Back to Shareholders on a sha
 shareholder on a particulars change, Back to Transfer shares on a non-paid transfer and Back to
 Corrections on a correction. The arrow returns to the previous page, as Android's Back and the iOS
 swipe do, and reads Back; only a page with nothing beneath it in the stack opens that parent in its
-place, under the parent's name. The menu's Set up your ledger opens over the current page, so its arrow
-returns there, while the menu's other pages replace the stack above Dashboard. A parent that needs
+place, under the parent's name. The menu's pages replace the stack above Dashboard; Add share class opens the class workflow above Ledger. A parent that needs
 params for that fallback gets them from the page (`keepParams`). A non-paid transfer locks Cancel while a submission is
 unresolved, and sets `held` then, which hides its arrow so the bar shows the menu button instead. Inside the frame `Page` sets
 the title, action and `held` as the screen's options (`FrameOptions`) and starts with
@@ -140,9 +139,7 @@ returns to it. As on the web, Ledger, Shareholders, Documents and Settings are g
 anywhere on a group's row opens or closes its pages beneath it, its caret showing which, and a group
 is open while one of its pages is shown.
 Ledger and Shareholders appear, as on the web, when the selected company's `canReadRegister` allows
-it. Ledger lists Share classes (its overview), Issue shares, Transfer shares and Corrections, with Set
-up your ledger first, which opens the setup screen, while a company administrator's company has no
-share class (the shared `useLedgerSetupDue`, read while the menu is open).
+it. Ledger lists Share classes (its overview), Issue shares, Transfer shares and Corrections. There is no separate setup menu item.
 Shareholders lists All shareholders (its people list), Employee scheme (read out as Employee share
 scheme, the web's tooltip) and Member access.
 Documents lists Certificates, Inspection copies and Company pack when the selected company's
@@ -171,8 +168,7 @@ and awards where they hold shares. It has the web's loading, incomplete-total, u
 shareholder and failure states with Try again, and the trail returns from a class the overview no
 longer lists. The class card ends with the web's **Class details** row, which opens the class's page.
 Until the register is set up, an administrator sees the web's **Getting started** in place of the
-overview, a short note with a **Set up your ledger** button that opens the setup page, or Ledger once a
-class has been added, and other readers see
+overview, a short note with a **Set up your ledger** button that always opens Ledger → Share classes, and other readers see
 the web's one-line note.
 For a company where the person is only a member, the Ownership
 overview comes from the shared `ownershipView`, read from the member record's shared ownership, or
@@ -267,8 +263,7 @@ searchable list of the company's members and award recipients (`PersonSelect.tsx
 access to the company, these pages read no private company records and point to Dashboard. Pulling down rereads
 each of them while no form or action is open. Unlike the web, which keeps a held save on its page,
 leaving an app page still drops that save's retry, so repeating an unresolved add, invitation,
-award, document save or register instruction can record it twice. Navigation protection remains
-planned under #1464.
+award, document save or register instruction can record it twice. Broader navigation protection remains planned under #1464; the class metadata editor already blocks leaving while its save or deletion is unresolved.
 
 Company registry tasks keep an existing form mounted during a same-account access reread or failure:
 Team, shareholder records and member access, the employee scheme and awards, share classes, issues,
@@ -316,8 +311,8 @@ classes card, a compact row per class with its name and issued shares, then its 
 shareholders, any authorised limit and a short note while its ledger is not opened or issues or
 transfers wait or cannot be checked (`classFacts`); each row opens the class's page, which keeps the full notes. A company
 without classes shows No share classes yet. **Add share class**, below the card for someone whose appointment allows preparation, opens Set
-up your ledger. A class's page (`ShareClassScreen.tsx`, the class's name as its title) is the web's, read
-through the shared `useShareClass`: Summary with the class's code and type, then Issued shares,
+up your ledger. A class's page (`ShareClassScreen.tsx`, the class's name as its title) is one workspace for details and setup, read
+through the shared `useShareClass`: an unfinished class with preparation, approval or application access opens the existing clickable setup; an opened class or a read-only appointee sees Summary with the class's code and type, then Issued shares,
 Current shareholders and any authorised shares one line each, **Ledger not opened** while that
 applies, the non-transferable note and the waiting notes; Class rights (`ClassRights.tsx`, through the
 shared `useClassRights`) with the structured rights one line each, Additional terms, the effective
@@ -330,7 +325,7 @@ the shared `useMemberDocuments`) with the class's retained supporting files, eac
 holder and **Download**, and **Add documents** for someone who can prepare the register, choosing the
 holder from a searchable list and each file's category. Without register access to the company, both
 pages read nothing and point to Dashboard, and a class of another company is not in a register you can
-read. The class page's top bar has the back arrow ([navigation](#navigation)). Pulling
+read. Class details uses the shared `useClassDetails` action/recovery hook, an inline name/code/type editor and a named deletion confirmation. The server supplies edit/delete eligibility and a visible deletion-blocking reason. Original uncertain requests stay on the page for checking or retry, with navigation blocked until resolved. Successful deletion returns to Ledger; retained records are not erased. The class and setup reuse one owner-scoped ownership query. The class page's top bar has the back arrow ([navigation](#navigation)). Pulling
 down rereads either page while no form is open.
 Issue shares (`IssueSharesScreen.tsx`) is the web's Issue shares at phone width for a register reader
 of the selected company, read through `useCompanyRegisters.ts`, the shared `useRegisterAllotments` and
@@ -410,16 +405,15 @@ correction in view and marked as prepared.
 A read-only appointment gets the web's notes and no actions. Share class is locked while a review or
 held decision is open, and pulling down rereads the classes, the person's appointments, the entries,
 corrections, opening records and particulars changes while none is.
-Set up your ledger (`RegisterSetupScreen.tsx`) is the web's register setup at phone width, through the
+Class setup (`ClassSetup.tsx`, rendered by `ShareClassScreen.tsx`) is the web's register setup at phone width, through the
 shared `useImportPreparation`, `useNewShareClass`, `useImportRegister` and `useStartedClasses`
 (`ImportForm.tsx`, `ImportShareholders.tsx`). Opened from **Add share class**, it is the web's three
 steps for a new class: Share details (Ordinary, Preference, Redeemable or Another class with its name,
 code and type, any class already started as links, and the record date), Shareholders (each opening
 shareholder chosen from the company's people or New person, with their name, address, first date and
-current shares, the optional **Allocation history** and **Documents**, and **Show company source
-copies** for the register copy and ASIC extract), then Review, where **Confirm** records the review
-and the confirmation together and returns to Dashboard. The web's disabled **Import** is left out. Opened
-for a class, from **Set up your ledger** or Corrections, it brings records into its unopened register,
+current shares, the optional **Allocation history** and **Documents**, and **Show company source copies** for the register copy and ASIC extract), then Review, where **Confirm** records the review
+and the confirmation together and returns to Dashboard. Class creation and resumed records use the same class workspace; the `RegisterSetup` stack route remains an entry for new classes and saved/correction links, not another implementation. The web's disabled **Import** is left out. Opened
+for an unfinished class, or from Corrections, it brings records into its unopened register,
 or replaces the latest applied opening's shareholder rows in full with a reason, and resumes a saved
 draft for review. Dates are typed as `YYYY-MM-DD` (UTC). Each save and decision keeps the web's retry
 of an uncertain result, and the step headings (`FormSteps` with `goTo`) move between steps as on the web,

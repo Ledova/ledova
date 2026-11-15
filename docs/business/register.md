@@ -203,11 +203,11 @@ import records are applied, and the register keeps the particulars from their Pr
 ([particulars from Profile](member-records.md#particulars-from-profile)). Register setup is on the
 web and, at phone width, in the app:
 
-1. On the web, open Ledger → **Share classes**. Choose **Add share class**, or select an unfinished
+1. On web or mobile, open Ledger → **Share classes**. Choose **Add share class**, or select an unfinished
    class to continue its setup on the same class page. The Dashboard's **Set up your ledger** and
    the sidebar's **Share classes** both open this same selected-company Ledger page, regardless of
    class count. Recorded classes show their summary, rights and documents; readers
-   keep their permitted read view. The app still starts setup through **Add share class**.
+   keep their permitted read view.
    Alternatively, choose Corrections, the class, then Bring records
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
    class not yet set up. Share classes are created only through register setup, in Ledger.
@@ -217,7 +217,7 @@ web and, at phone width, in the app:
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
    limit instead of authorised capital. Repeat for each class.
-   With no classes yet, a preparer uses Ledger → Share classes and **Add share class** on the web.
+   With no classes yet, a preparer uses Ledger → Share classes and **Add share class** on web or mobile.
    Preparation access does not change their initial landing page or account role.
 3. Shareholders, one at a time: choose a recorded person or New person
    ([choosing a person](#choosing-a-person); names never link records, and existing names and
@@ -625,7 +625,7 @@ The Ledger view shows:
   [register setup](#bringing-in-existing-records) for the selected company.
 
 The mobile app's Ledger shows the same rows to a register reader of the selected company, and **Add
-share class** to someone who can prepare the register. The menu lists Issue
+share class** to someone who can prepare the register. Dashboard Set up your ledger and the menu's Share classes open that same overview. Selecting an unfinished class continues the clickable setup in its class workspace; an opened class shows its current ownership, rights and documents. Both clients expose the same safe details editing and deletion eligibility, including the reason when deletion is blocked. The menu lists Issue
 shares, Transfer shares and Corrections beneath it ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
 [non-paid transfers](#non-paid-transfers-between-members),
 [compensating corrections](#compensating-corrections)).
