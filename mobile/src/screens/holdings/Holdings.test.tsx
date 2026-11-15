@@ -19,6 +19,7 @@ import {
   formatDate,
   formatShortDate,
   memberDocumentsKey,
+  importsKey,
   ownAppointmentsKey,
   ownershipCompaniesKey,
   registerClassesKey,
@@ -659,6 +660,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let rights: ClassRightsRevision[] = [];
   let thirdHolder = false;
   let documentClasses = false;
+  let unopenedPreference = false;
+  let importsWait: Promise<void> | null = null;
+  let classesWait: Promise<void> | null = null;
+  let importsReadFailure = false;
   let preferencesWait: Promise<void> | null = null;
   let preferencesFailure = false;
   let directoryFailure = false;
@@ -692,10 +697,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === AUTHORITY_REQUESTS) return page([PENDING, ADMITTED]);
     if (url === URLS.REGISTER) {
       const company = (config?.params as { company_uuid?: string } | undefined)?.company_uuid;
+      if (classesWait && !company) await classesWait;
       const classes = [
         { ...FOUNDERS, companyUuid: ADMINISTERED.uuid, tokenTypeDisplay: 'Ordinary', totalSupply: '1000' },
         { ...ELSEWHERE, companyUuid: ELSEWHERE_COMPANY },
-        ...(documentClasses
+        ...(documentClasses || unopenedPreference
           ? [{ ...FOUNDERS, ...PREFERENCE, companyUuid: ADMINISTERED.uuid, tokenTypeDisplay: 'Preference' }]
           : []),
       ];
@@ -761,6 +767,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
     if (url === URLS.REGISTER_TRANSFERS) return page(transfers);
     if (url === URLS.REGISTER_CORRECTIONS) return page(corrections);
     if (url === URLS.REGISTER_IMPORTS) {
+      if (importsWait) await importsWait;
+      if (importsReadFailure) throw new Error('Synthetic imports read refusal');
       const { token } = (config?.params ?? {}) as { token?: string };
       return page(imports.filter((proposal) => proposal.token === token));
     }
@@ -773,7 +781,21 @@ it('associates a member by invitation code, switches to their company on Dashboa
       const company = { company: ADMINISTERED.uuid, companyUuid: ADMINISTERED.uuid, companyName: ADMINISTERED.name };
       return { data: { ...FOUNDERS, ...company, status: 'draft', tokenTypeDisplay: 'Ordinary', totalSupply: '1000' } };
     }
-    if (url === URLS.CLASS_RIGHTS(FOUNDERS.uuid)) {
+    if (url === URLS.DETAIL(PREFERENCE.uuid)) {
+      const company = { company: ADMINISTERED.uuid, companyUuid: ADMINISTERED.uuid, companyName: ADMINISTERED.name };
+      return {
+        data: {
+          ...FOUNDERS,
+          ...PREFERENCE,
+          ...company,
+          status: 'draft',
+          tokenTypeDisplay: 'Preference',
+          totalSupply: TECHNICAL_SHARE_LIMIT,
+          canEditDetails: true,
+        },
+      };
+    }
+    if (url === URLS.CLASS_RIGHTS(FOUNDERS.uuid) || url === URLS.CLASS_RIGHTS(PREFERENCE.uuid)) {
       const administrationAppointment = own.capabilities.includes('admin') ? own.uuid : null;
       return { data: { ...page(rights).data, previous: null, current: rights[0] ?? null, administrationAppointment } };
     }
@@ -1199,7 +1221,14 @@ it('associates a member by invitation code, switches to their company on Dashboa
       const applied =
         request.kind === 'apply'
           ? { status: 'applied' as const, stage: 'applied', reviewedAt: decidedAt, correctionAllowed: true }
-          : { stage: 'approved' };
+          : request.kind === 'reject'
+            ? {
+                status: 'rejected' as const,
+                stage: 'rejected',
+                reviewedAt: decidedAt,
+                rejectionReason: request.reason ?? '',
+              }
+            : { stage: 'approved' };
       const decided = { ...opening, ...applied, decisions: [...opening.decisions, decision] };
       imports = imports.map((proposal) => (proposal.uuid === opening.uuid ? decided : proposal));
       return { data: decided };
@@ -2266,6 +2295,149 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(await screen.findByRole('button', { name: 'Cancel (ledger setup)', disabled: false }));
   expect(mockNavigate).toHaveBeenLastCalledWith('Corrections', { company: ADMINISTERED.uuid, token: FOUNDERS.uuid });
   await settled();
+  unopenedPreference = true;
+  await act(async () => {
+    await client.invalidateQueries({
+      queryKey: registerClassesKey(owner),
+      exact: true,
+    });
+  });
+  const unopened = { company: ADMINISTERED.uuid, token: PREFERENCE.uuid };
+  await view.rerender(<ShareClassScreen route={{ key: 'unopened-class', name: 'ShareClass', params: unopened }} />);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Continue' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Add a shareholder' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Company shareholder: none chosen' }));
+  await fireEvent.press(screen.getByRole('radio', { name: /^Synthetic Holder A/ }));
+  await fireEvent.changeText(screen.getByLabelText('Date first added to register'), '2026-10-26');
+  await fireEvent.changeText(screen.getByLabelText('Current shares held'), '5');
+  await fireEvent.press(screen.getByRole('button', { name: 'Add shareholder' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Show company source copies' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Current share register. Choose file' }));
+  await screen.findByRole('button', {
+    name: 'Current share register, synthetic.pdf. Choose file',
+  });
+  await fireEvent.press(screen.getByRole('button', { name: 'Hide company source copies' }));
+  const preparePosts = () => importPosts().filter(([url]) => url === URLS.REGISTER_IMPORTS);
+  const preparedBefore = preparePosts().length;
+  let releaseImports: () => void = () => undefined;
+  importsWait = new Promise<void>((resolve) => {
+    releaseImports = resolve;
+  });
+  let pendingReview: ReturnType<typeof screen.getByLabelText> | undefined;
+  try {
+    await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+    await waitFor(() => expect(preparePosts()).toHaveLength(preparedBefore + 1));
+    pendingReview = screen.getByLabelText('Review ledger');
+    expect(screen.queryByText('Loading the register…')).toBeNull();
+    expect(screen.queryByText('Checking current class access…')).toBeNull();
+    expect(screen.getByLabelText('Class code: PRF')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Edit Class details', disabled: true })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Confirm', disabled: true })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '1. Share details', disabled: true })).toBeTruthy();
+  } finally {
+    await act(async () => {
+      importsWait = null;
+      releaseImports();
+    });
+  }
+  const preparedOpening = imports[0];
+  await waitFor(() =>
+    expect(mockSetParams).toHaveBeenLastCalledWith({
+      token: PREFERENCE.uuid,
+      record: preparedOpening.uuid,
+    }),
+  );
+  await view.rerender(
+    <ShareClassScreen
+      route={{
+        key: 'unopened-class',
+        name: 'ShareClass',
+        params: { ...unopened, record: preparedOpening.uuid },
+      }}
+    />,
+  );
+  expect(screen.getByLabelText('Review ledger') === pendingReview).toBe(true);
+  expect(preparePosts()).toHaveLength(preparedBefore + 1);
+  importsReadFailure = true;
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: importsKey(owner, PREFERENCE.uuid) });
+  });
+  expect(await screen.findByText('The register or your appointments could not be loaded.')).toBeTruthy();
+  expect(screen.queryByLabelText('Review ledger')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
+  importsReadFailure = false;
+  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByLabelText('Review ledger')).toBeTruthy();
+  imports = imports.filter((proposal) => proposal.uuid !== preparedOpening.uuid);
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: importsKey(owner, PREFERENCE.uuid) });
+  });
+  expect(await screen.findByText('This saved snapshot is not in the selected share class.')).toBeTruthy();
+  expect(screen.queryByLabelText('Review ledger')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
+  imports = [preparedOpening, ...imports];
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: importsKey(owner, PREFERENCE.uuid) });
+  });
+  expect(await screen.findByLabelText('Review ledger')).toBeTruthy();
+  await fireEvent.press(
+    await screen.findByRole('button', {
+      name: '2. Shareholders',
+      disabled: false,
+    }),
+  );
+  await fireEvent.press(
+    await screen.findByRole('button', {
+      name: 'Edit (shareholder 1)',
+      disabled: false,
+    }),
+  );
+  expect(screen.getByLabelText('Current shares held').props.value).toBe('5');
+  expect(screen.getByLabelText('Date first added to register').props.value).toBe('2026-10-26');
+  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Show company source copies' }));
+  expect(screen.getByRole('button', { name: 'Current share register, synthetic.pdf. Choose file' })).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Back (share details)' }));
+  await fireEvent.changeText(screen.getByLabelText('Record date'), '2026-10-25');
+  const beforeInvalid = preparePosts().length;
+  await fireEvent.press(screen.getByRole('button', { name: '3. Review' }));
+  expect(screen.getByLabelText('2. Shareholders, current step')).toBeTruthy();
+  expect(
+    screen.getByText(
+      'Shareholder 1: enter a name, address, shares and original membership date no later than the record date.',
+    ),
+  ).toBeTruthy();
+  expect(preparePosts()).toHaveLength(beforeInvalid);
+  await fireEvent.press(screen.getByRole('button', { name: 'Back (share details)' }));
+  await fireEvent.changeText(screen.getByLabelText('Record date'), '2026-10-26');
+  await fireEvent.press(screen.getByRole('button', { name: '3. Review' }));
+  await screen.findByLabelText('Review ledger');
+  await settled();
+  expect(
+    importPosts()
+      .filter(([url]) => url === URLS.REGISTER_IMPORTS)
+      .slice(-1),
+  ).toEqual([
+    [
+      URLS.REGISTER_IMPORTS,
+      expect.objectContaining({
+        tokenId: PREFERENCE.uuid,
+        asAt: '2026-10-26',
+        registerEvidence: preparedOpening.registerEvidence,
+        members: [{ ...holderA, shares: '5', enteredOn: '2026-10-26', allotments: [] }],
+      }),
+      expect.anything(),
+    ],
+  ]);
+  await view.rerender(<></>);
+  unopenedPreference = false;
+  imports = imports.filter((proposal) => proposal.token !== PREFERENCE.uuid);
+  await act(async () => {
+    await client.invalidateQueries({
+      queryKey: registerClassesKey(owner),
+      exact: true,
+    });
+  });
   const posted = importPosts().length;
   await view.rerender(<ShareClassScreen route={{ key: 'new-class', name: 'RegisterSetup', params: setup }} />);
   await fireEvent.press(await screen.findByRole('radio', { name: 'Preference (PRF)' }));
@@ -2285,7 +2457,23 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await screen.findByRole('button', { name: 'File, synthetic.pdf. Choose file' });
   await fireEvent.press(screen.getByRole('button', { name: 'Add shareholder' }));
   expect(importPosts()).toHaveLength(posted);
-  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  const newPreparations = preparePosts().length;
+  let releaseClasses: () => void = () => undefined;
+  classesWait = new Promise<void>((resolve) => {
+    releaseClasses = resolve;
+  });
+  try {
+    await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+    await waitFor(() => expect(preparePosts()).toHaveLength(newPreparations + 1));
+    expect(screen.getByLabelText('Review ledger')).toBeTruthy();
+    expect(screen.queryByText('Loading the register…')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Confirm', disabled: true })).toBeTruthy();
+  } finally {
+    await act(async () => {
+      classesWait = null;
+      releaseClasses();
+    });
+  }
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm', disabled: false }));
   await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('Dashboard'));
   const opened = imports[0];

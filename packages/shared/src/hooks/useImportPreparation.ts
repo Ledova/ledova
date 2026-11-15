@@ -518,7 +518,7 @@ export function useImportPreparation({
       setPhase('shareholders');
       return;
     }
-    setPhase('shareholders');
+    if (problems.length) setPhase('shareholders');
     void prepare();
   };
   const preview = apply.target?.preview ?? approve.target?.preview;

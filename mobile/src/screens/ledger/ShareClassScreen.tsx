@@ -146,7 +146,6 @@ function OwnShareClass({
     );
   return (
     <ClassPage
-      key={requested ? 'opening' : 'summary'}
       data={data}
       owner={owner}
       company={company}
@@ -298,7 +297,11 @@ function ClassPage({
         />
       }
     >
-      {listed && classDetailsVisible && <ClassDetails token={listed} details={details} available={detailsAvailable} />}
+      {listed && classDetailsVisible && (
+        <View style={(data.token.isError || data.register.isError || appointments.isError) && look.hidden}>
+          <ClassDetails token={listed} details={details} available={detailsAvailable} />
+        </View>
+      )}
       {data.token.isPending ? (
         <Loading>Loading the share class…</Loading>
       ) : data.token.isError || !listed ? (

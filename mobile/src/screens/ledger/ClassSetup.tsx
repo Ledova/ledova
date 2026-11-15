@@ -127,6 +127,7 @@ export function NewClassSetup({
     !appointments.isFetching &&
     !!steps?.prepare &&
     (!anchor || (members.isSuccess && !members.isFetching));
+  const stale = classes.isError || appointments.isError || members.isError;
   if (
     !held &&
     ready &&
@@ -138,6 +139,7 @@ export function NewClassSetup({
   )
     setRetained({ company: chosen, steps });
   const context = held || !ready ? retained : chosen && steps ? { company: chosen, steps } : retained;
+  const showForm = available && !stale && !!context && !!steps?.prepare && (held || ready);
   const current = useRef({ steps, ready });
   useLayoutEffect(() => {
     current.current = { steps, ready };
@@ -174,7 +176,7 @@ export function NewClassSetup({
       throw createUserFriendlyError('Your company or authority changed. Reopen this action.');
   };
   let content: ReactNode;
-  if (classes.isError || appointments.isError || members.isError)
+  if (stale)
     content = (
       <LoadError retry={retry} busy={classes.isFetching || appointments.isFetching || members.isFetching}>
         The register or your appointments could not be loaded.
@@ -189,7 +191,7 @@ export function NewClassSetup({
     <Page
       testID="register-setup-scroll"
       title={TITLE}
-      available={available && ready && !!context}
+      available={showForm}
       unavailable={
         !available ? <RegisterAccess owner={owner} /> : (content ?? <Loading>Loading the register…</Loading>)
       }
@@ -205,6 +207,7 @@ export function NewClassSetup({
           companyMembers={(anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS).members}
           steps={steps ?? context!.steps}
           ready={ready && chosen?.uuid === context!.company.uuid}
+          visible={showForm}
           onHeldChange={setHeld}
           onConflict={retry}
           onContinue={onContinue}
@@ -225,6 +228,7 @@ function FreshClass({
   companyMembers,
   steps,
   ready,
+  visible,
   onHeldChange,
   onConflict,
   onContinue,
@@ -241,6 +245,7 @@ function FreshClass({
   companyMembers: RegisterTransferMember[];
   steps: RegisterSteps;
   ready: boolean;
+  visible: boolean;
   onHeldChange: (held: boolean) => void;
   onConflict: () => void;
   onContinue: (token: string) => void;
@@ -275,7 +280,7 @@ function FreshClass({
       appointment={steps.prepare!}
       steps={steps}
       blocked={!ready}
-      visible={ready}
+      visible={visible}
       onConflict={onConflict}
       onHeldChange={onHeldChange}
       resolveRegister={fresh.resolveRegister}
@@ -391,6 +396,7 @@ export function ClassSetup({
   const client = useQueryClient();
   const [held, setHeld] = useState(false);
   const [retained, setRetained] = useState<Retained | null>(null);
+  const [preparedHere, setPreparedHere] = useState<string | null>(null);
   useEffect(() => {
     onHeldChange(held);
     return () => onHeldChange(false);
@@ -421,6 +427,7 @@ export function ClassSetup({
         proposal.sourceConfirmed &&
         proposal.correctionOf === (correction?.uuid ?? null),
   );
+  const savedSource = saved?.uuid === preparedHere ? retained?.saved : saved;
   const fetching =
     classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching || members.isFetching;
   const stale = classes.isError || appointments.isError || register.isError || imports.isError || members.isError;
@@ -432,6 +439,15 @@ export function ClassSetup({
     (!register.data?.initialized || !imports.data?.some((proposal) => proposal.status === 'applied') || !!correction);
   const canPrepare = !!steps?.prepare && correctable;
   const canOpen = saved ? saved.status !== 'rejected' || canPrepare : canPrepare;
+  const showForm =
+    available &&
+    companyMatches &&
+    !!retained &&
+    !stale &&
+    !!listed &&
+    readable &&
+    (!record || !!saved) &&
+    (held || (fresh && canOpen));
   if (
     !held &&
     fresh &&
@@ -439,7 +455,7 @@ export function ClassSetup({
     (!record || !!saved) &&
     (retained?.register !== register.data ||
       retained?.correction !== correction ||
-      retained?.saved !== saved ||
+      retained?.saved !== savedSource ||
       retained?.members !== members.data ||
       retained?.steps.prepare?.uuid !== steps?.prepare?.uuid ||
       retained?.steps.approve?.uuid !== steps?.approve?.uuid ||
@@ -451,7 +467,7 @@ export function ClassSetup({
       register: register.data!,
       steps: steps!,
       correction,
-      saved,
+      saved: savedSource,
       members: members.data!,
     });
   const retry = () => {
@@ -474,15 +490,14 @@ export function ClassSetup({
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
         throw createUserFriendlyError('Refresh current company authority before continuing.');
     }
-    if (!fresh || !canOpen || retained?.listed.companyUuid !== listed?.companyUuid)
+    if (!fresh || !canOpen || (record && !saved) || retained?.listed.companyUuid !== listed?.companyUuid)
       throw createUserFriendlyError('Your company, authority or source records changed. Refresh before continuing.');
   };
   const notice = (children: string) => <Text style={look.muted}>{children}</Text>;
   let content: ReactNode;
   if (!companyMatches) content = notice('This share class is not in a register you can read.');
-  else if (!held && fresh && record && !saved)
-    content = notice('This saved snapshot is not in the selected share class.');
-  else if (!retained || !fresh || !canOpen) {
+  else if (fresh && record && !saved) content = notice('This saved snapshot is not in the selected share class.');
+  else if (!retained || stale || !listed || !readable || (!held && (!fresh || !canOpen))) {
     if (stale)
       content = (
         <LoadError retry={retry} busy={fetching}>
@@ -530,7 +545,7 @@ export function ClassSetup({
       importantForAccessibility={available ? 'auto' : 'no-hide-descendants'}
     >
       {available && content}
-      <View style={(!available || !fresh || !canOpen || !companyMatches || (!!record && !saved)) && look.hidden}>
+      <View style={!showForm && look.hidden}>
         {retained && (
           <ImportForm
             key={`${token}/${retained!.correction?.uuid ?? 'new'}/${retained!.saved?.uuid ?? 'draft'}`}
@@ -567,12 +582,15 @@ export function ClassSetup({
             steps={steps ?? retained!.steps}
             correction={retained!.correction}
             saved={retained!.saved}
-            blocked={!fresh || externalHeld}
-            visible={fresh && !externalHeld}
+            blocked={!fresh || !canOpen || externalHeld}
+            visible={showForm && !externalHeld}
             onConflict={retry}
             onHeldChange={setHeld}
             onCancel={flow.onCancel}
-            onPrepared={flow.onPrepared}
+            onPrepared={(prepared, saved) => {
+              setPreparedHere(saved);
+              flow.onPrepared(prepared, saved);
+            }}
             onFinished={flow.onFinished}
           />
         )}
