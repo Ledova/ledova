@@ -20,6 +20,7 @@ from tokens import (
     database_award_entitlement_guards,
     database_award_person_guards,
     database_class_documents,
+    database_class_lifecycle,
     database_class_rights,
     database_event_date_guards,
     database_member_documents,
@@ -64,6 +65,7 @@ FAMILY_GUARDS = (
     database_people.install,
     database_transfer_completion.install,
     activation_guards.install,
+    database_class_lifecycle.install,
 )
 
 CREATE_ROLES = """

@@ -110,6 +110,9 @@ class ShareTokenAdmin(admin.ModelAdmin):
     def get_readonly_fields(self, request, obj=None):
         readonly = list(super().get_readonly_fields(request, obj))
 
+        if obj:
+            readonly.extend(["name", "symbol", "token_type"])
+
         if obj and obj.status in [ShareTokenStatus.DEPLOYED, ShareTokenStatus.PAUSED, ShareTokenStatus.DEPLOYING]:
             deployed_readonly = [
                 "company",
@@ -126,6 +129,9 @@ class ShareTokenAdmin(admin.ModelAdmin):
                     readonly.append(field)
 
         return readonly
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     fieldsets = [
         (

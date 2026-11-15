@@ -889,10 +889,10 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_destroy'];
     options?: never;
     head?: never;
-    patch?: never;
+    patch: ApiOperations['api_v1_tokens_partial_update'];
     trace?: never;
   };
   '/api/v1/tokens/{uuid}/class-rights-file/': {
@@ -5161,6 +5161,12 @@ export interface ApiComponents {
       isActive?: boolean;
       name?: string;
     };
+    PatchedShareTokenEditRequest: {
+      expectedUpdatedAt?: string;
+      name?: string;
+      symbol?: string;
+      tokenType?: ApiComponents['schemas']['TokenTypeEnum'];
+    };
     PatchedUserAccountRequest: {
       accountType?: ApiComponents['schemas']['AccountTypeEnum'];
       role?: ApiComponents['schemas']['RoleEnum'];
@@ -7227,6 +7233,8 @@ export interface ApiComponents {
       totalSupply: string;
     };
     ShareTokenDetail: {
+      canDelete: boolean;
+      canEditDetails: boolean;
       chain: string | null;
       company: string;
       companyName: string;
@@ -9308,6 +9316,54 @@ export interface ApiOperations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': ApiComponents['schemas']['ShareTokenDetail'];
+        };
+      };
+    };
+  };
+  api_v1_tokens_destroy: {
+    parameters: {
+      query: {
+        expected_updated_at: string;
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  api_v1_tokens_partial_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        'application/json': ApiComponents['schemas']['PatchedShareTokenEditRequest'];
+        'application/x-www-form-urlencoded': ApiComponents['schemas']['PatchedShareTokenEditRequest'];
+        'multipart/form-data': ApiComponents['schemas']['PatchedShareTokenEditRequest'];
+      };
+    };
     responses: {
       200: {
         headers: {

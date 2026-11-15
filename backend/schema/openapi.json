@@ -8411,6 +8411,28 @@
         },
         "type": "object"
       },
+      "PatchedShareTokenEditRequest": {
+        "properties": {
+          "expectedUpdatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "symbol": {
+            "maxLength": 5,
+            "minLength": 1,
+            "type": "string"
+          },
+          "tokenType": {
+            "$ref": "#/components/schemas/TokenTypeEnum"
+          }
+        },
+        "type": "object"
+      },
       "PatchedUserAccountRequest": {
         "properties": {
           "accountType": {
@@ -18887,6 +18909,16 @@
       },
       "ShareTokenDetail": {
         "properties": {
+          "canDelete": {
+            "default": false,
+            "readOnly": true,
+            "type": "boolean"
+          },
+          "canEditDetails": {
+            "default": false,
+            "readOnly": true,
+            "type": "boolean"
+          },
           "chain": {
             "description": "Blockchain the contract was deployed to (null until deployment confirms)",
             "nullable": true,
@@ -18995,6 +19027,8 @@
           }
         },
         "required": [
+          "canDelete",
+          "canEditDetails",
           "chain",
           "company",
           "companyName",
@@ -31873,6 +31907,48 @@
       }
     },
     "/api/v1/tokens/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_destroy",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "expected_updated_at",
+            "required": true,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_retrieve",
         "parameters": [
@@ -31905,6 +31981,65 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "patch": {
+        "operationId": "api_v1_tokens_partial_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedShareTokenEditRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedShareTokenEditRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedShareTokenEditRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareTokenDetail"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

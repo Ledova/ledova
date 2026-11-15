@@ -362,6 +362,21 @@ operation. Company, actor, profile, operator settings and appointments are locke
 command; ownership and platform staff status supply no creation authority. Metadata creation makes
 no ownership entry; the opening and each issue retain their own actor and appointment records.
 
+Class metadata changes use `PATCH /api/v1/tokens/{uuid}/` with only `name`, `symbol`, `tokenType`
+and the current `expectedUpdatedAt`; unused-class deletion uses `DELETE` on that detail route with
+`expected_updated_at` in the query. Detail responses expose `canEditDetails` and `canDelete` for the
+current actor; list responses do not perform these reference checks. The bounded commands in
+[class_lifecycle.py](../../backend/tokens/services/class_lifecycle.py) recheck personal preparation
+authority, lock the class and register, and refuse stale versions. The
+[SQL guard](../../backend/tokens/database_class_lifecycle.sql), installed by
+[database_class_lifecycle.py](../../backend/tokens/database_class_lifecycle.py) and
+[tokens/0008](../../backend/tokens/migrations/0008_class_lifecycle.py), requires the exact company
+command, checks actual foreign-key references and rechecks authority at commit. Draft status alone
+does not establish eligibility; opened off-chain classes can remain Draft. The
+[business rules](../business/issuing-shares.md#share-classes) define the edit and deletion limits.
+[Staff admin](../../backend/tokens/admin/share_token.py) keeps existing class metadata read-only and
+disables deletion; its Add form and unrelated chain controls stay unchanged.
+
 Every company-decided register proposal family is a `DecisionFamily` in
 [register_decisions.py](../../backend/tokens/services/register_decisions.py), served by a
 `RegisterProposalViewSet` with `decision-preview/` and `decide/`; retained register instructions

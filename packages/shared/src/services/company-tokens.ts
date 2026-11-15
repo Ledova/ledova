@@ -2,6 +2,8 @@ import { AxiosInstance, type AxiosRequestConfig } from 'axios';
 import { COMPANY_TOKEN_ENDPOINTS } from '../constants';
 import type {
   CompanyShareToken,
+  CompanyShareTokenUpdate,
+  CompanyShareTokenDeleteQueryParams,
   CompanyShareTokenListItem,
   TokenCreate,
   TokenHoldersResponse,
@@ -23,6 +25,20 @@ export const createCompanyToken = (apiClient: AxiosInstance, data: TokenCreate, 
   config === undefined
     ? apiClient.post<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.BASE, data)
     : apiClient.post<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.BASE, data, config);
+
+export const updateCompanyToken = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  data: CompanyShareTokenUpdate,
+  config: AxiosRequestConfig = {},
+) => apiClient.patch<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid), data, config);
+
+export const deleteCompanyToken = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  params: CompanyShareTokenDeleteQueryParams,
+  config: AxiosRequestConfig = {},
+) => apiClient.delete<void>(COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid), { ...config, params });
 
 export const getRegisterClasses = (
   apiClient: AxiosInstance,

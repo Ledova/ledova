@@ -36,9 +36,13 @@ setup: **Ledger**, **Add share class**, on the web or in the app.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
-Class codes are one to five letters, unique within the company, and may not reuse a
-reserved asset symbol. Neither a company nor a class can be deleted through the app: a company that
-should close is delisted, and a class is paused to stop transfers. Deployment, capital increases and
+Class codes are one to five ASCII letters, saved in uppercase, unique within the company, and may
+not reuse a reserved asset symbol. On the web, the same administrator or preparer can edit a
+class's name, code and type before its ledger is opened or dependent records exist. Reject any saved
+setup review first; the rejected draft stays recorded. **Delete share class** is available only for
+a genuinely unused class with no saved setup, rights, ownership or other retained records. These
+web controls do not change the native app. Company closure uses its separate
+[status controls](companies.md#staff-company-controls). Deployment, capital increases and
 pausing are company decisions; earlier direct actions by the owner or platform staff are retired,
 and their records stay readable. The register API can confirm a zero-issued opening for a genuinely
 unopened draft class without a contract or former members. It creates no shareholder, holding or
