@@ -25,6 +25,8 @@ import { useId, useRef, useState, type ReactNode } from 'react';
 import { BringRecords } from './BringRecords';
 import { MemberRecords, MemberRow } from '@pages/company/ledger/shared/MemberRecords';
 
+const STEP_ORDER = REGISTER_SETUP_STEPS.map((step) => step.id);
+
 const IMPORT_NOTE =
   'Coming soon. Import will read a document into these same editable forms. Review and correct the records before saving.';
 
@@ -67,6 +69,8 @@ export function ImportForm({
     proposal,
     phase,
     setPhase,
+    goTo,
+    stepReachable,
     holderEditor,
     setHolderEditor,
     busy,
@@ -75,10 +79,8 @@ export function ImportForm({
     setAttempted,
     autoApply,
     editing,
-    setEditing,
     canPrepare,
     finish,
-    reject,
     deciding,
     recovery,
     mutable,
@@ -130,7 +132,17 @@ export function ImportForm({
   return (
     <Section title={title}>
       {(!visible || proposal?.status !== 'applied') && (
-        <FormSteps label="Ledger setup steps" steps={REGISTER_SETUP_STEPS} current={phase} />
+        <FormSteps
+          label="Ledger setup steps"
+          steps={REGISTER_SETUP_STEPS}
+          current={phase}
+          reachable={(step) => stepReachable(step as typeof phase)}
+          onSelect={(step) => {
+            const target = step as typeof phase;
+            if (STEP_ORDER.indexOf(target) > STEP_ORDER.indexOf(phase)) setTries((count) => count + 1);
+            goTo(target);
+          }}
+        />
       )}
       {visible && (
         <>
@@ -310,9 +322,11 @@ export function ImportForm({
                   </ul>
                 )}
                 {proposal.status === 'submitted' && canPrepare && steps.reject && (
-                  <p className="text-xs text-text-muted">
-                    Editing retires this prepared draft before saving a replacement. Confirmed mirrors and earlier
-                    evidence stay unchanged.
+                  <p className="text-xs text-text-muted">{REGISTER_IMPORT_COPY.EDIT_NOTE}</p>
+                )}
+                {editing && (
+                  <p role="status" className="text-sm text-text-muted">
+                    {REGISTER_IMPORT_COPY.REOPENING}
                   </p>
                 )}
                 {proposal.status === 'submitted' && !steps[kind] && (
@@ -367,16 +381,6 @@ export function ImportForm({
                       </ul>
                     ) : null}
                     <FormActions>
-                      <PageAction
-                        label="Edit records"
-                        busy={editing}
-                        busyLabel="Reopening records…"
-                        disabled={deciding || !!recovery || autoApply || !canPrepare || !steps.reject || blocked}
-                        onClick={() => {
-                          setEditing(true);
-                          void reject.open('reject', 'Replaced while editing the copied records.');
-                        }}
-                      />
                       {!currentTarget && !recovery && (
                         <PageAction
                           label="Load confirmation"

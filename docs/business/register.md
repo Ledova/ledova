@@ -251,8 +251,10 @@ metadata before allowing the empty draft; incomplete entered rows still need cor
 Inviting members is optional ([member access](member-records.md#member-access)). Unsaved edits are
 kept only in the open page and are lost if you leave it. After a failed or uncertain response, use Recover saved records or Recover
 confirmation in setup ([uncertain outcomes](README.md#when-the-outcome-is-uncertain)); another
-appointee can resume review or confirmation without preparation access. Edit records retires a saved
-preparation for editing and needs preparation and rejection authority.
+appointee can resume review or confirmation without preparation access. The step headings above the
+form move between Share details, Shareholders and Review. Going forward checks the current step first,
+and Review saves the draft. Choosing Share details or Shareholders on Review retires the saved draft
+for editing and needs preparation and rejection authority.
 
 Award recipients without shares appear in the same list as members, marked as such. Select the
 exact company recipient to keep their ID, current particulars and any accepted member access; enter

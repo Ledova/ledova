@@ -986,7 +986,11 @@ Some messages keep their own form:
   base styles (`dashboard/src/styles/index.css`) turn off WebKit's own date styling, so iOS Safari keeps
   a date field at the width and height of the other fields.
 - **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
-  `FormSteps` (`dashboard/src/components/FormSteps.tsx`), with one step visible at a time.
+  `FormSteps` (`dashboard/src/components/FormSteps.tsx`), with one step visible at a time. Ledger setup
+  passes `onSelect` and `reachable`, from the shared `useImportPreparation`'s `goTo` and `stepReachable`,
+  so its steps are buttons (owner, 15 November 2026). An earlier step opens directly and a later one runs
+  the current step's checks first. Choosing Review saves the draft, and from Review an earlier step
+  retires the saved draft for editing.
   Show class context once above the form; the footer identifies the current company. Keep exact
   company names in declarations or captured review targets, without a duplicate information card or
   routine technical and upload descriptions. Transfer preparation follows the investor pattern:

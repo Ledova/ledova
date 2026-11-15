@@ -186,6 +186,11 @@ afterEach(() => {
   focusManager.setFocused(undefined);
 });
 
+const editStep = () =>
+  within(screen.getByRole('list', { name: 'Ledger setup steps' })).getByRole('button', {
+    name: '1. Share details',
+  }) as HTMLButtonElement;
+
 it('reads every class page and groups exact holdings by member identity with search, filtering, paging and private details', async () => {
   vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
   vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(true);
@@ -1878,7 +1883,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(proposal!.members[0].allotments?.[0].shareReference).toBeNull();
   expect(proposal!.members[0].allotments?.[0].certificateReference).toBeNull();
   expect((screen.getByRole('button', { name: 'Record review' }) as HTMLButtonElement).disabled).toBe(true);
-  expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(editStep().disabled).toBe(true);
   const importPath = DESTINATIONS.companyRegisterImport.path.replace(':uuid', token.uuid);
   reopen('apply', importPath);
   expect(await screen.findByText('Example Shareholder')).toBeTruthy();
@@ -1886,7 +1891,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getByText(/review access must review them/)).toBeTruthy();
   reopen('approve', `${importPath}?record=${proposal!.uuid}`);
   expect(await screen.findByText('Example Shareholder')).toBeTruthy();
-  expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(editStep().disabled).toBe(true);
   expect(screen.queryByRole('button', { name: 'Save draft and review' })).toBeNull();
   const review = await screen.findByRole('button', { name: 'Record review' });
   await waitFor(() => expect((review as HTMLButtonElement).disabled).toBe(false));
@@ -1936,7 +1941,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve']);
   reopen('apply', importPath);
   expect(await screen.findByText('Example Shareholder')).toBeTruthy();
-  expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(editStep().disabled).toBe(true);
   const confirm = await screen.findByRole('button', { name: 'Confirm' });
   await waitFor(() => expect((confirm as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(confirm);
@@ -2276,7 +2281,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   );
   expect(proposal.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
   expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
-  expect((screen.getByRole('button', { name: 'Edit records' }) as HTMLButtonElement).disabled).toBe(true);
+  expect(editStep().disabled).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Recover confirmation' }));
   expect(await screen.findByRole('region', { name: 'Company ownership summary' })).toBeTruthy();
   const applications = api.post.mock.calls
@@ -2292,7 +2297,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const recorded = await screen.findByRole('region', { name: 'Recorded ledger' });
   expect(within(recorded).getByText('Recorded')).toBeTruthy();
   expect(screen.queryByRole('list', { name: 'Ledger setup steps' })).toBeNull();
-  expect(within(recorded).queryByText(/Editing retires this prepared draft/)).toBeNull();
+  expect(within(recorded).queryByText(/retires this saved draft/)).toBeNull();
   expect(within(recorded).queryByRole('button', { name: 'Confirm' })).toBeNull();
   const ownership = within(recorded).getByRole('button', { name: 'View company ownership' });
   fireEvent.click(ownership);

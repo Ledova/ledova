@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Keyboard, Text, View, type KeyboardTypeOptions } from 'react-native';
+import { Keyboard, Text, TouchableOpacity, View, type KeyboardTypeOptions } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import {
   FIELD_LIMITS,
@@ -116,10 +116,14 @@ export function FormSteps({
   label,
   steps,
   current,
+  onSelect,
+  reachable,
 }: {
   label: string;
   steps: readonly { id: string; label: string }[];
   current: string;
+  onSelect?: (id: string) => void;
+  reachable?: (id: string) => boolean;
 }) {
   const look = useThemedStyles((theme) => ({
     steps: { flexDirection: 'row' as const, gap: theme.spacing.smd },
@@ -145,11 +149,36 @@ export function FormSteps({
     digitCurrent: { color: theme.colors.utility.white },
     label: { fontFamily: theme.fontFamily.medium, fontSize: 12, lineHeight: 16, color: theme.colors.text.muted },
     labelCurrent: { color: theme.colors.text.primary },
+    disabled: { opacity: 0.5 },
   }));
   return (
     <View accessibilityLabel={label} style={look.steps}>
       {steps.map((step, index) => {
         const here = step.id === current;
+        const content = (
+          <>
+            <View style={[look.number, here && look.numberCurrent]}>
+              <Text style={[look.digit, here && look.digitCurrent]}>{index + 1}</Text>
+            </View>
+            <Text style={[look.label, here && look.labelCurrent]}>{step.label}</Text>
+          </>
+        );
+        if (onSelect && !here) {
+          const open = reachable?.(step.id) ?? true;
+          return (
+            <TouchableOpacity
+              key={step.id}
+              accessibilityRole="button"
+              accessibilityLabel={`${index + 1}. ${step.label}`}
+              accessibilityState={{ disabled: !open }}
+              disabled={!open}
+              onPress={() => onSelect(step.id)}
+              style={[look.step, !open && look.disabled]}
+            >
+              {content}
+            </TouchableOpacity>
+          );
+        }
         return (
           <View
             key={step.id}
@@ -157,10 +186,7 @@ export function FormSteps({
             accessibilityLabel={`${index + 1}. ${step.label}${here ? ', current step' : ''}`}
             style={[look.step, here && look.current]}
           >
-            <View style={[look.number, here && look.numberCurrent]}>
-              <Text style={[look.digit, here && look.digitCurrent]}>{index + 1}</Text>
-            </View>
-            <Text style={[look.label, here && look.labelCurrent]}>{step.label}</Text>
+            {content}
           </View>
         );
       })}
