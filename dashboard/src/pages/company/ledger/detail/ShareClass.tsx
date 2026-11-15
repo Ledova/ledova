@@ -122,9 +122,10 @@ function ShareClassWorkspace({
   const recordsChanged = useCallback(() => {
     void data.token.refetch();
   }, [data.token.refetch]);
-  const editableDetails = !!(
+  const classDetailsVisible = !!(
     data.token.data?.canEditDetails ||
     data.token.data?.canDelete ||
+    data.token.data?.deletionBlockedReason ||
     details.held ||
     details.outcome
   );
@@ -141,10 +142,13 @@ function ShareClassWorkspace({
   }, [rights.editor, rights.pending, rights.busy, data.holdReads]);
   return (
     <>
-      {data.token.data && <ClassDetails token={data.token.data} details={details} available={detailsAvailable} />}
+      {data.token.data && classDetailsVisible && (
+        <ClassDetails token={data.token.data} details={details} available={detailsAvailable} />
+      )}
       <ShareClassDetails
         key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
         data={data}
+        showClassDetails={!classDetailsVisible}
         setup={
           setup === null ? (
             data.register.isError ? (
@@ -165,7 +169,7 @@ function ShareClassWorkspace({
               guard={data.guard}
               externalHeld={data.readingPaused && !setupHeld}
               onHeldChange={heldSetup}
-              showClassDetails={!editableDetails}
+              showClassDetails={!classDetailsVisible}
               onRecordsChanged={recordsChanged}
             />
           ) : undefined
@@ -180,10 +184,12 @@ function ShareClassDetails({
   data,
   rights,
   setup,
+  showClassDetails,
 }: {
   data: ReturnType<typeof useShareClass>;
   rights: ReactNode;
   setup?: ReactNode;
+  showClassDetails: boolean;
 }) {
   const preferences = useUserPreferences();
   const preferencesRead = useQueryClient().getQueryState(USER_PREFERENCES_QUERY_KEY);
@@ -218,9 +224,11 @@ function ShareClassDetails({
     <>
       {setup ?? (
         <Section title="Summary">
-          <p className="text-sm text-text-muted">
-            {token.symbol} · {token.tokenTypeDisplay}
-          </p>
+          {showClassDetails && (
+            <p className="text-sm text-text-muted">
+              {token.symbol} · {token.tokenTypeDisplay}
+            </p>
+          )}
           {preferencesRead?.status === 'error' ? (
             <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
               Your account could not be loaded.

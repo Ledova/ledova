@@ -1,4 +1,7 @@
 import hashlib
+import io
+import json
+import zipfile
 from datetime import timedelta
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -52,10 +55,13 @@ from tokens.models import (
     RegisterExport,
     RegisterGrant,
     RegisterGrantDecision,
+    RegisterImport,
+    RegisterImportDecision,
     RegisterPersonRegistration,
     RegisterPosition,
     RegisterTransfer,
     RegisterTransferDecision,
+    ShareRegister,
     ShareToken,
 )
 from tokens.services.creation import create_share_token
@@ -211,6 +217,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         current = self.client.get(current_path).json()
         self.assertFalse(current["canEditDetails"])
         self.assertFalse(current["canDelete"])
+        self.assertIn("confirmed ledger records", current["deletionBlockedReason"])
         self.assertEqual(
             self.client.patch(
                 current_path, {**change, "expectedUpdatedAt": current["updatedAt"]}, format="json"
@@ -241,17 +248,101 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         draft_path = f"/api/v1/tokens/{draft_token.pk}/"
         draft_change = {**change, "symbol": "RES", "expectedUpdatedAt": draft.json()["updatedAt"]}
         self.assertEqual(self.client.patch(draft_path, draft_change, format="json").status_code, 409)
+        waiting = self.client.get(draft_path).json()
+        self.assertFalse(waiting["canDelete"])
+        self.assertEqual(waiting["deletionBlockedReason"], "Retire the saved setup review before deleting this class.")
         self.decision(
             "/api/v1/tokens/register-imports/", prepared.json()["uuid"], "reject", reason="Replace the draft details"
         )
         resumed = self.client.patch(draft_path, draft_change, format="json")
         self.assertEqual(resumed.status_code, 200, resumed.content)
         self.assertTrue(resumed.json()["canEditDetails"])
-        self.assertFalse(resumed.json()["canDelete"])
-        self.assertEqual(
-            delete_version(draft_path, resumed.json()["updatedAt"]).status_code,
-            409,
+        self.assertTrue(resumed.json()["canDelete"])
+        self.assertIsNone(resumed.json()["deletionBlockedReason"])
+        with use_operator():
+            abandoned = RegisterImport.objects.get(pk=prepared.json()["uuid"])
+            retained = (abandoned.members, abandoned.evidence_snapshot, abandoned.status)
+            decisions = list(RegisterImportDecision.objects.filter(register_import=abandoned).values())
+            empty = ShareRegister.objects.create(token=draft_token, company=self.company)
+        removed = delete_version(draft_path, resumed.json()["updatedAt"])
+        self.assertEqual(removed.status_code, 204, removed.content)
+        self.assertEqual(self.client.get(draft_path).status_code, 404)
+        self.assertEqual(delete_version(draft_path, resumed.json()["updatedAt"]).status_code, 404)
+        self.assertEqual(self.client.patch(draft_path, draft_change, format="json").status_code, 404)
+        listed = self.client.get("/api/v1/tokens/register/").json()
+        self.assertNotIn(str(draft_token.pk), [row["uuid"] for row in listed["results"]])
+        with use_operator():
+            tombstone = ShareToken.all_objects.get(pk=draft_token.pk)
+            self.assertEqual(tombstone.deleted_by_id, self.owner.pk)
+            self.assertIsNotNone(tombstone.deleted_at)
+            abandoned.refresh_from_db()
+            self.assertEqual((abandoned.members, abandoned.evidence_snapshot, abandoned.status), retained)
+            self.assertEqual(list(RegisterImportDecision.objects.filter(register_import=abandoned).values()), decisions)
+            self.assertEqual(ShareRegister.objects.get(pk=empty.pk).sequence, 0)
+            with self.assertRaises(DatabaseError), atomic():
+                ShareToken.all_objects.filter(pk=tombstone.pk).update(deleted_at=None, deleted_by=None)
+            with self.assertRaises(DatabaseError), atomic():
+                ShareToken.all_objects.filter(pk=tombstone.pk).update(name="Rewrite deleted history")
+            with self.assertRaises(DatabaseError), atomic():
+                ShareToken.all_objects.filter(pk=tombstone.pk).delete()
+            with self.assertRaises(DatabaseError), atomic():
+                ShareToken.objects.create(
+                    company=self.company,
+                    name="Forged deletion",
+                    symbol="FAKE",
+                    total_supply="1000",
+                    deleted_at=timezone.now(),
+                    deleted_by=self.owner,
+                )
+            with self.assertRaisesMessage(
+                DatabaseError, "Deleted share classes cannot acquire new records or effects"
+            ), atomic():
+                RegisterPosition.objects.create(register=empty, member=self.member, shares=1)
+            with self.assertRaisesMessage(
+                DatabaseError, "Deleted share classes cannot acquire new records or effects"
+            ), atomic():
+                RegisterExport.objects.create(
+                    token=tombstone,
+                    requested_by_id=self.owner.pk,
+                    kind="company_pack",
+                    register_sequence=0,
+                    member_rows=0,
+                    former_rows=0,
+                )
+        replayed = self.client.post(
+            "/api/v1/tokens/register-imports/", import_payload(self.owner, self.appointment, draft_token), format="json"
         )
+        self.assertEqual(replayed.status_code, 404, replayed.content)
+        recreated = self.client.post(
+            "/api/v1/tokens/",
+            {"company": str(self.company.pk), "name": "Replacement class", "symbol": "RES", "totalSupply": "1000"},
+            format="json",
+        )
+        self.assertEqual(recreated.status_code, 201, recreated.content)
+        self.assertNotEqual(recreated.json()["uuid"], str(tombstone.pk))
+        self.assertEqual(
+            delete_version(f"/api/v1/tokens/{recreated.json()['uuid']}/", recreated.json()["updatedAt"]).status_code,
+            204,
+        )
+        packed = self.client.post(
+            f"/api/v1/companies/{self.company.pk}/pack/",
+            {
+                "appointment": str(self.appointment.pk),
+                "instruction": "SYNTHETIC-RETIRED-CLASS-AUDIT",
+                "recipient": "Synthetic company administrator",
+            },
+            format="json",
+        )
+        self.assertEqual(packed.status_code, 200, getattr(packed, "content", b""))
+        content = b"".join(packed.streaming_content)
+        packed.close()
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
+            captured = json.loads(archive.read(f"classes/{tombstone.pk}/class.json"))
+            self.assertIsNotNone(captured["deleted_at"])
+            self.assertEqual(captured["deleted_by"], self.owner.pk)
+            audit = json.loads(archive.read(f"classes/{tombstone.pk}/authority.json"))
+            self.assertEqual(audit["imports"][0]["status"], "rejected")
+            self.assertTrue(audit["imports"][0]["decisions"])
         self.assertEqual(self.client.get(history_path).json(), history.json())
 
     def test_company_ownership_summary_and_paged_holders_are_exact_and_current(self):

@@ -36,11 +36,15 @@ setup: **Ledger**, **Add share class**, on the web or in the app.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
-Class codes are one to five ASCII letters, saved in uppercase, unique within the company, and may
+Class codes are one to five ASCII letters, saved in uppercase, unique among the company's active classes, and may
 not reuse a reserved asset symbol. On the web, the same administrator or preparer can edit a
 class's name, code and type before its ledger is opened or dependent records exist. Reject any saved
-setup review first; the rejected draft stays recorded. **Delete share class** is available only for
-a genuinely unused class with no saved setup, rights, ownership or other retained records. These
+setup review first; the rejected draft stays recorded. **Delete share class** removes an unopened,
+unused class from active use even when it has abandoned (rejected) setup drafts. It keeps the class,
+deletion actor and time, drafts, decisions and evidence as audit history. Its code can then be reused
+by a new class without changing the earlier record. An empty register stub alone does not prevent
+deletion; a saved review still awaiting a decision, confirmed ledger records, rights or other
+dependent records do. The web shows the reason beside a disabled Delete action. These
 web controls do not change the native app. Company closure uses its separate
 [status controls](companies.md#staff-company-controls). Deployment, capital increases and
 pausing are company decisions; earlier direct actions by the owner or platform staff are retired,

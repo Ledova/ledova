@@ -17,4 +17,6 @@ def create_share_token(*, actor, company_id, data):
     with register_command(actor, company_id, "register_class_create") as (company, current_actor, _profile, _operator):
         if not Company.objects.register_preparable_by(current_actor).filter(pk=company.pk).exists():
             raise NotFound("A current company administrator or preparer is required to create this share class.")
+        if ShareToken.objects.filter(company=company, symbol=data.get("symbol")).exists():
+            raise ValidationError({"symbol": "This class code already exists in the company."})
         return ShareToken.objects.create(company=company, **data)

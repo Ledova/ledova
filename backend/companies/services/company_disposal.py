@@ -188,7 +188,11 @@ def _snapshot(company_id, appointment_id, pack):
         raise ValueError("Retained wallet or chain records require a separate disposal assessment.")
     rows = {
         apps.get_model(label): list(
-            apps.get_model(label).objects.filter(**{scope: company_id}).order_by("pk").select_for_update().values()
+            apps.get_model(label)
+            ._base_manager.filter(**{scope: company_id})
+            .order_by("pk")
+            .select_for_update()
+            .values()
         )
         for label, scope in SCOPES.items()
     }

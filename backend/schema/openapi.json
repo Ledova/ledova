@@ -18954,6 +18954,11 @@
             "readOnly": true,
             "type": "integer"
           },
+          "deletionBlockedReason": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "deployedAt": {
             "format": "date-time",
             "nullable": true,
@@ -19036,6 +19041,7 @@
           "contractAddress",
           "createdAt",
           "decimals",
+          "deletionBlockedReason",
           "deployedAt",
           "deploymentTxHash",
           "isDivisible",

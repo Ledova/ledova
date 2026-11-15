@@ -1,5 +1,6 @@
 from django.db import connections
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
 from companies.models import Company
@@ -14,15 +15,17 @@ from tokens.services.share_token_service import reserved_symbol
 def class_lifecycle_access(token, actor):
     token.can_edit_details = False
     token.can_delete = False
+    token.deletion_blocked_reason = None
     if actor is not None and Company.objects.register_preparable_by(actor).filter(pk=token.company_id).exists():
-        token.can_edit_details, token.can_delete = _available(token.pk)
+        token.can_edit_details, token.deletion_blocked_reason = _available(token.pk)
+        token.can_delete = token.deletion_blocked_reason is None
     return token
 
 
 def _available(token_id):
     with connections[current_alias()].cursor() as cursor:
         cursor.execute(
-            "SELECT tokens_class_details_available(%s, true), tokens_class_details_available(%s, false)",
+            "SELECT tokens_class_details_available(%s, true), tokens_class_deletion_reason(%s)",
             [token_id, token_id],
         )
         return cursor.fetchone()
@@ -74,6 +77,9 @@ def update_class_details(*, actor, token, expected_updated_at, changes):
 def delete_unused_class(*, actor, token, expected_updated_at):
     with register_command(actor, token.company_id, "register_class_delete") as (_, current_actor, _profile, _operator):
         token = _current(token, current_actor, expected_updated_at)
-        if not _available(token.pk)[1]:
-            raise RegisterChangeConflict("Only an unused share class with no retained records can be deleted.")
-        token.delete()
+        reason = _available(token.pk)[1]
+        if reason:
+            raise RegisterChangeConflict(reason)
+        token.deleted_at = timezone.now()
+        token.deleted_by = current_actor
+        token.save(update_fields=["deleted_at", "deleted_by", "updated_at"])
