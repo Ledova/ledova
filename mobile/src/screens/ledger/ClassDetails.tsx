@@ -95,7 +95,7 @@ export function ClassDetails({
       {details.editor ? (
         <ClassDetailsEditor details={details} available={available} />
       ) : (
-        <View style={[look.fields, !available && look.hidden]}>
+        <View style={look.fields}>
           <Rows>
             <Fact label="Class name" inline>
               {token.name}
@@ -134,7 +134,7 @@ export function ClassDetails({
           )}
         </View>
       )}
-      {!available && <Loading>Checking current class access…</Loading>}
+      {!available && !!details.editor && <Loading>Checking current class access…</Loading>}
       <CustomModal
         visible={!!target && available}
         onClose={details.close}

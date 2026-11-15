@@ -420,7 +420,13 @@ of an uncertain result, and the step headings (`FormSteps` with `goTo`) move bet
 retiring a prepared draft for editing when chosen from Review. Shareholders are
 compact rows (`MemberRow` in `ImportRecord.tsx`), with **Edit** and **Remove** in the draft and **Show
 allotments** on Review, whose record date, shares held and shareholders are one line each. **Continue**
-moves to the next step, saving the draft on the way to Review. **Cancel** returns to the page that
+moves to the next step, saving the draft on the way to Review. Saving keeps the class page and
+retained form mounted while required reads refresh; the read-only Class details rows keep their
+layout, and Review stays visible, with actions blocked
+until current records and authority are ready. Read failures show Retry, and account or company
+changes still hide the previous scope. A valid jump from Share details to Review stays on the
+current step until its saved review is ready; invalid shareholder records open Shareholders.
+**Cancel** returns to the page that
 opened it, on every step but Shareholders, where **Back** returns to Share details, and a page that
 cannot show the form still offers it. The top bar's arrow returns to Ledger.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`) and
