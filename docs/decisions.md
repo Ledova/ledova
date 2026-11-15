@@ -2724,3 +2724,15 @@ company-exit/disposal and supplier checks remain, as do permissions needed for
 any regulated activity. Uncertainty is recorded and scope kept narrow, not
 presented as compliance or regulatory approval. No live action or spending is
 authorised by this documentation decision.
+
+### Unified web share classes
+
+On 15 November 2026, under [#1567](https://github.com/Ledova/ledova/issues/1567), the owner
+approved two increments: unify Share classes and ledger setup, then add safe class editing and
+deletion. Mobile remains for later. The class list leads to one class page: unfinished classes
+continue the existing clickable setup, while recorded classes show ownership, rights and documents.
+Current reader access, saved reviews, opening corrections and original-request recovery remain.
+
+Class editing must not rewrite recorded ownership or retained decisions. Deletion is limited to
+genuinely unused classes; a class with no current shares can still have retained history. New
+issuance and transfers keep their distinct company workflows and the same underlying ledger.

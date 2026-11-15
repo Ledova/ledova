@@ -215,7 +215,7 @@ function SignedInOwnership({
               <OwnershipLoading />
             ) : (
               <>
-                {company.canManage && ledgerPending && <GettingStarted hasClass={!!summary?.classes.length} />}
+                {company.canManage && ledgerPending && <GettingStarted classes={summary?.classes ?? []} />}
                 {awaitingLedger ? (
                   !company.canManage && (
                     <Section title="Ownership overview">

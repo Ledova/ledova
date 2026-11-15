@@ -483,9 +483,12 @@ Recheck the account and current location before confirming navigation.
 The sidebar owns navigation between sections, with one pattern on web and app (owner, 15 November
 2026). A related group has one level of children. Choosing anywhere on a group's row opens or closes
 it, and the row opens no page; its caret only shows whether it is open. The group's pages are its
-children, its overview first, each listed once. Ledger groups **Share classes** (its overview),
-**Issue shares**, **Transfer shares** and **Corrections**, with **Set up your ledger** first while a
-company administrator's company has no share class. Shareholders groups **All shareholders** (its
+children, its overview first, each listed once. On the web, Ledger groups **Share classes** (its
+overview), **Issue shares**, **Transfer shares** and **Corrections**. Share classes owns creation and
+continuing setup: selecting an unfinished class opens its existing clickable steps in the class
+workspace, while a recorded class shows its summary, rights and documents. Readers keep their
+permitted read view. The app still offers **Set up your ledger** first while a company
+administrator's company has no share class. Shareholders groups **All shareholders** (its
 people list), **Employee scheme** and **Member access**. Documents groups **Certificates** (at
 `/documents/certificates`), **Inspection copies** and **Company pack** where permitted. Do not add a
 separate Your certificates item or workspace switch. Settings groups **Profile**, **Account** and
@@ -805,8 +808,13 @@ These lists add a short record reference only to options that would otherwise re
 as with people who share a name and address; a delegating appointment adds the time it was made
 instead.
 
-Register setup offers a class already started but not yet opened (its ledger has no recorded entry) as links in a sentence, and the new class's kind as
-radio buttons, so choosing never moves the page by itself. Sign-up keeps its own presentation: its
+The web's Share classes list is the entry for continuing an unfinished class. Its Dashboard setup
+action resumes a sole unfinished class, opens creation when none exists, or returns to the list
+when several need a choice. Creating a new class remains the explicit **Add share class** action.
+Creation keeps links to unfinished classes as recovery if an existing code is chosen; normal web
+continuation uses the class row. The app still offers classes already started but not opened as
+links in a sentence. Both clients offer the new class's kind as radio buttons, so choosing never
+moves the page by itself. Sign-up keeps its own presentation: its
 company type is Headless UI's `Select` inside the field so the label names it, and the phone number's
 country code is a native select named "Country code" beside the number. The select is transparent
 over the flag and dialling code, so the field keeps its width while the open list names each

@@ -78,6 +78,9 @@ Where today's code differs from these standards:
 
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
+- Web Share classes now owns setup and class details in one page. Native still uses separate
+  setup and details screens; its consolidation remains deferred under
+  [#1567](https://github.com/Ledova/ledova/issues/1567).
 
 Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
 `screens/<area>/` for page folders. Its component data calls beyond the reads extracted for key
@@ -356,9 +359,9 @@ The sidebar (`dashboard/src/components/Sidebar.tsx`) names every destination by 
 key. Dashboard is a link; Ledger, Shareholders, Documents and Settings are groups whose whole row
 opens or closes their pages ([navigation](frontend-ux.md#navigation)). Ledger lists Share classes
 (its overview), Issue shares (`#issue`), Transfer shares (`#transfer`) and Corrections
-(`#corrections`), marking the active child and opening on Ledger routes, with Set up your ledger
-(`/company/ledger/setup`) first while the shared `useLedgerSetupDue` finds no share class for a
-company administrator's company. The web replaces an incoming `#history` with `#corrections` without
+(`#corrections`), marking the active child and opening on Ledger routes. Share classes owns class
+creation and continuing setup; the web has no separate setup menu item. The web replaces an incoming
+`#history` with `#corrections` without
 dropping company/class context; shared task names retain History. Shareholders lists All
 shareholders (its people list), Employee scheme and Member access.
 Documents lists one Certificates page (`/documents/certificates`), with Inspection copies and Company
@@ -652,11 +655,15 @@ The reads check the guard before and after each request and pass it as `ledovaSu
 a late reply after an account change or reauthentication is discarded. Query keys and cache timing
 stay unchanged.
 
-The standalone preparations are `companyRegister*` entries in `DESTINATIONS`:
-`/company/ledger/setup`; import, correction and transfer under `/company/ledger/:uuid/`
-(`import`, `correct/:entry`, `transfer`); and the particulars change at
-`/company/ledger/members/:member/particulars`. Setup is the import page without a class in its
-address: it chooses or creates a share class, then prepares the mirror import. The particulars
+The class workspace at `/company/ledger/:uuid` owns its summary, rights, documents and setup in
+`dashboard/src/pages/company/ledger/detail/`. An unfinished class opens the existing stepped form
+for current preparers, reviewers or executors; readers retain the summary and permitted documents.
+New classes at `/company/ledger/setup` and explicit imports at `/company/ledger/:uuid/import` use
+the same page entry. An explicit import keeps its saved-record or opening-correction context;
+ordinary class selection does not start a replacement opening. Setup chooses or creates a class,
+then prepares its mirror import, preserving exact-request recovery. Correction and transfer stay
+under `/company/ledger/:uuid/` (`correct/:entry`, `transfer`), and particulars at
+`/company/ledger/members/:member/particulars`. The particulars
 change, titled with the shareholder's name, is one step: it sends the name and address the page read as `expected` and, once applied,
 lands on its record under Corrections (in the app, back on the shareholder's page). Its form logic is
 the shared `useParticularsEdit`, and the page finds the member through `useParticularsMember`. `appointmentForParticularsEdit` chooses its appointment: one
@@ -795,7 +802,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Static, data-free placeholders reserve loading space, and confirmed figures appear directly.
   Until the register is opened, the Ownership overview stays hidden unless the person has their own
   member record: an administrator sees Getting started, a short note with a **Set up your ledger**
-  button that opens the setup page, or Ledger once a class has been added, and other readers a one-line note. Read-only awards remain separate entitlements, with the promise and nonzero lifecycle
+  button that opens creation for a company with no classes, resumes its only unfinished class, or
+  opens Share classes when several need a choice. Other readers see a one-line note. Read-only awards remain separate entitlements, with the promise and nonzero lifecycle
   quantities above their full breakdown and terms in **Show award details**.
 - The Certificates page (`dashboard/src/pages/documents/certificates/index.tsx`) shows a register
   reader the company's certificate preparation and a member who is not one their own entries, in one
