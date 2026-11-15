@@ -155,8 +155,12 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
     finishOverview = resolve;
   });
   const additional = Array.from({ length: 26 }, (_, index) => register(`class-${String(index).padStart(2, '0')}`, '1'));
-  const inventory = () =>
-    mode === 'draft-empty' ? [] : mode === 'many' ? [ordinary, preference, ...additional] : [ordinary, preference];
+  const inventory = () => {
+    if (mode === 'draft-empty') return [];
+    if (mode === 'draft-single') return [unopened];
+    if (mode === 'draft-many') return [unopened, { ...unopened, token: ordinary.token }];
+    return mode === 'many' ? [ordinary, preference, ...additional] : [ordinary, preference];
+  };
   api.get.mockImplementation(async (url: string, config?: { params?: { page?: number } }) => {
     if (url === USER_PREFERENCES_ENDPOINTS.BASE)
       return { data: companyPreferences(mode === 'readable-investor' ? 'investor' : 'company') };
@@ -174,7 +178,7 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
       if (mode === 'failed') throw new Error('Ownership read failed');
       if (mode === 'pending-overview') return pendingOverview;
       const data = overview(
-        mode === 'many' || mode === 'draft-empty'
+        mode === 'many' || mode.startsWith('draft-')
           ? inventory()
           : [
               mode === 'zero' ? empty : ordinary,
@@ -380,6 +384,20 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   );
   expect(screen.queryByRole('heading', { name: 'Ownership overview' })).toBeNull();
   expect(screen.queryByText('Not complete')).toBeNull();
+  mode = 'draft-single';
+  await refresh();
+  await waitFor(() =>
+    expect(screen.getByRole('link', { name: 'Set up your ledger' }).getAttribute('href')).toBe(
+      `${DESTINATIONS.companyClass.path.replace(':uuid', unopened.token.uuid)}?company=company-one`,
+    ),
+  );
+  mode = 'draft-many';
+  await refresh();
+  await waitFor(() =>
+    expect(screen.getByRole('link', { name: 'Set up your ledger' }).getAttribute('href')).toBe(
+      `${DESTINATIONS.companyRegister.path}?company=company-one`,
+    ),
+  );
   for (const failed of ['failed', 'inconsistent']) {
     mode = failed;
     await refresh();

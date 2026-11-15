@@ -225,7 +225,7 @@ function FreshClass({
                 <Fragment key={token.uuid}>
                   {index > 0 && ', '}
                   <Link
-                    to={generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: token.uuid })}
+                    to={generatePath(DESTINATIONS.companyClass.path, { uuid: token.uuid })}
                     className="text-brand-light underline"
                   >
                     {token.name} · {token.symbol}

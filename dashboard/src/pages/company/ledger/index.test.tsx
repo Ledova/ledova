@@ -56,8 +56,8 @@ import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { ShareClass } from './detail/ShareClass';
 import { MemberDocuments } from './shared/MemberDocuments';
-import CompanyRegisterImportPage from './import';
-import { ImportForm } from './import/ImportForm';
+import CompanyRegisterImportPage from './detail';
+import { ImportForm } from './detail/ImportForm';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../testSupport/company';
 import {
   choose,
@@ -1358,6 +1358,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let interruptNextApply = false;
   let releaseInterruptedApply: (() => void) | undefined;
   let proposal: RegisterImport | undefined;
+  const retiredImports: RegisterImport[] = [];
   let historyEntries: RegisterEntry[] = [];
   let historyCorrections: RegisterCorrection[] = [];
   let historyParticulars: RegisterParticularsChange[] = [];
@@ -1482,7 +1483,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       if (membersUnavailable) throw new Error('Member choices unavailable');
       return { data: { members: companyMembers, awardRecipients: [] } };
     }
-    if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
+    if (url === IMPORTS) return dataPage(proposal ? [proposal, ...retiredImports] : retiredImports);
     if (url === CORRECTIONS) return dataPage(historyCorrections);
     if (url === PARTICULARS) return dataPage(historyParticulars);
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token.uuid)) {
@@ -1525,7 +1526,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     }
     if (url === IMPORTS) {
       const request = body as RegisterImportPreparation;
-      expect(request.appointment).toBe('prepare-only');
+      expect(request.appointment).toBe(appointment.uuid);
+      if (proposal?.status === 'rejected') {
+        retiredImports.push(proposal);
+        proposal = undefined;
+      }
       proposal ??= {
         uuid: request.operationId,
         company: company.uuid,
@@ -1595,7 +1600,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     }
     const request = body as RegisterDecideRequest;
     expect(request.appointment).toBe(appointment.uuid);
-    expect(appointment.capabilities).toContain(request.kind);
+    expect(appointment.capabilities).toContain(request.kind === 'reject' ? 'approve' : request.kind);
     if (url.endsWith('/decision-preview/')) {
       if (failNextPreview) {
         failNextPreview = false;
@@ -1624,8 +1629,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         return { data: proposal };
       proposal = {
         ...proposal!,
-        stage: request.kind === 'approve' ? 'approved' : 'applied',
-        status: request.kind === 'approve' ? 'submitted' : 'applied',
+        stage: request.kind === 'approve' ? 'approved' : request.kind === 'reject' ? 'rejected' : 'applied',
+        status: request.kind === 'approve' ? 'submitted' : request.kind === 'reject' ? 'rejected' : 'applied',
+        rejectionReason: request.kind === 'reject' ? (request.reason ?? '') : '',
         reviewedAt: request.kind === 'approve' ? null : '2026-10-14T00:00:00Z',
         decisions: [
           ...proposal!.decisions,
@@ -1662,6 +1668,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       <QueryClientProvider client={client}>
         <ApiClientProvider client={apiClient}>
           <TestRouter initialEntries={[path]}>
+            <Link
+              to={`${DESTINATIONS.companyRegisterImport.path.replace(':uuid', token.uuid)}?record=${proposal?.uuid ?? ''}`}
+            >
+              Open saved ledger
+            </Link>
             <Routes>
               <Route path="/" element={<CompanyRegisterPage />} />
               <Route
@@ -1676,6 +1687,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
               />
               <Route path={DESTINATIONS.companyRegisterSetup.path} element={<CompanyRegisterImportPage />} />
               <Route path={DESTINATIONS.companyRegisterImport.path} element={<CompanyRegisterImportPage />} />
+              <Route path={DESTINATIONS.companyClass.path} element={<CompanyRegisterImportPage />} />
             </Routes>
           </TestRouter>
         </ApiClientProvider>
@@ -2258,6 +2270,42 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   opened = false;
   proposal = { ...proposal!, status: 'submitted', stage: 'submitted', decisions: [] };
   appointment = { ...appointment, uuid: 'combined-confirmer', capabilities: ['prepare', 'approve', 'apply'] };
+  const resumedDraft = proposal;
+  const classPath = DESTINATIONS.companyClass.path.replace(':uuid', token.uuid);
+  appointment = { ...appointment, capabilities: ['read_register'] };
+  showJourney(classPath);
+  expect(await screen.findByRole('heading', { name: 'Summary' })).toBeTruthy();
+  expect(screen.queryByRole('list', { name: 'Ledger setup steps' })).toBeNull();
+  expect(screen.getByRole('heading', { name: 'Class rights' })).toBeTruthy();
+  cleanup();
+  client.clear();
+  appointment = { ...appointment, capabilities: ['prepare', 'approve', 'apply'] };
+  showJourney();
+  fireEvent.click(await screen.findByRole('link', { name: 'Ordinary shares (class details)' }));
+  expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
+  fireEvent.click(editStep());
+  expect(await screen.findByLabelText('Record date')).toBeTruthy();
+  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe(resumedDraft.asAt);
+  expect(proposal!.status).toBe('rejected');
+  expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['reject']);
+  fireEvent.click(screen.getByRole('button', { name: '2. Shareholders' }));
+  expect(screen.getByText('Example Shareholder')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
+  expect(screen.getByText('share-certificate.pdf')).toBeTruthy();
+  expect(screen.getByText('shareholder-agreement.pdf')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
+  expect(proposal!.uuid).not.toBe(resumedDraft.uuid);
+  expect(proposal!.members).toEqual(resumedDraft.members);
+  expect(retiredImports.find((record) => record.uuid === resumedDraft.uuid)?.status).toBe('rejected');
+  expect(api.post.mock.calls.filter(([url, body]) => url.endsWith('/decide/') && body.kind === 'reject')).toHaveLength(
+    1,
+  );
+  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(0);
+  cleanup();
+  client.clear();
+  api.post.mockClear();
   failNextPreview = true;
   interruptNextApply = true;
   showJourney(`${importPath}?record=${proposal.uuid}`);
@@ -2293,7 +2341,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   cleanup();
   client.clear();
   proposal = { ...proposal, correctionAllowed: true };
-  showJourney(`${importPath}?record=${proposal.uuid}`);
+  showJourney(classPath);
+  expect(await screen.findByRole('heading', { name: 'Summary' })).toBeTruthy();
+  expect(screen.queryByRole('list', { name: 'Ledger setup steps' })).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Open saved ledger' }));
   const recorded = await screen.findByRole('region', { name: 'Recorded ledger' });
   expect(within(recorded).getByText('Recorded')).toBeTruthy();
   expect(screen.queryByRole('list', { name: 'Ledger setup steps' })).toBeNull();
@@ -2450,6 +2501,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === APPOINTMENTS) return dataPage([appointment]);
     if (url === REGISTER || url === COMPANY_TOKEN_ENDPOINTS.BASE) return dataPage(setupClasses);
     if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP) return ownershipRead();
+    if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL(token.uuid)) return { data: token };
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid)) {
       if (membersUnavailable) throw new Error('Member choices unavailable');

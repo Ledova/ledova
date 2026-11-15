@@ -9,7 +9,7 @@ import {
   CaretDownIcon,
   CaretRightIcon,
 } from '@phosphor-icons/react';
-import { DESTINATIONS, useLedgerSetupDue, type DestinationKey } from '@ledova/shared';
+import { DESTINATIONS, type DestinationKey } from '@ledova/shared';
 import { ICON_MD } from './iconSizes';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
@@ -258,9 +258,6 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
         : companyContext?.companyUuid
           ? { registerCompany: companyContext.companyUuid }
           : undefined;
-  const setupDue = useLedgerSetupDue(companyContext?.company);
-  const setupPath = DESTINATIONS.companyRegisterSetup.path;
-  const settingUp = location.pathname === setupPath;
 
   return (
     <NavGroup
@@ -270,14 +267,11 @@ function LedgerGroup({ active, onNavigate }: { active: boolean; onNavigate?: () 
       active={active}
       onNavigate={onNavigate}
       items={[
-        ...(setupDue
-          ? [{ key: 'setup', label: pageTitle('companyRegisterSetup'), to: setupPath, current: settingUp }]
-          : []),
         {
           key: 'classes',
           label: 'Share classes',
           to: path,
-          current: active && !selectedTask && !(setupDue && settingUp),
+          current: active && !selectedTask,
           blocked: blocks(),
         },
         ...tasks.map(([key, label]) => ({

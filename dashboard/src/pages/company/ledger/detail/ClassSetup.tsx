@@ -1,9 +1,7 @@
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
-import { AccountCheck } from '@components/AccountCheck';
-import { useRegisterPreparationOwner } from '@pages/company/ledger/shared/useRegisterPreparationOwner';
-import { useMemo, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_IMPORT_COPY,
@@ -27,41 +25,10 @@ import {
   importRegisterKey,
   useImportRegister,
 } from '@ledova/shared';
-import { Page } from '@components/Page';
-import { ownerGuard } from '@pages/company/shared/ownerGuard';
 
 import { ImportForm } from './ImportForm';
-import { NewClassSetup } from './NewClassSetup';
 import { LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
-
-export default function CompanyRegisterImportPage() {
-  const { uuid = '' } = useParams();
-  const [search] = useSearchParams();
-  const { owner, boundary, preferences } = useRegisterPreparationOwner();
-  return (
-    <Page back={registerPlace({ company: search.get('company') ?? undefined })}>
-      {owner && !preferences.isError ? (
-        uuid ? (
-          <OwnImport
-            key={`${owner.userUuid}/${owner.ownerAccountUuid}/${uuid}`}
-            uuid={uuid}
-            owner={owner}
-            currentOwner={boundary.get}
-          />
-        ) : (
-          <NewClassSetup
-            key={`${owner.userUuid}/${owner.ownerAccountUuid}`}
-            owner={owner}
-            currentOwner={boundary.get}
-          />
-        )
-      ) : (
-        <AccountCheck />
-      )}
-    </Page>
-  );
-}
 
 type Retained = {
   listed: CompanyShareTokenListItem;
@@ -72,20 +39,27 @@ type Retained = {
   members: RegisterTransferMembers;
 };
 
-function OwnImport({
+export function ClassSetup({
   uuid,
   owner,
-  currentOwner,
+  guard,
+  externalHeld = false,
+  onHeldChange,
 }: {
   uuid: string;
   owner: OrderSubmissionOwner;
-  currentOwner: () => OrderSubmissionOwner | null;
+  guard: () => void;
+  externalHeld?: boolean;
+  onHeldChange?: (held: boolean) => void;
 }) {
   const client = useQueryClient();
   const [search] = useSearchParams();
   const [held, setHeld] = useState(false);
   const [retained, setRetained] = useState<Retained | null>(null);
-  const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
+  useEffect(() => {
+    onHeldChange?.(held);
+    return () => onHeldChange?.(false);
+  }, [held, onHeldChange]);
   const classes = useRegisterClasses(owner, guard);
   const appointments = useOwnAppointments(owner, guard);
   const listed = classes.data?.find((item) => item.uuid === uuid);
@@ -147,6 +121,7 @@ function OwnImport({
   };
   const checkNew = () => {
     guard();
+    if (externalHeld) throw createUserFriendlyError('Finish the current class action before continuing.');
     for (const key of [
       registerClassesKey(owner),
       ownAppointmentsKey(owner),
@@ -240,8 +215,8 @@ function OwnImport({
       steps={steps ?? retained.steps}
       correction={retained.correction}
       saved={retained.saved}
-      blocked={!fresh}
-      visible={fresh}
+      blocked={!fresh || externalHeld}
+      visible={fresh && !externalHeld}
       onConflict={retry}
       onHeldChange={setHeld}
     />

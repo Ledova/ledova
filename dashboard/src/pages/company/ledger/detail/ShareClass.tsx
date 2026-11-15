@@ -2,6 +2,7 @@ import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany'
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { matchPath, useLocation } from 'react-router-dom';
 import {
   DESTINATIONS,
   REGISTER_COPY,
@@ -11,6 +12,9 @@ import {
   useClassRights,
   useShareClass,
   useUserPreferences,
+  useOwnAppointments,
+  registerSteps,
+  type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
@@ -19,6 +23,8 @@ import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 import { ClassRights } from './ClassRights';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { BROWSER_FILES } from '@utils/saveFile';
+import { AccountCheck } from '@components/AccountCheck';
+import { ClassSetup } from './ClassSetup';
 
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
@@ -39,18 +45,63 @@ export function ShareClass({ uuid }: { uuid: string }) {
 }
 
 function ShareClassRecord({ data, uuid }: { data: ReturnType<typeof useShareClass>; uuid: string }) {
+  const location = useLocation();
+  const requested =
+    !!matchPath(DESTINATIONS.companyRegisterImport.path, location.pathname) ||
+    new URLSearchParams(location.search).has('record');
   const [scope, setScope] = useState({ owner: data.owner, version: 0 });
   if (scope.owner !== data.owner) {
     setScope({ owner: data.owner, version: scope.version + 1 });
     return null;
   }
-  return <ShareClassRights key={`${uuid}/${scope.version}`} data={data} uuid={uuid} />;
+  return data.owner ? (
+    <ShareClassWorkspace
+      key={`${uuid}/${scope.version}/${requested ? 'opening' : 'summary'}`}
+      data={data}
+      uuid={uuid}
+      owner={data.owner}
+      requested={requested}
+    />
+  ) : (
+    <AccountCheck />
+  );
 }
 
-function ShareClassRights({ data, uuid }: { data: ReturnType<typeof useShareClass>; uuid: string }) {
+function ShareClassWorkspace({
+  data,
+  uuid,
+  owner,
+  requested,
+}: {
+  data: ReturnType<typeof useShareClass>;
+  uuid: string;
+  owner: OrderSubmissionOwner;
+  requested: boolean;
+}) {
+  const appointments = useOwnAppointments(owner, data.guard, { enabled: data.token.isSuccess });
+  const [setup, setSetup] = useState<boolean | null>(null);
+  const [setupHeld, setSetupHeld] = useState(false);
+  const steps =
+    data.token.data && appointments.data ? registerSteps(appointments.data, data.token.data.companyUuid) : null;
+  const canSetUp = !!(steps?.prepare || steps?.approve || steps?.apply);
+  const ready =
+    data.token.isSuccess &&
+    data.token.fetchStatus === 'idle' &&
+    data.register.isSuccess &&
+    data.register.fetchStatus === 'idle' &&
+    appointments.isSuccess &&
+    appointments.fetchStatus === 'idle';
+  if (setup === null && ready) setSetup(canSetUp && (requested || !data.register.data?.initialized));
+  const heldSetup = useCallback(
+    (held: boolean) => {
+      setSetupHeld(held);
+      data.holdReads('class-setup', held);
+    },
+    [data.holdReads],
+  );
   const rights = useClassRights(
     uuid,
-    data.token.isSuccess && data.token.fetchStatus === 'idle',
+    data.token.isSuccess && data.token.fetchStatus === 'idle' && !setupHeld,
     data.token.data?.companyUuid,
     BROWSER_FILES,
     () => crypto.randomUUID(),
@@ -63,12 +114,39 @@ function ShareClassRights({ data, uuid }: { data: ReturnType<typeof useShareClas
     <ShareClassDetails
       key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
       data={data}
+      setup={
+        setup === null ? (
+          appointments.isError ? (
+            <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+              Your class setup access could not be loaded.
+            </LoadError>
+          ) : (
+            <Loading>Loading the share class…</Loading>
+          )
+        ) : setup ? (
+          <ClassSetup
+            uuid={uuid}
+            owner={owner}
+            guard={data.guard}
+            externalHeld={data.readingPaused && !setupHeld}
+            onHeldChange={heldSetup}
+          />
+        ) : undefined
+      }
       rights={<ClassRights rights={rights} />}
     />
   );
 }
 
-function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareClass>; rights: ReactNode }) {
+function ShareClassDetails({
+  data,
+  rights,
+  setup,
+}: {
+  data: ReturnType<typeof useShareClass>;
+  rights: ReactNode;
+  setup?: ReactNode;
+}) {
   const preferences = useUserPreferences();
   const preferencesRead = useQueryClient().getQueryState(USER_PREFERENCES_QUERY_KEY);
   const onDocumentsHeld = useCallback((held: boolean) => data.holdReads('member-documents', held), [data.holdReads]);
@@ -100,57 +178,59 @@ function ShareClassDetails({ data, rights }: { data: ReturnType<typeof useShareC
   const register = registerReady ? data.register.data : undefined;
   return (
     <>
-      <Section title="Summary">
-        <p className="text-sm text-text-muted">
-          {token.symbol} · {token.tokenTypeDisplay}
-        </p>
-        {preferencesRead?.status === 'error' ? (
-          <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
-            Your account could not be loaded.
-          </LoadError>
-        ) : data.register.isError ? (
-          <LoadError retry={data.register.refetch} busy={data.register.isFetching}>
-            The current ownership could not be loaded.
-          </LoadError>
-        ) : !register ? (
-          <Loading>Loading current ownership…</Loading>
-        ) : (
-          <section aria-label="Current ownership" className="space-y-3">
-            <Rows>
-              <Row inline label="Issued shares">
-                {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
-              </Row>
-              <Row inline label="Current shareholders">
-                {register.initialized ? formatShareCount(String(register.totalHolders)) : 'Not recorded'}
-              </Row>
-              {token.totalSupply !== TECHNICAL_SHARE_LIMIT && (
-                <Row inline label="Authorised shares">
-                  {formatShareCount(token.totalSupply)}
+      {setup ?? (
+        <Section title="Summary">
+          <p className="text-sm text-text-muted">
+            {token.symbol} · {token.tokenTypeDisplay}
+          </p>
+          {preferencesRead?.status === 'error' ? (
+            <LoadError retry={() => preferences.refetch()} busy={preferences.isFetching}>
+              Your account could not be loaded.
+            </LoadError>
+          ) : data.register.isError ? (
+            <LoadError retry={data.register.refetch} busy={data.register.isFetching}>
+              The current ownership could not be loaded.
+            </LoadError>
+          ) : !register ? (
+            <Loading>Loading current ownership…</Loading>
+          ) : (
+            <section aria-label="Current ownership" className="space-y-3">
+              <Rows>
+                <Row inline label="Issued shares">
+                  {register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply)}
                 </Row>
+                <Row inline label="Current shareholders">
+                  {register.initialized ? formatShareCount(String(register.totalHolders)) : 'Not recorded'}
+                </Row>
+                {token.totalSupply !== TECHNICAL_SHARE_LIMIT && (
+                  <Row inline label="Authorised shares">
+                    {formatShareCount(token.totalSupply)}
+                  </Row>
+                )}
+              </Rows>
+              {!register.initialized && (
+                <p className="text-xs text-text-muted">
+                  <Status tone="waiting">Ledger not opened</Status>
+                </p>
               )}
-            </Rows>
-            {!register.initialized && (
-              <p className="text-xs text-text-muted">
-                <Status tone="waiting">Ledger not opened</Status>
-              </p>
-            )}
-            {!token.isTransferable && (
-              <p className="text-sm text-text-muted">This share class is recorded as non-transferable.</p>
-            )}
-            {!register.initialized ? (
-              <p className="text-sm text-text-muted">{REGISTER_COPY.NOT_OPENED_NOTE}</p>
-            ) : register.waitingEffects === null ? (
-              <p role="status" className="text-sm text-text-muted">
-                {REGISTER_COPY.WAITING_UNKNOWN_NOTE}
-              </p>
-            ) : register.waitingEffects > 0 ? (
-              <p role="status" className="text-sm text-text-muted">
-                {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
-              </p>
-            ) : null}
-          </section>
-        )}
-      </Section>
+              {!token.isTransferable && (
+                <p className="text-sm text-text-muted">This share class is recorded as non-transferable.</p>
+              )}
+              {!register.initialized ? (
+                <p className="text-sm text-text-muted">{REGISTER_COPY.NOT_OPENED_NOTE}</p>
+              ) : register.waitingEffects === null ? (
+                <p role="status" className="text-sm text-text-muted">
+                  {REGISTER_COPY.WAITING_UNKNOWN_NOTE}
+                </p>
+              ) : register.waitingEffects > 0 ? (
+                <p role="status" className="text-sm text-text-muted">
+                  {REGISTER_COPY.WAITING_NOTE(register.waitingEffects)}
+                </p>
+              ) : null}
+            </section>
+          )}
+        </Section>
+      )}
       {rights}
       {data.owner && (
         <MemberDocuments

@@ -118,7 +118,7 @@ export function ImportForm({
     onHeldChange,
     newKey: () => crypto.randomUUID(),
     onPrepared: (token, record) =>
-      navigate(`${generatePath(DESTINATIONS.companyRegisterImport.path, { uuid: token })}?record=${record}`, {
+      navigate(`${generatePath(DESTINATIONS.companyClass.path, { uuid: token })}?record=${record}`, {
         replace: true,
       }),
     onFinished: () => navigate(COMPANY_DASHBOARD_PATH, { state: { registerCompany: company } }),

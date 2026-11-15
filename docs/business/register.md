@@ -203,16 +203,21 @@ import records are applied, and the register keeps the particulars from their Pr
 ([particulars from Profile](member-records.md#particulars-from-profile)). Register setup is on the
 web and, at phone width, in the app:
 
-1. On Ledger, choose **Add share class**; or choose Corrections, the class, then Bring records
+1. On the web, open Ledger → **Share classes**. Choose **Add share class**, or select an unfinished
+   class to continue its setup on the same class page. The Dashboard's **Set up your ledger** opens
+   a sole unfinished class directly, opens creation when there are no classes, or shows Share classes
+   when several need a choice. Recorded classes show their summary, rights and documents; readers
+   keep their permitted read view. The app still starts setup through **Add share class**.
+   Alternatively, choose Corrections, the class, then Bring records
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
    class not yet set up. Share classes are created only through register setup, in Ledger.
-2. Share details: open an existing draft class from its link, or choose a common class (Ordinary
+2. Share details: continue the selected unfinished class, or choose a common class (Ordinary
    ORD, Preference PRF or Redeemable RED) or Another class with the company's own name, code and
    type. The company choices come from current personal administrator or preparer appointments,
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
    limit instead of authorised capital. Repeat for each class.
-   With no classes yet, a preparer uses the company sidebar's Ledger and its setup action.
+   With no classes yet, a preparer uses Ledger → Share classes and **Add share class** on the web.
    Preparation access does not change their initial landing page or account role.
 3. Shareholders, one at a time: choose a recorded person or New person
    ([choosing a person](#choosing-a-person); names never link records, and existing names and
