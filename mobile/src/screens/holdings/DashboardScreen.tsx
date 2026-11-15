@@ -342,7 +342,9 @@ function CompanyRegister({
           </Section>
         ) : (
           <>
-            {company.canManage && ledgerPending && <GettingStarted />}
+            {company.canManage && ledgerPending && (
+              <GettingStarted company={company.uuid} hasClass={!!summary?.classes.length} />
+            )}
             {awaitingLedger ? (
               !company.canManage && (
                 <Section title="Ownership overview">
@@ -434,14 +436,18 @@ function CompanyRegister({
   );
 }
 
-function GettingStarted() {
+function GettingStarted({ company, hasClass }: { company: string; hasClass: boolean }) {
   const styles = useCompanyStyles();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   return (
     <Section title="Getting started">
       <Text style={styles.muted}>{REGISTER_IMPORT_COPY.SETUP_NOTE}</Text>
       <Actions>
-        <Action label={DESTINATIONS.companyRegisterSetup.title} primary onPress={() => navigation.navigate('Ledger')} />
+        <Action
+          label={DESTINATIONS.companyRegisterSetup.title}
+          primary
+          onPress={() => (hasClass ? navigation.navigate('Ledger') : navigation.navigate('RegisterSetup', { company }))}
+        />
       </Actions>
     </Section>
   );
