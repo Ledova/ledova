@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { REGISTER_CLASS_TYPES, type CompanyShareToken } from '@ledova/shared';
 import { Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
@@ -90,6 +90,7 @@ export function ClassDetails({
   available: boolean;
 }) {
   const edit = useRef<HTMLButtonElement>(null);
+  const deletionReasonId = useId();
   const wasEditing = useRef(false);
   useEffect(() => {
     if (details.editor) wasEditing.current = true;
@@ -98,7 +99,6 @@ export function ClassDetails({
       wasEditing.current = false;
     }
   }, [details.editor, available]);
-  if (!token.canEditDetails && !token.canDelete && !details.held && !details.outcome) return null;
   const target = details.deleting;
   const currentDelete = available && target?.updatedAt === token.updatedAt && token.canDelete;
   return (
@@ -119,13 +119,19 @@ export function ClassDetails({
                 {token.tokenTypeDisplay}
               </Row>
             </Rows>
+            {token.deletionBlockedReason && (
+              <p id={deletionReasonId} className="text-sm text-text-muted">
+                {token.deletionBlockedReason}
+              </p>
+            )}
             <FormActions>
-              {token.canDelete && (
+              {(token.canDelete || token.deletionBlockedReason) && (
                 <PageAction
                   label="Delete"
                   context="share class"
                   destructive
-                  disabled={!available || details.held}
+                  describedBy={token.deletionBlockedReason ? deletionReasonId : undefined}
+                  disabled={!available || details.held || !token.canDelete}
                   onClick={() => details.open('delete')}
                 />
               )}
@@ -152,7 +158,8 @@ export function ClassDetails({
         size="sm"
       >
         <p className="text-sm text-text-primary">
-          Delete {target?.name} ({target?.symbol}) from this company? Only an unused class can be deleted.
+          Delete {target?.name} ({target?.symbol}) from active share classes? Abandoned setup drafts and audit history
+          are kept.
         </p>
         <Failure>{details.error}</Failure>
         <ModalActions>

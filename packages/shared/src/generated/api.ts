@@ -7242,6 +7242,7 @@ export interface ApiComponents {
       contractAddress: string | null;
       createdAt: string;
       decimals: number;
+      deletionBlockedReason: string | null;
       deployedAt: string | null;
       deploymentTxHash: string | null;
       isDivisible: boolean;

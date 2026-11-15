@@ -1408,6 +1408,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     updatedAt: '2026-10-14T00:00:00Z',
     canEditDetails: false,
     canDelete: false,
+    deletionBlockedReason: null as string | null,
   };
   const dataPage = (results: unknown[]) => ({ data: { results, count: results.length, next: null, previous: null } });
   const holders = (): TokenHoldersResponse => ({
@@ -3050,6 +3051,25 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     expect(lifecycle.name).toBe('Renamed ordinary shares');
   }
   fireEvent.click(metadata.getByRole('button', { name: 'Cancel' }));
+  const blockedReason = 'Retire the saved setup review before deleting this class.';
+  lifecycle = {
+    ...lifecycle,
+    canDelete: false,
+    deletionBlockedReason: blockedReason,
+  };
+  await act(async () =>
+    client.invalidateQueries({ predicate: (query) => (query.state.data as CompanyShareToken)?.uuid === token.uuid }),
+  );
+  const blockedDeletion = await screen.findByRole('button', { name: 'Delete (share class)' });
+  expect(blockedDeletion.matches(':disabled')).toBe(true);
+  expect(screen.getByText(blockedReason).getAttribute('id')).toBe(blockedDeletion.getAttribute('aria-describedby'));
+  fireEvent.click(blockedDeletion);
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(api.delete).not.toHaveBeenCalled();
+  lifecycle = { ...lifecycle, canDelete: true, deletionBlockedReason: null };
+  await act(async () =>
+    client.invalidateQueries({ predicate: (query) => (query.state.data as CompanyShareToken)?.uuid === token.uuid }),
+  );
   fireEvent.click(await screen.findByRole('button', { name: 'Delete (share class)' }));
   let deletion = within(await screen.findByRole('dialog', { name: 'Delete Renamed ordinary shares?' }));
   fireEvent.click(deletion.getByRole('button', { name: 'Cancel' }));

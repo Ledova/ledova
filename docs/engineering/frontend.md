@@ -672,12 +672,15 @@ gets no form: the page shows that the member keeps their particulars in their Le
 Non-paid and employee-award grants are prepared inline in Issue shares.
 
 The web class page's `ClassDetails.tsx` and page-owned `useClassDetails.ts` edit name, code and type
-or delete an unused class using the API's `canEditDetails`, `canDelete` and `updatedAt`. They pin the
+or delete an unused class using the API's `canEditDetails`, `canDelete` and `updatedAt`. An authorised
+preparer sees the API's `deletionBlockedReason` beside a disabled Delete action when records prevent
+deletion. The confirmation explains that abandoned drafts and audit history are kept. They pin the
 original class, company and version when opening the action, preserve edits during source checks,
 and hold an uncertain request for explicit result checking rather than submitting a new target.
 Confirmed changes invalidate the related class and ownership reads; deletion does not refetch the
 removed class. Setup decisions refresh class availability, so retiring a review can expose editing
-without a reload. Class rights retain their separate revision-based editor and permissions.
+without a reload. Deleting a class removes it from active use while keeping abandoned setup history;
+it never deletes confirmed ownership. Class rights retain their separate revision-based editor and permissions.
 
 On the web, setup's shareholder editor and later shareholder/class pages share
 `dashboard/src/pages/company/ledger/shared/DocumentAttachments.tsx` for optional categorised

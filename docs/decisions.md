@@ -2734,5 +2734,9 @@ continue the existing clickable setup, while recorded classes show ownership, ri
 Current reader access, saved reviews, opening corrections and original-request recovery remain.
 
 Class editing must not rewrite recorded ownership or retained decisions. Deletion is limited to
-genuinely unused classes; a class with no current shares can still have retained history. New
+genuinely unused classes; a class with no current shares can still have retained history. The owner
+subsequently approved deleting an unopened class with abandoned setup drafts: remove it from active
+use, retain its original identity, deletion actor/time, drafts, decisions and evidence, and allow its
+code to be reused. Outstanding reviews and confirmed ownership records remain protected, and the
+web explains why deletion is blocked. This is a refinement of the same class workflow. New
 issuance and transfers keep their distinct company workflows and the same underlying ledger.

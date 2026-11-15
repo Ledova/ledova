@@ -17,6 +17,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from companies.models import Company
+from companies.services.administration import company_operation
 from shared.db import atomic
 from shared.utils.typed_data import DOMAIN_NAME, DOMAIN_VERSION
 from tokens.constants import COMPANY_PACK_SPOOL_BYTES
@@ -192,6 +193,8 @@ def _share_class(company, token, outputs) -> dict:
                 "type": token.token_type,
                 "authorised_shares": token.total_supply,
                 "status": token.status,
+                "deleted_at": token.deleted_at,
+                "deleted_by": token.deleted_by_id,
                 "transferable": token.is_transferable,
                 "chain": token.chain,
                 "contract_address": token.contract_address,
@@ -405,7 +408,7 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
     with _snapshot():
         as_at = timezone.now().astimezone(utc_zone.utc)
         company = Company.objects.get(pk=company.pk)
-        tokens = list(ShareToken.objects.filter(company=company).order_by("symbol", "uuid"))
+        tokens = list(ShareToken.all_objects.filter(company=company).order_by("symbol", "uuid"))
         if not tokens:
             raise ValidationError("This company has no share classes, so there is no register to put in a pack.")
         outputs = outputs_due(company=company)
@@ -499,6 +502,7 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
                 {
                     "class": share_class["token"].pk,
                     "symbol": share_class["token"].symbol,
+                    "deleted_at": share_class["token"].deleted_at,
                     "sequence": share_class["sequence"],
                     "head_hash": share_class["head_hash"],
                 }
@@ -513,7 +517,8 @@ def _build_company_pack(company, *, instruction, recipient, validate_contents=No
 def produce_company_pack(company, requested_by, *, instruction, recipient):
     archive, filename, classes, digest = _build_company_pack(company, instruction=instruction, recipient=recipient)
     try:
-        _record(classes, requested_by, digest, instruction, recipient, RegisterExportRoute.ADMIN)
+        with company_operation(requested_by, company.pk, "company_pack_admin"):
+            _record(classes, requested_by, digest, instruction, recipient, RegisterExportRoute.ADMIN)
     except BaseException:
         archive.close()
         raise

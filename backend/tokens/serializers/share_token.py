@@ -82,6 +82,7 @@ class ShareTokenDetailSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
     can_edit_details = serializers.BooleanField(read_only=True, default=False)
     can_delete = serializers.BooleanField(read_only=True, default=False)
+    deletion_blocked_reason = serializers.CharField(read_only=True, allow_null=True, default=None)
 
     def get_is_owner(self, obj) -> bool:
         actor = getattr(self.context.get("request"), "user", None)
@@ -99,6 +100,7 @@ class ShareTokenDetailSerializer(serializers.ModelSerializer):
             "is_owner",
             "can_edit_details",
             "can_delete",
+            "deletion_blocked_reason",
             "company",
             "company_uuid",
             "company_name",

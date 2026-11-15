@@ -136,8 +136,10 @@ incomplete requests, and refusal after later ownership or member-access activity
 the API and PostgreSQL guards; they establish no genuine legal register or source verification.
 The existing class journey also covers metadata editing and unused-class deletion, stale versions,
 invalid or duplicate codes, unexpected fields, and refusal once an opening or retained record
-prevents the change. Rejecting a setup permits an otherwise eligible edit but does not permit
-deleting its retained class. These checks extend existing cases: 37 methods plus 61 rows remains 98.
+prevents the change. Rejecting a setup permits an otherwise eligible edit or removal from active
+classes; deletion retains its audit history and prevents new work against the deleted class. The
+existing web journey also checks that a blocked Delete action displays its accessible reason.
+These checks extend existing cases: 37 methods plus 61 rows remains 98; Dashboard remains 20.
 
 ### Real-app-login tenant cases
 

@@ -1,6 +1,7 @@
 import json
 from io import StringIO
 from unittest.mock import patch
+from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.conf import settings
@@ -22,6 +23,7 @@ from shared.storage import private_storage
 from shared.tasks.queue import defer
 from shared.tests.core_fixtures import (
     CoreFixtures,
+    import_payload,
     populated_register,
     retained_evidence,
 )
@@ -29,6 +31,7 @@ from tokens.models import (
     RegisterEntry,
     RegisterEvidenceKind,
     RegisterPosition,
+    ShareToken,
     TokenDeployment,
 )
 from tokens.services.company_pack_outputs import prepare_company_pack
@@ -53,6 +56,27 @@ class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
         return {"company_id": self.company.pk, "appointment_id": self.appointment.pk, "pack": path}
 
     def test_reviewed_disposal_preserves_foreign_records_and_retries_failed_file_removal(self):
+        retired = self.client.post(
+            "/api/v1/tokens/",
+            {"company": str(self.company.pk), "name": "Retired setup class", "symbol": "RET", "totalSupply": "1000"},
+            format="json",
+        )
+        self.assertEqual(retired.status_code, 201, retired.content)
+        with use_operator():
+            retired_token = ShareToken.objects.get(pk=retired.json()["uuid"])
+        draft = self.client.post(
+            "/api/v1/tokens/register-imports/",
+            import_payload(self.owner, self.appointment, retired_token),
+            format="json",
+        )
+        self.assertEqual(draft.status_code, 201, draft.content)
+        self.decision("/api/v1/tokens/register-imports/", draft.json()["uuid"], "reject", reason="Abandon unused setup")
+        removed = self.client.delete(
+            f"/api/v1/tokens/{retired_token.pk}/?" + urlencode({"expected_updated_at": retired.json()["updatedAt"]})
+        )
+        self.assertEqual(removed.status_code, 204, removed.content)
+        with use_operator():
+            self.assertTrue(ShareToken.all_objects.filter(pk=retired_token.pk, deleted_at__isnull=False).exists())
         foreign_token, _ = populated_register(self.foreign, self.foreign_company, self.foreign_appointment)
         award = self.award_payload()
         promised = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
@@ -163,6 +187,8 @@ class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
                 purpose_review_reference="REVIEW-001",
             )
         self.assertIsNotNone(receipt.database_disposed_at)
+        with use_operator():
+            self.assertFalse(ShareToken.all_objects.filter(pk=retired_token.pk).exists())
         self.assertIsNone(receipt.completed_at)
         self.assertEqual(receipt.pending_files, [stored])
         with use_migrate():

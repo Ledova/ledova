@@ -79,7 +79,7 @@ awkwardly: do not add one.
   and call it from the view.
 - A queryset method with one call site: inline the filter.
 - A base class or mixin for one subclass; an exception class for one raise that DRF already
-  covers; a manager for a queryset.
+  covers; a manager that only wraps a queryset.
 - A task that is never deferred; a periodic task for a one-off backfill (use a management command
   or the shell).
 - A model, column or endpoint that records data nothing reads.
@@ -94,8 +94,10 @@ awkwardly: do not add one.
   `shared/storage.py`: `post_delete` deletes a private file once its row is gone, whichever path
   deleted the row. A cascade delete never reaches a service, so an explicit call in each delete path
   cannot cover it.
-- No new manager packages. `CustomUserManager` is the existing exception; querysets use
-  `as_manager()`.
+- No new manager packages; querysets use `as_manager()`. `CustomUserManager` handles account
+  creation. `ActiveShareTokenManager` has only the default active-class filter; the explicit
+  `all_objects` base manager preserves retained audit and maintenance access. Product selectors
+  remain on the queryset.
 - Keep raised exceptions in the app's `exceptions.py` and use DRF's standard exceptions for
   ordinary validation, permission and not-found errors. Preserve actionable API messages.
 - Never return raw provider exception text
@@ -364,14 +366,20 @@ no ownership entry; the opening and each issue retain their own actor and appoin
 
 Class metadata changes use `PATCH /api/v1/tokens/{uuid}/` with only `name`, `symbol`, `tokenType`
 and the current `expectedUpdatedAt`; unused-class deletion uses `DELETE` on that detail route with
-`expected_updated_at` in the query. Detail responses expose `canEditDetails` and `canDelete` for the
-current actor; list responses do not perform these reference checks. The bounded commands in
+`expected_updated_at` in the query. Detail responses expose `canEditDetails`, `canDelete` and
+`deletionBlockedReason` for the current actor; the reason is available only to current preparers.
+List responses do not perform these reference checks. The bounded commands in
 [class_lifecycle.py](../../backend/tokens/services/class_lifecycle.py) recheck personal preparation
 authority, lock the class and register, and refuse stale versions. The
 [SQL guard](../../backend/tokens/database_class_lifecycle.sql), installed by
 [database_class_lifecycle.py](../../backend/tokens/database_class_lifecycle.py) and
 [tokens/0008](../../backend/tokens/migrations/0008_class_lifecycle.py), requires the exact company
-command, checks actual foreign-key references and rechecks authority at commit. Draft status alone
+command, checks actual foreign-key references and rechecks authority at commit. The
+[deletion-history migration](../../backend/tokens/migrations/0009_class_deletion_history.py) adds a
+one-way deletion marker and actor. Active reads and new work exclude deleted classes; retained
+history and company audit outputs keep their original class identity. Deletion accepts only
+rejected setup drafts and a genuinely empty register stub, retaining their evidence and decisions.
+Submitted or approved reviews, confirmed records and other dependencies still block it. Draft status alone
 does not establish eligibility; opened off-chain classes can remain Draft. The
 [business rules](../business/issuing-shares.md#share-classes) define the edit and deletion limits.
 [Staff admin](../../backend/tokens/admin/share_token.py) keeps existing class metadata read-only and

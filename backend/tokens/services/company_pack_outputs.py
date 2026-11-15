@@ -45,7 +45,17 @@ def _require_core_contents(company, classes, approvals, mandate_source):
         }
         details = records["class"]
         if (
-            not RegisterImport.objects.filter(company=company, token=token, status="applied").exists()
+            (
+                not token.deleted_at
+                and not RegisterImport.objects.filter(company=company, token=token, status="applied").exists()
+            )
+            or (
+                token.deleted_at
+                and (
+                    RegisterImport.objects.filter(company=company, token=token).exclude(status="rejected").exists()
+                    or records["entries"]
+                )
+            )
             or token.status != ShareTokenStatus.DRAFT
             or token.contract_address
             or token.deployment_id
@@ -65,8 +75,9 @@ def _require_core_contents(company, classes, approvals, mandate_source):
         members = {change["member"] for entry in records["entries"] for change in entry["changes"]}
         if (
             token.company_id != company.pk
-            or register is None
-            or register.company_id != company.pk
+            or (not token.deleted_at and register is None)
+            or (register is not None and register.company_id != company.pk)
+            or (token.deleted_at and register is not None and (register.sequence != 0 or register.issued_supply != 0))
             or RegisterMember.objects.filter(pk__in=members, company=company).count() != len(members)
         ):
             raise RegisterIntegrityError("The captured register's company binding is inconsistent.")
@@ -88,7 +99,9 @@ def prepare_company_pack(*, actor, company_id, appointment, instruction, recipie
                 register_appointment(company, actor, profile, operator, appointment, CompanyCapability.ADMIN)
                 class_ids = [share_class["token"].pk for share_class in classes]
                 locked = list(
-                    ShareToken.objects.select_for_update().filter(pk__in=class_ids, company=company).order_by("uuid")
+                    ShareToken.all_objects.select_for_update()
+                    .filter(pk__in=class_ids, company=company)
+                    .order_by("uuid")
                 )
                 if len(locked) != len(class_ids):
                     raise ValidationError("A captured share class no longer belongs to this company.")
