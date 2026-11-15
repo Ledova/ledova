@@ -262,7 +262,7 @@ ended rights, split into unvested, vested-but-unissued, issued and ended shares.
 On the web, **Shareholders → Employee scheme** shows the selected class's awards as compact rows: the
 recipient with the shares promised at the right, then the agreement date and the shares vested and
 issued beneath (wide screens give Promised, Vested and Issued their own columns). Each row opens the award's own page, with
-a back arrow to Employee share scheme and **Recipient details** at the top. Its **Entitlement** card holds the
+a back arrow to the previous page and **Recipient details** at the top. Its **Entitlement** card holds the
 chart and the award's actions, followed by **Agreement** (its date and download, with the terms and
 vesting schedule one step away), **Vesting history** (the latest three events, with Show all), and
 **Entitlement changes** and **Non-paid issues from this award**, each shown only when it has records.

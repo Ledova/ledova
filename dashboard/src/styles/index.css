@@ -22,6 +22,16 @@ body {
     outline: 2px solid var(--color-border-focus);
     outline-offset: 2px;
   }
+
+  input[type='date'] {
+    appearance: none;
+    min-width: 0;
+  }
+
+  input[type='date']::-webkit-date-and-time-value {
+    min-height: 1lh;
+    text-align: start;
+  }
 }
 
 ::-webkit-scrollbar {

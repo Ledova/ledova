@@ -2371,6 +2371,14 @@ card repeating those details is gone, except for a member who keeps them in thei
 own profile and so has no form, and the page no longer states the rule on which particulars win. That
 rule stays in [the register guide](business/register.md#changing-a-members-particulars).
 
+**Back arrow returns to the previous page, decided on 15 November 2026.** Testing Set up your ledger
+on the phone, the owner found its arrow always led to Share classes wherever they had come from, and
+asked that it return to the previous page instead of a fixed one. The arrow now goes back one step in
+the app's own history on web and app, as browser Back, Android's Back and the iOS swipe do. Only a page
+with nothing before it in the app, such as one opened from a link or in a new tab, opens its parent,
+which the arrow then names. The app's menu opens Set up your ledger over the current page, so its
+arrow returns there.
+
 ## The signed-in app
 
 The web layout below is superseded by the [12 October dashboard decision](#ownership-dashboard-and-compact-sidebar).
