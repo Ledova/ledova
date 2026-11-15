@@ -375,8 +375,8 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   mode = 'draft-empty';
   await refresh();
   expect(await screen.findByText(REGISTER_IMPORT_COPY.SETUP_NOTE)).toBeTruthy();
-  expect(screen.getByRole('link', { name: 'Set up your ledger' }).getAttribute('href')).toContain(
-    DESTINATIONS.companyRegister.path,
+  expect(screen.getByRole('link', { name: 'Set up your ledger' }).getAttribute('href')).toBe(
+    `${DESTINATIONS.companyRegisterSetup.path}?company=company-one`,
   );
   expect(screen.queryByRole('heading', { name: 'Ownership overview' })).toBeNull();
   expect(screen.queryByText('Not complete')).toBeNull();

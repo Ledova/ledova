@@ -4,14 +4,14 @@ import { Section } from '@components/Ledger';
 import { PageLink } from '@components/Page';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 
-export function GettingStarted() {
+export function GettingStarted({ hasClass }: { hasClass: boolean }) {
   const context = useCompanyContext();
-  const ledger = DESTINATIONS.companyRegister.path;
+  const path = hasClass ? DESTINATIONS.companyRegister.path : DESTINATIONS.companyRegisterSetup.path;
   return (
     <Section title="Getting started">
       <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.SETUP_NOTE}</p>
       <div>
-        <PageLink primary to={context?.companyPath(ledger) ?? ledger} label={pageTitle('companyRegisterSetup')} />
+        <PageLink primary to={context?.companyPath(path) ?? path} label={pageTitle('companyRegisterSetup')} />
       </div>
     </Section>
   );
