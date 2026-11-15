@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { RefreshControl, Text } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   DESTINATIONS,
@@ -13,7 +13,7 @@ import {
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
-import { Action, Actions, LinkRow, LoadError, Loading, Rows, Section } from '../../components/Ledger';
+import { Action, Actions, LinkRow, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
@@ -24,7 +24,7 @@ import { useLedgerStyles } from './useLedgerStyles';
 const TITLE = DESTINATIONS.companyRegister.title;
 const LEDE = 'Share classes and current ownership.';
 
-export function LedgerScreen() {
+export function LedgerScreen({ route }: { route: RouteProp<SignedInStackParamList, 'Ledger'> }) {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
   const { directory, companies, company } = useMemberRecordsState();
   const choosing = directory.isLoading || (!company && companies.length > 0);
@@ -35,6 +35,7 @@ export function LedgerScreen() {
         owner={owner}
         currentOwner={boundary.get}
         company={company.uuid}
+        outcome={route.params?.outcome}
       />
     );
   return (
@@ -58,10 +59,12 @@ function CompanyLedger({
   owner,
   currentOwner,
   company,
+  outcome,
 }: {
   owner: OrderSubmissionOwner;
   currentOwner: () => OrderSubmissionOwner | null;
   company: string;
+  outcome?: string;
 }) {
   const theme = useAppTheme();
   const look = useLedgerStyles();
@@ -93,6 +96,7 @@ function CompanyLedger({
         />
       }
     >
+      {!!outcome && <Outcome>{outcome}</Outcome>}
       {source.accountError ? (
         <LoadError retry={source.retryAccount} busy={source.isRefreshing}>
           Your account could not be loaded.

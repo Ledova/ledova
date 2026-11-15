@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getCompanyToken, getCompanyTokenHolders } from '../services/company-tokens';
+import { getCompanyToken } from '../services/company-tokens';
 import type { CompanyShareToken } from '../types';
 import { createUserFriendlyError } from '../utils/errors';
-import { ownershipSummary } from '../utils/register-ownership';
 import { wholeShares } from '../utils/share-quantities';
 import { useApiClient } from './useApiClient';
+import { useImportRegister } from './useImportRegister';
 import { useSubmissionOwner, type OrderSubmissionSession } from './useSubmissionOwner';
 
 export function shareClassKey(uuid: string) {
@@ -76,24 +76,7 @@ export function useShareClass(uuid: string, session?: OrderSubmissionSession, av
     },
   });
   const enabled = available && !!owner && token.isSuccess;
-  const register = useQuery({
-    queryKey: [...tokenKey, 'holders'],
-    enabled,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    queryFn: async () => {
-      guard();
-      const { data } = await getCompanyTokenHolders(apiClient, uuid, config());
-      guard();
-      const quantities = [data.token.totalSupply, ...data.holders.map(({ balance }) => balance)];
-      if (data.issuedSupply !== null) quantities.push(data.issuedSupply);
-      if (data.token.uuid !== uuid || quantities.some((quantity) => wholeShares(quantity) === null)) {
-        throw new Error('Register quantities do not identify this share class');
-      }
-      ownershipSummary([data]);
-      return data;
-    },
-  });
+  const register = useImportRegister(owner, uuid, enabled, guard, session);
   return {
     owner,
     guard,

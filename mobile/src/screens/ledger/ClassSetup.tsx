@@ -1,21 +1,16 @@
-import { Fragment, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Keyboard, Text, View } from 'react-native';
-import { useNavigation, type RouteProp } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AUTH_QUERY_KEY,
   DESTINATIONS,
   FIELD_LIMITS,
   REGISTER_CLASS_TYPES,
-  REGISTER_COPY,
   REGISTER_IMPORT_COPY as COPY,
   REGISTER_SETUP_CHOICES,
-  TECHNICAL_SHARE_LIMIT,
   USER_PREFERENCES_QUERY_KEY,
   canOpenEmptyRegister,
   createUserFriendlyError,
-  formatShareCount,
   importRegisterKey,
   importsKey,
   ownAppointmentsKey,
@@ -29,8 +24,6 @@ import {
   useRegisterClasses,
   useRegisterImports,
   useStartedClasses,
-  useSubmissionOwner,
-  useUserPreferences,
   type Company,
   type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
@@ -46,10 +39,8 @@ import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { Choices, Field } from '../../components/Field';
-import { useMemberRecordsState, useThemedStyles } from '../../contexts';
-import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
+import { useThemedStyles } from '../../contexts';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { useRetainedScope } from '../../hooks/useRetainedScope';
 import { ImportForm } from './ImportForm';
 import { useLedgerStyles } from './useLedgerStyles';
 
@@ -85,82 +76,7 @@ function Cancel({ onCancel }: { onCancel: () => void }) {
   );
 }
 
-export function RegisterSetupScreen({ route }: { route: RouteProp<SignedInStackParamList, 'RegisterSetup'> }) {
-  const { company, token, record, from } = route.params;
-  const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
-  const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const preferences = useUserPreferences();
-  const { directory, companies } = useMemberRecordsState();
-  const readable = companies.some((row) => row.uuid === company && row.canReadRegister);
-  const access = useRetainedScope(
-    owner,
-    boundary.get,
-    `${company}/${token ?? 'new'}/${record ?? ''}`,
-    !preferences.isError &&
-      !preferences.isFetching &&
-      readable &&
-      !directory.hasError &&
-      !directory.isLoading &&
-      !directory.isRefreshing,
-  );
-  const open = (place: Opener) => {
-    Keyboard.dismiss();
-    const listed = !!navigation.getState()?.routes.some(({ name }) => name === place);
-    const params = { company, token: token ?? '' };
-    if (place === 'Ledger') {
-      if (listed) navigation.popTo(place);
-      else navigation.replace(place);
-    } else if (place === 'IssueShares') {
-      if (listed) navigation.popTo(place, params);
-      else navigation.replace(place, params);
-    } else if (place === 'TransferShares') {
-      if (listed) navigation.popTo(place, params);
-      else navigation.replace(place, params);
-    } else if (listed) navigation.popTo(place, params);
-    else navigation.replace(place, params);
-  };
-  const flow: Flow = {
-    onCancel: () => open(from ?? 'Ledger'),
-    onOpen: open,
-    onPrepared: (prepared, saved) => navigation.setParams({ token: prepared, record: saved }),
-    onFinished: () => navigation.popTo('Dashboard'),
-  };
-  if (owner && access.scope !== undefined) {
-    const scope = `${owner.userUuid}/${owner.ownerAccountUuid}/${orderSubmissionSession.getEpoch()}/${company}`;
-    return token ? (
-      <OwnImport
-        key={`${scope}/${token}/${record ?? ''}`}
-        owner={owner}
-        currentOwner={access.currentOwner}
-        accountOwner={boundary.get}
-        available={access.available}
-        company={company}
-        token={token}
-        record={record}
-        {...flow}
-      />
-    ) : (
-      <NewClassSetup
-        key={scope}
-        owner={owner}
-        currentOwner={access.currentOwner}
-        accountOwner={boundary.get}
-        available={access.available}
-        company={company}
-        onContinue={(started) => navigation.setParams({ token: started, record: undefined })}
-        {...flow}
-      />
-    );
-  }
-  return (
-    <Page testID="register-setup-scroll" title={TITLE}>
-      <RegisterAccess owner={owner} />
-      <Cancel onCancel={flow.onCancel} />
-    </Page>
-  );
-}
-
-function NewClassSetup({
+export function NewClassSetup({
   owner,
   currentOwner,
   accountOwner,
@@ -428,10 +344,7 @@ function FreshClass({
               <Text style={look.small}>Use the recorded class code of 1–5 letters, such as A or ORD.</Text>
             </>
           )}
-          <Text style={look.small}>
-            Class code and type do not define the rights attached to the shares. The technical share limit is an
-            internal quantity guard, not authorised capital.
-          </Text>
+          <Text style={look.small}>Class code and type do not define the rights attached to the shares.</Text>
         </View>
       }
     />
@@ -447,7 +360,7 @@ type Retained = {
   members: RegisterTransferMembers;
 };
 
-function OwnImport({
+export function ClassSetup({
   owner,
   currentOwner,
   accountOwner,
@@ -455,6 +368,10 @@ function OwnImport({
   company,
   token,
   record,
+  externalHeld,
+  onHeldChange,
+  onRecordsChanged,
+  showClassDetails,
   ...flow
 }: Flow & {
   owner: OrderSubmissionOwner;
@@ -464,12 +381,20 @@ function OwnImport({
   company: string;
   token: string;
   record?: string;
+  externalHeld: boolean;
+  onHeldChange: (held: boolean) => void;
+  onRecordsChanged: () => void;
+  showClassDetails: boolean;
 }) {
   const look = useLedgerStyles();
   const link = useLinkStyle();
   const client = useQueryClient();
   const [held, setHeld] = useState(false);
   const [retained, setRetained] = useState<Retained | null>(null);
+  useEffect(() => {
+    onHeldChange(held);
+    return () => onHeldChange(false);
+  }, [held, onHeldChange]);
   const guard = useMemo(() => ownerGuard(owner, currentOwner), [owner, currentOwner]);
   const accountGuard = useMemo(() => ownerGuard(owner, accountOwner), [owner, accountOwner]);
   const classes = useRegisterClasses(owner, accountGuard, orderSubmissionSession, available);
@@ -480,6 +405,11 @@ function OwnImport({
     companyMatches && listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
   const readable = available && !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, token, guard, readable, orderSubmissionSession);
+  const previousImports = useRef(imports.data);
+  useEffect(() => {
+    if (previousImports.current && imports.data && previousImports.current !== imports.data) onRecordsChanged();
+    previousImports.current = imports.data;
+  }, [imports.data, onRecordsChanged]);
   const members = usePeople(owner, token, guard, readable, orderSubmissionSession);
   const register = useImportRegister(owner, token, readable, guard, orderSubmissionSession);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
@@ -593,63 +523,61 @@ function OwnImport({
     else content = <Loading>Loading the register…</Loading>;
   }
   return (
-    <Page
-      testID="register-setup-scroll"
-      title={TITLE}
-      available={available && fresh && canOpen && companyMatches && (!record || !!saved)}
-      unavailable={
-        !available ? <RegisterAccess owner={owner} /> : (content ?? <Loading>Loading the register…</Loading>)
-      }
+    <View
+      testID="class-setup"
+      style={look.fields}
+      accessibilityElementsHidden={!available}
+      importantForAccessibility={available ? 'auto' : 'no-hide-descendants'}
     >
-      {retained && (
-        <ImportForm
-          key={`${token}/${retained!.correction?.uuid ?? 'new'}/${retained!.saved?.uuid ?? 'draft'}`}
-          owner={owner}
-          guard={guard}
-          newEffectGuard={checkNew}
-          company={retained!.listed.companyUuid}
-          shareClass={{ name: retained!.listed.name, symbol: retained!.listed.symbol }}
-          register={retained!.register}
-          companyMembers={(members.data ?? retained!.members).members}
-          emptyOpeningAllowed={
-            !!listed &&
-            !!register.data &&
-            !correction &&
-            !imports.data?.some((proposal) => proposal.status === 'applied') &&
-            canOpenEmptyRegister(register.data, listed)
-          }
-          classFields={
-            <Rows>
-              <Fact label="Class name" inline>
-                {retained!.listed.name}
-              </Fact>
-              <Fact label="Class code" inline>
-                {retained!.listed.symbol}
-              </Fact>
-              <Fact label="Class type" inline>
-                {retained!.listed.tokenTypeDisplay || 'Not recorded'}
-              </Fact>
-              <Fact label="Technical share limit" inline>
-                {retained!.listed.totalSupply === TECHNICAL_SHARE_LIMIT
-                  ? REGISTER_COPY.QUANTITY_GUARD
-                  : formatShareCount(retained!.listed.totalSupply)}
-              </Fact>
-            </Rows>
-          }
-          appointment={canPrepare ? steps?.prepare : undefined}
-          steps={steps ?? retained!.steps}
-          correction={retained!.correction}
-          saved={retained!.saved}
-          blocked={!fresh}
-          visible={fresh}
-          onConflict={retry}
-          onHeldChange={setHeld}
-          onCancel={flow.onCancel}
-          onPrepared={flow.onPrepared}
-          onFinished={flow.onFinished}
-        />
-      )}
+      {available && content}
+      <View style={(!available || !fresh || !canOpen || !companyMatches || (!!record && !saved)) && look.hidden}>
+        {retained && (
+          <ImportForm
+            key={`${token}/${retained!.correction?.uuid ?? 'new'}/${retained!.saved?.uuid ?? 'draft'}`}
+            owner={owner}
+            guard={guard}
+            newEffectGuard={checkNew}
+            company={retained!.listed.companyUuid}
+            shareClass={{ name: retained!.listed.name, symbol: retained!.listed.symbol }}
+            register={retained!.register}
+            companyMembers={(members.data ?? retained!.members).members}
+            emptyOpeningAllowed={
+              !!listed &&
+              !!register.data &&
+              !correction &&
+              !imports.data?.some((proposal) => proposal.status === 'applied') &&
+              canOpenEmptyRegister(register.data, listed)
+            }
+            classFields={
+              showClassDetails && (
+                <Rows>
+                  <Fact label="Class name" inline>
+                    {retained!.listed.name}
+                  </Fact>
+                  <Fact label="Class code" inline>
+                    {retained!.listed.symbol}
+                  </Fact>
+                  <Fact label="Class type" inline>
+                    {retained!.listed.tokenTypeDisplay || 'Not recorded'}
+                  </Fact>
+                </Rows>
+              )
+            }
+            appointment={canPrepare ? steps?.prepare : undefined}
+            steps={steps ?? retained!.steps}
+            correction={retained!.correction}
+            saved={retained!.saved}
+            blocked={!fresh || externalHeld}
+            visible={fresh && !externalHeld}
+            onConflict={retry}
+            onHeldChange={setHeld}
+            onCancel={flow.onCancel}
+            onPrepared={flow.onPrepared}
+            onFinished={flow.onFinished}
+          />
+        )}
+      </View>
       {!!content && <Cancel onCancel={flow.onCancel} />}
-    </Page>
+    </View>
   );
 }

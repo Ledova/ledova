@@ -78,9 +78,6 @@ Where today's code differs from these standards:
 
 - Existing unscoped account-bound keys stay unchanged; broader account scoping needs the owner
   decision on [#1065](https://github.com/Ledova/ledova/issues/1065).
-- Web Share classes now owns setup and class details in one page. Native still uses separate
-  setup and details screens; its consolidation remains deferred under
-  [#1567](https://github.com/Ledova/ledova/issues/1567).
 
 Mobile maps onto the same layers, direction and placement, with `navigation/` for `routes/` and
 `screens/<area>/` for page folders. Its component data calls beyond the reads extracted for key
@@ -671,7 +668,7 @@ holding `admin`, or `prepare`, `approve` and `apply`. A member row whose `follow
 gets no form: the page shows that the member keeps their particulars in their Ledova profile.
 Non-paid and employee-award grants are prepared inline in Issue shares.
 
-The web class page's `ClassDetails.tsx` and page-owned `useClassDetails.ts` edit name, code and type
+The web and native class pages' `ClassDetails.tsx` use the shared `useClassDetails` hook to edit name, code and type
 or delete an unused class using the API's `canEditDetails`, `canDelete` and `updatedAt`. An authorised
 preparer sees the API's `deletionBlockedReason` beside a disabled Delete action when records prevent
 deletion. The confirmation explains that abandoned drafts and audit history are kept. They pin the

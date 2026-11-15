@@ -2746,3 +2746,9 @@ the sidebar's Share classes open the same selected-company Ledger page. Creation
 and continuing setup are reached from that page, without class-count-dependent shortcuts.
 These are refinements of the same class workflow. New
 issuance and transfers keep their distinct company workflows and the same underlying ledger.
+
+Later on 15 November the owner authorised a cleanup review and native parity for this flow. Both
+clients now reuse the class edit/delete recovery logic and one owner-scoped ownership query. Native
+Dashboard and Share classes use the same Ledger overview, and its class workspace includes setup,
+safe editing/deletion, rights and documents. The redundant native setup menu item is removed; new-class
+and saved review/correction entries remain supported through that workspace.
