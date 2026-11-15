@@ -238,10 +238,11 @@ application role writes them. The purge is in [retention clocks](security.md#ret
 The register spine `Company -> ShareToken -> {ShareIssuance, ShareIssuanceRequest,
 CapitalIncreaseRequest, TransferOrder}` and `SwapOrder.share_token` use `PROTECT`, which admin
 removal of test data still respects. The API refuses company deletion (405), and unused-class
-deletion requires current company authority, an unchanged version and no confirmed or outstanding
-work. It removes the class from active use, retaining its identity, deletion actor/time and abandoned
-setup drafts with their decisions and evidence ([class lifecycle](backend.md#company-workflow-api)).
-An empty register stub is allowed; a zero balance alone is not proof that a class is unused.
+deletion requires current company authority, an unchanged version and no actual ownership activity
+or outstanding work. It removes the class from active use, retaining its identity, deletion actor/time
+and abandoned setup drafts with their decisions and evidence
+([class lifecycle](backend.md#company-workflow-api)). An empty register stub or confirmed empty opening
+is allowed, with the opening entry retained; a zero balance alone is not proof that a class is unused.
 Company audit outputs and maintenance disposal include these retained classes. Deleting a wallet cascades its whitelist entry and that entry's company approvals and
 leaves the approval on chain; durable [whitelist commands](chain.md#whitelist-changes) keep their
 own identity. Allotment identity stamps keep the identity resolved at issue, which treasury

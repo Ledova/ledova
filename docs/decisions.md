@@ -2738,5 +2738,8 @@ genuinely unused classes; a class with no current shares can still have retained
 subsequently approved deleting an unopened class with abandoned setup drafts: remove it from active
 use, retain its original identity, deletion actor/time, drafts, decisions and evidence, and allow its
 code to be reused. Outstanding reviews and confirmed ownership records remain protected, and the
-web explains why deletion is blocked. This is a refinement of the same class workflow. New
+web explains why deletion is blocked. The owner then extended this to a confirmed empty opening:
+it may leave active use while its opening and audit records stay intact, provided the class has
+never recorded actual ownership activity. A zero current balance after ownership activity does not
+qualify. These are refinements of the same class workflow. New
 issuance and transfers keep their distinct company workflows and the same underlying ledger.

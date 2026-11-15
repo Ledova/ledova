@@ -66,11 +66,18 @@ class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
             retired_token = ShareToken.objects.get(pk=retired.json()["uuid"])
         draft = self.client.post(
             "/api/v1/tokens/register-imports/",
-            import_payload(self.owner, self.appointment, retired_token),
+            {
+                **import_payload(self.owner, self.appointment, retired_token),
+                "members": [],
+                "former_members": [],
+                "asic_issued_total": "0",
+                "asic_member_count": 0,
+            },
             format="json",
         )
         self.assertEqual(draft.status_code, 201, draft.content)
-        self.decision("/api/v1/tokens/register-imports/", draft.json()["uuid"], "reject", reason="Abandon unused setup")
+        self.decision("/api/v1/tokens/register-imports/", draft.json()["uuid"], "approve")
+        self.decision("/api/v1/tokens/register-imports/", draft.json()["uuid"], "apply")
         removed = self.client.delete(
             f"/api/v1/tokens/{retired_token.pk}/?" + urlencode({"expected_updated_at": retired.json()["updatedAt"]})
         )

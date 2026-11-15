@@ -48,8 +48,10 @@ from shared.tests.core_fixtures import (
     import_payload,
     pdf_bytes,
     person,
+    retained_evidence,
 )
 from tokens.models import (
+    RegisterEntry,
     RegisterEvidence,
     RegisterEvidenceKind,
     RegisterExport,
@@ -324,6 +326,58 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             delete_version(f"/api/v1/tokens/{recreated.json()['uuid']}/", recreated.json()["updatedAt"]).status_code,
             204,
         )
+        empty_class = self.client.post(
+            "/api/v1/tokens/",
+            {
+                "company": str(self.company.pk),
+                "name": "Confirmed empty class",
+                "symbol": "EMPTY",
+                "totalSupply": "1000",
+            },
+            format="json",
+        )
+        self.assertEqual(empty_class.status_code, 201, empty_class.content)
+        with use_operator():
+            empty_token = ShareToken.objects.get(pk=empty_class.json()["uuid"])
+        empty_payload = {
+            **import_payload(self.owner, self.appointment, empty_token),
+            "members": [],
+            "former_members": [],
+            "asic_issued_total": "0",
+            "asic_member_count": 0,
+        }
+        empty_proposal = self.client.post("/api/v1/tokens/register-imports/", empty_payload, format="json")
+        self.assertEqual(empty_proposal.status_code, 201, empty_proposal.content)
+        self.decision("/api/v1/tokens/register-imports/", empty_proposal.json()["uuid"], "approve")
+        _, empty_decision = self.decision("/api/v1/tokens/register-imports/", empty_proposal.json()["uuid"], "apply")
+        empty_path = f"/api/v1/tokens/{empty_token.pk}/"
+        available = self.client.get(empty_path).json()
+        self.assertTrue(available["canDelete"])
+        self.assertFalse(available["canEditDetails"])
+        self.assertIsNone(available["deletionBlockedReason"])
+        with use_operator():
+            opening = RegisterEntry.objects.get(register__token=empty_token)
+            opening_hash = opening.entry_hash
+        removed = delete_version(empty_path, available["updatedAt"])
+        self.assertEqual(removed.status_code, 204, removed.content)
+        self.assertEqual(self.client.get(empty_path).status_code, 404)
+        retained_path = f"/api/v1/tokens/register-imports/{empty_proposal.json()['uuid']}/"
+        retained_review = self.client.get(retained_path)
+        self.assertEqual(retained_review.status_code, 200, retained_review.content)
+        self.assertFalse(retained_review.json()["correctionAllowed"])
+        self.assertEqual(self.client.post(f"{retained_path}decide/", empty_decision, format="json").status_code, 200)
+        self.assertEqual(
+            self.client.post(
+                f"{retained_path}decide/", {**empty_decision, "idempotency_key": str(uuid4())}, format="json"
+            ).status_code,
+            404,
+        )
+        with use_operator():
+            opening.refresh_from_db()
+            self.assertEqual((opening.kind, opening.changes, opening.entry_hash), ("opening", [], opening_hash))
+            self.assertEqual(RegisterImport.objects.get(pk=empty_proposal.json()["uuid"]).status, "applied")
+        ownership = self.client.get("/api/v1/tokens/ownership/", {"company": str(self.company.pk)}).json()
+        self.assertEqual([row["uuid"] for row in ownership["classes"]], [str(self.token.pk)])
         packed = self.client.post(
             f"/api/v1/companies/{self.company.pk}/pack/",
             {
@@ -343,7 +397,43 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             audit = json.loads(archive.read(f"classes/{tombstone.pk}/authority.json"))
             self.assertEqual(audit["imports"][0]["status"], "rejected")
             self.assertTrue(audit["imports"][0]["decisions"])
+            empty_audit = json.loads(archive.read(f"classes/{empty_token.pk}/authority.json"))
+            self.assertEqual(empty_audit["imports"][0]["status"], "applied")
+            self.assertEqual(len(empty_audit["imports"][0]["decisions"]), 2)
+            empty_entries = json.loads(archive.read(f"classes/{empty_token.pk}/entries.json"))
+            self.assertEqual(
+                (len(empty_entries), empty_entries[0]["entry_hash"], empty_entries[0]["changes"]), (1, opening_hash, [])
+            )
         self.assertEqual(self.client.get(history_path).json(), history.json())
+        with use_operator():
+            original = RegisterEntry.objects.get(register__token=self.token, kind="opening")
+        authority = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.AUTHORITY)
+        correction = self.client.post(
+            "/api/v1/tokens/register-corrections/",
+            {
+                "operation_id": str(uuid4()),
+                "appointment": str(self.appointment.pk),
+                "corrects_id": str(original.pk),
+                "authority_evidence": str(authority.pk),
+                "effective_on": timezone.now().date().isoformat(),
+                "authority": "director_resolution",
+                "approving_director": "Synthetic Director",
+                "authority_reference": "SYNTHETIC-COMPENSATING-RECORD",
+                "reason": "Compensate a recorded opening without erasing history",
+            },
+            format="json",
+        )
+        self.assertEqual(correction.status_code, 201, correction.content)
+        self.decision("/api/v1/tokens/register-corrections/", correction.json()["uuid"], "approve")
+        self.decision("/api/v1/tokens/register-corrections/", correction.json()["uuid"], "apply")
+        with use_operator():
+            register = ShareRegister.objects.get(token=self.token)
+            self.assertEqual((register.sequence, int(register.issued_supply)), (2, 0))
+            self.assertEqual(RegisterPosition.objects.get(register=register).shares, 0)
+        protected = self.client.get(current_path).json()
+        self.assertFalse(protected["canDelete"])
+        self.assertIn("confirmed ledger records", protected["deletionBlockedReason"])
+        self.assertEqual(delete_version(current_path, protected["updatedAt"]).status_code, 409)
 
     def test_company_ownership_summary_and_paged_holders_are_exact_and_current(self):
         overview = "/api/v1/tokens/ownership/"

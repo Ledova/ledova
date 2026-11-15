@@ -137,7 +137,9 @@ the API and PostgreSQL guards; they establish no genuine legal register or sourc
 The existing class journey also covers metadata editing and unused-class deletion, stale versions,
 invalid or duplicate codes, unexpected fields, and refusal once an opening or retained record
 prevents the change. Rejecting a setup permits an otherwise eligible edit or removal from active
-classes; deletion retains its audit history and prevents new work against the deleted class. The
+classes; an otherwise unused confirmed empty opening can also leave active use while its opening
+entry remains intact. Deletion retains audit history, rejects actual ownership activity even with
+a zero current balance, and prevents new work against the deleted class. The
 existing web journey also checks that a blocked Delete action displays its accessible reason.
 These checks extend existing cases: 37 methods plus 61 rows remains 98; Dashboard remains 20.
 

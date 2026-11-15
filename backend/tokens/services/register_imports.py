@@ -318,7 +318,7 @@ def _correction_requirements(proposal):
 
 
 def correction_allowed(proposal):
-    if proposal.status != "applied":
+    if proposal.status != "applied" or proposal.token.deleted_at:
         return False
     register = ShareRegister.objects.filter(token_id=proposal.token_id).first()
     if register is None:
