@@ -483,9 +483,10 @@ function OwnImport({
   const members = usePeople(owner, token, guard, readable, orderSubmissionSession);
   const register = useImportRegister(owner, token, readable, guard, orderSubmissionSession);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
+  const resumed = record ?? retained?.saved?.uuid;
   const saved = imports.data?.find((proposal) =>
-    record
-      ? proposal.uuid === record
+    resumed
+      ? proposal.uuid === resumed
       : proposal.status === 'submitted' &&
         proposal.sourceConfirmed &&
         proposal.correctionOf === (correction?.uuid ?? null),
