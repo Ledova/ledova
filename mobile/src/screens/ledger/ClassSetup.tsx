@@ -549,7 +549,7 @@ export function ClassSetup({
               canOpenEmptyRegister(register.data, listed)
             }
             classFields={
-              showClassDetails ? (
+              showClassDetails && (
                 <Rows>
                   <Fact label="Class name" inline>
                     {retained!.listed.name}
@@ -561,7 +561,7 @@ export function ClassSetup({
                     {retained!.listed.tokenTypeDisplay || 'Not recorded'}
                   </Fact>
                 </Rows>
-              ) : null
+              )
             }
             appointment={canPrepare ? steps?.prepare : undefined}
             steps={steps ?? retained!.steps}
