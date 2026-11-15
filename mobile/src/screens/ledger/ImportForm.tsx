@@ -72,7 +72,16 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
   return (
     <Section title={title}>
       {(!visible || proposal?.status !== 'applied') && (
-        <FormSteps label="Ledger setup steps" steps={REGISTER_SETUP_STEPS} current={phase} />
+        <FormSteps
+          label="Ledger setup steps"
+          steps={REGISTER_SETUP_STEPS}
+          current={phase}
+          reachable={(step) => model.stepReachable(step as typeof phase)}
+          onSelect={(step) => {
+            Keyboard.dismiss();
+            model.goTo(step as typeof phase);
+          }}
+        />
       )}
       <View style={[look.fields, !editable && look.hidden]}>
         <Problems problems={model.attempted ? (phase === 'details' ? model.detailProblems : model.problems) : []} />
@@ -195,9 +204,11 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
             </Rows>
           )}
           {proposal.status === 'submitted' && canPrepare && !!steps.reject && (
-            <Text style={look.small}>
-              Editing retires this prepared draft before saving a replacement. Confirmed mirrors and earlier evidence
-              stay unchanged.
+            <Text style={look.small}>{COPY.EDIT_NOTE}</Text>
+          )}
+          {model.editing && (
+            <Text accessibilityLiveRegion="polite" style={look.muted}>
+              {COPY.REOPENING}
             </Text>
           )}
           {proposal.status === 'submitted' && !steps[kind] && (
@@ -273,16 +284,6 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
                 Keyboard.dismiss();
                 model.setAttempted(false);
                 model.setPhase('details');
-              }}
-            />
-          )}
-          {reviewing && (
-            <Action
-              label={model.editing ? 'Reopening records…' : 'Edit records'}
-              disabled={deciding || !!recovery || autoApply || !canPrepare || !steps.reject || blocked}
-              onPress={() => {
-                model.setEditing(true);
-                void model.reject.open('reject', 'Replaced while editing the copied records.');
               }}
             />
           )}

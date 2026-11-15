@@ -2399,7 +2399,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     <RegisterSetupScreen route={{ key: 'read-only-setup', name: 'RegisterSetup', params: bringing }} />,
   );
   expect(await screen.findByText(REGISTER_IMPORT_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Continue|Save draft and review|Edit records|Confirm)$/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^(Continue|Save draft and review|Confirm)$/ })).toBeNull();
   expect(importPosts()).toHaveLength(decidedImports);
   await view.rerender(<ShareClassScreen route={{ key: 'founders', name: 'ShareClass', params: founders }} />);
   expect(await screen.findByText('No rights recorded.')).toBeTruthy();

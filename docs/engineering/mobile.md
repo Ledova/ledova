@@ -422,7 +422,8 @@ and the confirmation together and returns to Dashboard. The web's disabled **Imp
 for a class, from **Set up your ledger** or Corrections, it brings records into its unopened register,
 or replaces the latest applied opening's shareholder rows in full with a reason, and resumes a saved
 draft for review. Dates are typed as `YYYY-MM-DD` (UTC). Each save and decision keeps the web's retry
-of an uncertain result, and **Edit records** retires a prepared draft for editing. Shareholders are
+of an uncertain result, and the step headings (`FormSteps` with `goTo`) move between steps as on the web,
+retiring a prepared draft for editing when chosen from Review. Shareholders are
 compact rows (`MemberRow` in `ImportRecord.tsx`), with **Edit** and **Remove** in the draft and **Show
 allotments** on Review, whose record date, shares held and shareholders are one line each. **Cancel**
 returns to the page that opened it, on every step but Shareholders, where **Back** returns to Share

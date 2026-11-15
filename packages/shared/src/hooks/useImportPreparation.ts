@@ -1,6 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../constants/business/register-imports';
+import {
+  REGISTER_IMPORT_COPY,
+  REGISTER_IMPORT_UNMET_COPY,
+  REGISTER_SETUP_STEPS,
+} from '../constants/business/register-imports';
 import { uploadRegisterEvidence } from '../services/register-commands';
 import { prepareRegisterImport } from '../services/register-imports';
 import type {
@@ -35,6 +39,9 @@ import { importsKey } from './useRegisterImports';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 const CLOSED = 'This setup is closed. Reopen it before continuing.';
+type SetupPhase = (typeof REGISTER_SETUP_STEPS)[number]['id'];
+
+const SETUP_ORDER: readonly SetupPhase[] = REGISTER_SETUP_STEPS.map((step) => step.id);
 
 type Upload = { file: RegisterDocumentFile; appointment: string; key: string; receipt: RegisterEvidence | null };
 
@@ -125,9 +132,7 @@ export function useImportPreparation({
   const [proposal, setProposal] = useState<RegisterImport | undefined>(
     saved?.status === 'rejected' ? undefined : saved,
   );
-  const [phase, setPhase] = useState<'details' | 'shareholders' | 'review'>(
-    saved && saved.status !== 'rejected' ? 'review' : 'details',
-  );
+  const [phase, setPhase] = useState<SetupPhase>(saved && saved.status !== 'rejected' ? 'review' : 'details');
   const [holderEditor, setHolderEditor] = useState(false);
   const [busy, setBusy] = useState(false);
   const [uncertain, setUncertain] = useState(false);
@@ -136,6 +141,7 @@ export function useImportPreparation({
   const [autoApply, setAutoApply] = useState(false);
   const [autoPreviewFinished, setAutoPreviewFinished] = useState(false);
   const [editing, setEditing] = useState(false);
+  const reopenTo = useRef<'details' | 'shareholders'>('details');
   const applyOpened = useRef(false);
   const previewAttempt = useRef('');
   const preparation = useRef<RegisterImportPreparation | null>(null);
@@ -237,7 +243,8 @@ export function useImportPreparation({
       preparation.current = null;
       setAutoApply(false);
       setEditing(false);
-      setPhase('details');
+      setPhase(reopenTo.current);
+      reopenTo.current = 'details';
       await client.invalidateQueries({ queryKey: importsKey(owner, activeRegister.current!.token.uuid) });
     },
     onRefused: onConflict,
@@ -476,6 +483,43 @@ export function useImportPreparation({
     previewAttempt.current = signature;
     void decision.open(kind);
   }, [phase, proposal, busy, deciding, recovery, editing, autoApply, blocked, visible, steps, kind, decision]);
+  const reopenable =
+    proposal?.status === 'submitted' &&
+    canPrepare &&
+    !!steps.reject &&
+    !deciding &&
+    !recovery &&
+    !autoApply &&
+    !blocked &&
+    !editing;
+  const stepReachable = (step: SetupPhase) =>
+    step === phase ||
+    (phase === 'review'
+      ? step !== 'review' && reopenable
+      : visible && canPrepare && !busy && !uncertain && !blocked && !holderEditor);
+  const goTo = (step: SetupPhase) => {
+    if (step === phase || !stepReachable(step)) return;
+    if (phase === 'review') {
+      reopenTo.current = step === 'shareholders' ? 'shareholders' : 'details';
+      setEditing(true);
+      void reject.open('reject', 'Replaced while editing the copied records.');
+      return;
+    }
+    if (SETUP_ORDER.indexOf(step) < SETUP_ORDER.indexOf(phase)) {
+      setAttempted(false);
+      setPhase(step);
+      return;
+    }
+    setAttempted(true);
+    if (phase === 'details' && detailProblems.length) return;
+    if (step === 'shareholders') {
+      setAttempted(false);
+      setPhase('shareholders');
+      return;
+    }
+    setPhase('shareholders');
+    void prepare();
+  };
   const preview = apply.target?.preview ?? approve.target?.preview;
   const errors = [error, approve.error, apply.error, reject.error].filter(Boolean);
   return {
@@ -486,6 +530,8 @@ export function useImportPreparation({
     proposal,
     phase,
     setPhase,
+    goTo,
+    stepReachable,
     holderEditor,
     setHolderEditor,
     busy,
