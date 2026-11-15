@@ -493,6 +493,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   client.clear();
   api.post.mockReset();
   let pauseHolders = false;
+  let failInitialHolders = true;
   let releaseHolders!: () => void;
   let rights: ClassRightsRevision[] = [];
   const rightsFile = new File(['%PDF-1.4 class rights'], 'constitution.pdf', { type: 'application/pdf' });
@@ -554,12 +555,14 @@ it('reads every class page and groups exact holdings by member identity with sea
               decimals: 0,
             },
           };
-        if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'))
+        if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary')) {
+          if (failInitialHolders) throw new Error('Synthetic ownership read refused');
           return pauseHolders
             ? new Promise((resolve) => {
                 releaseHolders = () => resolve({ data: ordinary });
               })
             : { data: ordinary };
+        }
         return { data: { results: [], count: 0, next: null, previous: null } };
       },
     );
@@ -573,6 +576,12 @@ it('reads every class page and groups exact holdings by member identity with sea
     </>,
     'Share class',
   );
+  const initialOwnershipError = await screen.findByText('The current ownership could not be loaded.');
+  expect(screen.queryByRole('region', { name: 'Current ownership' })).toBeNull();
+  failInitialHolders = false;
+  fireEvent.click(within(initialOwnershipError.closest('[role="alert"]')!).getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByRole('region', { name: 'Current ownership' })).toBeTruthy();
+  expect(screen.queryByText('The current ownership could not be loaded.')).toBeNull();
   await screen.findByText('No rights recorded.');
   await waitFor(() =>
     expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!).search).toBe('?company=harbour'),

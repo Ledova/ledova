@@ -116,7 +116,11 @@ function ShareClassWorkspace({
       data={data}
       setup={
         setup === null ? (
-          appointments.isError ? (
+          data.register.isError ? (
+            <LoadError retry={() => data.register.refetch()} busy={data.register.isFetching}>
+              The current ownership could not be loaded.
+            </LoadError>
+          ) : appointments.isError ? (
             <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
               Your class setup access could not be loaded.
             </LoadError>
