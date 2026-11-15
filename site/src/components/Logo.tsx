@@ -1,11 +1,11 @@
 function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 28 28" fill="none" aria-hidden="true" className={className}>
-      <rect x="1" y="1" width="26" height="26" rx="7" className="stroke-text-primary" strokeWidth="1.5" />
+      <rect x="1" y="1" width="26" height="26" rx="7" className="stroke-text-primary" strokeWidth="1.75" />
       <path
-        d="M10.75 7.25v12h8"
+        d="M10.5 7.5v12h8"
         className="stroke-brand-light"
-        strokeWidth="2"
+        strokeWidth="2.25"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

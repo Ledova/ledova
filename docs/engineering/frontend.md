@@ -766,6 +766,20 @@ active sidebar item's `bg-brand-tint`, and signed-out primary buttons without th
 identity check's widget opens in its dark theme on Dark. Both web clients bundle Newsreader for
 display text and Instrument Sans for everything else (`@fontsource-variable`).
 
+The logo keeps its rounded-square outline and green L. Its editable drawing is
+`mobile/assets/logo.svg`: a 28-unit viewbox, outline width 1.75, L width 2.25 and path
+`M10.5 7.5v12h8`. Keep the same geometry in `dashboard/src/components/Logo.tsx`,
+`site/src/components/Logo.tsx`, `mobile/src/components/LogoMark.tsx` and the two web
+`public/icons/logo.svg` files. The site keeps
+its own copy because its build context is standalone. Runtime marks use `text.primary` and
+`brand.light`; the Newsreader wordmark stays unchanged.
+
+Regenerate both web `public/icons/logo.png` favicons at 256px when the drawing changes. Mobile
+launcher, adaptive and splash PNGs stay 1024px, with the centered drawing spanning 560, 448 and
+336px respectively. Preserve the launcher's Paper background and the other two assets' transparency.
+Render from the SVG rather than resizing an old PNG; these PNGs were rendered with CairoSVG.
+Retain factual product screenshots as captures.
+
 ## Pages
 
 Each page links to its business section. Shared destinations use their `DESTINATIONS` audience;
