@@ -44,7 +44,14 @@ export type MenuRoute =
   | 'DataPrivacy'
   | 'Team';
 
-type MenuChild = { route: MenuRoute; label: string; hint?: string; params?: object; overview?: boolean };
+type MenuChild = {
+  route: MenuRoute;
+  label: string;
+  hint?: string;
+  params?: object;
+  overview?: boolean;
+  over?: boolean;
+};
 
 type MenuItem = { name: Section; label: string; icon: ComponentType<IconProps> } & (
   | { route: MenuRoute; items?: never }
@@ -66,6 +73,7 @@ const sections = (canReadRegister: boolean, setupFor: string | null): MenuItem[]
                     route: 'RegisterSetup' as const,
                     label: DESTINATIONS.companyRegisterSetup.title,
                     params: { company: setupFor },
+                    over: true,
                   },
                 ]
               : []),
@@ -183,7 +191,7 @@ export function AppMenu({
   visible: boolean;
   current: Section | undefined;
   route: string;
-  onSelect: (route: MenuRoute, params?: object) => void;
+  onSelect: (route: MenuRoute, params?: object, over?: boolean) => void;
   onClose: () => void;
 }) {
   const theme = useAppTheme();
@@ -280,7 +288,7 @@ export function AppMenu({
                   accessibilityRole="button"
                   accessibilityHint={child.hint}
                   accessibilityState={{ selected: here }}
-                  onPress={() => onSelect(child.route, child.params)}
+                  onPress={() => onSelect(child.route, child.params, child.over)}
                   style={row(here)}
                 >
                   <Text style={label(here)}>{child.label}</Text>

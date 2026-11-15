@@ -115,11 +115,11 @@ menu button (`topBar` with a back target): Back to Account on Representative aut
 Representative authority on an authority request, Back to Ledger on a share class and Set up your
 ledger, Back to Employee share scheme on an award, Back to Shareholders on a shareholder's page, Back to
 shareholder on a particulars change, Back to Transfer shares on a non-paid transfer and Back to
-Corrections on a correction. The arrow returns to the parent: it goes back to the parent when the parent
-is in the stack and otherwise opens the parent in the page's place, so a class opened from Dashboard's
-**Class details** also returns to Ledger, as on the web, while Android's Back and the iOS swipe return to
-the previous page. A parent that needs params gets them from the page (`keepParams`), because the
-arrow's `popTo` replaces the parent's params. A non-paid transfer locks Cancel while a submission is
+Corrections on a correction. The arrow returns to the previous page, as Android's Back and the iOS
+swipe do, and reads Back; only a page with nothing beneath it in the stack opens that parent in its
+place, under the parent's name. The menu's Set up your ledger opens over the current page, so its arrow
+returns there, while the menu's other pages replace the stack above Dashboard. A parent that needs
+params for that fallback gets them from the page (`keepParams`). A non-paid transfer locks Cancel while a submission is
 unresolved, and sets `held` then, which hides its arrow so the bar shows the menu button instead. Inside the frame `Page` sets
 the title, action and `held` as the screen's options (`FrameOptions`) and starts with
 its lede. The bell opens the web's notifications panel beneath it (`NotificationsPanel`), the same
@@ -329,7 +329,7 @@ the shared `useMemberDocuments`) with the class's retained supporting files, eac
 holder and **Download**, and **Add documents** for someone who can prepare the register, choosing the
 holder from a searchable list and each file's category. Without register access to the company, both
 pages read nothing and point to Dashboard, and a class of another company is not in a register you can
-read. The class page's top bar has the back arrow, Back to Ledger ([navigation](#navigation)). Pulling
+read. The class page's top bar has the back arrow ([navigation](#navigation)). Pulling
 down rereads either page while no form is open.
 Issue shares (`IssueSharesScreen.tsx`) is the web's Issue shares at phone width for a register reader
 of the selected company, read through `useCompanyRegisters.ts`, the shared `useRegisterAllotments` and
@@ -477,8 +477,8 @@ right (`inline` `Fact`s), the declaration and Terms for an admin request still p
 ([document view copies](#document-view-copies)), **Withdraw request** and **Establish appointment**
 while pending, and **Revoke appointment**. Withdrawing and revoking ask first in the web's dialogs.
 Pulling down rereads the requests while no request form is open and no action is running.
-Its top bar's back arrow returns to Account, and the request page's returns to Representative
-authority; Android's Back and the iOS swipe also return to the previous page.
+Its top bar's back arrow, like the request page's, returns to the previous page, as Android's Back
+and the iOS swipe do.
 A notification, tapped in that list or as a push, opens its screen: vested shares open Dashboard on
 the award's company (with its class, where the overview lists it) and issued shares Certificates for
 that class, each saying so when that company no longer records you. A certificate-ready notice sent

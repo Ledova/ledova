@@ -1,6 +1,6 @@
 import { useContext, useEffect, useId, useState, type MouseEvent, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, type To } from 'react-router-dom';
+import { Link, useNavigate, type To } from 'react-router-dom';
 import { ArrowLeftIcon } from '@phosphor-icons/react';
 import { PageActionsTarget, PageBack, PageTitle, type PageBackLink } from './PageTitle';
 import { InSignedInFrame } from './InSignedInFrame';
@@ -107,12 +107,26 @@ export function Page({
   );
 }
 
+function returnsInApp() {
+  const entry: unknown = window.history.state;
+  return (
+    typeof entry === 'object' && entry !== null && 'idx' in entry && typeof entry.idx === 'number' && entry.idx > 0
+  );
+}
+
 export function BackArrow({ link, className = '' }: { link: PageBackLink; className?: string }) {
+  const navigate = useNavigate();
   return (
     <Link
       to={link.to}
       state={link.state}
-      aria-label={link.label}
+      aria-label={returnsInApp() ? 'Back' : link.label}
+      onClick={(event) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        if (!returnsInApp()) return;
+        event.preventDefault();
+        void navigate(-1);
+      }}
       className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-tertiary hover:text-text-primary ${className}`}
     >
       <ArrowLeftIcon size={ICON_MD} />

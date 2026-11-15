@@ -136,7 +136,7 @@ is one flex column with a single gap; add no margin under the title). On mobile 
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
 the web's phone top bar: the menu button, the page's title (Newsreader, 20 points), its one contextual
 action and the bell. A page with a parent shows a back arrow in place of the menu button, as on the web
-([back arrow](#navigation)), while Android's Back and the iOS swipe return to the previous page. A tap on a
+([back arrow](#navigation)), returning to the previous page as Android's Back and the iOS swipe do. A tap on a
 control acts at once, even while the keyboard is up.
 
 The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components/Ledger.tsx`) and
@@ -534,14 +534,17 @@ Sidebar items stay on one line (owner, 29 October 2026): Employee share scheme s
 scheme, with the full name as the link's `title`. `DESTINATION_PARENTS`
 and the web parent overrides give each contextual task its parent. Direct Settings children omit
 Back to Settings because their sidebar links already provide navigation. Every other page with a
-parent shows a back arrow (owner, 5 November 2026): `BackArrow`, named for screen readers "Back to" and
-the parent, at the start of the phone top bar in place of the menu button, and just before the title on
-wider screens. It is the only way back, so no page renders a **Back to …** button. `WEB_PARENTS` gives
-each route its parent: Representative authority returns to Account, an authority request to
-Representative authority, a share class and Set up your ledger to Ledger, an award to Employee share
-scheme, a shareholder to Shareholders, ledger maintenance to Corrections and a non-paid transfer to
-Transfer shares. Once a particulars change has found its shareholder, its arrow goes back to that
-shareholder by name, and until then to Corrections. A non-paid transfer locks Cancel while a submission
+parent shows a back arrow (owner, 5 November 2026): `BackArrow`, at the start of the phone top bar in
+place of the menu button, and just before the title on wider screens. It is the only way back, so no
+page renders a **Back to …** button. Since 15 November it returns to the previous page in the app's own
+history, as browser Back does, and is named Back for screen readers. A page with nothing before it in
+the app, such as one opened from a link or in a new tab, goes to its parent instead, named "Back to" and
+the parent, and the arrow's link always points at that parent for opening in a new tab. `WEB_PARENTS`
+gives each route that parent: Representative authority has Account, an authority request
+Representative authority, a share class and Set up your ledger Ledger, an award Employee share
+scheme, a shareholder Shareholders, ledger maintenance Corrections and a non-paid transfer
+Transfer shares. Once a particulars change has found its shareholder, its parent is that
+shareholder by name, and until then Corrections. A non-paid transfer locks Cancel while a submission
 is unresolved, and hides its arrow then too, so the phone top bar shows the menu button instead.
 
 A way back to a Ledger class or task carries the place it means, built by `registerPlace`
@@ -978,8 +981,10 @@ Some messages keep their own form:
   visible: `uploadRefusal` turns away any other file as it is chosen, with "Choose a PDF, PNG or JPEG
   of up to 10 MB." on the field. The app's `FileField` (`mobile/src/components/Field.tsx`)
   is the same **Choose file** control over the system's file picker, with the same rule, hint and refusal.
-- **Date fields.** A date field is `type="date"`, bounded with `min` and `max` wherever the server
-  has a rule, and its label or message names the time zone where it matters.
+- **Date fields.** A date field is `type="date"` in the shared `TextInput`, bounded with `min` and `max`
+  wherever the server has a rule, and its label or message names the time zone where it matters. The
+  base styles (`dashboard/src/styles/index.css`) turn off WebKit's own date styling, so iOS Safari keeps
+  a date field at the width and height of the other fields.
 - **Stepped forms.** Long workflows use the existing Ledger setup step indicator through
   `FormSteps` (`dashboard/src/components/FormSteps.tsx`), with one step visible at a time.
   Show class context once above the form; the footer identifies the current company. Keep exact

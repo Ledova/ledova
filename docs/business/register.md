@@ -762,7 +762,7 @@ person chosen.
 ### The Share class page
 
 Each class opens directly from its row on Ledger, titled with the class's name, with a back arrow to
-Ledger. Its Summary card shows the class's code and type, then its issued shares and current
+the previous page. Its Summary card shows the class's code and type, then its issued shares and current
 shareholders one line each, followed by the company's optional
 [Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,
 and its separate **Shareholder documents** section. Shareholder management stays on Shareholders and

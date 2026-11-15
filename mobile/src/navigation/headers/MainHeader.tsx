@@ -110,6 +110,7 @@ export function TopBar({
   const [open, setOpen] = useState(false);
   useEffect(() => navigation.addListener('blur', () => setOpen(false)), [navigation]);
   const hasBack = !!back;
+  const returns = (navigation.getState()?.index ?? 0) > 0;
   useEffect(() => {
     if (hasBack) setOpen(false);
   }, [hasBack]);
@@ -133,14 +134,11 @@ export function TopBar({
       >
         {back ? (
           <BackButton
-            label={back.label}
-            onPress={() =>
-              navigation.dispatch(
-                navigation.getState()?.routes.some(({ name }) => name === back.route)
-                  ? StackActions.popTo(back.route, back.params)
-                  : StackActions.replace(back.route, back.params),
-              )
-            }
+            label={returns ? 'Back' : back.label}
+            onPress={() => {
+              if ((navigation.getState()?.index ?? 0) > 0) navigation.goBack();
+              else navigation.dispatch(StackActions.replace(back.route, back.params));
+            }}
           />
         ) : (
           <MenuButton
@@ -177,8 +175,12 @@ export function TopBar({
           current={current}
           route={route}
           onClose={() => setOpen(false)}
-          onSelect={(target, params) => {
+          onSelect={(target, params, over) => {
             setOpen(false);
+            if (over) {
+              navigation.dispatch(StackActions.push(target, params));
+              return;
+            }
             navigation.reset(
               target === 'Dashboard'
                 ? { index: 0, routes: [{ name: 'Dashboard' }] }
