@@ -149,6 +149,7 @@ export function FormSteps({
     digitCurrent: { color: theme.colors.utility.white },
     label: { fontFamily: theme.fontFamily.medium, fontSize: 12, lineHeight: 16, color: theme.colors.text.muted },
     labelCurrent: { color: theme.colors.text.primary },
+    disabled: { opacity: 0.5 },
   }));
   return (
     <View accessibilityLabel={label} style={look.steps}>
@@ -172,7 +173,7 @@ export function FormSteps({
               accessibilityState={{ disabled: !open }}
               disabled={!open}
               onPress={() => onSelect(step.id)}
-              style={look.step}
+              style={[look.step, !open && look.disabled]}
             >
               {content}
             </TouchableOpacity>

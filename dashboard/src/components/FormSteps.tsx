@@ -42,7 +42,7 @@ export function FormSteps({
                 aria-label={`${index + 1}. ${step.label}`}
                 disabled={!(reachable?.(step.id) ?? true)}
                 onClick={() => onSelect(step.id)}
-                className={`${layout} w-full rounded-md text-left transition-colors enabled:hover:text-text-primary disabled:cursor-not-allowed`}
+                className={`${layout} w-full rounded-md text-left transition-colors enabled:hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 {content}
               </button>

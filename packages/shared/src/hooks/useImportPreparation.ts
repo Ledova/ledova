@@ -484,6 +484,7 @@ export function useImportPreparation({
     void decision.open(kind);
   }, [phase, proposal, busy, deciding, recovery, editing, autoApply, blocked, visible, steps, kind, decision]);
   const reopenable =
+    visible &&
     proposal?.status === 'submitted' &&
     canPrepare &&
     !!steps.reject &&
