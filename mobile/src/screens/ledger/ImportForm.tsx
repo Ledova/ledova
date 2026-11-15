@@ -312,7 +312,7 @@ export function ImportForm({ shareClass, classFields, onCancel, ...options }: Im
           {editable && !uncertain && (
             <Action
               primary
-              label={phase === 'details' ? 'Continue' : busy ? 'Saving draft…' : 'Save draft and review'}
+              label={phase === 'shareholders' && busy ? 'Saving draft…' : 'Continue'}
               disabled={locked}
               onPress={submit}
             />

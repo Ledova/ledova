@@ -252,9 +252,10 @@ Inviting members is optional ([member access](member-records.md#member-access)).
 kept only in the open page and are lost if you leave it. After a failed or uncertain response, use Recover saved records or Recover
 confirmation in setup ([uncertain outcomes](README.md#when-the-outcome-is-uncertain)); another
 appointee can resume review or confirmation without preparation access. The step headings above the
-form move between Share details, Shareholders and Review. Going forward checks the current step first,
-and Review saves the draft. Choosing Share details or Shareholders on Review retires the saved draft
-for editing and needs preparation and rejection authority.
+form move between Share details, Shareholders and Review. Going forward, from a heading or **Continue**,
+checks the current step first, and reaching Review saves the draft, so there is no separate save
+button. Choosing Share details or Shareholders on Review retires the saved draft for editing and needs
+preparation and rejection authority.
 
 Award recipients without shares appear in the same list as members, marked as such. Select the
 exact company recipient to keep their ID, current particulars and any accepted member access; enter
