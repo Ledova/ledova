@@ -1,3 +1,36 @@
+CREATE OR REPLACE FUNCTION tokens_class_history_empty(token_uuid uuid)
+RETURNS boolean LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE register public.tokens_shareregister;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public.tokens_sharetoken WHERE uuid = token_uuid) THEN RETURN false; END IF;
+    SELECT * INTO register FROM public.tokens_shareregister WHERE token_id = token_uuid;
+    IF NOT FOUND THEN
+        RETURN NOT EXISTS (SELECT 1 FROM public.tokens_registerimport WHERE token_id = token_uuid AND status = 'applied');
+    END IF;
+    IF register.company_id IS DISTINCT FROM (SELECT company_id FROM public.tokens_sharetoken WHERE uuid = token_uuid)
+        OR register.issued_supply <> 0
+        OR EXISTS (SELECT 1 FROM public.tokens_registerposition WHERE register_id = register.uuid) THEN RETURN false; END IF;
+    IF register.sequence = 0 THEN
+        RETURN register.head_hash = repeat('0', 64)
+            AND NOT EXISTS (SELECT 1 FROM public.tokens_registerentry WHERE register_id = register.uuid)
+            AND NOT EXISTS (SELECT 1 FROM public.tokens_registerimport WHERE token_id = token_uuid AND status = 'applied');
+    END IF;
+    RETURN register.sequence = 1
+        AND (SELECT count(*) FROM public.tokens_registerentry WHERE register_id = register.uuid) = 1
+        AND (SELECT count(*) FROM public.tokens_registerimport WHERE token_id = token_uuid AND status = 'applied') = 1
+        AND EXISTS (SELECT 1 FROM public.tokens_registerentry entry JOIN public.tokens_registerimport proposal
+            ON proposal.uuid = entry.operation_id AND proposal.token_id = token_uuid
+                AND proposal.company_id = register.company_id AND proposal.status = 'applied'
+            WHERE entry.register_id = register.uuid AND entry.sequence = 1 AND entry.kind = 'opening'
+                AND entry.changes = '[]'::jsonb AND entry.corrects_id IS NULL
+                AND entry.previous_hash = repeat('0', 64) AND entry.entry_hash = register.head_hash
+                AND entry.entry_hash = tokens_register_entry_hash(entry)
+                AND proposal.register_sequence = 1 AND proposal.members = '[]'::jsonb
+                AND proposal.former_members = '[]'::jsonb AND proposal.correction_of_id IS NULL
+                AND proposal.base_sequence IS NULL AND proposal.base_hash = '');
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION tokens_class_deletion_reason(token_uuid uuid)
 RETURNS text LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE share_class public.tokens_sharetoken; reference record; referenced boolean;
@@ -10,14 +43,11 @@ BEGIN
         OR share_class.deployed_at IS NOT NULL THEN
         RETURN 'This class has deployment or chain records and cannot be deleted.';
     END IF;
-    IF EXISTS (SELECT 1 FROM public.tokens_shareregister register WHERE register.token_id = token_uuid
-        AND (register.sequence <> 0 OR register.issued_supply <> 0
-            OR EXISTS (SELECT 1 FROM public.tokens_registerentry entry WHERE entry.register_id = register.uuid)
-            OR EXISTS (SELECT 1 FROM public.tokens_registerposition position WHERE position.register_id = register.uuid))) THEN
+    IF NOT tokens_class_history_empty(token_uuid) THEN
         RETURN 'This class has confirmed ledger records and cannot be deleted.';
     END IF;
     IF EXISTS (SELECT 1 FROM public.tokens_registerimport proposal WHERE proposal.token_id = token_uuid
-        AND proposal.status <> 'rejected') THEN
+        AND proposal.status NOT IN ('rejected', 'applied')) THEN
         RETURN 'Retire the saved setup review before deleting this class.';
     END IF;
     FOR reference IN

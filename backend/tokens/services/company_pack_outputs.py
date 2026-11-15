@@ -44,6 +44,13 @@ def _require_core_contents(company, classes, approvals, mandate_source):
             for name in ("class", "chain", "issues", "settlements", "entries")
         }
         details = records["class"]
+        if token.deleted_at:
+            with connections[current_alias()].cursor() as cursor:
+                cursor.execute("SELECT tokens_class_history_empty(%s)", [token.pk])
+                if not cursor.fetchone()[0]:
+                    raise RegisterIntegrityError(
+                        "A deleted class contains ownership activity; no audit pack was produced."
+                    )
         if (
             (
                 not token.deleted_at
@@ -52,8 +59,9 @@ def _require_core_contents(company, classes, approvals, mandate_source):
             or (
                 token.deleted_at
                 and (
-                    RegisterImport.objects.filter(company=company, token=token).exclude(status="rejected").exists()
-                    or records["entries"]
+                    RegisterImport.objects.filter(company=company, token=token)
+                    .exclude(status__in=["rejected", "applied"])
+                    .exists()
                 )
             )
             or token.status != ShareTokenStatus.DRAFT
@@ -77,7 +85,6 @@ def _require_core_contents(company, classes, approvals, mandate_source):
             token.company_id != company.pk
             or (not token.deleted_at and register is None)
             or (register is not None and register.company_id != company.pk)
-            or (token.deleted_at and register is not None and (register.sequence != 0 or register.issued_supply != 0))
             or RegisterMember.objects.filter(pk__in=members, company=company).count() != len(members)
         ):
             raise RegisterIntegrityError("The captured register's company binding is inconsistent.")

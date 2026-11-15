@@ -377,9 +377,13 @@ authority, lock the class and register, and refuse stale versions. The
 command, checks actual foreign-key references and rechecks authority at commit. The
 [deletion-history migration](../../backend/tokens/migrations/0009_class_deletion_history.py) adds a
 one-way deletion marker and actor. Active reads and new work exclude deleted classes; retained
-history and company audit outputs keep their original class identity. Deletion accepts only
-rejected setup drafts and a genuinely empty register stub, retaining their evidence and decisions.
-Submitted or approved reviews, confirmed records and other dependencies still block it. Draft status alone
+history and company audit outputs keep their original class identity. Deletion accepts rejected setup
+drafts, a genuinely empty register stub or a confirmed empty opening, retaining their evidence,
+decisions and opening entry. It refuses any actual ownership activity, including an earlier holding
+whose current balance is zero. The
+[empty-opening refinement](../../backend/tokens/migrations/0010_empty_opening_deletion.py) installs
+the same history check for deletion and retained company-pack validation. Submitted or approved
+reviews and other dependencies still block it. Draft status alone
 does not establish eligibility; opened off-chain classes can remain Draft. The
 [business rules](../business/issuing-shares.md#share-classes) define the edit and deletion limits.
 [Staff admin](../../backend/tokens/admin/share_token.py) keeps existing class metadata read-only and
