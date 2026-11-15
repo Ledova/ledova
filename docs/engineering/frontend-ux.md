@@ -815,9 +815,9 @@ These lists add a short record reference only to options that would otherwise re
 as with people who share a name and address; a delegating appointment adds the time it was made
 instead.
 
-The web's Share classes list is the entry for continuing an unfinished class. Its Dashboard setup
-action resumes a sole unfinished class, opens creation when none exists, or returns to the list
-when several need a choice. Creating a new class remains the explicit **Add share class** action.
+The web's Share classes list is the common entry from both the sidebar and Dashboard's
+**Set up your ledger**, with the selected company preserved. Class count does not change either
+navigation destination. Creating a new class remains the explicit **Add share class** action.
 Creation keeps links to unfinished classes as recovery if an existing code is chosen; normal web
 continuation uses the class row. The app still offers classes already started but not opened as
 links in a sentence. Both clients offer the new class's kind as radio buttons, so choosing never

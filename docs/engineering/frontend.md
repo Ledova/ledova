@@ -813,8 +813,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Static, data-free placeholders reserve loading space, and confirmed figures appear directly.
   Until the register is opened, the Ownership overview stays hidden unless the person has their own
   member record: an administrator sees Getting started, a short note with a **Set up your ledger**
-  button that opens creation for a company with no classes, resumes its only unfinished class, or
-  opens Share classes when several need a choice. Other readers see a one-line note. Read-only awards remain separate entitlements, with the promise and nonzero lifecycle
+  button that opens the same selected-company Ledger page as the sidebar's Share classes link.
+  Creation and unfinished setup are reached from that shared entry; the Dashboard does not choose
+  a different destination based on class count. Other readers see a one-line note. Read-only awards remain separate entitlements, with the promise and nonzero lifecycle
   quantities above their full breakdown and terms in **Show award details**.
 - The Certificates page (`dashboard/src/pages/documents/certificates/index.tsx`) shows a register
   reader the company's certificate preparation and a member who is not one their own entries, in one
