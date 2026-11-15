@@ -236,7 +236,7 @@ export function ImportForm({
                     )}
                     <PageAction
                       type="submit"
-                      label={phase === 'details' ? 'Continue' : 'Save draft and review'}
+                      label="Continue"
                       primary
                       busy={phase === 'shareholders' && busy}
                       busyLabel="Saving draft…"

@@ -425,9 +425,10 @@ draft for review. Dates are typed as `YYYY-MM-DD` (UTC). Each save and decision 
 of an uncertain result, and the step headings (`FormSteps` with `goTo`) move between steps as on the web,
 retiring a prepared draft for editing when chosen from Review. Shareholders are
 compact rows (`MemberRow` in `ImportRecord.tsx`), with **Edit** and **Remove** in the draft and **Show
-allotments** on Review, whose record date, shares held and shareholders are one line each. **Cancel**
-returns to the page that opened it, on every step but Shareholders, where **Back** returns to Share
-details, and a page that cannot show the form still offers it. The top bar's arrow returns to Ledger.
+allotments** on Review, whose record date, shares held and shareholders are one line each. **Continue**
+moves to the next step, saving the draft on the way to Review. **Cancel** returns to the page that
+opened it, on every step but Shareholders, where **Back** returns to Share details, and a page that
+cannot show the form still offers it. The top bar's arrow returns to Ledger.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`) and
 Team. Profile, the `Settings` route, is the web's Personal
 information card: the person's details on one-line rows, and **Edit details** opens their form

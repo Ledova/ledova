@@ -2238,7 +2238,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     'Synthetic opening correction',
   );
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Save draft and review' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
   await waitFor(() =>
     expect(mockSetParams).toHaveBeenLastCalledWith({ token: FOUNDERS.uuid, record: imports[0].uuid }),
   );
@@ -2281,7 +2281,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await screen.findByRole('button', { name: 'File, synthetic.pdf. Choose file' });
   await fireEvent.press(screen.getByRole('button', { name: 'Add shareholder' }));
   expect(importPosts()).toHaveLength(posted);
-  await fireEvent.press(screen.getByRole('button', { name: 'Save draft and review' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm', disabled: false }));
   await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('Dashboard'));
   const opened = imports[0];
@@ -2399,7 +2399,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     <RegisterSetupScreen route={{ key: 'read-only-setup', name: 'RegisterSetup', params: bringing }} />,
   );
   expect(await screen.findByText(REGISTER_IMPORT_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Continue|Save draft and review|Confirm)$/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^(Continue|Confirm)$/ })).toBeNull();
   expect(importPosts()).toHaveLength(decidedImports);
   await view.rerender(<ShareClassScreen route={{ key: 'founders', name: 'ShareClass', params: founders }} />);
   expect(await screen.findByText('No rights recorded.')).toBeTruthy();
