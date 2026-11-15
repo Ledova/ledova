@@ -204,9 +204,9 @@ import records are applied, and the register keeps the particulars from their Pr
 web and, at phone width, in the app:
 
 1. On the web, open Ledger → **Share classes**. Choose **Add share class**, or select an unfinished
-   class to continue its setup on the same class page. The Dashboard's **Set up your ledger** opens
-   a sole unfinished class directly, opens creation when there are no classes, or shows Share classes
-   when several need a choice. Recorded classes show their summary, rights and documents; readers
+   class to continue its setup on the same class page. The Dashboard's **Set up your ledger** and
+   the sidebar's **Share classes** both open this same selected-company Ledger page, regardless of
+   class count. Recorded classes show their summary, rights and documents; readers
    keep their permitted read view. The app still starts setup through **Add share class**.
    Alternatively, choose Corrections, the class, then Bring records
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
