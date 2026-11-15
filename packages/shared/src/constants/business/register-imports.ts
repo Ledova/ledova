@@ -33,9 +33,10 @@ export const REGISTER_IMPORT_UNMET_COPY: Record<string, string> = {
 
 export const REGISTER_IMPORT_COPY = {
   EDIT_NOTE:
-    'To change these records, choose Share details or Shareholders above. That retires this saved draft, ' +
+    'To change these records, choose Share class or Shareholders above. That retires this saved draft, ' +
     'and returning to Review saves a new one; confirmed mirrors and earlier evidence stay unchanged.',
   REOPENING: 'Reopening records…',
+  SETUP_TITLE: 'Ledger setup',
   SETUP_NOTE:
     'Bring in the company’s existing share records to set up its ledger. Your dashboard then shows the ' +
     'company’s issued shares, current shareholders and share classes.',
@@ -82,7 +83,7 @@ export const REGISTER_IMPORT_COPY = {
 };
 
 export const REGISTER_SETUP_STEPS = [
-  { id: 'details', label: 'Share details' },
+  { id: 'details', label: 'Share class' },
   { id: 'shareholders', label: 'Shareholders' },
   { id: 'review', label: 'Review' },
 ] as const;

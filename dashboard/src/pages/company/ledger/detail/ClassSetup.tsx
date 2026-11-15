@@ -1,6 +1,6 @@
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -27,7 +27,7 @@ import {
 } from '@ledova/shared';
 
 import { ImportForm } from './ImportForm';
-import { LoadError, Loading, Row, Rows, Section } from '@components/Ledger';
+import { LoadError, Loading, Section } from '@components/Ledger';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 
 type Retained = {
@@ -43,22 +43,27 @@ export function ClassSetup({
   uuid,
   owner,
   guard,
+  available,
   externalHeld = false,
+  classHeld,
   onHeldChange,
-  showClassDetails = true,
+  classDetails,
   onRecordsChanged,
 }: {
   uuid: string;
   owner: OrderSubmissionOwner;
   guard: () => void;
+  available: boolean;
   externalHeld?: boolean;
+  classHeld: boolean;
   onHeldChange?: (held: boolean) => void;
-  showClassDetails?: boolean;
+  classDetails: ReactNode;
   onRecordsChanged?: () => void;
 }) {
   const client = useQueryClient();
   const [search] = useSearchParams();
   const [held, setHeld] = useState(false);
+  const keeping = held || classHeld;
   const [retained, setRetained] = useState<Retained | null>(null);
   useEffect(() => {
     onHeldChange?.(held);
@@ -70,7 +75,7 @@ export function ClassSetup({
   const companyMatches = useRecordCompany(listed?.companyUuid, guard);
   const steps =
     companyMatches && listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
-  const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
+  const readable = available && !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, uuid, guard, readable);
   const previousImports = useRef(imports.data);
   useEffect(() => {
@@ -99,12 +104,22 @@ export function ClassSetup({
     (!register.data?.initialized || !imports.data?.some((proposal) => proposal.status === 'applied') || !!correction);
   const canPrepare = !!steps?.prepare && correctable;
   const canOpen = saved ? saved.status !== 'rejected' || canPrepare : canPrepare;
+  const showForm =
+    available &&
+    companyMatches &&
+    !!retained &&
+    !stale &&
+    !!listed &&
+    readable &&
+    (!record || !!saved) &&
+    (keeping || (fresh && canOpen));
   if (
-    !held &&
+    !keeping &&
     fresh &&
     canOpen &&
     (!record || !!saved) &&
-    (retained?.register !== register.data ||
+    (retained?.listed !== listed ||
+      retained?.register !== register.data ||
       retained?.correction !== correction ||
       retained?.saved !== saved ||
       retained?.members !== members.data ||
@@ -130,7 +145,7 @@ export function ClassSetup({
   };
   const checkNew = () => {
     guard();
-    if (externalHeld) throw createUserFriendlyError('Finish the current class action before continuing.');
+    if (externalHeld || classHeld) throw createUserFriendlyError('Finish the current class action before continuing.');
     for (const key of [
       registerClassesKey(owner),
       ownAppointmentsKey(owner),
@@ -142,39 +157,40 @@ export function ClassSetup({
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
         throw createUserFriendlyError('Refresh current company authority before continuing.');
     }
-    if (!fresh || !canOpen || retained?.listed.companyUuid !== listed?.companyUuid)
+    if (!fresh || !canOpen || (record && !saved) || retained?.listed.companyUuid !== listed?.companyUuid)
       throw createUserFriendlyError('Your company, authority or source records changed. Refresh before continuing.');
   };
-  if (!companyMatches) return <PreparationNotice />;
-  if (!held && fresh && record && !saved)
-    return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
-  if (!retained || (!held && (!fresh || !canOpen))) {
+  let content: ReactNode;
+  if (!companyMatches) content = <PreparationNotice />;
+  else if (fresh && record && !saved)
+    content = <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
+  else if (!retained || stale || !listed || !readable || (!keeping && (!fresh || !canOpen))) {
     if (stale)
-      return (
+      content = (
         <LoadError retry={retry} busy={fetching}>
           The register or your appointments could not be loaded.
         </LoadError>
       );
-    if (
+    else if (
       !classes.data ||
       !appointments.data ||
       fetching ||
       (readable && (!imports.data || !register.data || !members.data))
     )
-      return <Loading>Loading the register…</Loading>;
-    if (!listed) return <PreparationNotice />;
-    if (!readable) return <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
-    if (record && imports.data && !saved)
-      return <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
-    if (!mirrorAllowed)
-      return (
+      content = <Loading>Loading the register…</Loading>;
+    else if (!listed) content = <PreparationNotice />;
+    else if (!readable) content = <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
+    else if (record && imports.data && !saved)
+      content = <p className="text-sm text-text-muted">This saved snapshot is not in the selected share class.</p>;
+    else if (!mirrorAllowed)
+      content = (
         <Section title={`${listed.name} · ${listed.symbol}`}>
           <p className="text-sm text-text-muted">This class uses the chain, and the web app can’t open its register.</p>
         </Section>
       );
-    if (!correctable) {
+    else if (!correctable) {
       const corrections = registerPlace({ company: listed.companyUuid, token: listed.uuid, task: 'corrections' });
-      return (
+      content = (
         <Section title={`${listed.name} · ${listed.symbol}`}>
           <p className="text-sm text-text-muted">
             This opening cannot be replaced safely because later entries or linked member records depend on it. Correct
@@ -186,52 +202,47 @@ export function ClassSetup({
           </p>
         </Section>
       );
-    }
-    if (!canOpen) return <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
-    return <Loading>Loading the register…</Loading>;
+    } else if (!canOpen) content = <PreparationNotice>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</PreparationNotice>;
+    else content = <Loading>Loading the register…</Loading>;
   }
   return (
-    <ImportForm
-      key={`${uuid}/${retained.correction?.uuid ?? 'new'}/${retained.saved?.uuid ?? 'draft'}`}
-      owner={owner}
-      guard={guard}
-      newEffectGuard={checkNew}
-      company={retained.listed.companyUuid}
-      shareClass={{ name: retained.listed.name, symbol: retained.listed.symbol }}
-      register={retained.register}
-      companyMembers={(members.data ?? retained.members).members}
-      emptyOpeningAllowed={
-        !!listed &&
-        !!register.data &&
-        !correction &&
-        !imports.data?.some((proposal) => proposal.status === 'applied') &&
-        canOpenEmptyRegister(register.data, listed)
-      }
-      classFields={
-        showClassDetails ? (
-          <Rows>
-            {[
-              ['Class name', retained.listed.name],
-              ['Class code', retained.listed.symbol],
-              ['Class type', retained.listed.tokenTypeDisplay || 'Not recorded'],
-            ].map(([label, value]) => (
-              <Row key={label} label={label} inline>
-                {value}
-              </Row>
-            ))}
-          </Rows>
-        ) : (
-          <></>
-        )
-      }
-      appointment={canPrepare ? steps?.prepare : undefined}
-      steps={steps ?? retained.steps}
-      correction={retained.correction}
-      saved={retained.saved}
-      blocked={!fresh || externalHeld}
-      visible={fresh}
-      onConflict={retry}
-      onHeldChange={setHeld}
-    />
+    <>
+      {content}
+      <div hidden={!showForm}>
+        {retained && (
+          <ImportForm
+            key={`${uuid}/${retained.correction?.uuid ?? 'new'}/${retained.saved?.uuid ?? 'draft'}`}
+            owner={owner}
+            guard={guard}
+            newEffectGuard={checkNew}
+            company={retained.listed.companyUuid}
+            shareClass={{
+              name: listed?.name ?? retained.listed.name,
+              symbol: listed?.symbol ?? retained.listed.symbol,
+              type: listed?.tokenTypeDisplay ?? retained.listed.tokenTypeDisplay,
+            }}
+            register={retained.register}
+            companyMembers={(members.data ?? retained.members).members}
+            emptyOpeningAllowed={
+              !!listed &&
+              !!register.data &&
+              !correction &&
+              !imports.data?.some((proposal) => proposal.status === 'applied') &&
+              canOpenEmptyRegister(register.data, listed)
+            }
+            classDetails={classDetails}
+            classHeld={classHeld}
+            appointment={canPrepare ? steps?.prepare : undefined}
+            steps={steps ?? retained.steps}
+            correction={retained.correction}
+            saved={retained.saved}
+            blocked={!fresh || !canOpen || externalHeld || classHeld}
+            visible={showForm}
+            onConflict={retry}
+            onHeldChange={setHeld}
+          />
+        )}
+      </div>
+    </>
   );
 }

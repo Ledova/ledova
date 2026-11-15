@@ -191,7 +191,7 @@ afterEach(() => {
 
 const editStep = () =>
   within(screen.getByRole('list', { name: 'Ledger setup steps' })).getByRole('button', {
-    name: '1. Share details',
+    name: '1. Share class',
   }) as HTMLButtonElement;
 
 it('reads every class page and groups exact holdings by member identity with search, filtering, paging and private details', async () => {
@@ -1725,7 +1725,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   };
   showJourney();
   fireEvent.click(await screen.findByRole('link', { name: 'Add share class' }));
-  expect(await screen.findByRole('heading', { name: 'Ordinary shares · ORD' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { name: 'Ledger setup' })).toBeTruthy();
   expect(screen.queryByLabelText('Authorised shares')).toBeNull();
   expect(screen.queryByLabelText('Reason')).toBeNull();
   expect(screen.queryByLabelText('Record source')).toBeNull();
@@ -1842,19 +1842,19 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Discarded edit' } });
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Back (share details)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
   fireEvent.change(screen.getByLabelText('Record date'), { target: { value: '2010-01-01' } });
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(screen.getByText(/original membership date no later than the record date/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Back (share details)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
   fireEvent.change(screen.getByLabelText('Record date'), { target: { value: recordDate } });
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   const recover = await screen.findByRole('button', { name: 'Recover saved records' });
   expect(createdClass).toBe(true);
-  expect(screen.queryByRole('button', { name: 'Back (share details)' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Back (share class)' })).toBeNull();
   appointment = { ...appointment, status: 'revoked', isEffective: false, revokedAt: '2026-10-14T00:00:00Z' };
   await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
   expect(() => classCreationGuard()).toThrow(/company or authority changed/);
@@ -2561,15 +2561,15 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   pick('Another class');
   fireEvent.change(screen.getByLabelText('Class name'), { target: { value: 'Company A shares' } });
   fireEvent.change(screen.getByLabelText('Class code'), { target: { value: 'A' } });
-  expect(screen.getByRole('heading', { name: 'Company A shares · A' })).toBeTruthy();
+  expect((screen.getByLabelText('Class name') as HTMLInputElement).value).toBe('Company A shares');
   expect((screen.getByLabelText('Class code') as HTMLInputElement).maxLength).toBe(5);
   pick('Preference (PRF)');
-  expect(screen.getByRole('heading', { name: 'Preference shares · PRF' })).toBeTruthy();
+  expect(within(shareClass).getByRole('radio', { name: 'Preference (PRF)', checked: true })).toBeTruthy();
   expect(screen.queryByLabelText('Class name')).toBeNull();
   expect(screen.queryByLabelText('Class code')).toBeNull();
   expect(screen.queryByRole('group', { name: 'Class type' })).toBeNull();
   pick('Redeemable (RED)');
-  expect(screen.getByRole('heading', { name: 'Redeemable shares · RED' })).toBeTruthy();
+  expect(within(shareClass).getByRole('radio', { name: 'Redeemable (RED)', checked: true })).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
   expect(screen.getByRole('link', { name: 'open Ledger' }).getAttribute('href')).toBe(
     `/company/ledger?company=${company.uuid}`,
@@ -2969,12 +2969,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     canDelete: true,
   };
   let lifecycleGone = false;
+  let lifecycleReadRefused = false;
   let lifecycleFailure: number | null = null;
   let lostSave = true;
   const lifecycleDetail = COMPANY_TOKEN_ENDPOINTS.DETAIL(token.uuid);
   api.get.mockImplementation(async (url) => {
     if (url === lifecycleDetail) {
       if (lifecycleGone) throw Object.assign(new Error('Class unavailable'), { response: { status: 404 } });
+      if (lifecycleReadRefused) throw new Error('Class read interrupted');
       return { data: lifecycle };
     }
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid))
@@ -3027,8 +3029,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       </ApiClientProvider>
     </QueryClientProvider>,
   );
-  fireEvent.click(await screen.findByRole('button', { name: 'Edit (Class details)' }));
-  let metadata = within(screen.getByRole('form', { name: 'Edit class details' }));
+  const setupCard = (await screen.findByRole('heading', { name: 'Ledger setup' })).closest('section')!;
+  expect(screen.queryByRole('heading', { name: 'Class details' })).toBeNull();
+  expect(within(setupCard).getByText(lifecycle.name)).toBeTruthy();
+  const initialDate = within(setupCard).getByLabelText('Record date') as HTMLInputElement;
+  fireEvent.change(initialDate, { target: { value: '2026-10-14' } });
+  fireEvent.click(within(setupCard).getByRole('button', { name: 'Edit (Class details)' }));
+  const metadataElement = screen.getByRole('form', { name: 'Edit class details' });
+  let metadata = within(metadataElement);
+  expect(metadataElement.closest('section')).toBe(setupCard);
+  expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
+  expect(screen.getByRole('button', { name: '2. Shareholders' }).matches(':disabled')).toBe(true);
   expect(metadata.getByRole('button', { name: 'Save' }).matches(':disabled')).toBe(true);
   expect(document.querySelector('form form')).toBeNull();
   fireEvent.change(metadata.getByLabelText('Class name'), { target: { value: 'Renamed ordinary shares' } });
@@ -3038,12 +3049,26 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await screen.findByRole('button', { name: 'Check original save' });
   expect(api.patch).toHaveBeenCalledOnce();
   expect(metadata.getByLabelText('Class name').matches(':disabled')).toBe(true);
+  lifecycleReadRefused = true;
+  await act(async () =>
+    client.invalidateQueries({ predicate: (query) => (query.state.data as CompanyShareToken)?.uuid === token.uuid }),
+  );
+  expect(
+    await screen.findByText('This share class could not be loaded. It may be unavailable to this account.'),
+  ).toBeTruthy();
+  expect(document.querySelector('form[aria-label="Edit class details"]')).toBe(metadataElement);
+  expect(screen.queryByRole('form', { name: 'Edit class details' })).toBeNull();
+  lifecycleReadRefused = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByRole('form', { name: 'Edit class details' })).toBe(metadataElement);
   fireEvent.click(screen.getByRole('link', { name: 'Open another page' }));
   expect(screen.queryByText('Another page')).toBeNull();
   fireEvent.click(metadata.getByRole('button', { name: 'Check original save' }));
   expect(await screen.findByText('Class details saved.')).toBeTruthy();
   expect(api.patch).toHaveBeenCalledOnce();
   expect(screen.queryByRole('form', { name: 'Edit class details' })).toBeNull();
+  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe('2026-10-14');
+  expect(screen.getByLabelText('Record date')).toBe(initialDate);
   expect(lifecycle).toMatchObject({ name: 'Renamed ordinary shares', symbol: 'ORDX', tokenType: 'preference' });
   fireEvent.click(await screen.findByRole('button', { name: 'Edit (Class details)' }));
   metadata = within(screen.getByRole('form', { name: 'Edit class details' }));

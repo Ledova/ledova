@@ -34,7 +34,7 @@ import {
   type RegisterTransferMembers,
   type TokenHoldersResponse,
 } from '@ledova/shared';
-import { Action, Fact, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
+import { Action, FormActions, LoadError, Loading, Section } from '../../components/Ledger';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
@@ -275,7 +275,11 @@ function FreshClass({
       guard={guard}
       newEffectGuard={fresh.check}
       company={company.uuid}
-      shareClass={{ name: fresh.name, symbol: fresh.symbol }}
+      shareClass={{
+        name: fresh.name,
+        symbol: fresh.symbol,
+        type: REGISTER_CLASS_TYPES.find(([type]) => type === fresh.tokenType)?.[1],
+      }}
       companyMembers={companyMembers}
       appointment={steps.prepare!}
       steps={steps}
@@ -309,7 +313,7 @@ function FreshClass({
             legend="Share class"
             options={REGISTER_SETUP_CHOICES}
             value={fresh.choice}
-            disabled={fresh.classLocked}
+            disabled={fresh.classLocked || !ready}
             onChange={fresh.choose}
           />
           {classes.some((token) => token.status !== 'draft') && (
@@ -327,7 +331,7 @@ function FreshClass({
                 label="Class name"
                 value={fresh.name}
                 maxLength={FIELD_LIMITS.CLASS_NAME}
-                editable={!fresh.classLocked}
+                editable={!fresh.classLocked && ready}
                 onChange={fresh.setName}
               />
               <Field
@@ -336,14 +340,14 @@ function FreshClass({
                 maxLength={FIELD_LIMITS.CLASS_CODE}
                 autoCapitalize="characters"
                 autoCorrect={false}
-                editable={!fresh.classLocked}
+                editable={!fresh.classLocked && ready}
                 onChange={(symbol) => fresh.setSymbol(symbol.toUpperCase())}
               />
               <Choices
                 legend="Class type"
                 options={REGISTER_CLASS_TYPES}
                 value={fresh.tokenType}
-                disabled={fresh.classLocked}
+                disabled={fresh.classLocked || !ready}
                 onChange={fresh.setTokenType}
               />
               <Text style={look.small}>Use the recorded class code of 1–5 letters, such as A or ORD.</Text>
@@ -376,7 +380,8 @@ export function ClassSetup({
   externalHeld,
   onHeldChange,
   onRecordsChanged,
-  showClassDetails,
+  classFields,
+  classHeld,
   ...flow
 }: Flow & {
   owner: OrderSubmissionOwner;
@@ -389,7 +394,8 @@ export function ClassSetup({
   externalHeld: boolean;
   onHeldChange: (held: boolean) => void;
   onRecordsChanged: () => void;
-  showClassDetails: boolean;
+  classFields: ReactNode;
+  classHeld: boolean;
 }) {
   const look = useLedgerStyles();
   const link = useLinkStyle();
@@ -397,6 +403,7 @@ export function ClassSetup({
   const [held, setHeld] = useState(false);
   const [retained, setRetained] = useState<Retained | null>(null);
   const [preparedHere, setPreparedHere] = useState<string | null>(null);
+  const retaining = held || classHeld;
   useEffect(() => {
     onHeldChange(held);
     return () => onHeldChange(false);
@@ -447,13 +454,14 @@ export function ClassSetup({
     !!listed &&
     readable &&
     (!record || !!saved) &&
-    (held || (fresh && canOpen));
+    (retaining || (fresh && canOpen));
   if (
-    !held &&
+    !retaining &&
     fresh &&
     canOpen &&
     (!record || !!saved) &&
-    (retained?.register !== register.data ||
+    (retained?.listed !== listed ||
+      retained?.register !== register.data ||
       retained?.correction !== correction ||
       retained?.saved !== savedSource ||
       retained?.members !== members.data ||
@@ -490,14 +498,14 @@ export function ClassSetup({
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
         throw createUserFriendlyError('Refresh current company authority before continuing.');
     }
-    if (!fresh || !canOpen || (record && !saved) || retained?.listed.companyUuid !== listed?.companyUuid)
+    if (!fresh || !canOpen || classHeld || (record && !saved) || retained?.listed.companyUuid !== listed?.companyUuid)
       throw createUserFriendlyError('Your company, authority or source records changed. Refresh before continuing.');
   };
   const notice = (children: string) => <Text style={look.muted}>{children}</Text>;
   let content: ReactNode;
   if (!companyMatches) content = notice('This share class is not in a register you can read.');
   else if (fresh && record && !saved) content = notice('This saved snapshot is not in the selected share class.');
-  else if (!retained || stale || !listed || !readable || (!held && (!fresh || !canOpen))) {
+  else if (!retained || stale || !listed || !readable || (!retaining && (!fresh || !canOpen))) {
     if (stale)
       content = (
         <LoadError retry={retry} busy={fetching}>
@@ -553,7 +561,11 @@ export function ClassSetup({
             guard={guard}
             newEffectGuard={checkNew}
             company={retained!.listed.companyUuid}
-            shareClass={{ name: retained!.listed.name, symbol: retained!.listed.symbol }}
+            shareClass={{
+              name: retained!.listed.name,
+              symbol: retained!.listed.symbol,
+              type: retained!.listed.tokenTypeDisplay || 'Not recorded',
+            }}
             register={retained!.register}
             companyMembers={(members.data ?? retained!.members).members}
             emptyOpeningAllowed={
@@ -563,26 +575,13 @@ export function ClassSetup({
               !imports.data?.some((proposal) => proposal.status === 'applied') &&
               canOpenEmptyRegister(register.data, listed)
             }
-            classFields={
-              showClassDetails && (
-                <Rows>
-                  <Fact label="Class name" inline>
-                    {retained!.listed.name}
-                  </Fact>
-                  <Fact label="Class code" inline>
-                    {retained!.listed.symbol}
-                  </Fact>
-                  <Fact label="Class type" inline>
-                    {retained!.listed.tokenTypeDisplay || 'Not recorded'}
-                  </Fact>
-                </Rows>
-              )
-            }
+            classFields={classFields}
+            classHeld={classHeld}
             appointment={canPrepare ? steps?.prepare : undefined}
             steps={steps ?? retained!.steps}
             correction={retained!.correction}
             saved={retained!.saved}
-            blocked={!fresh || !canOpen || externalHeld}
+            blocked={!fresh || !canOpen || externalHeld || classHeld}
             visible={showForm && !externalHeld}
             onConflict={retry}
             onHeldChange={setHeld}
