@@ -1,6 +1,7 @@
 import hashlib
 from datetime import timedelta
 from unittest.mock import patch
+from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.apps import apps
@@ -41,6 +42,7 @@ from shared.db import atomic, use_migrate, use_operator
 from shared.tests.core_fixtures import (
     PASSWORD,
     CoreFixtures,
+    import_payload,
     pdf_bytes,
     person,
 )
@@ -158,6 +160,98 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(created.status_code, 201, created.content)
         with use_operator():
             self.assertFalse(ShareToken.objects.get(pk=created.json()["uuid"]).contract_address)
+        details = created.json()
+        class_path = f"/api/v1/tokens/{details['uuid']}/"
+
+        def delete_version(path, stamp):
+            return self.client.delete(path + "?" + urlencode({"expected_updated_at": stamp}))
+
+        self.assertTrue(details["canEditDetails"])
+        self.assertTrue(details["canDelete"])
+        change = {
+            "name": "Synthetic preference shares",
+            "symbol": "pref",
+            "tokenType": "preference",
+            "expectedUpdatedAt": details["updatedAt"],
+        }
+        changed = self.client.patch(class_path, change, format="json")
+        self.assertEqual(changed.status_code, 200, changed.content)
+        self.assertEqual(
+            (changed.json()["name"], changed.json()["symbol"], changed.json()["tokenType"]),
+            (change["name"], "PREF", "preference"),
+        )
+        self.assertEqual(self.client.patch(class_path, change, format="json").status_code, 409)
+        change["expectedUpdatedAt"] = changed.json()["updatedAt"]
+        self.assertEqual(self.client.patch(class_path, {**change, "symbol": "ETH"}, format="json").status_code, 400)
+        self.assertEqual(
+            self.client.patch(class_path, {**change, "symbol": self.token.symbol}, format="json").status_code, 400
+        )
+        self.assertEqual(
+            self.client.patch(
+                class_path, {**change, "company": str(self.foreign_company.pk)}, format="json"
+            ).status_code,
+            400,
+        )
+        self.client.force_authenticate(self.foreign)
+        self.assertEqual(self.client.patch(class_path, change, format="json").status_code, 404)
+        self.assertEqual(
+            delete_version(class_path, change["expectedUpdatedAt"]).status_code,
+            404,
+        )
+        self.client.force_authenticate(self.owner)
+        with use_operator(), self.assertRaises(DatabaseError), atomic():
+            ShareToken.objects.filter(pk=details["uuid"]).update(name="Unattributed overwrite")
+        with use_operator(), self.assertRaises(DatabaseError), atomic():
+            ShareToken.objects.filter(pk=details["uuid"]).delete()
+        self.assertEqual(delete_version(class_path, details["updatedAt"]).status_code, 409)
+        removed = delete_version(class_path, change["expectedUpdatedAt"])
+        self.assertEqual(removed.status_code, 204, removed.content)
+        self.assertEqual(self.client.get(class_path).status_code, 404)
+        current_path = f"/api/v1/tokens/{self.token.pk}/"
+        current = self.client.get(current_path).json()
+        self.assertFalse(current["canEditDetails"])
+        self.assertFalse(current["canDelete"])
+        self.assertEqual(
+            self.client.patch(
+                current_path, {**change, "expectedUpdatedAt": current["updatedAt"]}, format="json"
+            ).status_code,
+            409,
+        )
+        self.assertEqual(
+            delete_version(current_path, current["updatedAt"]).status_code,
+            409,
+        )
+        draft = self.client.post(
+            "/api/v1/tokens/",
+            {
+                "company": str(self.company.pk),
+                "name": "Synthetic resumed class",
+                "symbol": "RES",
+                "total_supply": "1000",
+            },
+            format="json",
+        )
+        self.assertEqual(draft.status_code, 201, draft.content)
+        with use_operator():
+            draft_token = ShareToken.objects.get(pk=draft.json()["uuid"])
+        prepared = self.client.post(
+            "/api/v1/tokens/register-imports/", import_payload(self.owner, self.appointment, draft_token), format="json"
+        )
+        self.assertEqual(prepared.status_code, 201, prepared.content)
+        draft_path = f"/api/v1/tokens/{draft_token.pk}/"
+        draft_change = {**change, "symbol": "RES", "expectedUpdatedAt": draft.json()["updatedAt"]}
+        self.assertEqual(self.client.patch(draft_path, draft_change, format="json").status_code, 409)
+        self.decision(
+            "/api/v1/tokens/register-imports/", prepared.json()["uuid"], "reject", reason="Replace the draft details"
+        )
+        resumed = self.client.patch(draft_path, draft_change, format="json")
+        self.assertEqual(resumed.status_code, 200, resumed.content)
+        self.assertTrue(resumed.json()["canEditDetails"])
+        self.assertFalse(resumed.json()["canDelete"])
+        self.assertEqual(
+            delete_version(draft_path, resumed.json()["updatedAt"]).status_code,
+            409,
+        )
         self.assertEqual(self.client.get(history_path).json(), history.json())
 
     def test_company_ownership_summary_and_paged_holders_are_exact_and_current(self):

@@ -134,6 +134,10 @@ and the purge of export records after the retention floor. Two mirror cases cove
 holdings and allotments, once-only opening corrections, retained earlier snapshots, stale and
 incomplete requests, and refusal after later ownership or member-access activity. They exercise
 the API and PostgreSQL guards; they establish no genuine legal register or source verification.
+The existing class journey also covers metadata editing and unused-class deletion, stale versions,
+invalid or duplicate codes, unexpected fields, and refusal once an opening or retained record
+prevents the change. Rejecting a setup permits an otherwise eligible edit but does not permit
+deleting its retained class. These checks extend existing cases: 37 methods plus 61 rows remains 98.
 
 ### Real-app-login tenant cases
 
@@ -142,7 +146,9 @@ their API and database boundaries: a privileged fixture connection alone does no
 isolation, and ordinary `SET ROLE` fixtures are not app-login evidence.
 `backend/shared/tests/test_scoped_access.py` holds them:
 session and principal handling, foreign reads and writes, exact-company binding, foreign approval
-and once-only issue. The own-profile case also checks that the operator-connection profile save, with
+and once-only issue. Exact-company binding includes class edits and deletion through real app and
+operator connections, foreign-class refusals and refusal of direct app-role SQL metadata changes.
+The own-profile case also checks that the operator-connection profile save, with
 its serializer bypassed, cannot change provider identity results or another person's row. The PR description records the executed count, the scoped count and any skips.
 
 ## Client suites

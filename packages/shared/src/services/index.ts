@@ -55,6 +55,8 @@ export {
 export {
   getCompanyToken,
   createCompanyToken,
+  updateCompanyToken,
+  deleteCompanyToken,
   getRegisterClasses,
   getCompanyTokenHolders,
   getCompanyOwnership,

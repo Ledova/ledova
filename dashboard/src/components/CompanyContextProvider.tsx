@@ -64,7 +64,8 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
   const company = directory.companies.find(({ uuid }) => uuid === companyUuid);
   const held =
     (location.pathname === DESTINATIONS.companyRegister.path ||
-      !!matchPath(DESTINATIONS.companyRegisterAward.path, location.pathname)) &&
+      !!matchPath(DESTINATIONS.companyRegisterAward.path, location.pathname) ||
+      (!!token && ledger.state?.token === token && ledger.state.company === companyUuid)) &&
     !!ledger.state?.held;
   const allowed = (uuid: string | null) =>
     !!owner && boundary.get() === owner && !held && (!uuid || directory.companies.some((row) => row.uuid === uuid));

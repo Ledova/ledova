@@ -1,3 +1,4 @@
+from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.conf import settings
@@ -275,6 +276,47 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             self.foreign, self.foreign_company, self.foreign_appointment, "FOREIGN"
         )
         self.sign_in(self.owner)
+        class_path = f"/api/v1/tokens/{token.pk}/"
+        details = self.client.get(class_path)
+        self.assertEqual(details.status_code, 200, details.content)
+        changed = self.client.patch(
+            class_path,
+            {
+                "name": "Imported current ordinary",
+                "symbol": token.symbol,
+                "tokenType": token.token_type,
+                "expectedUpdatedAt": details.json()["updatedAt"],
+            },
+            format="json",
+        )
+        self.assertEqual(changed.status_code, 200, changed.content)
+        foreign_change = self.client.patch(
+            f"/api/v1/tokens/{foreign_token.pk}/",
+            {
+                "name": "Forged",
+                "symbol": "OTHER",
+                "tokenType": "ordinary",
+                "expectedUpdatedAt": foreign_token.updated_at.isoformat(),
+            },
+            format="json",
+        )
+        self.assertEqual(foreign_change.status_code, 404, foreign_change.content)
+        set_principal(self.owner.pk, APP_ALIAS)
+        try:
+            with self.assertRaises(IntegrityError), atomic(APP_ALIAS):
+                ShareToken.objects.using(APP_ALIAS).filter(pk=token.pk).update(name="Forged direct edit")
+        finally:
+            reset_principal(APP_ALIAS)
+        unused = self.client.post(
+            "/api/v1/tokens/",
+            {"company": str(self.company.pk), "name": "Unused class", "symbol": "UNUSD", "totalSupply": "1000"},
+            format="json",
+        )
+        self.assertEqual(unused.status_code, 201, unused.content)
+        removed = self.client.delete(
+            f"/api/v1/tokens/{unused.json()['uuid']}/?" + urlencode({"expected_updated_at": unused.json()["updatedAt"]})
+        )
+        self.assertEqual(removed.status_code, 204, removed.content)
         response = self.client.post("/api/v1/tokens/register-imports/", payload, format="json")
         self.assertEqual(response.status_code, 201, response.content)
         identifier = response.json()["uuid"]

@@ -237,8 +237,10 @@ application role writes them. The purge is in [retention clocks](security.md#ret
 
 The register spine `Company -> ShareToken -> {ShareIssuance, ShareIssuanceRequest,
 CapitalIncreaseRequest, TransferOrder}` and `SwapOrder.share_token` use `PROTECT`, which admin
-removal of test data still respects. The API deletes neither a company nor a share class (405): delist a company or pause a
-class instead. Deleting a wallet cascades its whitelist entry and that entry's company approvals and
+removal of test data still respects. The API refuses company deletion (405), and unused-class
+deletion requires current company authority, an unchanged version and no retained references
+([class lifecycle](backend.md#company-workflow-api)). A zero balance is not proof that a class is
+unused. Deleting a wallet cascades its whitelist entry and that entry's company approvals and
 leaves the approval on chain; durable [whitelist commands](chain.md#whitelist-changes) keep their
 own identity. Allotment identity stamps keep the identity resolved at issue, which treasury
 relabelling or a current profile guess must not replace. Retained activation receipts are application

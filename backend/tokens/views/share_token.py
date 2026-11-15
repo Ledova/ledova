@@ -53,6 +53,15 @@ from tokens.serializers.register_inspection_copy import (
 )
 from tokens.serializers.register_opening import RegisterOpeningHoldersSerializer
 from tokens.serializers.register_transfer import RegisterMembersSerializer
+from tokens.serializers.share_token import (
+    ShareTokenEditSerializer,
+    ShareTokenVersionSerializer,
+)
+from tokens.services.class_lifecycle import (
+    class_lifecycle_access,
+    delete_unused_class,
+    update_class_details,
+)
 from tokens.services.class_rights import (
     class_rights_file,
     class_rights_read,
@@ -86,6 +95,7 @@ class ShareTokenViewSet(
     filterset_class = ShareTokenFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "name", "symbol", "status", "token_type"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     scoped_model = ShareToken
     operator_actions = frozenset(
@@ -93,6 +103,8 @@ class ShareTokenViewSet(
             "create",
             "list",
             "retrieve",
+            "partial_update",
+            "destroy",
             "issuances",
             "holders",
             "register",
@@ -112,7 +124,8 @@ class ShareTokenViewSet(
     operator_actions_because = (
         "Share-class creation requires current personal company administration or prepare authority; its company "
         "selector and insertion recheck that authority inside the locked company operation. Owned reads remain "
-        "separately scoped. "
+        "separately scoped. Class-detail edits and unused-class deletion use the same personal authority, "
+        "locked company and class, fresh version and database-enforced activity restrictions. "
         "a members' register has to carry each holder's name and residential address, and those "
         "belong to the issuer's investors rather than to the issuer, so no policy admits them to the "
         "principal reading it. Without the operator connection the register does not fail - it prints "
@@ -158,10 +171,14 @@ class ShareTokenViewSet(
             return ShareTokenCreateSerializer
         if self.action in {"list", "register"}:
             return ShareTokenListSerializer
+        if self.action == "partial_update":
+            return ShareTokenEditSerializer
+        if self.action == "destroy":
+            return ShareTokenVersionSerializer
         return ShareTokenDetailSerializer
 
     def narrow(self, queryset):
-        if self.action == "register_opening_holders":
+        if self.action in {"register_opening_holders", "partial_update", "destroy"}:
             queryset = queryset.register_preparable_by(self.request.user)
         elif self.action in self.register_reads or self.action == "retrieve":
             queryset = queryset.register_readable_by(self.request.user)
@@ -178,11 +195,39 @@ class ShareTokenViewSet(
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        token = serializer.save()
+        token = class_lifecycle_access(serializer.save(), request.user)
         return Response(
             ShareTokenDetailSerializer(token, context=self.get_serializer_context()).data,
             status=status.HTTP_201_CREATED,
         )
+
+    @extend_schema(responses=ShareTokenDetailSerializer)
+    def retrieve(self, request, *args, **kwargs):
+        token = class_lifecycle_access(self.get_object(), request.user)
+        return Response(ShareTokenDetailSerializer(token, context=self.get_serializer_context()).data)
+
+    @extend_schema(request=ShareTokenEditSerializer, responses=ShareTokenDetailSerializer)
+    def partial_update(self, request, *args, **kwargs):
+        token = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        changes = dict(serializer.validated_data)
+        expected_updated_at = changes.pop("expected_updated_at")
+        token = update_class_details(
+            actor=request.user, token=token, expected_updated_at=expected_updated_at, changes=changes
+        )
+        return Response(ShareTokenDetailSerializer(token, context=self.get_serializer_context()).data)
+
+    @extend_schema(
+        parameters=[OpenApiParameter("expected_updated_at", OpenApiTypes.DATETIME, required=True)],
+        responses={204: None},
+    )
+    def destroy(self, request, *args, **kwargs):
+        token = self.get_object()
+        serializer = self.get_serializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        delete_unused_class(actor=request.user, token=token, **serializer.validated_data)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         responses=ShareIssuanceListSerializer(many=True),

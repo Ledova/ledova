@@ -1,6 +1,6 @@
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { matchPath, useLocation } from 'react-router-dom';
 import {
@@ -25,6 +25,9 @@ import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { AccountCheck } from '@components/AccountCheck';
 import { ClassSetup } from './ClassSetup';
+import { ClassDetails } from './ClassDetails';
+import { useClassDetails } from './useClassDetails';
+import { useLedgerNavigation } from '@components/LedgerNavigation';
 
 export function ShareClass({ uuid }: { uuid: string }) {
   const data = useShareClass(uuid);
@@ -78,9 +81,11 @@ function ShareClassWorkspace({
   owner: OrderSubmissionOwner;
   requested: boolean;
 }) {
+  const { setState: setLedgerNavigation } = useLedgerNavigation();
   const appointments = useOwnAppointments(owner, data.guard, { enabled: data.token.isSuccess });
   const [setup, setSetup] = useState<boolean | null>(null);
   const [setupHeld, setSetupHeld] = useState(false);
+  const [detailsHeld, setDetailsHeld] = useState(false);
   const steps =
     data.token.data && appointments.data ? registerSteps(appointments.data, data.token.data.companyUuid) : null;
   const canSetUp = !!(steps?.prepare || steps?.approve || steps?.apply);
@@ -99,9 +104,33 @@ function ShareClassWorkspace({
     },
     [data.holdReads],
   );
+  const heldDetails = useCallback(
+    (held: boolean) => {
+      setDetailsHeld(held);
+      data.holdReads('class-details', held);
+    },
+    [data.holdReads],
+  );
+  const detailsAvailable = ready && !setupHeld && (!data.readingPaused || detailsHeld);
+  const details = useClassDetails(data, owner, detailsAvailable, heldDetails);
+  const company = data.token.data?.companyUuid;
+  const navigationHeld = details.busy || details.pending;
+  useLayoutEffect(() => {
+    setLedgerNavigation({ company, token: uuid, blocked: navigationHeld, held: navigationHeld });
+    return () => setLedgerNavigation((current) => (current?.token === uuid ? null : current));
+  }, [setLedgerNavigation, company, uuid, navigationHeld]);
+  const recordsChanged = useCallback(() => {
+    void data.token.refetch();
+  }, [data.token.refetch]);
+  const editableDetails = !!(
+    data.token.data?.canEditDetails ||
+    data.token.data?.canDelete ||
+    details.held ||
+    details.outcome
+  );
   const rights = useClassRights(
     uuid,
-    data.token.isSuccess && data.token.fetchStatus === 'idle' && !setupHeld,
+    data.token.isSuccess && data.token.fetchStatus === 'idle' && !setupHeld && !detailsHeld,
     data.token.data?.companyUuid,
     BROWSER_FILES,
     () => crypto.randomUUID(),
@@ -111,34 +140,39 @@ function ShareClassWorkspace({
     return () => data.holdReads('class-rights', false);
   }, [rights.editor, rights.pending, rights.busy, data.holdReads]);
   return (
-    <ShareClassDetails
-      key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
-      data={data}
-      setup={
-        setup === null ? (
-          data.register.isError ? (
-            <LoadError retry={() => data.register.refetch()} busy={data.register.isFetching}>
-              The current ownership could not be loaded.
-            </LoadError>
-          ) : appointments.isError ? (
-            <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
-              Your class setup access could not be loaded.
-            </LoadError>
-          ) : (
-            <Loading>Loading the share class…</Loading>
-          )
-        ) : setup ? (
-          <ClassSetup
-            uuid={uuid}
-            owner={owner}
-            guard={data.guard}
-            externalHeld={data.readingPaused && !setupHeld}
-            onHeldChange={heldSetup}
-          />
-        ) : undefined
-      }
-      rights={<ClassRights rights={rights} />}
-    />
+    <>
+      {data.token.data && <ClassDetails token={data.token.data} details={details} available={detailsAvailable} />}
+      <ShareClassDetails
+        key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
+        data={data}
+        setup={
+          setup === null ? (
+            data.register.isError ? (
+              <LoadError retry={() => data.register.refetch()} busy={data.register.isFetching}>
+                The current ownership could not be loaded.
+              </LoadError>
+            ) : appointments.isError ? (
+              <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+                Your class setup access could not be loaded.
+              </LoadError>
+            ) : (
+              <Loading>Loading the share class…</Loading>
+            )
+          ) : setup ? (
+            <ClassSetup
+              uuid={uuid}
+              owner={owner}
+              guard={data.guard}
+              externalHeld={data.readingPaused && !setupHeld}
+              onHeldChange={heldSetup}
+              showClassDetails={!editableDetails}
+              onRecordsChanged={recordsChanged}
+            />
+          ) : undefined
+        }
+        rights={<ClassRights rights={rights} />}
+      />
+    </>
   );
 }
 

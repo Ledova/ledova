@@ -56,7 +56,7 @@ import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { ShareClass } from './detail/ShareClass';
 import { MemberDocuments } from './shared/MemberDocuments';
-import CompanyRegisterImportPage from './detail';
+import ShareClassPage from './detail';
 import { ImportForm } from './detail/ImportForm';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../testSupport/company';
 import {
@@ -67,7 +67,7 @@ import {
   renderCompanyPage,
 } from '../../../testSupport/company';
 
-const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn() }));
+const api = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() }));
 vi.mock('@services/apiClient', () => ({ default: api }));
 const REGISTER = COMPANY_TOKEN_ENDPOINTS.REGISTER;
 const IMPORTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORTS;
@@ -175,6 +175,8 @@ function readUrls() {
 beforeEach(() => {
   api.get.mockReset();
   api.post.mockReset();
+  api.patch.mockReset();
+  api.delete.mockReset();
   client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 });
 
@@ -1403,6 +1405,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     chain: null,
     deployedAt: null,
     deploymentTxHash: null,
+    updatedAt: '2026-10-14T00:00:00Z',
+    canEditDetails: false,
+    canDelete: false,
   };
   const dataPage = (results: unknown[]) => ({ data: { results, count: results.length, next: null, previous: null } });
   const holders = (): TokenHoldersResponse => ({
@@ -1465,7 +1470,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === COMPANY_ENDPOINTS.DETAIL(company.uuid)) return { data: company };
     if (url === APPOINTMENTS) return dataPage([appointment]);
     if (url === REGISTER || url === COMPANY_TOKEN_ENDPOINTS.BASE) return dataPage(visibleClass ? [token] : []);
-    if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL(token.uuid)) return { data: token };
+    if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL(token.uuid))
+      return {
+        data: {
+          ...token,
+          canEditDetails:
+            !opened && (!proposal || proposal.status === 'rejected') && appointment.capabilities.includes('prepare'),
+        },
+      };
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)) return { data: holders() };
     if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP) return ownershipRead();
     if (url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS(token.uuid)) {
@@ -1694,9 +1706,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
                   </LedgerNavigationProvider>
                 }
               />
-              <Route path={DESTINATIONS.companyRegisterSetup.path} element={<CompanyRegisterImportPage />} />
-              <Route path={DESTINATIONS.companyRegisterImport.path} element={<CompanyRegisterImportPage />} />
-              <Route path={DESTINATIONS.companyClass.path} element={<CompanyRegisterImportPage />} />
+              <Route path={DESTINATIONS.companyRegisterSetup.path} element={<ShareClassPage />} />
+              <Route path={DESTINATIONS.companyRegisterImport.path} element={<ShareClassPage />} />
+              <Route path={DESTINATIONS.companyClass.path} element={<ShareClassPage />} />
             </Routes>
           </TestRouter>
         </ApiClientProvider>
@@ -2297,6 +2309,15 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe(resumedDraft.asAt);
   expect(proposal!.status).toBe('rejected');
   expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['reject']);
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit (Class details)' }));
+  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe(resumedDraft.asAt);
+  expect(screen.getByLabelText('Record date').matches(':disabled')).toBe(true);
+  const classDraft = within(screen.getByRole('form', { name: 'Edit class details' }));
+  fireEvent.change(classDraft.getByLabelText('Class name'), { target: { value: 'Unsubmitted metadata edit' } });
+  fireEvent.click(classDraft.getByRole('button', { name: 'Cancel' }));
+  expect(((await screen.findByLabelText('Record date')) as HTMLInputElement).value).toBe(resumedDraft.asAt);
+  expect(screen.getByLabelText('Record date').matches(':disabled')).toBe(false);
+  expect(api.patch).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: '2. Shareholders' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
@@ -2932,6 +2953,121 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   cleanup();
   client.clear();
   api.post.mockClear();
+  let lifecycle = {
+    ...token,
+    name: 'Unopened ordinary shares',
+    tokenTypeDisplay: 'Ordinary shares',
+    canEditDetails: true,
+    canDelete: true,
+  };
+  let lifecycleGone = false;
+  let lifecycleFailure: number | null = null;
+  let lostSave = true;
+  const lifecycleDetail = COMPANY_TOKEN_ENDPOINTS.DETAIL(token.uuid);
+  api.get.mockImplementation(async (url) => {
+    if (url === lifecycleDetail) {
+      if (lifecycleGone) throw Object.assign(new Error('Class unavailable'), { response: { status: 404 } });
+      return { data: lifecycle };
+    }
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid))
+      return {
+        data: { ...holders(), token: lifecycle, initialized: false, issuedSupply: null, holders: [], totalHolders: 0 },
+      };
+    if (url === APPOINTMENTS) return dataPage([appointment]);
+    if (url === COMPANY_ENDPOINTS.BASE) return dataPage([company]);
+    if (url === REGISTER) return dataPage(lifecycleGone ? [] : [lifecycle]);
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid))
+      return { data: { members: [], awardRecipients: [] } };
+    return dataPage([]);
+  });
+  api.patch.mockImplementation(async (url, changes, config) => {
+    config.ledovaSubmissionGuard();
+    expect(url).toBe(lifecycleDetail);
+    expect(changes.expectedUpdatedAt).toBe(lifecycle.updatedAt);
+    if (lifecycleFailure)
+      throw Object.assign(new Error('Class changes refused'), { response: { status: lifecycleFailure } });
+    lifecycle = { ...lifecycle, ...changes, updatedAt: '2026-10-15T00:00:00Z' };
+    if (lostSave) {
+      lostSave = false;
+      throw new Error('Class save response interrupted');
+    }
+    return { data: lifecycle };
+  });
+  api.delete.mockImplementation(async (url, config) => {
+    config.ledovaSubmissionGuard();
+    expect(url).toBe(lifecycleDetail);
+    expect(config.params).toEqual({ expected_updated_at: lifecycle.updatedAt });
+    lifecycleGone = true;
+    return { status: 204 };
+  });
+  prepareCompanyClient(client);
+  render(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <TestRouter initialEntries={[classPath]}>
+          <LedgerNavigationProvider>
+            <CompanyContextProvider>
+              <Link to="/unrelated">Open another page</Link>
+              <Routes>
+                <Route path={DESTINATIONS.companyClass.path} element={<ShareClassPage />} />
+                <Route path={DESTINATIONS.companyRegister.path} element={<CompanyRegisterPage />} />
+                <Route path="/unrelated" element={<p>Another page</p>} />
+              </Routes>
+            </CompanyContextProvider>
+          </LedgerNavigationProvider>
+        </TestRouter>
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit (Class details)' }));
+  let metadata = within(screen.getByRole('form', { name: 'Edit class details' }));
+  expect(metadata.getByRole('button', { name: 'Save' }).matches(':disabled')).toBe(true);
+  expect(document.querySelector('form form')).toBeNull();
+  fireEvent.change(metadata.getByLabelText('Class name'), { target: { value: 'Renamed ordinary shares' } });
+  fireEvent.change(metadata.getByLabelText('Class code'), { target: { value: 'ORDX' } });
+  fireEvent.change(metadata.getByLabelText('Class type'), { target: { value: 'preference' } });
+  fireEvent.click(metadata.getByRole('button', { name: 'Save' }));
+  await screen.findByRole('button', { name: 'Check original save' });
+  expect(api.patch).toHaveBeenCalledOnce();
+  expect(metadata.getByLabelText('Class name').matches(':disabled')).toBe(true);
+  fireEvent.click(screen.getByRole('link', { name: 'Open another page' }));
+  expect(screen.queryByText('Another page')).toBeNull();
+  fireEvent.click(metadata.getByRole('button', { name: 'Check original save' }));
+  expect(await screen.findByText('Class details saved.')).toBeTruthy();
+  expect(api.patch).toHaveBeenCalledOnce();
+  expect(screen.queryByRole('form', { name: 'Edit class details' })).toBeNull();
+  expect(lifecycle).toMatchObject({ name: 'Renamed ordinary shares', symbol: 'ORDX', tokenType: 'preference' });
+  fireEvent.click(await screen.findByRole('button', { name: 'Edit (Class details)' }));
+  metadata = within(screen.getByRole('form', { name: 'Edit class details' }));
+  fireEvent.change(metadata.getByLabelText('Class name'), { target: { value: 'Refused metadata' } });
+  for (const status of [409, 403]) {
+    lifecycleFailure = status;
+    fireEvent.click(metadata.getByRole('button', { name: 'Save' }));
+    expect(
+      await screen.findByText('The class action could not be confirmed. Check the original request.'),
+    ).toBeTruthy();
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    expect(lifecycle.name).toBe('Renamed ordinary shares');
+  }
+  fireEvent.click(metadata.getByRole('button', { name: 'Cancel' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete (share class)' }));
+  let deletion = within(await screen.findByRole('dialog', { name: 'Delete Renamed ordinary shares?' }));
+  fireEvent.click(deletion.getByRole('button', { name: 'Cancel' }));
+  expect(api.delete).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Delete (share class)' }));
+  deletion = within(await screen.findByRole('dialog', { name: 'Delete Renamed ordinary shares?' }));
+  const detailReadsBeforeDelete = api.get.mock.calls.filter(([url]) => url === lifecycleDetail).length;
+  fireEvent.click(deletion.getByRole('button', { name: 'Delete class' }));
+  expect(await screen.findByText('Share class deleted.')).toBeTruthy();
+  expect(api.delete).toHaveBeenCalledOnce();
+  expect(api.get.mock.calls.filter(([url]) => url === lifecycleDetail)).toHaveLength(detailReadsBeforeDelete);
+  expect(screen.queryByRole('dialog')).toBeNull();
+  fireEvent.click(screen.getByRole('link', { name: 'Open another page' }));
+  expect(await screen.findByText('Another page')).toBeTruthy();
+  cleanup();
+  client.clear();
+  api.patch.mockClear();
+  api.delete.mockClear();
   let readRefusal: number | null = null;
   api.get.mockImplementation(async (url, config) => {
     config.ledovaSubmissionGuard();

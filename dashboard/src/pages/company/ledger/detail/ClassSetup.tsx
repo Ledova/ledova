@@ -1,6 +1,6 @@
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -45,12 +45,16 @@ export function ClassSetup({
   guard,
   externalHeld = false,
   onHeldChange,
+  showClassDetails = true,
+  onRecordsChanged,
 }: {
   uuid: string;
   owner: OrderSubmissionOwner;
   guard: () => void;
   externalHeld?: boolean;
   onHeldChange?: (held: boolean) => void;
+  showClassDetails?: boolean;
+  onRecordsChanged?: () => void;
 }) {
   const client = useQueryClient();
   const [search] = useSearchParams();
@@ -68,6 +72,11 @@ export function ClassSetup({
     companyMatches && listed && appointments.data ? registerSteps(appointments.data, listed.companyUuid) : null;
   const readable = !!(steps?.prepare || steps?.approve || steps?.apply);
   const imports = useRegisterImports(owner, uuid, guard, readable);
+  const previousImports = useRef(imports.data);
+  useEffect(() => {
+    if (previousImports.current && imports.data && previousImports.current !== imports.data) onRecordsChanged?.();
+    previousImports.current = imports.data;
+  }, [imports.data, onRecordsChanged]);
   const members = usePeople(owner, uuid, guard, readable);
   const register = useImportRegister(owner, uuid, readable, guard);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
@@ -199,24 +208,28 @@ export function ClassSetup({
         canOpenEmptyRegister(register.data, listed)
       }
       classFields={
-        <Rows>
-          {[
-            ['Class name', retained.listed.name],
-            ['Class code', retained.listed.symbol],
-            ['Class type', retained.listed.tokenTypeDisplay || 'Not recorded'],
-          ].map(([label, value]) => (
-            <Row key={label} label={label} inline>
-              {value}
-            </Row>
-          ))}
-        </Rows>
+        showClassDetails ? (
+          <Rows>
+            {[
+              ['Class name', retained.listed.name],
+              ['Class code', retained.listed.symbol],
+              ['Class type', retained.listed.tokenTypeDisplay || 'Not recorded'],
+            ].map(([label, value]) => (
+              <Row key={label} label={label} inline>
+                {value}
+              </Row>
+            ))}
+          </Rows>
+        ) : (
+          <></>
+        )
       }
       appointment={canPrepare ? steps?.prepare : undefined}
       steps={steps ?? retained.steps}
       correction={retained.correction}
       saved={retained.saved}
       blocked={!fresh || externalHeld}
-      visible={fresh && !externalHeld}
+      visible={fresh}
       onConflict={retry}
       onHeldChange={setHeld}
     />

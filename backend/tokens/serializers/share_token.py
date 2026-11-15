@@ -1,8 +1,11 @@
+from collections.abc import Mapping
+
 from rest_framework import serializers
 
 from companies.models import Company
 from tokens.constants import RESERVED_SYMBOL
 from tokens.models import RegisterEntryKind, ShareToken
+from tokens.models.choices import ShareTokenType
 from tokens.services.creation import create_share_token
 from tokens.services.market_data_service import market_summaries
 from tokens.services.register_inclusions import ISSUE, TRANSFER, WAITING_REASONS
@@ -77,6 +80,8 @@ class ShareTokenListSerializer(serializers.ModelSerializer):
 
 class ShareTokenDetailSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
+    can_edit_details = serializers.BooleanField(read_only=True, default=False)
+    can_delete = serializers.BooleanField(read_only=True, default=False)
 
     def get_is_owner(self, obj) -> bool:
         actor = getattr(self.context.get("request"), "user", None)
@@ -92,6 +97,8 @@ class ShareTokenDetailSerializer(serializers.ModelSerializer):
         fields = [
             "uuid",
             "is_owner",
+            "can_edit_details",
+            "can_delete",
             "company",
             "company_uuid",
             "company_name",
@@ -144,13 +151,7 @@ class ShareTokenCreateSerializer(serializers.ModelSerializer):
         return create_share_token(actor=getattr(request, "user", None), company_id=company.pk, data=validated_data)
 
     def validate_symbol(self, value):
-        if not value.isascii() or not value.isalpha():
-            raise serializers.ValidationError("Class code must contain only ASCII letters.")
-        if len(value) < 1 or len(value) > 5:
-            raise serializers.ValidationError("Class code must be 1-5 letters.")
-        if reserved_symbol(value):
-            raise serializers.ValidationError(RESERVED_SYMBOL.format(symbol=value.upper()))
-        return value.upper()
+        return validated_class_symbol(value)
 
     def validate_total_supply(self, value):
         try:
@@ -169,6 +170,34 @@ class ShareTokenCreateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"company": "Select the company that issues this token."})
             attrs["company"] = companies[0]
         return attrs
+
+
+def validated_class_symbol(value):
+    if not value.isascii() or not value.isalpha():
+        raise serializers.ValidationError("Class code must contain only ASCII letters.")
+    if len(value) < 1 or len(value) > 5:
+        raise serializers.ValidationError("Class code must be 1-5 letters.")
+    if reserved_symbol(value):
+        raise serializers.ValidationError(RESERVED_SYMBOL.format(symbol=value.upper()))
+    return value.upper()
+
+
+class ShareTokenVersionSerializer(serializers.Serializer):
+    expected_updated_at = serializers.DateTimeField()
+
+    def to_internal_value(self, data):
+        if isinstance(data, Mapping) and set(data) - set(self.fields):
+            raise serializers.ValidationError({"non_field_errors": ["Supply only the fields for this class action."]})
+        return super().to_internal_value(data)
+
+
+class ShareTokenEditSerializer(ShareTokenVersionSerializer):
+    name = serializers.CharField(max_length=100)
+    symbol = serializers.CharField(max_length=5)
+    token_type = serializers.ChoiceField(choices=ShareTokenType.choices)
+
+    def validate_symbol(self, value):
+        return validated_class_symbol(value)
 
 
 class ShareRegisterWalletSerializer(serializers.Serializer):

@@ -5,6 +5,8 @@ export type TokenType = ApiSchema<'TokenTypeEnum'>;
 export type CompanyShareToken = ApiResponse<'api_v1_tokens_retrieve'>;
 
 export type TokenCreate = ApiRequest<'api_v1_tokens_create'>;
+export type CompanyShareTokenUpdate = Required<ApiRequest<'api_v1_tokens_partial_update'>>;
+export type CompanyShareTokenDeleteQueryParams = ApiQuery<'api_v1_tokens_destroy'>;
 
 export type CompanyShareTokenListItem = ApiResponse<'api_v1_tokens_list'>['results'][number];
 

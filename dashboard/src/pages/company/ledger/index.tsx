@@ -16,7 +16,7 @@ import {
   type TokenHoldersResponse,
   useOwnAppointments,
 } from '@ledova/shared';
-import { LinkRow, LoadError, Loading, Section } from '@components/Ledger';
+import { LinkRow, LoadError, Loading, Outcome, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { documentView, ledgerTask, pageTitle, type DocumentView, type LedgerTask } from '@utils/destinations';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
@@ -518,6 +518,9 @@ function OwnRegister({
             onHeldChange={setPersonHeld}
           />
         </div>
+      )}
+      {view === 'register' && typeof location.state?.classNotice === 'string' && (
+        <Outcome>{location.state.classNotice}</Outcome>
       )}
       {scope && (view === 'register' || view === 'awards' || documents === 'inspection-copies') && (
         <>
