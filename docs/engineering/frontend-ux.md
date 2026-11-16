@@ -438,6 +438,9 @@ fields under the same heading, with Cancel and Save together at the bottom right
 field when editing opens and return focus to Edit when it ends, if that action is still available.
 Company information and personal Profile details follow this pattern.
 An eligible class uses the same inline Edit, Cancel and Save pattern for its name, code and type.
+Current preparers see **Edit** even when editing is locked, disabled with the server's
+`editBlockedReason` visible beside it and linked as its accessible description. Readers without
+preparation authority see no Edit action. Do not infer editing eligibility from deletion eligibility.
 Keep the setup draft mounted while that editor is open. A completed web class page orders its cards
 as **Class details**, **Class rights**, **Shareholder documents**, then **Summary**. **Edit** stays
 in Class details; **Delete share class** sits after Summary, aligned right, because it acts on the
@@ -449,6 +452,11 @@ automatically and their records and audit history are kept. When records prevent
 preparers with the API's plain reason visibly beside it and linked as its accessible description.
 A lost reply holds the original action for checking. Recorded ownership, rights revisions and
 documents are never erased by this control.
+Shareholder documents uses **Add documents**, not Edit: uploads append linked attachments rather
+than overwrite stored files. Keep the action visible to current preparers when no target exists,
+disabled with **Record a shareholder in this class before adding documents.** (or **Record a
+shareholding before adding documents.** on a person's page). Class-wide governing documents stay
+with Class rights.
 Class rights follows this pattern: Edit replaces its read view and previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured

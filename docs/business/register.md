@@ -215,7 +215,8 @@ web and, at phone width, in the app:
    ORD, Preference PRF or Redeemable preference RED) or Another class with the company's own name, code and
    type. Name, code, type and record date sit together in the first step of one **Ledger setup**
    card. **Edit** and **Delete share class** join Cancel/Continue in its bottom footer only on the Share class step.
-   Existing class details use the inline editor where permitted; saving those details is
+   Existing class details use the inline editor where permitted. A current preparer sees disabled
+   Edit with the server's reason when they are locked; saving those details is
    separate from confirming the copied opening. The company choices come from current personal administrator or preparer appointments,
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
@@ -307,11 +308,16 @@ during setup, or afterwards from the shareholder's page or the relevant class's 
 page keeps the shareholder fixed and selects the class; the class's page keeps the class fixed and
 selects the shareholder. Each
 attachment belongs to the company, person and share class; a setup attachment also keeps its source
-opening record. Recording existing holdings creates no historical share issue. Company source
-copies belong to the whole opening and remain separate.
+opening record. Recording existing holdings creates no historical share issue. On the web, a current
+preparer sees **Add documents** even when no shareholder can be selected. It is disabled with
+**Record a shareholder in this class before adding documents.** on a class page, or
+**Record a shareholding before adding documents.** on a person's page. Class-wide governing documents
+belong with [Class rights](issuing-shares.md#class-rights); company source copies belong to the whole
+opening and remain separate.
 
 Files and their record links are retained, with the uploader, appointment, category and file
-fingerprint. One stored file can support several linked people without duplicating its bytes.
+fingerprint. Later uploads add attachments without overwriting stored files. One stored file can
+support several linked people without duplicating its bytes.
 Current company register readers can download them; they are not shared automatically with members
 or published. A category describes the company's attachment: uploading a Share certificate neither
 generates nor verifies one, and an attachment does not replace an issue's required approval,

@@ -18971,6 +18971,11 @@
             "readOnly": true,
             "type": "string"
           },
+          "editBlockedReason": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "isDivisible": {
             "readOnly": true,
             "type": "boolean"
@@ -19044,6 +19049,7 @@
           "deletionBlockedReason",
           "deployedAt",
           "deploymentTxHash",
+          "editBlockedReason",
           "isDivisible",
           "isOwner",
           "isTransferable",

@@ -1207,6 +1207,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
   fireEvent.click(recoverDocument);
   await waitFor(() => expect(screen.queryByRole('button', { name: 'Recover original save' })).toBeNull());
+  expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
   expect(screen.getByText('subscription.pdf')).toBeTruthy();
   expect(screen.getByText(/Subscription agreement/)).toBeTruthy();
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE)).toHaveLength(1);
@@ -1409,6 +1410,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     deploymentTxHash: null,
     updatedAt: '2026-10-14T00:00:00Z',
     canEditDetails: false,
+    editBlockedReason: null as string | null,
     canDelete: false,
     deletionBlockedReason: null as string | null,
   };
@@ -3139,8 +3141,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   }
   fireEvent.click(metadata.getByRole('button', { name: 'Cancel' }));
   const blockedReason = 'This class has retained documents, rights or other records and cannot be deleted.';
+  const editBlockedReason = 'Class details can change only before its ledger or dependent records exist.';
   lifecycle = {
     ...lifecycle,
+    canEditDetails: false,
+    editBlockedReason,
     canDelete: false,
     deletionBlockedReason: blockedReason,
   };
@@ -3148,6 +3153,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     client.invalidateQueries({ predicate: (query) => (query.state.data as CompanyShareToken)?.uuid === token.uuid }),
   );
   const blockedDeletion = await screen.findByRole('button', { name: 'Delete share class' });
+  const blockedEdit = screen.getByRole('button', { name: 'Edit (Class details)' });
+  expect(blockedEdit.matches(':disabled')).toBe(true);
+  expect(document.getElementById(blockedEdit.getAttribute('aria-describedby')!)?.textContent).toBe(editBlockedReason);
   expect(blockedDeletion.matches(':disabled')).toBe(true);
   expect(document.getElementById(blockedDeletion.getAttribute('aria-describedby')!)?.textContent).toBe(blockedReason);
   fireEvent.click(blockedDeletion);

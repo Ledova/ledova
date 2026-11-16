@@ -89,6 +89,7 @@ class ShareTokenListSerializer(serializers.ModelSerializer):
 class ShareTokenDetailSerializer(serializers.ModelSerializer):
     is_owner = serializers.SerializerMethodField()
     can_edit_details = serializers.BooleanField(read_only=True, default=False)
+    edit_blocked_reason = serializers.CharField(read_only=True, allow_null=True, default=None)
     can_delete = serializers.BooleanField(read_only=True, default=False)
     deletion_blocked_reason = serializers.CharField(read_only=True, allow_null=True, default=None)
 
@@ -107,6 +108,7 @@ class ShareTokenDetailSerializer(serializers.ModelSerializer):
             "uuid",
             "is_owner",
             "can_edit_details",
+            "edit_blocked_reason",
             "can_delete",
             "deletion_blocked_reason",
             "company",

@@ -9,7 +9,7 @@ import {
 } from '@ledova/shared';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { DocumentAttachments } from './DocumentAttachments';
-import { useEffect } from 'react';
+import { useEffect, useId } from 'react';
 
 export function MemberDocuments(props: {
   owner: OrderSubmissionOwner;
@@ -38,6 +38,7 @@ function OwnMemberDocuments(
   },
 ) {
   const documents = useMemberDocuments({ ...props, files: BROWSER_FILES, newKey: () => crypto.randomUUID() });
+  const targetReasonId = useId();
   const editor = documents.editor;
   useEffect(() => {
     props.onHeldChange?.(!!editor || documents.busy || documents.held);
@@ -87,9 +88,21 @@ function OwnMemberDocuments(
           ) : (
             <p className="text-sm text-text-muted">No supporting documents attached.</p>
           )}
-          {!editor && documents.appointment && props.holdings.length > 0 && (
+          {!editor && documents.appointment && (
             <FormActions>
-              <PageAction label="Add documents" onClick={documents.open} disabled={documents.busy} />
+              <PageAction
+                label="Add documents"
+                onClick={documents.open}
+                disabled={documents.busy || !props.holdings.length}
+                describedBy={!props.holdings.length ? targetReasonId : undefined}
+              />
+              {!props.holdings.length && (
+                <p id={targetReasonId} className="order-last basis-full text-right text-sm text-text-muted">
+                  {props.member
+                    ? 'Record a shareholding before adding documents.'
+                    : 'Record a shareholder in this class before adding documents.'}
+                </p>
+              )}
             </FormActions>
           )}
         </>
