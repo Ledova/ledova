@@ -659,13 +659,13 @@ Setup embeds the existing class details content in the **Share class** step of o
 card, alongside the record date in the same responsive field grid. The bottom footer groups
 Edit/Delete with the first step's navigation; later steps show only their own relevant controls.
 The inline metadata task keeps its explicit save/recovery controls
-and blocks opening actions while held; it does not save through ledger confirmation. Completed web
+and blocks opening actions while held; it does not save through ledger confirmation. Completed
 classes order their cards as Class details, Class rights, then Summary. Shareholder attachments
 stay on each shareholder's page.
 Edit stays in Class details and **Delete share class** follows Summary in a right-aligned page footer.
-Unfinished setup stays first. Web Class rights
+Unfinished setup stays first. Class rights
 has its own setup step between Share class and Shareholders, and retains its separate card for
-completed classes. The native layout remains unchanged.
+completed classes on both clients.
 Preparing and retiring the current form's own review keeps that form instance and its selected
 step; a different externally selected saved record still gets its own form.
 New classes at `/company/ledger/setup` and explicit imports at `/company/ledger/:uuid/import` use
@@ -701,21 +701,23 @@ hash are unchanged. The existing inline editor stays unchanged; retained revisio
 section, query or dedicated history API to the page. Company packs include the full attribution,
 including deleted classes. Past ownership activity still locks editing even if current supply is zero.
 Class rights retain their separate revision-based editor and permissions.
-The web's Class rights step owns an independent explicit save/cancel task outside the opening
-HTML form; step navigation and the opening footer are unavailable while that task is held. New classes
+The Class rights step owns an independent explicit save/cancel task, outside the opening HTML form
+on web; step navigation and the opening footer are unavailable while that task is held. New classes
 use the existing creation recovery before **Save class rights**, staying on Class rights with the
 record date and shareholder draft retained. Skipping rights creates no empty revision. Current company
 administration, not preparation authority, is required to save them. The company supplies the structured
 attributes and terms; class selection supplies no rights. The recorded summary is also
 shown in Review without making the opening confirmation a rights amendment.
-The shared preparation controller includes the rights phase for web setup; native keeps the original
-three-step sequence. Both reuse the same validation, draft retention and saved-review retirement.
+The shared preparation controller includes the rights phase for both clients. Both reuse the same
+validation, draft retention and saved-review retirement.
 
 `packages/shared/src/hooks/useClassRightsWriter.ts` owns the shared rights upload, idempotency and
-receipt checks. `useClassRights` retains reads, history, editor state and downloads; web setup reuses
-the writer and the same page-owned editor fields instead of a second rights command implementation.
+receipt checks. `useClassRights` retains reads, history, editor state and downloads. Setup reuses
+the writer and each client's existing editor fields instead of a second rights command implementation.
+The shared `useNewClassRights` binds a new class's creation to that writer, with injected UUID and
+session policies.
 
-The web Share classes list uses checkboxes beside each class link; **Select all** selects every
+Both Share classes lists use checkboxes beside each class link; **Select all** selects every
 visible class in the current company, including protected records. Selection does not grant deletion
 permission. The list API supplies eligibility, blocked reasons and versions. **Delete selected** is
 available only when the selection includes a removable class and shares the bottom action area with
@@ -724,6 +726,8 @@ kept, with their reasons; only reviewed removable targets receive delete command
 are retained if a later command is refused or uncertain; an uncertain original must be checked or
 explicitly retried before continuing.
 The interface reports partial results, retains audit history and does not imply an atomic batch.
+The shared `useClassDeletion` owns this operation; web supplies synchronous publication when
+closing the result, while native uses its normal state update.
 Closing the result keeps the operation held until the current class list returns. Holder reads are
 marked stale without refetching the old class set; the refreshed list selects the remaining classes.
 Refresh the exact current holder set too, including when no class was removed. If a refresh fails,

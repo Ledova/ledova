@@ -221,12 +221,12 @@ web and, at phone width, in the app:
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
    limit instead of authorised capital. Repeat for each class.
-   On the web, the starting name, code and type can be customised. **Continue** opens a separate
+   The starting name, code and type can be customised. **Continue** opens a separate
    **Class rights** step, where a company administrator can optionally record
    [Class rights](issuing-shares.md#class-rights) with a separate explicit save. Its **Continue**
    moves to Shareholders; **Back** returns to Share class. Rights come from the company's governing
-   documents; continuing without rights records no assumed terms or revision. The app retains its three-step
-   Share class → Shareholders → Review flow; this added step is web-only.
+   documents; continuing without rights records no assumed terms or revision. Both clients use
+   Share class → Class rights → Shareholders → Review.
    With no classes yet, a preparer uses Ledger → Share classes and **Add share class** on web or mobile.
    Preparation access does not change their initial landing page or account role.
 3. Shareholders, one at a time: choose a recorded person or New person
@@ -253,7 +253,7 @@ web and, at phone width, in the app:
    with no issued shares or earlier members, leave the draft empty to record its empty opening.
 4. Review the record date, shares held and shareholders, one line each, then a compact row for each
    shareholder with particulars under **Allotments** (**Show allotments** in the app).
-   The web review also shows the recorded Class rights; their separate save is not a new rights decision
+   Review also shows the recorded Class rights; their separate save is not a new rights decision
    made by confirming the ownership snapshot.
    Confirm loads a fresh preview and records approval and application together; an appointee who may
    only review records the approval for another to apply.
@@ -269,11 +269,10 @@ Inviting members is optional ([member access](member-records.md#member-access)).
 kept only in the open page and are lost if you leave it. After a failed or uncertain response, use Recover saved records or Recover
 confirmation in setup ([uncertain outcomes](README.md#when-the-outcome-is-uncertain)); another
 appointee can resume review or confirmation without preparation access. The step headings above the
-web form move between Share class, Class rights, Shareholders and Review; the app omits Class rights.
+form move between Share class, Class rights, Shareholders and Review on both clients.
 Going forward, from a heading or **Continue**,
 checks the current step first, and reaching Review saves the draft, so there is no separate save
-button. Choosing Share class, Class rights or Shareholders on web Review (Share class or Shareholders
-in the app) retires the saved draft for editing and needs
+button. Choosing Share class, Class rights or Shareholders on Review retires the saved draft for editing and needs
 preparation and rejection authority. After retirement, the selected step opens with the copied
 date and shareholder details retained; Class rights and Shareholders each open the selected step.
 
@@ -644,7 +643,7 @@ The Ledger view shows:
 - **Add share class** below the card, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
-On the web, checkboxes select classes individually; **Select all** selects every class shown.
+On web and mobile, checkboxes select classes individually; **Select all** selects every class shown.
 **Delete selected** confirms which selected classes can be removed and which will be kept, with
 their reasons ([safe class deletion](issuing-shares.md#share-classes)).
 
@@ -794,13 +793,14 @@ person chosen.
 ### The Share class page
 
 Each class opens directly from its row on Ledger, titled with the class's name, with a back arrow to
-the previous page. The web workspace focuses on Class details, the company's optional
+the previous page. Both clients focus on Class details, the company's optional
 [Class rights](issuing-shares.md#class-rights) and their class-wide documents, then Summary. The
 summary gives issued shares and current shareholders one line each, any authorised-share limit
 other than the internal quantity guard, whether the ledger is not yet opened, and whether the class
 is recorded as non-transferable. Shareholder attachments stay on each shareholder's page and
 register downloads on Documents. Each recorded right sits beside its name (owner, 5 November 2026).
-The native page keeps Class details, Summary and Class rights, with the same attachment placement.
+**Edit** stays in Class details; **Delete share class** sits below all cards, with the server's
+reason when deletion is unavailable.
 
 The page no longer shows a class's chain state or offers its chain workflows: the owner removed the
 **On chain** card, **Chain actions** and **Put this class on chain** on 31 October 2026

@@ -41,6 +41,7 @@ interface CustomModalProps {
   children: ReactNode;
   busy?: boolean;
   dismissLabel?: string;
+  cancelLabel?: string;
   refreshControl?: ReactElement<RefreshControlProps>;
   scrollRef?: Ref<ScrollView>;
   actions?: ReactNode;
@@ -54,6 +55,7 @@ export function CustomModal({
   children,
   busy = false,
   dismissLabel = 'Close dialog',
+  cancelLabel = 'Cancel',
   refreshControl,
   scrollRef,
   actions,
@@ -130,7 +132,7 @@ export function CustomModal({
               </ScrollView>
               {actions !== undefined && (
                 <ModalActions>
-                  <Action label="Cancel" disabled={busy} onPress={close} />
+                  <Action label={cancelLabel} disabled={busy} onPress={close} />
                   {actions}
                 </ModalActions>
               )}

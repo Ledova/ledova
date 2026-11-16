@@ -69,6 +69,7 @@ export function useCompanyRegisters(
     }
   }
   return {
+    classes,
     guard,
     accountGuard,
     registers,

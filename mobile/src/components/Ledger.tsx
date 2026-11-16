@@ -199,12 +199,14 @@ export function Loading({ children }: { children: string }) {
 
 export function LinkRow({
   label,
+  disabled = false,
   onPress,
   accessibilityLabel,
   figure,
   children,
 }: {
   label: string;
+  disabled?: boolean;
   onPress: () => void;
   accessibilityLabel?: string;
   figure?: string | ReactElement;
@@ -229,6 +231,8 @@ export function LinkRow({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       style={styles.row}
     >

@@ -40,7 +40,7 @@ import { useLedgerStyles } from './useLedgerStyles';
 type Rights = ReturnType<typeof useClassRights>;
 type Editor = NonNullable<Rights['editor']>;
 
-function RightsSummary({ revision, rights }: { revision: ClassRightsRevision; rights: Rights }) {
+export function RightsSummary({ revision, rights }: { revision: ClassRightsRevision; rights?: Rights }) {
   const look = useLedgerStyles();
   const structured = Object.keys(revision.attributes).length > 0;
   const terms = classRightsTerms(revision.attributes, revision.summary);
@@ -84,16 +84,18 @@ function RightsSummary({ revision, rights }: { revision: ClassRightsRevision; ri
           <Rows>
             {revision.documents.map((document) => {
               const label =
-                rights.downloading === `${revision.uuid}/${document.evidence}` ? 'Downloading…' : 'Download';
+                rights?.downloading === `${revision.uuid}/${document.evidence}` ? 'Downloading…' : 'Download';
               return (
                 <View key={document.evidence} style={[look.row, look.line]}>
                   <Text style={[look.text, look.fill]}>{document.name}</Text>
-                  <Action
-                    label={label}
-                    accessibilityLabel={`${label} (${document.name})`}
-                    disabled={rights.busy}
-                    onPress={() => void rights.download(revision, document)}
-                  />
+                  {rights && (
+                    <Action
+                      label={label}
+                      accessibilityLabel={`${label} (${document.name})`}
+                      disabled={rights.busy}
+                      onPress={() => void rights.download(revision, document)}
+                    />
+                  )}
                 </View>
               );
             })}
@@ -211,7 +213,15 @@ function StructuredRightsFields({
   );
 }
 
-function RightsEditor({ rights }: { rights: Rights }) {
+export function RightsEditor({
+  rights,
+  saveLabel = 'Save',
+  saveDisabled = false,
+}: {
+  rights: Pick<Rights, 'editor' | 'setEditor' | 'close' | 'save' | 'busy' | 'pending' | 'stale' | 'error'>;
+  saveLabel?: string;
+  saveDisabled?: boolean;
+}) {
   const look = useLedgerStyles();
   const styles = useCompanyStyles();
   const editor = rights.editor!;
@@ -326,8 +336,8 @@ function RightsEditor({ rights }: { rights: Rights }) {
         />
         <Action
           primary
-          label={rights.busy ? 'Saving…' : rights.pending ? 'Retry original save' : 'Save'}
-          disabled={rights.busy || (rights.stale && !rights.pending)}
+          label={rights.busy ? 'Saving…' : rights.pending ? 'Retry original save' : saveLabel}
+          disabled={rights.busy || (rights.stale && !rights.pending) || saveDisabled}
           onPress={() => {
             if (!checks.check()) return;
             Keyboard.dismiss();
@@ -339,13 +349,21 @@ function RightsEditor({ rights }: { rights: Rights }) {
   );
 }
 
-export function ClassRights({ rights }: { rights: Rights }) {
+export function ClassRights({
+  rights,
+  embedded = false,
+  blocked = false,
+}: {
+  rights: Rights;
+  embedded?: boolean;
+  blocked?: boolean;
+}) {
   const look = useLedgerStyles();
   const styles = useCompanyStyles();
   if (!rights.tokenReady) return null;
   const { query } = rights;
-  return (
-    <Section title="Class rights">
+  const content = (
+    <>
       {rights.hasError ? (
         <LoadError retry={rights.retry} busy={rights.isRefreshing}>
           The class rights could not be loaded. They may be unavailable to this account.
@@ -356,7 +374,7 @@ export function ClassRights({ rights }: { rights: Rights }) {
         <>
           <Text style={look.muted}>Company-recorded terms. The governing documents determine the rights.</Text>
           {rights.editor ? (
-            <RightsEditor rights={rights} />
+            <RightsEditor rights={rights} saveLabel={embedded ? 'Save class rights' : 'Save'} />
           ) : rights.current ? (
             <RightsSummary revision={rights.current} rights={rights} />
           ) : (
@@ -366,7 +384,7 @@ export function ClassRights({ rights }: { rights: Rights }) {
             <Action
               label="Edit"
               accessibilityLabel="Edit (Class rights)"
-              disabled={rights.busy}
+              disabled={rights.busy || blocked}
               onPress={() => {
                 try {
                   rights.open();
@@ -409,6 +427,7 @@ export function ClassRights({ rights }: { rights: Rights }) {
           )}
         </>
       )}
-    </Section>
+    </>
   );
+  return embedded ? <View style={look.fields}>{content}</View> : <Section title="Class rights">{content}</Section>;
 }

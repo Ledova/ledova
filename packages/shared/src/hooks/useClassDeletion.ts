@@ -1,21 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  apiErrorSentence,
-  createUserFriendlyError,
-  deleteCompanyToken,
-  failureStatus,
-  getCompanyToken,
-  importRegisterKey,
-  registerClassesKey,
-  registerHoldersKey,
-  registersQuery,
-  shareClassKey,
-  useApiClient,
-  type CompanyShareTokenListItem,
-  type OrderSubmissionOwner,
-} from '@ledova/shared';
+import { deleteCompanyToken, getCompanyToken } from '../services/company-tokens';
+import type { CompanyShareTokenListItem } from '../types';
+import { apiErrorSentence, createUserFriendlyError, failureStatus } from '../utils/errors';
+import { useApiClient } from './useApiClient';
+import { registerClassesKey, registerHoldersKey } from './useCompanyOwnership';
+import { importRegisterKey } from './useImportRegister';
+import { registersQuery } from './useRegisters';
+import { shareClassKey } from './useShareClass';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 type Target = Pick<CompanyShareTokenListItem, 'uuid' | 'companyUuid' | 'name' | 'symbol' | 'updatedAt'>;
 type Removal = {
@@ -34,6 +27,8 @@ export function useClassDeletion({
   guard,
   available,
   onHeldChange,
+  release = (update) => update(),
+  session,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
@@ -41,6 +36,8 @@ export function useClassDeletion({
   guard: () => void;
   available: boolean;
   onHeldChange: (held: boolean) => void;
+  release?: (update: () => void) => void;
+  session?: OrderSubmissionSession;
 }) {
   const apiClient = useApiClient();
   const client = useQueryClient();
@@ -95,6 +92,8 @@ export function useClassDeletion({
       while (operation.next < operation.targets.length) {
         dispatched = false;
         const target = operation.targets[operation.next];
+        if (!target)
+          throw createUserFriendlyError('The original class selection is unavailable. Reopen Share classes.');
         check(target);
         const live = current.current.classes.find(({ uuid }) => uuid === target.uuid);
         if (!live?.canDelete || live.updatedAt !== target.updatedAt)
@@ -104,7 +103,7 @@ export function useClassDeletion({
           apiClient,
           target.uuid,
           { expected_updated_at: target.updatedAt },
-          { ledovaSubmissionGuard: () => check(target) },
+          { ...session?.requestConfig(), ledovaSubmissionGuard: () => check(target) },
         );
         check(target);
         if (response.status !== 204) throw createUserFriendlyError('The original deletion could not be confirmed.');
@@ -133,12 +132,19 @@ export function useClassDeletion({
     if (!operation || running.current || !operation.pending) return;
     if (operation.retry) return execute();
     const target = operation.targets[operation.next];
+    if (!target) {
+      setError('The original class selection is unavailable. Reopen Share classes.');
+      return;
+    }
     running.current = true;
     setBusy(true);
     setError('');
     try {
       check(target);
-      const { data } = await getCompanyToken(apiClient, target.uuid, { ledovaSubmissionGuard: () => check(target) });
+      const { data } = await getCompanyToken(apiClient, target.uuid, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: () => check(target),
+      });
       check(target);
       if (data.uuid !== target.uuid || data.companyUuid !== company)
         throw createUserFriendlyError('The reply did not match the original share class.');
@@ -190,7 +196,8 @@ export function useClassDeletion({
         const listed = client.getQueryData<CompanyShareTokenListItem[]>(registerClassesKey(owner));
         if (!listed) throw createUserFriendlyError('The current class list is unavailable. Try closing again.');
         const uuids = listed.filter((row) => row.companyUuid === company).map(({ uuid }) => uuid);
-        if (uuids.length) await client.fetchQuery(registersQuery(apiClient, owner, uuids, current.current.guard));
+        if (uuids.length)
+          await client.fetchQuery(registersQuery(apiClient, owner, uuids, current.current.guard, session));
       }
       if (!owned()) return false;
       attempt.current = null;
@@ -199,7 +206,7 @@ export function useClassDeletion({
           ? `${operation.next} ${operation.next === 1 ? 'share class' : 'share classes'} deleted.${operation.next < operation.targets.length ? ' Remaining classes were kept or need review.' : ''}`
           : '',
       );
-      flushSync(() => setRemoval(null));
+      release(() => setRemoval(null));
       return true;
     } catch (failure) {
       if (owned()) setError(apiErrorSentence(failure, 'The class list could not be refreshed. Try closing again.'));

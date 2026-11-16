@@ -46,6 +46,7 @@ export function useClassRights(
   files: FileDelivery,
   newKey: () => string,
   session?: OrderSubmissionSession,
+  actionsBlocked = false,
 ) {
   const apiClient = useApiClient();
   const { owner, boundary } = useSubmissionOwner(session);
@@ -67,15 +68,20 @@ export function useClassRights(
     !!preferences.preferences &&
     preferencesRead?.status === 'success' &&
     preferences.fetchStatus === 'idle';
-  const source = useRef(enabled);
+  const source = useRef({ enabled, actionsBlocked });
   useLayoutEffect(() => {
-    source.current = enabled;
-  }, [enabled]);
+    source.current = { enabled, actionsBlocked };
+  }, [enabled, actionsBlocked]);
   const guard = () => {
     if (!mounted.current || !owner || boundary.get() !== owner)
       throw createUserFriendlyError('Your signed-in account changed. Reopen the share class.');
-    if (!source.current)
+    if (!source.current.enabled)
       throw createUserFriendlyError('The current share class and account could not be confirmed. Try again.');
+  };
+  const actionGuard = () => {
+    guard();
+    if (source.current.actionsBlocked)
+      throw createUserFriendlyError('Finish the current Ledger action before changing or downloading class rights.');
   };
   const config = (ledovaSubmissionGuard: () => void) => ({ ...session?.requestConfig(), ledovaSubmissionGuard });
   const query = useInfiniteQuery({
@@ -116,7 +122,7 @@ export function useClassRights(
   }, [ready, current, appointment]);
   const writer = useClassRightsWriter({
     guard: () => {
-      guard();
+      actionGuard();
       if (!read.current.ready) throw createUserFriendlyError('Refresh the class rights before saving.');
     },
     newKey,
@@ -158,7 +164,7 @@ export function useClassRights(
   const stale =
     !!editor && ready && (editor.previousRevision !== (current?.revision ?? 0) || editor.appointment !== appointment);
   const open = () => {
-    guard();
+    actionGuard();
     if (!ready || !appointment || running.current) return;
     writer.open({
       appointment,
@@ -170,19 +176,19 @@ export function useClassRights(
     });
   };
   const download = async (revision: ClassRightsRevision, document: ClassRightsDocument) => {
-    if (running.current || !ready || writer.pending) return;
+    if (running.current || !ready || writer.pending || actionsBlocked) return;
     running.current = true;
     setDownloading(`${revision.uuid}/${document.evidence}`);
     writer.setError('');
     try {
-      guard();
+      actionGuard();
       const response = await downloadClassRightsFile(
         apiClient,
         token,
         { revision: revision.uuid, evidence: document.evidence },
-        { ...config(guard), ...(files.responseType ? { responseType: files.responseType } : {}) },
+        { ...config(actionGuard), ...(files.responseType ? { responseType: files.responseType } : {}) },
       );
-      guard();
+      actionGuard();
       const file = downloadedFile(response);
       if (!file) throw createUserFriendlyError(DOWNLOAD_FAILED);
       await Promise.resolve(files.save(file.data, document.name, file.type)).catch(() => {

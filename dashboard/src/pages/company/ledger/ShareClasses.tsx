@@ -1,9 +1,11 @@
 import { useId, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { generatePath } from 'react-router-dom';
 import {
   DESTINATIONS,
   classFacts,
   formatShareCount,
+  useClassDeletion,
   type CompanyShareTokenListItem,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
@@ -12,7 +14,6 @@ import { CheckboxField } from '@components/Field';
 import { Failure, LinkRow, Outcome, Section } from '@components/Ledger';
 import { Actions, PageAction, PageLink } from '@components/Page';
 import { Modal, ModalActions } from '@components/Modal';
-import { useClassDeletion } from './useClassDeletion';
 
 export function ShareClasses({
   owner,
@@ -45,7 +46,15 @@ export function ShareClasses({
   const hasControls = listed.some((row) => row.canDelete || row.deletionBlockedReason);
   const selectedCount = listed.filter(({ uuid }) => selected.has(uuid)).length;
   const deletableCount = listed.filter((row) => row.canDelete && selected.has(row.uuid)).length;
-  const deletion = useClassDeletion({ owner, company, classes, guard, available: available && visible, onHeldChange });
+  const deletion = useClassDeletion({
+    owner,
+    company,
+    classes,
+    guard,
+    available: available && visible,
+    onHeldChange,
+    release: flushSync,
+  });
   const operation = deletion.removal;
   const locked = blocked || !!operation || !available || !ready;
   const close = async () => {

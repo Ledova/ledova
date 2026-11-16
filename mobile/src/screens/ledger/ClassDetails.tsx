@@ -83,30 +83,51 @@ export function ClassDetails(props: ClassDetailsProps) {
   return (
     <Section title="Class details">
       <ClassDetailsContent {...props} />
+      {!props.details.editor && (props.token.canEditDetails || props.token.editBlockedReason) && (
+        <FormActions>
+          <ClassDetailsEditAction {...props} />
+        </FormActions>
+      )}
     </Section>
   );
 }
 
-export function ClassDetailsActions({ token, details, available }: ClassDetailsProps) {
-  if (details.editor || !(token.canDelete || token.deletionBlockedReason || token.canEditDetails)) return null;
+export function ClassDetailsEditAction({ token, details, available }: ClassDetailsProps) {
+  const look = useLedgerStyles();
+  if (details.editor || (!token.canEditDetails && !token.editBlockedReason)) return null;
   return (
     <>
-      {token.canEditDetails && (
-        <Action
-          label="Edit"
-          accessibilityLabel="Edit Class details"
-          disabled={!available || details.held}
-          onPress={() => details.open('edit')}
-        />
-      )}
-      {(token.canDelete || token.deletionBlockedReason) && (
-        <Action
-          label="Delete"
-          accessibilityLabel="Delete share class"
-          disabled={!available || details.held || !token.canDelete}
-          onPress={() => details.open('delete')}
-        />
-      )}
+      <Action
+        label="Edit"
+        accessibilityLabel="Edit Class details"
+        disabled={!available || details.held || !token.canEditDetails}
+        onPress={() => details.open('edit')}
+      />
+      {!!token.editBlockedReason && <Text style={look.muted}>{token.editBlockedReason}</Text>}
+    </>
+  );
+}
+
+export function ClassDeleteAction({ token, details, available }: ClassDetailsProps) {
+  const look = useLedgerStyles();
+  if (details.editor || (!token.canDelete && !token.deletionBlockedReason)) return null;
+  return (
+    <>
+      <Action
+        label="Delete share class"
+        disabled={!available || details.held || !token.canDelete}
+        onPress={() => details.open('delete')}
+      />
+      {!!token.deletionBlockedReason && <Text style={look.muted}>{token.deletionBlockedReason}</Text>}
+    </>
+  );
+}
+
+export function ClassDetailsActions(props: ClassDetailsProps) {
+  return (
+    <>
+      <ClassDetailsEditAction {...props} />
+      <ClassDeleteAction {...props} />
     </>
   );
 }
@@ -145,12 +166,6 @@ export function ClassDetailsContent({
               </Fact>
             </Rows>
           )}
-          {!!token.deletionBlockedReason && <Text style={look.muted}>{token.deletionBlockedReason}</Text>}
-          {!children && (token.canDelete || token.deletionBlockedReason || token.canEditDetails) && (
-            <FormActions>
-              <ClassDetailsActions token={token} details={details} available={available} />
-            </FormActions>
-          )}
           {!!details.outcome && <Outcome>{details.outcome}</Outcome>}
           {!target && !!details.error && (
             <Text accessibilityRole="alert" style={look.smallError}>
@@ -182,8 +197,8 @@ export function ClassDetailsContent({
         }
       >
         <Text style={look.text}>
-          Delete {target?.name} ({target?.symbol}) from active share classes? Abandoned setup drafts and audit history
-          are kept.
+          Delete {target?.name} ({target?.symbol}) from active share classes? Saved setup reviews are retired
+          automatically. Their records and audit history are kept.
         </Text>
         {!!details.error && (
           <Text accessibilityRole="alert" style={look.smallError}>

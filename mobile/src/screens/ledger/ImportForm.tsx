@@ -6,6 +6,7 @@ import {
   REGISTER_IMPORT_COPY as COPY,
   REGISTER_IMPORT_DECISIONS,
   REGISTER_SETUP_STEPS,
+  REGISTER_SETUP_STEPS_WITH_RIGHTS,
   formatDate,
   formatShareCount,
   formatShortDate,
@@ -29,6 +30,9 @@ type ImportFormProps = Omit<ImportPreparationOptions, 'newKey' | 'session'> & {
   classFields: ReactNode | ((recordFields: ReactNode) => ReactNode);
   classActions?: ReactNode;
   classHeld?: boolean;
+  classContent?: ReactNode;
+  classReview?: ReactNode;
+  classContentHeld?: boolean;
   onCancel: () => void;
 };
 
@@ -39,12 +43,16 @@ export function ImportForm({
   classFields,
   classActions,
   classHeld = false,
+  classContent,
+  classReview,
+  classContentHeld = false,
   onCancel,
   ...options
 }: ImportFormProps) {
   const look = useLedgerStyles();
   const styles = useCompanyStyles();
   const { steps, blocked, correction, emptyOpeningAllowed = false, visible = true } = options;
+  const setupSteps = classContent ? REGISTER_SETUP_STEPS_WITH_RIGHTS : REGISTER_SETUP_STEPS;
   const model = useImportPreparation({ ...options, newKey: randomUUID, session: orderSubmissionSession });
   const [running, setRunning] = useState<string | null>(null);
   const track = (key: string, work: Promise<unknown>) => {
@@ -62,9 +70,10 @@ export function ImportForm({
       model.setAttempted(true);
       if (!model.detailProblems.length && !blocked) {
         model.setAttempted(false);
-        model.setPhase('shareholders');
+        model.setPhase(classContent ? 'rights' : 'shareholders');
       }
-    } else if (!model.holderEditor) void model.prepare();
+    } else if (phase === 'rights') model.goTo('shareholders');
+    else if (!model.holderEditor) void model.prepare();
   };
   const supporting =
     !!proposal &&
@@ -136,18 +145,20 @@ export function ImportForm({
           share issue is a separate company decision.
         </Text>
       )}
-      <View style={(model.holderEditor || classHeld) && look.hidden}>
+      <View style={(model.holderEditor || classHeld || classContentHeld) && look.hidden}>
         <FormActions>
           {editable && !uncertain && phase === 'details' && classActions}
-          {editable && !uncertain && phase === 'shareholders' && (
+          {editable && !uncertain && (phase === 'shareholders' || phase === 'rights') && (
             <Action
               label="Back"
-              accessibilityLabel="Back (share class)"
+              accessibilityLabel={
+                phase === 'shareholders' && classContent ? 'Back (class rights)' : 'Back (share class)'
+              }
               disabled={locked}
               onPress={() => {
                 Keyboard.dismiss();
                 model.setAttempted(false);
-                model.setPhase('details');
+                model.setPhase(phase === 'shareholders' && classContent ? 'rights' : 'details');
               }}
             />
           )}
@@ -163,7 +174,7 @@ export function ImportForm({
               onPress={() => void model.loadPreview()}
             />
           )}
-          {!recorded && !(editable && !uncertain && phase === 'shareholders') && (
+          {!recorded && !(editable && !uncertain && (phase === 'shareholders' || phase === 'rights')) && (
             <Action
               label="Cancel"
               accessibilityLabel="Cancel (ledger setup)"
@@ -172,6 +183,14 @@ export function ImportForm({
                 Keyboard.dismiss();
                 onCancel();
               }}
+            />
+          )}
+          {editable && !uncertain && phase === 'details' && (
+            <Action
+              label="Import"
+              accessibilityLabel="Import. Coming soon: read a document into these editable forms."
+              disabled
+              onPress={() => undefined}
             />
           )}
           {editable && !uncertain && (
@@ -213,9 +232,9 @@ export function ImportForm({
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps
           label="Ledger setup steps"
-          steps={REGISTER_SETUP_STEPS}
+          steps={setupSteps}
           current={phase}
-          reachable={(step) => model.stepReachable(step as typeof phase)}
+          reachable={(step) => !classContentHeld && model.stepReachable(step as typeof phase)}
           onSelect={(step) => {
             Keyboard.dismiss();
             model.goTo(step as typeof phase);
@@ -232,7 +251,7 @@ export function ImportForm({
           </>
         )}
       </View>
-      <View style={[look.fields, (!editable || classHeld) && look.hidden]}>
+      <View style={[look.fields, (!editable || classHeld || classContentHeld || phase === 'rights') && look.hidden]}>
         <Problems problems={model.attempted ? (phase === 'details' ? model.detailProblems : model.problems) : []} />
         <View style={[look.fields, phase !== 'shareholders' && look.hidden]}>
           <ImportShareholders
@@ -248,6 +267,9 @@ export function ImportForm({
             footer={editable && phase === 'shareholders' ? footer : undefined}
           />
         </View>
+      </View>
+      <View style={[look.fields, (!visible || !mutable || phase !== 'rights' || classHeld) && look.hidden]}>
+        {classContent}
       </View>
       {visible && mutable && !canPrepare && <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>}
       {visible && !mutable && proposal && (
@@ -277,6 +299,7 @@ export function ImportForm({
             </Fact>
           </Rows>
           {!!proposal.correctionOf && <Text style={look.muted}>Correction: {proposal.reason}</Text>}
+          {classReview}
           {supporting && (
             <ShowMore show="Show supporting records" hide="Hide supporting records">
               <Rows>
