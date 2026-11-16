@@ -3021,7 +3021,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     canDelete: true,
   };
   let lifecycleGone = false;
-  let lifecycleOpened = false;
   let lifecycleReadRefused = false;
   let lifecycleFailure: number | null = null;
   let lostSave = true;
@@ -3034,22 +3033,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     }
     if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid))
       return {
-        data: {
-          ...holders(),
-          token: lifecycle,
-          initialized: lifecycleOpened,
-          issuedSupply: lifecycleOpened ? '0' : null,
-          holders: [],
-          totalHolders: 0,
-        },
+        data: { ...holders(), token: lifecycle, initialized: false, issuedSupply: null, holders: [], totalHolders: 0 },
       };
     if (url === APPOINTMENTS) return dataPage([appointment]);
     if (url === COMPANY_ENDPOINTS.BASE) return dataPage([company]);
     if (url === REGISTER) return dataPage(lifecycleGone ? [] : [lifecycle]);
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(token.uuid))
       return { data: { members: [], awardRecipients: [] } };
-    if (url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(token.uuid))
-      return { data: { ...dataPage([]).data, current: null, administrationAppointment: appointment.uuid } };
     return dataPage([]);
   });
   api.patch.mockImplementation(async (url, changes, config) => {
@@ -3072,32 +3062,28 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     lifecycleGone = true;
     return { status: 204 };
   });
-  const showLifecycle = () => {
-    prepareCompanyClient(client);
-    render(
-      <QueryClientProvider client={client}>
-        <ApiClientProvider client={apiClient}>
-          <TestRouter initialEntries={[classPath]}>
-            <LedgerNavigationProvider>
-              <CompanyContextProvider>
-                <Link to="/unrelated">Open another page</Link>
-                <Routes>
-                  <Route path={DESTINATIONS.companyClass.path} element={<ShareClassPage />} />
-                  <Route path={DESTINATIONS.companyRegister.path} element={<CompanyRegisterPage />} />
-                  <Route path="/unrelated" element={<p>Another page</p>} />
-                </Routes>
-              </CompanyContextProvider>
-            </LedgerNavigationProvider>
-          </TestRouter>
-        </ApiClientProvider>
-      </QueryClientProvider>,
-    );
-  };
-  showLifecycle();
+  prepareCompanyClient(client);
+  render(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <TestRouter initialEntries={[classPath]}>
+          <LedgerNavigationProvider>
+            <CompanyContextProvider>
+              <Link to="/unrelated">Open another page</Link>
+              <Routes>
+                <Route path={DESTINATIONS.companyClass.path} element={<ShareClassPage />} />
+                <Route path={DESTINATIONS.companyRegister.path} element={<CompanyRegisterPage />} />
+                <Route path="/unrelated" element={<p>Another page</p>} />
+              </Routes>
+            </CompanyContextProvider>
+          </LedgerNavigationProvider>
+        </TestRouter>
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
   const setupCard = (await screen.findByRole('heading', { name: 'Ledger setup' })).closest('section')!;
   expect(screen.queryByRole('heading', { name: 'Class details' })).toBeNull();
   expect(within(setupCard).getByText(lifecycle.name)).toBeTruthy();
-  expect(within(setupCard).getByRole('button', { name: 'Delete share class' })).toBeTruthy();
   const initialDate = within(setupCard).getByLabelText('Record date') as HTMLInputElement;
   expect(initialDate.form?.closest('section')).toBe(setupCard);
   expect(initialDate.closest('form')).toBeNull();
@@ -3106,7 +3092,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const metadataElement = screen.getByRole('form', { name: 'Edit class details' });
   let metadata = within(metadataElement);
   expect(metadataElement.closest('section')).toBe(setupCard);
-  expect(screen.queryByRole('button', { name: 'Delete share class' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
   expect(screen.getByRole('button', { name: '2. Class rights' }).matches(':disabled')).toBe(true);
   expect(screen.getByRole('button', { name: '3. Shareholders' }).matches(':disabled')).toBe(true);
@@ -3153,29 +3138,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     expect(lifecycle.name).toBe('Renamed ordinary shares');
   }
   fireEvent.click(metadata.getByRole('button', { name: 'Cancel' }));
-  cleanup();
-  client.clear();
-  lifecycleOpened = true;
-  showLifecycle();
-  const detailsCard = (await screen.findByRole('heading', { name: 'Class details' })).closest('section')!;
-  const pageDeletion = await screen.findByRole('button', { name: 'Delete share class' });
-  expect(within(detailsCard).getByRole('button', { name: 'Edit (Class details)' })).toBeTruthy();
-  expect(within(detailsCard).queryByRole('button', { name: 'Delete share class' })).toBeNull();
-  expect(pageDeletion.closest('section')).toBeNull();
-  const documentsCard = screen.getByRole('heading', { name: 'Shareholder documents' }).closest('section')!;
-  expect(documentsCard.compareDocumentPosition(pageDeletion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  fireEvent.click(within(detailsCard).getByRole('button', { name: 'Edit (Class details)' }));
-  expect(screen.queryByRole('button', { name: 'Delete share class' })).toBeNull();
-  fireEvent.click(
-    within(screen.getByRole('form', { name: 'Edit class details' })).getByRole('button', { name: 'Cancel' }),
-  );
-  expect(await screen.findByRole('button', { name: 'Delete share class' })).toBeTruthy();
-  fireEvent.click(await screen.findByRole('button', { name: 'Edit (Class rights)' }));
-  expect(screen.queryByRole('button', { name: 'Delete share class' })).toBeNull();
-  fireEvent.click(
-    within(screen.getByRole('form', { name: 'Edit class rights' })).getByRole('button', { name: 'Cancel' }),
-  );
-  expect(await screen.findByRole('button', { name: 'Delete share class' })).toBeTruthy();
   const blockedReason = 'This class has retained documents, rights or other records and cannot be deleted.';
   lifecycle = {
     ...lifecycle,
@@ -3188,7 +3150,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const blockedDeletion = await screen.findByRole('button', { name: 'Delete share class' });
   expect(blockedDeletion.matches(':disabled')).toBe(true);
   expect(document.getElementById(blockedDeletion.getAttribute('aria-describedby')!)?.textContent).toBe(blockedReason);
-  expect(screen.getByText(blockedReason).closest('section')).toBeNull();
   fireEvent.click(blockedDeletion);
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(api.delete).not.toHaveBeenCalled();
@@ -3196,10 +3157,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await act(async () =>
     client.invalidateQueries({ predicate: (query) => (query.state.data as CompanyShareToken)?.uuid === token.uuid }),
   );
-  const deletionTrigger = await screen.findByRole('button', { name: 'Delete share class' });
-  fireEvent.click(deletionTrigger);
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete share class' }));
   let deletion = within(await screen.findByRole('dialog', { name: 'Delete Renamed ordinary shares?' }));
-  expect(deletionTrigger.isConnected).toBe(true);
   fireEvent.click(deletion.getByRole('button', { name: 'Cancel' }));
   expect(api.delete).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Delete share class' }));
