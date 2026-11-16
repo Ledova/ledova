@@ -2471,6 +2471,15 @@ BEGIN
     THEN
         RAISE EXCEPTION 'A register import decision must carry exactly its own effect' USING ERRCODE = '23514';
     END IF;
+    IF NEW.kind = 'reject' AND NEW.idempotency_key = NEW.uuid
+        AND NEW.reason = 'Retired automatically when deleting the unused share class.'
+        AND NOT EXISTS (SELECT 1 FROM tokens_sharetoken token WHERE token.uuid = proposal.token_id
+            AND token.company_id = proposal.company_id AND token.deleted_at IS NOT NULL
+            AND token.deleted_by_id = NEW.decided_by_id
+            AND tokens_register_appointment_current(NEW.appointment_id, proposal.company_id,
+                NEW.decided_by_id, 'prepare', clock_timestamp())) THEN
+        RAISE EXCEPTION 'Automatic setup retirement requires its attributed unused class deletion' USING ERRCODE = '23514';
+    END IF;
     RETURN NULL;
 END;
 $function$;
@@ -4014,6 +4023,7 @@ DECLARE
     principal bigint;
     at_time timestamptz;
     proposal tokens_registerimport;
+    retiring boolean;
 BEGIN
     IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
@@ -4026,9 +4036,11 @@ BEGIN
     SELECT * INTO proposal FROM tokens_registerimport WHERE uuid = NEW.register_import_id;
     PERFORM 1 FROM companies_company WHERE uuid = proposal.company_id FOR UPDATE;
     SELECT * INTO proposal FROM tokens_registerimport WHERE uuid = NEW.register_import_id FOR UPDATE;
+    retiring := NEW.kind = 'reject' AND tokens_class_review_retirement(proposal.uuid, principal,
+        NEW.appointment_id, NEW.uuid, NEW.idempotency_key, NEW.reason);
     IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL OR proposal.uuid IS NULL
         OR NEW.decided_by_id IS DISTINCT FROM principal
-        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_import_' || NEW.kind
+        OR (current_setting('app.company_operation', true) IS DISTINCT FROM 'register_import_' || NEW.kind AND NOT retiring)
         OR current_setting('app.company_id', true) IS DISTINCT FROM proposal.company_id::text
         OR proposal.status <> 'submitted' OR NEW.kind NOT IN ('approve', 'apply', 'reject')
         OR (NEW.kind = 'reject') <> (length(btrim(NEW.reason)) > 0)
@@ -4036,7 +4048,7 @@ BEGIN
         OR NEW.digest IS DISTINCT FROM tokens_register_import_decision_digest(proposal.uuid, NEW.kind, principal,
             NEW.appointment_id, NEW.reason)
         OR NOT tokens_register_appointment_current(NEW.appointment_id, proposal.company_id, principal,
-            CASE NEW.kind WHEN 'apply' THEN 'apply' ELSE 'approve' END, at_time)
+            CASE WHEN retiring THEN 'prepare' WHEN NEW.kind = 'apply' THEN 'apply' ELSE 'approve' END, at_time)
         OR (NEW.kind = 'approve' AND tokens_register_import_approved(proposal.uuid, at_time))
         OR (NEW.kind = 'apply' AND NOT tokens_register_import_approved(proposal.uuid, at_time))
     THEN

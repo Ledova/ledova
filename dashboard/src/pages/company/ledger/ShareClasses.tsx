@@ -159,8 +159,9 @@ export function ShareClasses({
         >
           <div className="space-y-4">
             <p className="text-sm text-text-muted">
-              Unused classes are removed from active use. Their drafts and audit history are retained. Each class is
-              checked separately; deletion stops if a result cannot be confirmed.
+              Unused classes are removed from active use and their saved setup reviews are retired automatically. Their
+              records and audit history are kept. Each class is checked separately; deletion stops if a result cannot be
+              confirmed.
             </p>
             <ul className="space-y-2 text-sm text-text-primary">
               {operation.targets.map((target, index) => (

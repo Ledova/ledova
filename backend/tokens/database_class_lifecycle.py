@@ -2,6 +2,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from tokens.database_mirror_guards import _function
+
 
 def install(apps, schema_editor):
     if schema_editor.connection.vendor != "postgresql":
@@ -24,6 +26,13 @@ def install(apps, schema_editor):
             ],
         )
         operator, migrate, operator_role, migrate_role = cursor.fetchone()
+        sources = {
+            "database_guards.sql": ("tokens_guard_register_import_decision", "tokens_check_register_import_decision"),
+            "database_mirror_guards.sql": ("tokens_validate_mirror_import",),
+        }
+        for filename, functions in sources.items():
+            statements = Path(__file__).with_name(filename).read_text()
+            source += "\n" + "\n".join(_function(statements, name) for name in functions)
         cursor.execute(source.replace("__OPERATOR__", operator).replace("__MIGRATE__", migrate))
         cursor.execute("REVOKE ALL ON FUNCTION tokens_class_details_available(uuid, boolean) FROM PUBLIC")
         cursor.execute(
@@ -38,3 +47,11 @@ def install(apps, schema_editor):
 
         cursor.execute("REVOKE ALL ON FUNCTION tokens_class_history_empty(uuid) FROM PUBLIC")
         cursor.execute(f"GRANT EXECUTE ON FUNCTION tokens_class_history_empty(uuid) TO {operator_role}, {migrate_role}")
+
+        cursor.execute(
+            "REVOKE ALL ON FUNCTION tokens_class_review_retirement(uuid, bigint, uuid, uuid, uuid, text) FROM PUBLIC"
+        )
+        cursor.execute(
+            "GRANT EXECUTE ON FUNCTION tokens_class_review_retirement(uuid, bigint, uuid, uuid, uuid, text) "
+            f"TO {operator_role}, {migrate_role}"
+        )

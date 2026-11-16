@@ -3,14 +3,14 @@ import re
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, connections
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
-from companies.models import CompanyCapability
+from companies.models import CompanyAppointment, CompanyCapability
 from companies.services.authority_requests import _requester_principal
 from shared.db import current_alias, use_operator
 from tokens.constants import MAX_UINT256, REGISTER_IMPORT_ADDRESS_LENGTH
@@ -39,7 +39,13 @@ from tokens.services.former_holders import retention_cutoff
 from tokens.services.member_events import current_associations
 from tokens.services.register import _member_identity, imported_membership_dates
 from tokens.services.register_authority import register_appointment, register_command
-from tokens.services.register_decisions import DecisionFamily, decide, preview
+from tokens.services.register_decisions import (
+    DecisionFamily,
+    _digest,
+    _reject,
+    decide,
+    preview,
+)
 from tokens.services.register_events import create_member, record_entry
 from tokens.services.register_evidence import (
     discard,
@@ -759,3 +765,36 @@ def decide_import(*, actor, import_id, appointment, kind, idempotency_key, previ
         confirmation=confirmation,
         reason=reason,
     )
+
+
+def retire_class_imports(token, actor, profile, operator):
+    proposals = list(
+        RegisterImport.objects.select_for_update().filter(token=token, status="submitted").order_by("uuid")
+    )
+    if not proposals:
+        return
+    appointment = (
+        CompanyAppointment.objects.current_for(actor, token.company_id, at=timezone.now(), identity_required=False)
+        .holding_any([CompanyCapability.ADMIN, CompanyCapability.PREPARE])
+        .order_by("uuid")
+        .first()
+    )
+    if appointment is None:
+        raise NotFound("A current company administrator or preparer is required to delete this share class.")
+    source = register_appointment(token.company, actor, profile, operator, appointment.pk, CompanyCapability.PREPARE)
+    reason = "Retired automatically when deleting the unused share class."
+    for proposal in proposals:
+        identifier = uuid4()
+        decision = RegisterImportDecision.objects.create(
+            uuid=identifier,
+            register_import=proposal,
+            kind="reject",
+            decided_by=actor,
+            appointment=source,
+            idempotency_key=identifier,
+            digest=_digest(IMPORTS, proposal, "reject", actor, source, reason),
+            reason=reason,
+            decided_at=timezone.now(),
+        )
+        decision.refresh_from_db(fields=["decided_at"])
+        _reject(proposal, actor, decision)

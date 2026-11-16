@@ -368,7 +368,7 @@ Class metadata changes use `PATCH /api/v1/tokens/{uuid}/` with only `name`, `sym
 and the current `expectedUpdatedAt`; unused-class deletion uses `DELETE` on that detail route with
 `expected_updated_at` in the query. Detail responses expose `canEditDetails`, `canDelete` and
 `deletionBlockedReason` for the current actor; the reason is available only to current preparers.
-List responses do not perform these reference checks. The bounded commands in
+List responses include the same actor-scoped deletion eligibility, reasons and versions. The bounded commands in
 [class_lifecycle.py](../../backend/tokens/services/class_lifecycle.py) recheck personal preparation
 authority, lock the class and register, and refuse stale versions. The
 [SQL guard](../../backend/tokens/database_class_lifecycle.sql), installed by
@@ -382,8 +382,12 @@ drafts, a genuinely empty register stub or a confirmed empty opening, retaining 
 decisions and opening entry. It refuses any actual ownership activity, including an earlier holding
 whose current balance is zero. The
 [empty-opening refinement](../../backend/tokens/migrations/0010_empty_opening_deletion.py) installs
-the same history check for deletion and retained company-pack validation. Submitted or approved
-reviews and other dependencies still block it. Draft status alone
+the same history check for deletion and retained company-pack validation. Deletion automatically
+retires submitted or approved setup reviews in the same transaction, retaining their decisions and
+evidence. This narrow rejection uses preparation authority only inside class deletion; ordinary
+review permissions stay unchanged. A review retirement without the matching class deletion cannot
+commit. The [retirement refinement](../../backend/tokens/migrations/0011_class_review_retirement.py)
+installs these checks. Other dependencies still block deletion. Draft status alone
 does not establish eligibility; opened off-chain classes can remain Draft. The
 [business rules](../business/issuing-shares.md#share-classes) define the edit and deletion limits.
 [Staff admin](../../backend/tokens/admin/share_token.py) keeps existing class metadata read-only and
@@ -638,15 +642,15 @@ a worker drains the queue. Staff can add, change and delete rows in the Django a
 
 Each notice names its kind as `data.type`, and the dashboard bell opens that kind's page:
 
-| Kind (`data.type`) | Sent by                                                                                            | The bell opens |
-| ------------------ | -------------------------------------------------------------------------------------------------- | -------------- |
+| Kind (`data.type`) | Sent by                                                                                  | The bell opens |
+| ------------------ | ---------------------------------------------------------------------------------------- | -------------- |
 | `company`          | Retained history only: the sender is retired, and no company status change sends one     | Profile        |
-| `publication`      | Retained history only: the sender went with shareholder publications                               | Nothing        |
-| `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails           | Nothing        |
-| `identity`         | `users/services/identity.py`, when the identity check's result changes                             | Profile        |
-| `certificate`      | Retained history only: the sender went with members' certificate requests                          | Nothing        |
-| `award`            | `tokens/services/member_events.py`, when shares vest under a member's award                        | Nothing        |
-| `holding`          | `tokens/services/member_events.py`, when a grant or allotment issues shares to a member            | Nothing        |
+| `publication`      | Retained history only: the sender went with shareholder publications                     | Nothing        |
+| `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails | Nothing        |
+| `identity`         | `users/services/identity.py`, when the identity check's result changes                   | Profile        |
+| `certificate`      | Retained history only: the sender went with members' certificate requests                | Nothing        |
+| `award`            | `tokens/services/member_events.py`, when shares vest under a member's award              | Nothing        |
+| `holding`          | `tokens/services/member_events.py`, when a grant or allotment issues shares to a member  | Nothing        |
 
 A notice of any other kind, including identity notices sent before they carried a type,
 `particulars` notices sent before members' particulars requests were removed and eligibility

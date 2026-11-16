@@ -431,8 +431,8 @@ field when editing opens and return focus to Edit when it ends, if that action i
 Company information and personal Profile details follow this pattern.
 An eligible class uses the same inline Edit, Cancel and Save pattern for its name, code and type.
 Keep the setup draft mounted while that editor is open. Delete is available only for an unused
-class and asks for confirmation naming that class and explaining that abandoned drafts and audit
-history are kept. When records prevent deletion, retain a disabled Delete action for authorised
+class and asks for confirmation naming that class. Explain that saved setup reviews are retired
+automatically and their records and audit history are kept. When records prevent deletion, retain a disabled Delete action for authorised
 preparers with the API's plain reason visibly beside it and linked as its accessible description.
 A lost reply holds the original action for checking. Recorded ownership, rights revisions and
 documents are never erased by this control.

@@ -681,12 +681,14 @@ Non-paid and employee-award grants are prepared inline in Issue shares.
 The web and native class pages' `ClassDetails.tsx` use the shared `useClassDetails` hook to edit name, code and type
 or delete an unused class using the API's `canEditDetails`, `canDelete` and `updatedAt`. An authorised
 preparer sees the API's `deletionBlockedReason` beside a disabled Delete action when records prevent
-deletion. The confirmation explains that abandoned drafts and audit history are kept. They pin the
+deletion. The web confirmation explains that saved setup reviews are retired automatically and
+their records and audit history are kept. They pin the
 original class, company and version when opening the action, preserve edits during source checks,
 and hold an uncertain request for explicit result checking rather than submitting a new target.
 Confirmed changes invalidate the related class and ownership reads; deletion does not refetch the
 removed class. Setup decisions refresh class availability, so retiring a review can expose editing
-without a reload. Deleting a class removes it from active use while keeping abandoned setup history;
+without a reload. Deleting a class retires saved setup reviews and removes the unused class from
+active use atomically, retaining the reviews, their decisions and deletion attribution;
 it never deletes confirmed ownership. Class rights retain their separate revision-based editor and permissions.
 The web's first-stage rights editor owns an independent explicit save/cancel task outside the opening
 HTML form; step navigation and the opening footer are unavailable while that task is held. New classes

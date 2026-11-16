@@ -40,12 +40,14 @@ Class codes are one to five ASCII letters, saved in uppercase, unique among the 
 not reuse a reserved asset symbol. On the web, the same administrator or preparer can edit a
 class's name, code and type before its ledger is opened or dependent records exist. Reject any saved
 setup review first; the rejected draft stays recorded. **Delete share class** removes an unused
-class from active use even when it has abandoned (rejected) setup drafts or a confirmed empty opening.
+class from active use and automatically retires any saved, unconfirmed setup reviews in the same
+transaction. Rejected setup drafts and a confirmed empty opening do not prevent deletion.
 The class must never have recorded actual ownership activity. It keeps the class,
 deletion actor and time, drafts, decisions and evidence as audit history. Its code can then be reused
 by a new class without changing the earlier record. An empty register stub alone does not prevent
-deletion; a saved review still awaiting a decision, actual ownership history, rights or other
-dependent records do. The web shows the reason beside a disabled Delete action. These
+deletion. Actual ownership history, rights and other dependent records still do. The web shows the
+reason beside a disabled Delete action. Deletion retirement records its actor, time and reason
+without granting ordinary review approval authority. If retirement or deletion fails, both roll back. These
 controls are also available in the native app. On the web, Share classes supports selecting classes
 individually or every visible class with **Select all**, including protected classes. **Delete selected**
 is available when at least one selected class is removable. Its confirmation names those classes and

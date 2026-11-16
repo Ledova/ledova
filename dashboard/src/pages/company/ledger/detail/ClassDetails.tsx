@@ -186,8 +186,8 @@ export function ClassDetailsContent({
         size="sm"
       >
         <p className="text-sm text-text-primary">
-          Delete {target?.name} ({target?.symbol}) from active share classes? Abandoned setup drafts and audit history
-          are kept.
+          Delete {target?.name} ({target?.symbol}) from active share classes? Saved setup reviews are retired
+          automatically. Their records and audit history are kept.
         </p>
         <Failure>{details.error}</Failure>
         <ModalActions>

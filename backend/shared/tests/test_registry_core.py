@@ -25,6 +25,7 @@ from companies.models import (
     CompanySignupTermsAcceptance,
 )
 from companies.services import transition_company
+from companies.services.administration import company_operation
 from companies.services.authority import (
     DECLARATION_VERSION,
     SIGNUP_DECLARATION_TEXT,
@@ -40,6 +41,7 @@ from companies.services.team import (
     revoke_company_appointment,
 )
 from feature_flags.models import FeatureFlag
+from operators.models import Operator
 from shared.database_setup import seed_reference_rows
 from shared.db import atomic, use_migrate, use_operator
 from shared.tests.core_fixtures import (
@@ -66,10 +68,12 @@ from tokens.models import (
     ShareRegister,
     ShareToken,
 )
+from tokens.services.class_lifecycle import delete_unused_class
 from tokens.services.creation import create_share_token
 from tokens.services.holder_identity import identity_at_allotment
 from tokens.services.register import MEMBER_AMBIGUOUS, _member_identity
 from tokens.services.register_events import record_entry
+from tokens.services.register_imports import retire_class_imports
 from tokens.services.register_transfers import _apply as apply_register_transfer
 from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_SUSPENDED
 from users.models import FinancialProfile, UserAccount, UserProfile
@@ -262,8 +266,8 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         draft_change = {**change, "symbol": "RES", "expectedUpdatedAt": draft.json()["updatedAt"]}
         self.assertEqual(self.client.patch(draft_path, draft_change, format="json").status_code, 409)
         waiting = self.client.get(draft_path).json()
-        self.assertFalse(waiting["canDelete"])
-        self.assertEqual(waiting["deletionBlockedReason"], "Retire the saved setup review before deleting this class.")
+        self.assertTrue(waiting["canDelete"])
+        self.assertIsNone(waiting["deletionBlockedReason"])
         listed = self.client.get("/api/v1/tokens/register/").json()["results"]
         self.assertEqual(
             next(row for row in listed if row["uuid"] == str(draft_token.pk))["deletionBlockedReason"],
@@ -342,6 +346,98 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             delete_version(f"/api/v1/tokens/{recreated.json()['uuid']}/", recreated.json()["updatedAt"]).status_code,
             204,
         )
+        automatic = self.client.post(
+            "/api/v1/tokens/",
+            {"company": str(self.company.pk), "name": "Unused reviewed class", "symbol": "AUTO", "totalSupply": "1000"},
+            format="json",
+        )
+        self.assertEqual(automatic.status_code, 201, automatic.content)
+        automatic_path = f"/api/v1/tokens/{automatic.json()['uuid']}/"
+        with use_operator():
+            automatic_token = ShareToken.objects.get(pk=automatic.json()["uuid"])
+        pending = []
+        for _ in range(2):
+            response = self.client.post(
+                "/api/v1/tokens/register-imports/",
+                import_payload(self.owner, self.appointment, automatic_token),
+                format="json",
+            )
+            self.assertEqual(response.status_code, 201, response.content)
+            pending.append(response.json()["uuid"])
+        preparer, preparer_profile = person("class-retirement-preparer")
+        for capabilities in ([CompanyCapability.PREPARE, CompanyCapability.APPROVE], [CompanyCapability.PREPARE]):
+            _, code, _ = issue_team_invitation(
+                requester=self.owner,
+                company_id=self.company.pk,
+                inviter_appointment_id=self.appointment.pk,
+                idempotency_key=uuid4(),
+                capabilities=capabilities,
+            )
+            preparation = accept_team_invitation(
+                requester=preparer, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
+            )
+            if CompanyCapability.APPROVE in capabilities:
+                self.client.force_authenticate(preparer)
+                self.decision(
+                    "/api/v1/tokens/register-imports/",
+                    pending[0],
+                    "approve",
+                    appointment=preparation,
+                    idempotency_key=pending[0],
+                )
+                revoke_company_appointment(requester=self.owner, appointment_id=preparation.pk)
+        with use_operator():
+            snapshots = {
+                str(proposal.pk): (proposal.members, proposal.evidence_snapshot)
+                for proposal in RegisterImport.objects.filter(pk__in=pending)
+            }
+            operator = Operator.get()
+        with company_operation(preparer, self.company.pk, "register_class_delete"), self.assertRaises(
+            DatabaseError
+        ), atomic():
+            ShareToken.objects.filter(pk=automatic_token.pk).update(deleted_at=timezone.now(), deleted_by=preparer)
+        with company_operation(preparer, self.company.pk, "register_class_delete"), self.assertRaises(
+            DatabaseError
+        ), atomic():
+            retire_class_imports(automatic_token, preparer, preparer_profile, operator)
+        with self.assertRaises(DatabaseError), patch(
+            "tokens.services.class_lifecycle.ShareToken.save", side_effect=DatabaseError("Synthetic deletion failure")
+        ):
+            delete_unused_class(actor=preparer, token=automatic_token, expected_updated_at=automatic_token.updated_at)
+        with use_operator():
+            self.assertEqual(RegisterImport.objects.filter(pk__in=pending, status="submitted").count(), 2)
+            self.assertEqual(RegisterImportDecision.objects.filter(register_import_id__in=pending).count(), 1)
+            self.assertTrue(ShareToken.objects.filter(pk=automatic_token.pk).exists())
+        self.client.force_authenticate(preparer)
+        self.assertTrue(self.client.get(automatic_path).json()["canDelete"])
+        preview = self.client.post(
+            f"/api/v1/tokens/register-imports/{pending[0]}/decision-preview/",
+            {"appointment": str(preparation.pk), "kind": "reject", "reason": "Ordinary rejection"},
+            format="json",
+        )
+        self.assertEqual(preview.status_code, 200, preview.content)
+        self.assertIn("appointment_capability_required", preview.json()["unmetRequirements"])
+        self.assertEqual(delete_version(automatic_path, "2000-01-01T00:00:00Z").status_code, 409)
+        removed = delete_version(automatic_path, automatic.json()["updatedAt"])
+        self.assertEqual(removed.status_code, 204, removed.content)
+        self.assertEqual(delete_version(automatic_path, automatic.json()["updatedAt"]).status_code, 404)
+        with use_operator():
+            automatic_token = ShareToken.all_objects.get(pk=automatic_token.pk)
+            self.assertEqual(automatic_token.deleted_by_id, preparer.pk)
+            for proposal in RegisterImport.objects.filter(pk__in=pending):
+                self.assertEqual(proposal.status, "rejected")
+                self.assertEqual(proposal.reviewed_by_id, preparer.pk)
+                self.assertEqual((proposal.members, proposal.evidence_snapshot), snapshots[str(proposal.pk)])
+                rejection = proposal.decisions.get(kind="reject")
+                self.assertEqual(rejection.idempotency_key, rejection.pk)
+                self.assertEqual(rejection.appointment_id, preparation.pk)
+                self.assertEqual(rejection.decided_by_id, preparer.pk)
+                self.assertEqual(rejection.reason, "Retired automatically when deleting the unused share class.")
+            self.assertEqual(RegisterImportDecision.objects.filter(register_import_id__in=pending).count(), 3)
+            self.assertFalse(RegisterEntry.objects.filter(register__token=automatic_token).exists())
+        revoke_company_appointment(requester=self.owner, appointment_id=preparation.pk)
+        self.assertEqual(delete_version(automatic_path, automatic.json()["updatedAt"]).status_code, 404)
+        self.client.force_authenticate(self.owner)
         empty_class = self.client.post(
             "/api/v1/tokens/",
             {
