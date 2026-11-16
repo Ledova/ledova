@@ -38,6 +38,9 @@ type ImportFormProps = Omit<ImportPreparationOptions, 'onPrepared' | 'onFinished
   classFields?: ReactNode;
   classDetails?: (recordFields: ReactNode) => ReactNode;
   classActions?: ReactNode;
+  classContent?: ReactNode;
+  classReview?: ReactNode;
+  classContentHeld?: boolean;
   classHeld?: boolean;
   onPrepared?: ImportPreparationOptions['onPrepared'];
 };
@@ -58,6 +61,9 @@ export function ImportForm({
   classFields,
   classDetails,
   classActions,
+  classContent,
+  classReview,
+  classContentHeld = false,
   classHeld = false,
   classProblems = [],
   resolveRegister,
@@ -141,7 +147,7 @@ export function ImportForm({
   const recordFields = (
     <fieldset
       hidden={!canPrepare}
-      disabled={!canPrepare || busy || uncertain || blocked || classHeld}
+      disabled={!canPrepare || busy || uncertain || blocked || classHeld || classContentHeld}
       className="space-y-3"
     >
       <legend className="sr-only">Record date</legend>
@@ -176,6 +182,7 @@ export function ImportForm({
   const continueAction = (
     <PageAction
       type="submit"
+      form={preparationFormId}
       label="Continue"
       primary
       busy={phase === 'shareholders' && busy}
@@ -190,7 +197,7 @@ export function ImportForm({
           label="Ledger setup steps"
           steps={REGISTER_SETUP_STEPS}
           current={phase}
-          reachable={(step) => stepReachable(step as typeof phase)}
+          reachable={(step) => !classContentHeld && stepReachable(step as typeof phase)}
           onSelect={(step) => {
             const target = step as typeof phase;
             if (STEP_ORDER.indexOf(target) > STEP_ORDER.indexOf(phase)) setTries((count) => count + 1);
@@ -199,7 +206,7 @@ export function ImportForm({
         />
       )}
       <div hidden={!visible || !mutable || phase !== 'details'}>{classDetails?.(recordFields)}</div>
-      <div hidden={!visible || classHeld}>
+      <div hidden={!visible || classHeld || classContentHeld}>
         <>
           {mutable ? (
             canPrepare ? (
@@ -275,32 +282,6 @@ export function ImportForm({
                     )}
                   </fieldset>
                 )}
-                {!uncertain && !holderEditor && phase === 'details' && (
-                  <FormActions>
-                    {classActions}
-                    <PageAction
-                      label="Cancel"
-                      disabled={busy || blocked}
-                      onClick={() => {
-                        const place = registerPlace({ company, token: register?.token.uuid });
-                        navigate(place.to, { state: place.state });
-                      }}
-                    />
-                    <button
-                      type="button"
-                      aria-disabled="true"
-                      aria-describedby={importDescription}
-                      title={IMPORT_NOTE}
-                      className="inline-flex rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-muted opacity-60"
-                    >
-                      Import
-                    </button>
-                    <span id={importDescription} className="sr-only">
-                      {IMPORT_NOTE}
-                    </span>
-                    {continueAction}
-                  </FormActions>
-                )}
               </form>
             ) : (
               <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>
@@ -339,6 +320,7 @@ export function ImportForm({
                     {proposal.members.length}
                   </Row>
                 </Rows>
+                {classReview}
                 {proposal.correctionOf && <p className="text-sm text-text-muted">Correction: {proposal.reason}</p>}
                 {((proposal.sourceReference || proposal.authorityReference) !== 'Company-provided share records' ||
                   proposal.asicIssuedTotal !== null ||
@@ -488,6 +470,40 @@ export function ImportForm({
           )}
         </>
       </div>
+      <div hidden={!visible || !mutable || phase !== 'details' || classHeld}>{classContent}</div>
+      {visible &&
+        mutable &&
+        canPrepare &&
+        !classHeld &&
+        !classContentHeld &&
+        !uncertain &&
+        !holderEditor &&
+        phase === 'details' && (
+          <FormActions>
+            {classActions}
+            <PageAction
+              label="Cancel"
+              disabled={busy || blocked}
+              onClick={() => {
+                const place = registerPlace({ company, token: register?.token.uuid });
+                navigate(place.to, { state: place.state });
+              }}
+            />
+            <button
+              type="button"
+              aria-disabled="true"
+              aria-describedby={importDescription}
+              title={IMPORT_NOTE}
+              className="inline-flex rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-muted opacity-60"
+            >
+              Import
+            </button>
+            <span id={importDescription} className="sr-only">
+              {IMPORT_NOTE}
+            </span>
+            {continueAction}
+          </FormActions>
+        )}
       {uncertain && (
         <div className="space-y-2">
           <p className="text-sm text-text-muted">

@@ -20,7 +20,7 @@ import { Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { LoadError, Loading, Row, Rows, Section, Status } from '@components/Ledger';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
-import { ClassRights } from './ClassRights';
+import { ClassRights, RightsSummary } from './ClassRights';
 import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { AccountCheck } from '@components/AccountCheck';
@@ -114,11 +114,6 @@ function ShareClassWorkspace({
   const detailsAvailable = ready && !setupHeld && (!data.readingPaused || detailsHeld);
   const details = useClassDetails(data, owner, detailsAvailable, heldDetails);
   const company = data.token.data?.companyUuid;
-  const navigationHeld = details.busy || details.pending;
-  useLayoutEffect(() => {
-    setLedgerNavigation({ company, token: uuid, blocked: navigationHeld, held: navigationHeld });
-    return () => setLedgerNavigation((current) => (current?.token === uuid ? null : current));
-  }, [setLedgerNavigation, company, uuid, navigationHeld]);
   const recordsChanged = useCallback(() => {
     void data.token.refetch();
   }, [data.token.refetch]);
@@ -131,11 +126,17 @@ function ShareClassWorkspace({
   );
   const rights = useClassRights(
     uuid,
-    data.token.isSuccess && data.token.fetchStatus === 'idle' && !setupHeld && !detailsHeld,
+    data.token.isSuccess && data.token.fetchStatus === 'idle' && !detailsHeld,
     data.token.data?.companyUuid,
     BROWSER_FILES,
     () => crypto.randomUUID(),
   );
+  const rightsHeld = !!rights.editor || rights.pending || rights.busy;
+  const navigationHeld = details.busy || details.pending || rightsHeld;
+  useLayoutEffect(() => {
+    setLedgerNavigation({ company, token: uuid, blocked: navigationHeld, held: navigationHeld });
+    return () => setLedgerNavigation((current) => (current?.token === uuid ? null : current));
+  }, [setLedgerNavigation, company, uuid, navigationHeld]);
   useEffect(() => {
     data.holdReads('class-rights', !!rights.editor || rights.pending || rights.busy);
     return () => data.holdReads('class-rights', false);
@@ -185,11 +186,32 @@ function ShareClassWorkspace({
                   </ClassDetailsContent>
                 )
               }
+              classContent={
+                <ClassRights
+                  rights={rights}
+                  embedded
+                  tokenType={data.token.data?.tokenType}
+                  blocked={setupHeld || detailsHeld}
+                />
+              }
+              classContentHeld={rightsHeld}
+              classReview={
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-text-primary">Class rights</h3>
+                  {rights.current ? (
+                    <RightsSummary revision={rights.current} rights={rights} />
+                  ) : (
+                    <p className="text-sm text-text-muted">
+                      {rights.ready ? 'No rights recorded.' : 'Class rights are not currently available.'}
+                    </p>
+                  )}
+                </div>
+              }
               onRecordsChanged={recordsChanged}
             />
           ) : undefined
         }
-        rights={<ClassRights rights={rights} />}
+        rights={setup === false ? <ClassRights rights={rights} tokenType={data.token.data?.tokenType} /> : null}
       />
     </>
   );

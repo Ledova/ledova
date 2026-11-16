@@ -212,7 +212,7 @@ web and, at phone width, in the app:
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
    class not yet set up. Share classes are created only through register setup, in Ledger.
 2. **Share class**: continue the selected unfinished class, or choose a common class (Ordinary
-   ORD, Preference PRF or Redeemable RED) or Another class with the company's own name, code and
+   ORD, Preference PRF or Redeemable preference RED) or Another class with the company's own name, code and
    type. Name, code, type and record date sit together in the first step of one **Ledger setup**
    card. Edit/Delete join Cancel/Continue in its bottom footer only on the Share class step.
    Existing class details use the inline editor where permitted; saving those details is
@@ -220,6 +220,9 @@ web and, at phone width, in the app:
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
    limit instead of authorised capital. Repeat for each class.
+   On the web, the starting name, code and type can be customised, and a company administrator can
+   optionally record [Class rights](issuing-shares.md#class-rights) here with a separate explicit save.
+   The editable rights examples are opt-in; skipping rights records no assumed terms or revision.
    With no classes yet, a preparer uses Ledger → Share classes and **Add share class** on web or mobile.
    Preparation access does not change their initial landing page or account role.
 3. Shareholders, one at a time: choose a recorded person or New person
@@ -246,6 +249,8 @@ web and, at phone width, in the app:
    with no issued shares or earlier members, leave the draft empty to record its empty opening.
 4. Review the record date, shares held and shareholders, one line each, then a compact row for each
    shareholder with particulars under **Allotments** (**Show allotments** in the app).
+   The web review also shows the recorded Class rights; their separate save is not a new rights decision
+   made by confirming the ownership snapshot.
    Confirm loads a fresh preview and records approval and application together; an appointee who may
    only review records the approval for another to apply.
 
@@ -627,6 +632,11 @@ The Ledger view shows:
   the class (owner, 5 November 2026);
 - **Add share class** below the card, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
+
+On the web, checkboxes select unused classes individually or with **Select all**. Protected classes
+show the reason they cannot be selected. **Delete selected** confirms the named selection and
+checks each class separately; partial and uncertain results retain their original-request recovery
+and audit history ([safe class deletion](issuing-shares.md#share-classes)).
 
 The mobile app's Ledger shows the same rows to a register reader of the selected company, and **Add
 share class** to someone who can prepare the register. Dashboard Set up your ledger and the menu's Share classes open that same overview. Selecting an unfinished class continues the clickable setup in its class workspace; an opened class shows its current ownership, rights and documents. Both clients expose the same safe details editing and deletion eligibility, including the reason when deletion is blocked. The menu lists Issue

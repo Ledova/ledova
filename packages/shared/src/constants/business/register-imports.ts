@@ -91,7 +91,7 @@ export const REGISTER_SETUP_STEPS = [
 export const REGISTER_SETUP_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
   { type: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', label: 'Ordinary (ORD)' },
   { type: 'preference', name: 'Preference shares', symbol: 'PRF', label: 'Preference (PRF)' },
-  { type: 'redeemable', name: 'Redeemable shares', symbol: 'RED', label: 'Redeemable (RED)' },
+  { type: 'redeemable', name: 'Redeemable preference shares', symbol: 'RED', label: 'Redeemable preference (RED)' },
 ];
 
 export const REGISTER_SETUP_CHOICES = [

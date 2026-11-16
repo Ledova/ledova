@@ -164,6 +164,7 @@ export {
 export {
   RIGHTS_GROUPS,
   classRightsTerms,
+  rightsWithoutConditions,
   preferenceMeasure,
   rightsAttributeProblems,
   rightsGroupValues,
