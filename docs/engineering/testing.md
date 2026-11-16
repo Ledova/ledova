@@ -26,6 +26,10 @@ increase in the same PR; never exceed a cap temporarily. The PR records before a
 the replaced cases or the approval, and independent review checks them
 ([binding caps](../decisions.md#binding-caps-and-backup-authorisation)).
 
+The per-case time limits are binding too: 15 seconds for a Dashboard or mobile case. A case that
+nears its limit in CI loses checks or is made faster; the limit is not raised
+([binding caps](../decisions.md#binding-caps-and-backup-authorisation)).
+
 Backend accounting conservatively includes both discovered methods and every `subTest` row:
 37 methods plus 61 rows = 98, including the five real-app-login methods. The registry-only
 boundary keeps representative read/write and capability-family refusals instead of repeating every
