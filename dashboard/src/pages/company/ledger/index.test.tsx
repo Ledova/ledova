@@ -3141,7 +3141,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   }
   fireEvent.click(metadata.getByRole('button', { name: 'Cancel' }));
   const blockedReason = 'This class has retained documents, rights or other records and cannot be deleted.';
-  const editBlockedReason = 'Class details can change only before its ledger or dependent records exist.';
+  const editBlockedReason = 'Class details can change only while its opening is empty and no dependent records exist.';
   lifecycle = {
     ...lifecycle,
     canEditDetails: false,

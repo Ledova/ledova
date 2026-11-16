@@ -53,6 +53,7 @@ REGISTER_MODELS = (
 RELATED_MODELS = {
     "companies.CompanyAppointmentRevocation": "appointment__company_id",
     "companies.CompanyAuthorityRequestWithdrawal": "request__company_id",
+    "tokens.ClassDetailsRevision": "token__company_id",
     "tokens.ClassRightsRevision": "token__company_id",
     "tokens.RegisterEntry": "register__company_id",
     "tokens.RegisterPosition": "register__company_id",

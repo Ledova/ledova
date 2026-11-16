@@ -438,6 +438,9 @@ fields under the same heading, with Cancel and Save together at the bottom right
 field when editing opens and return focus to Edit when it ends, if that action is still available.
 Company information and personal Profile details follow this pattern.
 An eligible class uses the same inline Edit, Cancel and Save pattern for its name, code and type.
+A confirmed empty opening can still be edited if there are no other dependencies; actual ownership
+history remains protected. Keep the existing editor; metadata audit history is retained automatically
+and included in Company packs, without a visible history section or extra page controls.
 Current preparers see **Edit** even when editing is locked, disabled with the server's
 `editBlockedReason` visible beside it and linked as its accessible description. Readers without
 preparation authority see no Edit action. Do not infer editing eligibility from deletion eligibility.

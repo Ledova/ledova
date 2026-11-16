@@ -58,6 +58,7 @@ BEGIN
         IF reference.relation IN ('public.tokens_registerimport'::regclass, 'public.tokens_shareregister'::regclass) THEN
             CONTINUE;
         END IF;
+        IF reference.relation = to_regclass('public.tokens_classdetailsrevision') THEN CONTINUE; END IF;
         EXECUTE format('SELECT EXISTS (SELECT 1 FROM %s WHERE %I = $1)', reference.relation, reference.column_name)
             INTO referenced USING token_uuid;
         IF referenced THEN RETURN 'This class has retained documents, rights or other records and cannot be deleted.'; END IF;
@@ -91,6 +92,7 @@ BEGIN
         OR NULLIF(share_class.deployment_tx_hash, '') IS NOT NULL OR share_class.deployed_at IS NOT NULL THEN
         RETURN false;
     END IF;
+    IF NOT tokens_class_history_empty(token_uuid) THEN RETURN false; END IF;
     FOR reference IN
         SELECT constraint_record.conrelid::regclass AS relation, attribute.attname AS column_name,
             cardinality(constraint_record.conkey) AS key_count
@@ -100,12 +102,12 @@ BEGIN
         WHERE constraint_record.contype = 'f' AND constraint_record.confrelid = 'public.tokens_sharetoken'::regclass
     LOOP
         IF reference.key_count <> 1 THEN RETURN false; END IF;
+        IF reference.relation = to_regclass('public.tokens_classdetailsrevision') THEN CONTINUE; END IF;
         predicate := '';
         IF reference.relation = 'public.tokens_registerimport'::regclass THEN
-            predicate := ' AND status <> ''rejected''';
+            predicate := ' AND status NOT IN (''rejected'', ''applied'')';
         ELSIF reference.relation = 'public.tokens_shareregister'::regclass THEN
-            predicate := ' AND (sequence <> 0 OR issued_supply <> 0 OR EXISTS ('
-                || 'SELECT 1 FROM public.tokens_registerentry entry WHERE entry.register_id = source.uuid))';
+            CONTINUE;
         END IF;
         EXECUTE format('SELECT EXISTS (SELECT 1 FROM %s source WHERE %I = $1%s)',
             reference.relation, reference.column_name, predicate) INTO referenced USING token_uuid;
@@ -167,6 +169,7 @@ BEGIN
             OR NEW.token_type NOT IN ('ordinary', 'preference', 'redeemable') THEN
             RAISE EXCEPTION 'Only valid unused class details may change' USING ERRCODE = '23514';
         END IF;
+        NEW.updated_at := clock_timestamp();
     END IF;
     RETURN NEW;
 END;
