@@ -46,9 +46,10 @@ deletion actor and time, drafts, decisions and evidence as audit history. Its co
 by a new class without changing the earlier record. An empty register stub alone does not prevent
 deletion; a saved review still awaiting a decision, actual ownership history, rights or other
 dependent records do. The web shows the reason beside a disabled Delete action. These
-controls are also available in the native app. On the web, Share classes supports selecting unused
-classes individually or with **Select all**, then **Delete selected**. Protected classes show why
-they cannot be selected. The company confirms the named selection; each removal is checked
+controls are also available in the native app. On the web, Share classes supports selecting classes
+individually or every visible class with **Select all**, including protected classes. **Delete selected**
+is available when at least one selected class is removable. Its confirmation names those classes and
+shows which selected classes will be kept and why. Each removal is checked
 separately, so a refusal or uncertain result stops the sequence and leaves unsent classes untouched.
 Confirmed removals and retained records are not undone by a later refusal. Company closure uses its separate
 [status controls](companies.md#staff-company-controls). Deployment, capital increases and

@@ -633,10 +633,9 @@ The Ledger view shows:
 - **Add share class** below the card, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
-On the web, checkboxes select unused classes individually or with **Select all**. Protected classes
-show the reason they cannot be selected. **Delete selected** confirms the named selection and
-checks each class separately; partial and uncertain results retain their original-request recovery
-and audit history ([safe class deletion](issuing-shares.md#share-classes)).
+On the web, checkboxes select classes individually; **Select all** selects every class shown.
+**Delete selected** confirms which selected classes can be removed and which will be kept, with
+their reasons ([safe class deletion](issuing-shares.md#share-classes)).
 
 The mobile app's Ledger shows the same rows to a register reader of the selected company, and **Add
 share class** to someone who can prepare the register. Dashboard Set up your ledger and the menu's Share classes open that same overview. Selecting an unfinished class continues the clickable setup in its class workspace; an opened class shows its current ownership, rights and documents. Both clients expose the same safe details editing and deletion eligibility, including the reason when deletion is blocked. The menu lists Issue

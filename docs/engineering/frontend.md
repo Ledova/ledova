@@ -700,12 +700,14 @@ shown in Review without making the opening confirmation a rights amendment.
 receipt checks. `useClassRights` retains reads, history, editor state and downloads; web setup reuses
 the writer and the same page-owned editor fields instead of a second rights command implementation.
 
-The web Share classes list uses checkboxes beside each class link and **Select all** for the current
-company's removable classes. The list API supplies each class's deletion permission, blocked reason
-and version; a disabled checkbox explains protected records. **Delete selected** shares the bottom
-action area with **Add share class**. Confirmation pins the selected names and versions, then sends
-the existing guarded delete commands in order. Earlier successes are retained if a later command is
-refused or uncertain; an uncertain original must be checked or explicitly retried before continuing.
+The web Share classes list uses checkboxes beside each class link; **Select all** selects every
+visible class in the current company, including protected records. Selection does not grant deletion
+permission. The list API supplies eligibility, blocked reasons and versions. **Delete selected** is
+available only when the selection includes a removable class and shares the bottom action area with
+**Add share class**. Confirmation pins the removable targets and the selected classes that will be
+kept, with their reasons; only reviewed removable targets receive delete commands. Earlier successes
+are retained if a later command is refused or uncertain; an uncertain original must be checked or
+explicitly retried before continuing.
 The interface reports partial results, retains audit history and does not imply an atomic batch.
 
 On the web, setup's shareholder editor and later shareholder/class pages share

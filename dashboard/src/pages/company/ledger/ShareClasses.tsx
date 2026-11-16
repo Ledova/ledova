@@ -41,11 +41,10 @@ export function ShareClasses({
 }) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const reasonId = useId();
-  const eligible = classes.filter((row) => row.companyUuid === company && row.canDelete);
-  const hasControls = classes.some(
-    (row) => row.companyUuid === company && (row.canDelete || row.deletionBlockedReason),
-  );
-  const selectedCount = eligible.filter(({ uuid }) => selected.has(uuid)).length;
+  const listed = classes.filter((row) => row.companyUuid === company);
+  const hasControls = listed.some((row) => row.canDelete || row.deletionBlockedReason);
+  const selectedCount = listed.filter(({ uuid }) => selected.has(uuid)).length;
+  const deletableCount = listed.filter((row) => row.canDelete && selected.has(row.uuid)).length;
   const deletion = useClassDeletion({ owner, company, classes, guard, available: available && visible, onHeldChange });
   const operation = deletion.removal;
   const locked = blocked || !!operation || !available || !ready;
@@ -59,12 +58,12 @@ export function ShareClasses({
           {hasControls && (
             <CheckboxField
               ref={(input) => {
-                if (input) input.indeterminate = selectedCount > 0 && selectedCount < eligible.length;
+                if (input) input.indeterminate = selectedCount > 0 && selectedCount < listed.length;
               }}
               label="Select all"
-              checked={eligible.length > 0 && selectedCount === eligible.length}
-              disabled={locked || eligible.length === 0}
-              onChange={(event) => setSelected(new Set(event.target.checked ? eligible.map(({ uuid }) => uuid) : []))}
+              checked={listed.length > 0 && selectedCount === listed.length}
+              disabled={locked || listed.length === 0}
+              onChange={(event) => setSelected(new Set(event.target.checked ? listed.map(({ uuid }) => uuid) : []))}
             />
           )}
           {registers.length === 0 ? (
@@ -80,8 +79,8 @@ export function ShareClasses({
                       <div className="shrink-0 py-3">
                         <CheckboxField
                           label={<span className="sr-only">Select {register.token.name}</span>}
-                          checked={!!lifecycle?.canDelete && selected.has(register.token.uuid)}
-                          disabled={locked || !lifecycle?.canDelete}
+                          checked={selected.has(register.token.uuid)}
+                          disabled={locked}
                           aria-describedby={lifecycle?.deletionBlockedReason ? description : undefined}
                           onChange={(event) =>
                             setSelected((current) => {
@@ -134,7 +133,7 @@ export function ShareClasses({
             <PageAction
               label="Delete selected"
               destructive
-              disabled={locked || selectedCount === 0}
+              disabled={locked || deletableCount === 0}
               onClick={() => deletion.open(selected)}
             />
           )}
@@ -165,12 +164,27 @@ export function ShareClasses({
             </p>
             <ul className="space-y-2 text-sm text-text-primary">
               {operation.targets.map((target, index) => (
-                <li key={target.uuid}>
+                <li key={target.uuid} className="break-words">
                   {target.name} · {target.symbol}
                   {index < operation.next ? ' — deleted' : ''}
                 </li>
               ))}
             </ul>
+            {operation.kept.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-text-primary">Will be kept</h3>
+                <ul className="space-y-2 text-sm text-text-primary">
+                  {operation.kept.map((target) => (
+                    <li key={target.uuid} className="break-words">
+                      {target.name} · {target.symbol}
+                      <p className="text-xs text-text-muted">
+                        {target.deletionBlockedReason ?? 'This class cannot be deleted.'}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {(operation.finished || operation.pending) && (
               <p role="status" className="text-sm text-text-muted">
                 {operation.next} deleted · {operation.targets.length - operation.next} not confirmed
