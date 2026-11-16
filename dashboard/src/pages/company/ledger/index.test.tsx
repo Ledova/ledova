@@ -1743,6 +1743,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getByLabelText('Record date')).toBeTruthy();
   expect(screen.queryByRole('link', { name: /Back to dashboard/ })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect(
+    screen.getByRole('list', { name: 'Ledger setup steps' }).querySelector('[aria-current="step"]')?.textContent,
+  ).toContain('Class rights');
+  expect(screen.queryByRole('button', { name: 'Add a shareholder' })).toBeNull();
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
@@ -1843,14 +1849,21 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Discarded edit' } });
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Back (class rights)' }));
+  expect(
+    screen.getByRole('list', { name: 'Ledger setup steps' }).querySelector('[aria-current="step"]')?.textContent,
+  ).toContain('Class rights');
   fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
   fireEvent.change(screen.getByLabelText('Record date'), { target: { value: '2010-01-01' } });
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(screen.getByText(/original membership date no later than the record date/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Back (class rights)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
   fireEvent.change(screen.getByLabelText('Record date'), { target: { value: recordDate } });
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   const recover = await screen.findByRole('button', { name: 'Recover saved records' });
@@ -1898,8 +1911,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(within(shareholderDetails).getByRole('button', { name: 'Close' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   const setupSteps = await screen.findByRole('list', { name: 'Ledger setup steps' });
-  expect(within(setupSteps).getAllByRole('listitem')).toHaveLength(3);
-  expect(within(setupSteps).getAllByRole('listitem')[2].getAttribute('aria-current')).toBe('step');
+  expect(within(setupSteps).getAllByRole('listitem')).toHaveLength(4);
+  expect(within(setupSteps).getAllByRole('listitem')[3].getAttribute('aria-current')).toBe('step');
   expect(screen.queryByRole('button', { name: 'Continue to confirmation' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Back to review' })).toBeNull();
   const preparations = api.post.mock.calls.filter(([url]) => url === IMPORTS).map(([, body]) => body);
@@ -2326,7 +2339,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(((await screen.findByLabelText('Record date')) as HTMLInputElement).value).toBe(resumedDraft.asAt);
   expect(screen.getByLabelText('Record date').matches(':disabled')).toBe(false);
   expect(api.patch).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: '2. Shareholders' }));
+  fireEvent.click(screen.getByRole('button', { name: '3. Shareholders' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
   expect(screen.getByText('share-certificate.pdf')).toBeTruthy();
@@ -2342,13 +2355,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   );
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(0);
   const preparedAgain = proposal!;
-  fireEvent.click(screen.getByRole('button', { name: '2. Shareholders' }));
+  fireEvent.click(screen.getByRole('button', { name: '3. Shareholders' }));
   await waitFor(() => expect(proposal!.status).toBe('rejected'));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.getByRole('button', { name: 'Add a shareholder' })).toBeTruthy();
   expect(
     within(screen.getByRole('list', { name: 'Ledger setup steps' }))
-      .getAllByRole('listitem')[1]
+      .getAllByRole('listitem')[2]
       .getAttribute('aria-current'),
   ).toBe('step');
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
@@ -2356,6 +2369,25 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
   expect(proposal!.uuid).not.toBe(preparedAgain.uuid);
   expect(proposal!.members).toEqual(preparedAgain.members);
+  const beforeRightsReview = proposal!;
+  fireEvent.click(screen.getByRole('button', { name: '2. Class rights' }));
+  await waitFor(() => expect(proposal!.status).toBe('rejected'));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(
+    within(screen.getByRole('list', { name: 'Ledger setup steps' }))
+      .getAllByRole('listitem')[1]
+      .getAttribute('aria-current'),
+  ).toBe('step');
+  expect(screen.queryByRole('button', { name: 'Add a shareholder' })).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
+  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe(resumedDraft.asAt);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect(screen.getByText('Example Shareholder')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
+  expect(proposal!.uuid).not.toBe(beforeRightsReview.uuid);
+  expect(proposal!.members).toEqual(beforeRightsReview.members);
   cleanup();
   client.clear();
   api.post.mockClear();
@@ -2647,6 +2679,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await waitFor(() => expect(screen.queryByLabelText('Class code')).toBeNull());
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   expect((screen.getByRole('combobox', { name: 'Company shareholder' }) as HTMLInputElement).value).toBe('');
   const shareholder = screen.getByRole('combobox', { name: 'Company shareholder' });
@@ -2758,6 +2791,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   api.post.mockImplementation(prepareAwardOpening);
   showJourney(importPath);
   fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   await choose(
     'Company shareholder',
@@ -2838,6 +2872,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(
     within(await screen.findByRole('group', { name: 'Start with' })).getByRole('radio', { name: 'Preference (PRF)' }),
   );
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   await choose('Company shareholder', trustedRecipient.name);
@@ -2959,6 +2994,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   });
   showJourney(importPath);
   fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(screen.getByText(/continue with no shareholders/)).toBeTruthy();
   expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
@@ -3057,7 +3093,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let metadata = within(metadataElement);
   expect(metadataElement.closest('section')).toBe(setupCard);
   expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
-  expect(screen.getByRole('button', { name: '2. Shareholders' }).matches(':disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: '2. Class rights' }).matches(':disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: '3. Shareholders' }).matches(':disabled')).toBe(true);
   expect(metadata.getByRole('button', { name: 'Save' }).matches(':disabled')).toBe(true);
   expect(document.querySelector('form form')).toBeNull();
   fireEvent.change(metadata.getByLabelText('Class name'), { target: { value: 'Renamed ordinary shares' } });
@@ -3502,18 +3539,24 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getByLabelText('Class code'), { target: { value: rightsSetupToken.symbol } });
   fireEvent.change(screen.getByLabelText('Record date'), { target: { value: '2026-10-13' } });
   expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
   let setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   expect(setupRightsForm.getByRole('button', { name: 'Save class rights' }).matches(':disabled')).toBe(true);
   expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('not_recorded');
   expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
+  expect(screen.getByRole('button', { name: '1. Share class' }).matches(':disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: '3. Shareholders' }).matches(':disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: '4. Review' }).matches(':disabled')).toBe(true);
   expect(document.querySelector('form form')).toBeNull();
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
   expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('general');
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Cancel' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
   expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe('2026-10-13');
   expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
   setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('not_recorded');
@@ -3536,9 +3579,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     ),
   ).toBeTruthy();
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Cancel' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
   expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe('2026-10-13');
   expect(screen.getByLabelText('Class name').matches(':disabled')).toBe(true);
   rightsSetupAdmin = true;
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
   setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   fireEvent.change(setupRightsForm.getByLabelText('Additional terms'), {
@@ -3559,16 +3604,18 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     COMPANY_TOKEN_ENDPOINTS.BASE,
     COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid),
   ]);
-  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe('2026-10-13');
   expect(
     screen.getByRole('list', { name: 'Ledger setup steps' }).querySelector('[aria-current="step"]')?.textContent,
-  ).toContain('Share class');
+  ).toContain('Class rights');
+  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
+  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe('2026-10-13');
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(await screen.findByText('No shareholders added yet.')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Back (class rights)' }));
   expect(await screen.findByText('Company constitution applies.')).toBeTruthy();
   expect(api.post).toHaveBeenCalledTimes(2);
-  fireEvent.click(screen.getByRole('button', { name: '3. Review' }));
+  fireEvent.click(screen.getByRole('button', { name: '4. Review' }));
   await waitFor(() => expect(api.post.mock.calls.some(([url]) => url === IMPORTS)).toBe(true));
   const heldRightsEdit = screen.getByRole('button', { name: 'Edit class rights' });
   expect(heldRightsEdit.matches(':disabled')).toBe(true);
@@ -3590,6 +3637,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(await screen.findByRole('radio', { name: 'Another class' }));
   fireEvent.change(screen.getByLabelText('Class name'), { target: { value: rightsSetupToken.name } });
   fireEvent.change(screen.getByLabelText('Class code'), { target: { value: rightsSetupToken.symbol } });
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
   setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
@@ -3603,7 +3651,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       .some((query) => query.state.isInvalidated),
   ).toBe(true);
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Cancel' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
   expect(screen.getByLabelText('Class code').matches(':disabled')).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
   setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));

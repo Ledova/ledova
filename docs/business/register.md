@@ -220,9 +220,12 @@ web and, at phone width, in the app:
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
    limit instead of authorised capital. Repeat for each class.
-   On the web, the starting name, code and type can be customised, and a company administrator can
-   optionally record [Class rights](issuing-shares.md#class-rights) here with a separate explicit save.
-   The editable rights examples are opt-in; skipping rights records no assumed terms or revision.
+   On the web, the starting name, code and type can be customised. **Continue** opens a separate
+   **Class rights** step, where a company administrator can optionally record
+   [Class rights](issuing-shares.md#class-rights) with a separate explicit save. Its **Continue**
+   moves to Shareholders; **Back** returns to Share class. The editable rights examples are opt-in;
+   continuing without rights records no assumed terms or revision. The app retains its three-step
+   Share class → Shareholders → Review flow; this added step is web-only.
    With no classes yet, a preparer uses Ledger → Share classes and **Add share class** on web or mobile.
    Preparation access does not change their initial landing page or account role.
 3. Shareholders, one at a time: choose a recorded person or New person
@@ -265,11 +268,13 @@ Inviting members is optional ([member access](member-records.md#member-access)).
 kept only in the open page and are lost if you leave it. After a failed or uncertain response, use Recover saved records or Recover
 confirmation in setup ([uncertain outcomes](README.md#when-the-outcome-is-uncertain)); another
 appointee can resume review or confirmation without preparation access. The step headings above the
-form move between Share class, Shareholders and Review. Going forward, from a heading or **Continue**,
+web form move between Share class, Class rights, Shareholders and Review; the app omits Class rights.
+Going forward, from a heading or **Continue**,
 checks the current step first, and reaching Review saves the draft, so there is no separate save
-button. Choosing Share class or Shareholders on Review retires the saved draft for editing and needs
+button. Choosing Share class, Class rights or Shareholders on web Review (Share class or Shareholders
+in the app) retires the saved draft for editing and needs
 preparation and rejection authority. After retirement, the selected step opens with the copied
-date and shareholder details retained; Shareholders does not redirect to Share class.
+date and shareholder details retained; Class rights and Shareholders each open the selected step.
 
 Award recipients without shares appear in the same list as members, marked as such. Select the
 exact company recipient to keep their ID, current particulars and any accepted member access; enter

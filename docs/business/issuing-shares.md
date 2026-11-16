@@ -97,9 +97,10 @@ structured choices, keeping additional terms, dates and documents; check every c
 company's actual documents. Rates, preference amounts, ranking and other unknown details remain
 unrecorded. A class's name, code and broad type remain company-supplied details, not legal templates.
 
-Class rights are optional in setup. **Save class rights** is a separate explicit save, not part of
-moving between steps or confirming holdings. For a new class, it first creates or recovers that
-class, then records the rights, and stays on Share class. If the later save fails, the class remains
+Class rights are optional in setup. On the web they have their own step between Share class and
+Shareholders. **Save class rights** is a separate explicit save, not part of moving between steps
+or confirming holdings. For a new class, it first creates or recovers that
+class, then records the rights, and stays on Class rights. If the later save fails, the class remains
 and the original rights draft can be recovered. A preparer without administration authority can
 continue with rights **Not recorded**. A saved rights revision is retained history and can prevent
 later class editing or deletion; cancelling an opening does not erase it.

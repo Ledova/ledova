@@ -88,6 +88,12 @@ export const REGISTER_SETUP_STEPS = [
   { id: 'review', label: 'Review' },
 ] as const;
 
+export const REGISTER_SETUP_STEPS_WITH_RIGHTS = [
+  REGISTER_SETUP_STEPS[0],
+  { id: 'rights', label: 'Class rights' },
+  ...REGISTER_SETUP_STEPS.slice(1),
+] as const;
+
 export const REGISTER_SETUP_CLASSES: { type: TokenType; name: string; symbol: string; label: string }[] = [
   { type: 'ordinary', name: 'Ordinary shares', symbol: 'ORD', label: 'Ordinary (ORD)' },
   { type: 'preference', name: 'Preference shares', symbol: 'PRF', label: 'Preference (PRF)' },

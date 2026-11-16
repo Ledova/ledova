@@ -12,7 +12,7 @@ export function FormSteps({
   reachable?: (id: string) => boolean;
 }) {
   return (
-    <ol aria-label={label} className="grid grid-cols-3 gap-3">
+    <ol aria-label={label} className="grid auto-cols-fr grid-flow-col gap-3">
       {steps.map((step, index) => {
         const here = current === step.id;
         const layout = 'flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center';
