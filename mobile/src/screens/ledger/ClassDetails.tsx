@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { FIELD_LIMITS, REGISTER_CLASS_TYPES, type CompanyShareToken, type useClassDetails } from '@ledova/shared';
 import { Choices, Field } from '../../components/Field';
-import { Action, Fact, FormActions, Outcome, Rows, Section } from '../../components/Ledger';
+import { Action, Actions, Fact, FormActions, Outcome, Rows, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useLedgerStyles } from './useLedgerStyles';
 
@@ -87,7 +87,44 @@ export function ClassDetails(props: ClassDetailsProps) {
   );
 }
 
-export function ClassDetailsContent({ token, details, available }: ClassDetailsProps) {
+export function ClassDetailsActions({
+  token,
+  details,
+  available,
+  compact = false,
+}: ClassDetailsProps & { compact?: boolean }) {
+  if (details.editor || !(token.canDelete || token.deletionBlockedReason || token.canEditDetails)) return null;
+  const buttons = (
+    <>
+      {token.canEditDetails && (
+        <Action
+          compact={compact}
+          label="Edit"
+          accessibilityLabel="Edit Class details"
+          disabled={!available || details.held}
+          onPress={() => details.open('edit')}
+        />
+      )}
+      {(token.canDelete || token.deletionBlockedReason) && (
+        <Action
+          compact={compact}
+          label="Delete"
+          accessibilityLabel="Delete share class"
+          disabled={!available || details.held || !token.canDelete}
+          onPress={() => details.open('delete')}
+        />
+      )}
+    </>
+  );
+  return compact ? <Actions compact>{buttons}</Actions> : buttons;
+}
+
+export function ClassDetailsContent({
+  token,
+  details,
+  available,
+  children,
+}: ClassDetailsProps & { children?: ReactNode }) {
   const look = useLedgerStyles();
   const target = details.deleting;
   const currentDelete = available && target?.updatedAt === token.updatedAt && token.canDelete;
@@ -97,36 +134,29 @@ export function ClassDetailsContent({ token, details, available }: ClassDetailsP
         <ClassDetailsEditor details={details} available={available} />
       ) : (
         <View style={look.fields}>
-          <Rows>
-            <Fact label="Class name" inline>
-              {token.name}
-            </Fact>
-            <Fact label="Class code" inline>
-              {token.symbol}
-            </Fact>
-            <Fact label="Class type" inline>
-              {token.tokenTypeDisplay}
-            </Fact>
-          </Rows>
+          {children ? (
+            <View style={look.fields}>
+              <Fact label="Class name">{token.name}</Fact>
+              <Fact label="Class code">{token.symbol}</Fact>
+              <Fact label="Class type">{token.tokenTypeDisplay}</Fact>
+            </View>
+          ) : (
+            <Rows>
+              <Fact label="Class name" inline>
+                {token.name}
+              </Fact>
+              <Fact label="Class code" inline>
+                {token.symbol}
+              </Fact>
+              <Fact label="Class type" inline>
+                {token.tokenTypeDisplay}
+              </Fact>
+            </Rows>
+          )}
           {!!token.deletionBlockedReason && <Text style={look.muted}>{token.deletionBlockedReason}</Text>}
-          {(token.canDelete || token.deletionBlockedReason || token.canEditDetails) && (
+          {!children && (token.canDelete || token.deletionBlockedReason || token.canEditDetails) && (
             <FormActions>
-              {(token.canDelete || token.deletionBlockedReason) && (
-                <Action
-                  label="Delete"
-                  accessibilityLabel="Delete share class"
-                  disabled={!available || details.held || !token.canDelete}
-                  onPress={() => details.open('delete')}
-                />
-              )}
-              {token.canEditDetails && (
-                <Action
-                  label="Edit"
-                  accessibilityLabel="Edit Class details"
-                  disabled={!available || details.held}
-                  onPress={() => details.open('edit')}
-                />
-              )}
+              <ClassDetailsActions token={token} details={details} available={available} />
             </FormActions>
           )}
           {!!details.outcome && <Outcome>{details.outcome}</Outcome>}
@@ -137,6 +167,7 @@ export function ClassDetailsContent({ token, details, available }: ClassDetailsP
           )}
         </View>
       )}
+      {children}
       <CustomModal
         visible={!!target && available}
         onClose={details.close}

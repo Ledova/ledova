@@ -2315,7 +2315,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(editStep());
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
   expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe(resumedDraft.asAt);
-  expect(proposal!.status).toBe('rejected');
+  await waitFor(() => expect(proposal!.status).toBe('rejected'));
   expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['reject']);
   fireEvent.click(await screen.findByRole('button', { name: 'Edit (Class details)' }));
   expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe(resumedDraft.asAt);
@@ -3033,6 +3033,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('heading', { name: 'Class details' })).toBeNull();
   expect(within(setupCard).getByText(lifecycle.name)).toBeTruthy();
   const initialDate = within(setupCard).getByLabelText('Record date') as HTMLInputElement;
+  expect(initialDate.form?.closest('section')).toBe(setupCard);
+  expect(initialDate.closest('form')).toBeNull();
   fireEvent.change(initialDate, { target: { value: '2026-10-14' } });
   fireEvent.click(within(setupCard).getByRole('button', { name: 'Edit (Class details)' }));
   const metadataElement = screen.getByRole('form', { name: 'Edit class details' });
@@ -3094,7 +3096,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   );
   const blockedDeletion = await screen.findByRole('button', { name: 'Delete (share class)' });
   expect(blockedDeletion.matches(':disabled')).toBe(true);
-  expect(screen.getByText(blockedReason).getAttribute('id')).toBe(blockedDeletion.getAttribute('aria-describedby'));
+  expect(document.getElementById(blockedDeletion.getAttribute('aria-describedby')!)?.textContent).toBe(blockedReason);
   fireEvent.click(blockedDeletion);
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(api.delete).not.toHaveBeenCalled();

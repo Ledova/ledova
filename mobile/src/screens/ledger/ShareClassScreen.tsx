@@ -32,7 +32,7 @@ import type { SignedInStackParamList } from '../../navigation/SignedInNavigator'
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ClassRights } from './ClassRights';
-import { ClassDetails, ClassDetailsContent } from './ClassDetails';
+import { ClassDetails, ClassDetailsActions, ClassDetailsContent } from './ClassDetails';
 import { ClassSetup, NewClassSetup } from './ClassSetup';
 import { ShareholderDocuments } from '../../components/register/ShareholderDocuments';
 import { useLedgerStyles } from './useLedgerStyles';
@@ -393,7 +393,12 @@ function ClassPage({
             record={record}
             externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
             classHeld={details.held}
-            classFields={<ClassDetailsContent token={listed} details={details} available={detailsAvailable} />}
+            classFields={(recordFields) => (
+              <ClassDetailsContent token={listed} details={details} available={detailsAvailable}>
+                {recordFields}
+              </ClassDetailsContent>
+            )}
+            classActions={<ClassDetailsActions compact token={listed} details={details} available={detailsAvailable} />}
             onHeldChange={heldSetup}
             onRecordsChanged={recordsChanged}
             {...flow}

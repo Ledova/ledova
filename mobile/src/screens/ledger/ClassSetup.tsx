@@ -381,6 +381,7 @@ export function ClassSetup({
   onHeldChange,
   onRecordsChanged,
   classFields,
+  classActions,
   classHeld,
   ...flow
 }: Flow & {
@@ -394,7 +395,8 @@ export function ClassSetup({
   externalHeld: boolean;
   onHeldChange: (held: boolean) => void;
   onRecordsChanged: () => void;
-  classFields: ReactNode;
+  classFields: (recordFields: ReactNode) => ReactNode;
+  classActions: ReactNode;
   classHeld: boolean;
 }) {
   const look = useLedgerStyles();
@@ -576,6 +578,7 @@ export function ClassSetup({
               canOpenEmptyRegister(register.data, listed)
             }
             classFields={classFields}
+            classActions={classActions}
             classHeld={classHeld}
             appointment={canPrepare ? steps?.prepare : undefined}
             steps={steps ?? retained!.steps}

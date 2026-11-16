@@ -656,7 +656,9 @@ The class workspace at `/company/ledger/:uuid` owns its summary, rights, documen
 `dashboard/src/pages/company/ledger/detail/`. An unfinished class opens the existing stepped form
 for current preparers, reviewers or executors; readers retain the summary and permitted documents.
 Setup embeds the existing class details content in the **Share class** step of one **Ledger setup**
-card, alongside the record date. The inline metadata task keeps its explicit save/recovery controls
+card, alongside the record date in the same responsive field grid. The card heading holds its
+secondary metadata actions; the bottom footer holds only the current workflow actions.
+The inline metadata task keeps its explicit save/recovery controls
 and blocks opening actions while held; it does not save through ledger confirmation. Completed
 classes keep their separate details view, and Class rights remains below setup.
 New classes at `/company/ledger/setup` and explicit imports at `/company/ledger/:uuid/import` use

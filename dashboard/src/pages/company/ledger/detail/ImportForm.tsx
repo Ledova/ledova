@@ -3,6 +3,7 @@ import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
 import { generatePath, useNavigate } from 'react-router-dom';
 import {
   DESTINATIONS,
+  FIELD_LIMITS,
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_DECISIONS,
   REGISTER_SETUP_STEPS,
@@ -20,6 +21,7 @@ import { Table } from '@components/List';
 import { FormActions, PageAction } from '@components/Page';
 import { FormSteps } from '@components/FormSteps';
 import { ErrorSummary } from '@components/ErrorSummary';
+import { Field, TextArea, TextInput } from '@components/Field';
 import { useId, useRef, useState, type ReactNode } from 'react';
 
 import { BringRecords } from './BringRecords';
@@ -34,7 +36,8 @@ const IMPORT_NOTE =
 type ImportFormProps = Omit<ImportPreparationOptions, 'onPrepared' | 'onFinished' | 'newKey' | 'session'> & {
   shareClass?: { name: string; symbol: string; type?: string };
   classFields?: ReactNode;
-  classDetails?: ReactNode;
+  classDetails?: (recordFields: ReactNode) => ReactNode;
+  classActions?: ReactNode;
   classHeld?: boolean;
 };
 
@@ -53,6 +56,7 @@ export function ImportForm({
   saved,
   classFields,
   classDetails,
+  classActions,
   classHeld = false,
   classProblems = [],
   resolveRegister,
@@ -64,6 +68,7 @@ export function ImportForm({
   const { running, track } = useRunningAction();
   const navigate = useNavigate();
   const importDescription = useId();
+  const preparationFormId = useId();
   const [tries, setTries] = useState(0);
   const focusedTry = useRef(0);
   const {
@@ -129,8 +134,46 @@ export function ImportForm({
     onFinished: () => navigate(COMPANY_DASHBOARD_PATH, { state: { registerCompany: company } }),
   });
 
+  const recordFields = (
+    <fieldset
+      hidden={!canPrepare}
+      disabled={!canPrepare || busy || uncertain || blocked || classHeld}
+      className="space-y-3"
+    >
+      <legend className="sr-only">Record date</legend>
+      <Field label="Record date">
+        <TextInput
+          form={preparationFormId}
+          type="date"
+          max={today}
+          value={draft.asAt}
+          onChange={(event) => update((current) => ({ ...current, asAt: event.target.value }))}
+        />
+      </Field>
+      {correction && (
+        <>
+          <Field label="Reason for correcting the mirror">
+            <TextArea
+              form={preparationFormId}
+              rows={2}
+              value={draft.reason}
+              maxLength={FIELD_LIMITS.REASON}
+              onChange={(event) => update((current) => ({ ...current, reason: event.target.value }))}
+            />
+          </Field>
+          <p className="text-sm text-text-muted">
+            This corrects a copied opening. The earlier snapshot and evidence remain in history. It does not change the
+            company’s legal records.
+          </p>
+        </>
+      )}
+    </fieldset>
+  );
   return (
-    <Section title={REGISTER_IMPORT_COPY.SETUP_TITLE}>
+    <Section
+      title={REGISTER_IMPORT_COPY.SETUP_TITLE}
+      actions={classActions && <div hidden={!visible || !mutable || phase !== 'details'}>{classActions}</div>}
+    >
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps
           label="Ledger setup steps"
@@ -144,12 +187,13 @@ export function ImportForm({
           }}
         />
       )}
-      <div hidden={!visible || !mutable || phase !== 'details'}>{classDetails}</div>
+      <div hidden={!visible || !mutable || phase !== 'details'}>{classDetails?.(recordFields)}</div>
       <div hidden={!visible || classHeld}>
         <>
           {mutable ? (
             canPrepare ? (
               <form
+                id={preparationFormId}
                 className="space-y-5"
                 noValidate
                 onSubmit={(event) => {
@@ -171,34 +215,36 @@ export function ImportForm({
                     attempted ? (phase === 'details' ? detailProblems : problems).map((message) => ({ message })) : []
                   }
                 />
-                <fieldset
-                  disabled={busy || uncertain || blocked}
-                  className={
-                    phase === 'details' ? 'grid min-w-0 items-start gap-6 md:grid-cols-2' : 'min-w-0 space-y-5'
-                  }
-                >
-                  {phase === 'details' && classFields}
-                  <BringRecords
-                    draft={draft}
-                    today={today}
-                    correction={!!correction}
-                    busy={busy}
-                    differs={differs}
-                    update={update}
-                    setMember={setMember}
-                    companyMembers={knownMembers}
-                    preserveParticulars={preserveParticulars}
-                    step={phase === 'details' ? 'details' : 'shareholders'}
-                    validateMember={holderProblems}
-                    onEditorChange={setHolderEditor}
-                  />
-                  {phase === 'shareholders' && emptyOpeningAllowed && !correction && draft.members.length === 0 && (
-                    <p className="text-sm text-text-muted">
-                      If no shares have been issued, continue with no shareholders. Confirming records an empty opening;
-                      the first share issue is a separate company decision.
-                    </p>
-                  )}
-                </fieldset>
+                {(phase !== 'details' || !classDetails) && (
+                  <fieldset
+                    disabled={busy || uncertain || blocked}
+                    className={
+                      phase === 'details' ? 'grid min-w-0 items-start gap-6 md:grid-cols-2' : 'min-w-0 space-y-5'
+                    }
+                  >
+                    {phase === 'details' && classFields}
+                    {phase === 'details' && !classDetails && recordFields}
+                    {phase === 'shareholders' && (
+                      <BringRecords
+                        draft={draft}
+                        busy={busy}
+                        differs={differs}
+                        update={update}
+                        setMember={setMember}
+                        companyMembers={knownMembers}
+                        preserveParticulars={preserveParticulars}
+                        validateMember={holderProblems}
+                        onEditorChange={setHolderEditor}
+                      />
+                    )}
+                    {phase === 'shareholders' && emptyOpeningAllowed && !correction && draft.members.length === 0 && (
+                      <p className="text-sm text-text-muted">
+                        If no shares have been issued, continue with no shareholders. Confirming records an empty
+                        opening; the first share issue is a separate company decision.
+                      </p>
+                    )}
+                  </fieldset>
+                )}
                 {!uncertain && !holderEditor && (
                   <FormActions>
                     {phase === 'shareholders' && (

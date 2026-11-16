@@ -25,7 +25,7 @@ import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { AccountCheck } from '@components/AccountCheck';
 import { ClassSetup } from './ClassSetup';
-import { ClassDetails, ClassDetailsContent } from './ClassDetails';
+import { ClassDetails, ClassDetailsActions, ClassDetailsContent } from './ClassDetails';
 import { useClassDetails } from './useClassDetails';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 
@@ -173,9 +173,16 @@ function ShareClassWorkspace({
               externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
               classHeld={details.held}
               onHeldChange={heldSetup}
-              classDetails={
+              classActions={
                 data.token.data && (
-                  <ClassDetailsContent token={data.token.data} details={details} available={detailsAvailable} />
+                  <ClassDetailsActions token={data.token.data} details={details} available={detailsAvailable} />
+                )
+              }
+              classDetails={(recordFields) =>
+                data.token.data && (
+                  <ClassDetailsContent token={data.token.data} details={details} available={detailsAvailable}>
+                    {recordFields}
+                  </ClassDetailsContent>
                 )
               }
               onRecordsChanged={recordsChanged}

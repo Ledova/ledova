@@ -26,14 +26,22 @@ import { useLedgerStyles } from './useLedgerStyles';
 
 type ImportFormProps = Omit<ImportPreparationOptions, 'newKey' | 'session'> & {
   shareClass: { name: string; symbol: string; type?: string };
-  classFields: ReactNode;
+  classFields: ReactNode | ((recordFields: ReactNode) => ReactNode);
+  classActions?: ReactNode;
   classHeld?: boolean;
   onCancel: () => void;
 };
 
 const SOURCE = 'Company-provided share records';
 
-export function ImportForm({ shareClass, classFields, classHeld = false, onCancel, ...options }: ImportFormProps) {
+export function ImportForm({
+  shareClass,
+  classFields,
+  classActions,
+  classHeld = false,
+  onCancel,
+  ...options
+}: ImportFormProps) {
   const look = useLedgerStyles();
   const styles = useCompanyStyles();
   const { steps, blocked, correction, emptyOpeningAllowed = false, visible = true } = options;
@@ -66,8 +74,36 @@ export function ImportForm({ shareClass, classFields, classHeld = false, onCance
       !!proposal.registerEvidence ||
       !!proposal.asicEvidence);
   const total = proposal ? formatShareCount(registerImportTotals(proposal.members).total) : '';
+  const recordFields = (
+    <View style={[look.fields, (!editable || classHeld) && look.hidden]}>
+      <Field
+        label="Record date"
+        value={draft.asAt}
+        {...DATE}
+        editable={!locked}
+        onChange={(asAt) => model.update((current) => ({ ...current, asAt: asAt.trim() }))}
+      />
+      {!!correction && (
+        <>
+          <Field
+            label="Reason for correcting the mirror"
+            value={draft.reason}
+            multiline
+            rows={2}
+            maxLength={FIELD_LIMITS.REASON}
+            editable={!locked}
+            onChange={(reason) => model.update((current) => ({ ...current, reason }))}
+          />
+          <Text style={look.muted}>
+            This corrects a copied opening. The earlier snapshot and evidence remain in history. It does not change the
+            company’s legal records.
+          </Text>
+        </>
+      )}
+    </View>
+  );
   return (
-    <Section title={COPY.SETUP_TITLE}>
+    <Section title={COPY.SETUP_TITLE} actions={visible && mutable && phase === 'details' ? classActions : undefined}>
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps
           label="Ledger setup steps"
@@ -80,35 +116,18 @@ export function ImportForm({ shareClass, classFields, classHeld = false, onCance
           }}
         />
       )}
-      <View style={[look.fields, (!visible || phase !== 'details') && look.hidden]}>{classFields}</View>
+      <View style={[look.fields, (!visible || phase !== 'details') && look.hidden]}>
+        {typeof classFields === 'function' ? (
+          classFields(recordFields)
+        ) : (
+          <>
+            {classFields}
+            {recordFields}
+          </>
+        )}
+      </View>
       <View style={[look.fields, (!editable || classHeld) && look.hidden]}>
         <Problems problems={model.attempted ? (phase === 'details' ? model.detailProblems : model.problems) : []} />
-        <View style={[look.fields, phase !== 'details' && look.hidden]}>
-          <Field
-            label="Record date"
-            value={draft.asAt}
-            {...DATE}
-            editable={!locked}
-            onChange={(asAt) => model.update((current) => ({ ...current, asAt: asAt.trim() }))}
-          />
-          {!!correction && (
-            <>
-              <Field
-                label="Reason for correcting the mirror"
-                value={draft.reason}
-                multiline
-                rows={2}
-                maxLength={FIELD_LIMITS.REASON}
-                editable={!locked}
-                onChange={(reason) => model.update((current) => ({ ...current, reason }))}
-              />
-              <Text style={look.muted}>
-                This corrects a copied opening. The earlier snapshot and evidence remain in history. It does not change
-                the company’s legal records.
-              </Text>
-            </>
-          )}
-        </View>
         <View style={[look.fields, phase !== 'shareholders' && look.hidden]}>
           <ImportShareholders
             draft={draft}
