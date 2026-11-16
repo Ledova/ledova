@@ -186,14 +186,7 @@ function ShareClassWorkspace({
                   </ClassDetailsContent>
                 )
               }
-              classContent={
-                <ClassRights
-                  rights={rights}
-                  embedded
-                  tokenType={data.token.data?.tokenType}
-                  blocked={setupHeld || detailsHeld}
-                />
-              }
+              classContent={<ClassRights rights={rights} embedded blocked={setupHeld || detailsHeld} />}
               classContentHeld={rightsHeld}
               classReview={
                 <div className="space-y-3">
@@ -211,7 +204,7 @@ function ShareClassWorkspace({
             />
           ) : undefined
         }
-        rights={setup === false ? <ClassRights rights={rights} tokenType={data.token.data?.tokenType} /> : null}
+        rights={setup === false ? <ClassRights rights={rights} /> : null}
       />
     </>
   );

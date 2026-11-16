@@ -223,8 +223,8 @@ web and, at phone width, in the app:
    On the web, the starting name, code and type can be customised. **Continue** opens a separate
    **Class rights** step, where a company administrator can optionally record
    [Class rights](issuing-shares.md#class-rights) with a separate explicit save. Its **Continue**
-   moves to Shareholders; **Back** returns to Share class. The editable rights examples are opt-in;
-   continuing without rights records no assumed terms or revision. The app retains its three-step
+   moves to Shareholders; **Back** returns to Share class. Rights come from the company's governing
+   documents; continuing without rights records no assumed terms or revision. The app retains its three-step
    Share class → Shareholders → Review flow; this added step is web-only.
    With no classes yet, a preparer uses Ledger → Share classes and **Add share class** on web or mobile.
    Preparation access does not change their initial landing page or account role.

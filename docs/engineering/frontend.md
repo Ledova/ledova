@@ -694,8 +694,8 @@ The web's Class rights step owns an independent explicit save/cancel task outsid
 HTML form; step navigation and the opening footer are unavailable while that task is held. New classes
 use the existing creation recovery before **Save class rights**, staying on Class rights with the
 record date and shareholder draft retained. Skipping rights creates no empty revision. Current company
-administration, not preparation authority, is required to save them. Opt-in examples fill editable
-structured attributes only; class selection alone never supplies rights. The recorded summary is also
+administration, not preparation authority, is required to save them. The company supplies the structured
+attributes and terms; class selection supplies no rights. The recorded summary is also
 shown in Review without making the opening confirmation a rights amendment.
 The shared preparation controller includes the rights phase for web setup; native keeps the original
 three-step sequence. Both reuse the same validation, draft retention and saved-review retirement.
