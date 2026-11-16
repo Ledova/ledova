@@ -19,6 +19,7 @@ import {
 type Target = Pick<CompanyShareTokenListItem, 'uuid' | 'companyUuid' | 'name' | 'symbol' | 'updatedAt'>;
 type Removal = {
   targets: Target[];
+  kept: Pick<CompanyShareTokenListItem, 'uuid' | 'name' | 'symbol' | 'deletionBlockedReason'>[];
   next: number;
   pending: boolean;
   retry: boolean;
@@ -200,11 +201,15 @@ export function useClassDeletion({
       if (attempt.current || running.current) return;
       try {
         check();
-        const targets = current.current.classes
-          .filter((row) => row.companyUuid === company && row.canDelete && selected.has(row.uuid))
+        const chosen = current.current.classes.filter((row) => row.companyUuid === company && selected.has(row.uuid));
+        const targets = chosen
+          .filter((row) => row.canDelete)
           .map(({ uuid, companyUuid, name, symbol, updatedAt }) => ({ uuid, companyUuid, name, symbol, updatedAt }));
         if (!targets.length) return;
-        attempt.current = { targets, next: 0, pending: false, retry: false, finished: false };
+        const kept = chosen
+          .filter((row) => !row.canDelete)
+          .map(({ uuid, name, symbol, deletionBlockedReason }) => ({ uuid, name, symbol, deletionBlockedReason }));
+        attempt.current = { targets, kept, next: 0, pending: false, retry: false, finished: false };
         setError('');
         setOutcome('');
         publish(attempt.current);
