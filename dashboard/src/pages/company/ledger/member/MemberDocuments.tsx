@@ -8,44 +8,31 @@ import {
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { BROWSER_FILES } from '@utils/saveFile';
-import { DocumentAttachments } from './DocumentAttachments';
-import { useEffect, useId } from 'react';
+import { DocumentAttachments } from '@pages/company/ledger/shared/DocumentAttachments';
+import { useId } from 'react';
 
 export function MemberDocuments(props: {
   owner: OrderSubmissionOwner;
   guard: () => void;
   company: string;
-  member?: string;
-  token?: string;
+  member: string;
   sourceReady: boolean;
   holdings: DocumentHolding[];
-  title?: string;
-  readsPaused?: boolean;
-  onHeldChange?: (held: boolean) => void;
 }) {
   return (
     <OwnMemberDocuments
-      key={`${props.owner.userUuid}/${props.owner.ownerAccountUuid}/${props.company}/${props.member ?? ''}/${props.token ?? ''}`}
+      key={`${props.owner.userUuid}/${props.owner.ownerAccountUuid}/${props.company}/${props.member}`}
       {...props}
     />
   );
 }
 
-function OwnMemberDocuments(
-  props: Omit<Parameters<typeof useMemberDocuments>[0], 'files' | 'newKey' | 'session'> & {
-    title?: string;
-    onHeldChange?: (held: boolean) => void;
-  },
-) {
+function OwnMemberDocuments(props: Parameters<typeof MemberDocuments>[0]) {
   const documents = useMemberDocuments({ ...props, files: BROWSER_FILES, newKey: () => crypto.randomUUID() });
   const targetReasonId = useId();
   const editor = documents.editor;
-  useEffect(() => {
-    props.onHeldChange?.(!!editor || documents.busy || documents.held);
-    return () => props.onHeldChange?.(false);
-  }, [editor, documents.busy, documents.held, props.onHeldChange]);
   return (
-    <Section title={props.title ?? 'Documents'}>
+    <Section title="Documents">
       {documents.appointments.isError ? (
         <LoadError retry={() => documents.appointments.refetch()} busy={documents.appointments.isFetching}>
           Your company appointments could not be loaded.
@@ -98,9 +85,7 @@ function OwnMemberDocuments(
               />
               {!props.holdings.length && (
                 <p id={targetReasonId} className="order-last basis-full text-right text-sm text-text-muted">
-                  {props.member
-                    ? 'Record a shareholding before adding documents.'
-                    : 'Record a shareholder in this class before adding documents.'}
+                  Record a shareholding before adding documents.
                 </p>
               )}
             </FormActions>
@@ -118,13 +103,13 @@ function OwnMemberDocuments(
           <fieldset disabled={documents.busy || documents.held || !documents.ready} className="space-y-4">
             {props.holdings.length > 1 && (
               <SearchSelect
-                label={props.member ? 'Share class' : 'Shareholder'}
+                label="Share class"
                 choices={props.holdings.map((holding) => ({
                   value: `${holding.member}/${holding.token}`,
                   label: holding.label,
                 }))}
                 value={`${editor.member}/${editor.token}`}
-                noun={props.member ? ['share class', 'share classes'] : ['shareholder', 'shareholders']}
+                noun={['share class', 'share classes']}
                 onChange={(value) => {
                   if (editor.documents.some((row) => row.file || row.evidence)) return;
                   const holding = props.holdings.find((row) => `${row.member}/${row.token}` === value);

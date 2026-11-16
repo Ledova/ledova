@@ -304,16 +304,16 @@ retention period; and while a deployment of the class is pending.
 
 On web and mobile, each shareholder can have optional Share certificate, Shareholder agreement,
 Subscription agreement or Other supporting document attachments. Add them in the shareholder form
-during setup, or afterwards from the shareholder's page or the relevant class's details. The person's
-page keeps the shareholder fixed and selects the class; the class's page keeps the class fixed and
-selects the shareholder. Each
-attachment belongs to the company, person and share class; a setup attachment also keeps its source
-opening record. Recording existing holdings creates no historical share issue. On the web, a current
-preparer sees **Add documents** even when no shareholder can be selected. It is disabled with
-**Record a shareholder in this class before adding documents.** on a class page, or
-**Record a shareholding before adding documents.** on a person's page. Class-wide governing documents
-belong with [Class rights](issuing-shares.md#class-rights); company source copies belong to the whole
-opening and remain separate.
+while setting up the ledger, or afterwards from the shareholder's page. That page keeps the person
+fixed and selects one of their recorded share classes. The web class page does not duplicate these
+attachments; the mobile class page retains its existing fixed-class document view.
+
+Each attachment belongs to the company, person and share class; a setup attachment also keeps its
+source opening record. Recording existing holdings creates no historical share issue. On the web,
+a current preparer sees **Add documents** even when the person has no recorded holding, disabled
+with **Record a shareholding before adding documents.** Class-wide governing documents belong with
+[Class rights](issuing-shares.md#class-rights); company source copies belong to the whole opening
+and remain separate.
 
 Files and their record links are retained, with the uploader, appointment, category and file
 fingerprint. Later uploads add attachments without overwriting stored files. One stored file can
@@ -794,15 +794,14 @@ person chosen.
 ### The Share class page
 
 Each class opens directly from its row on Ledger, titled with the class's name, with a back arrow to
-the previous page. Its Summary card shows the class's code and type, then its issued shares and current
-shareholders one line each, followed by the company's optional
-[Class rights](issuing-shares.md#class-rights), including its summary and optional class documents,
-and its separate **Shareholder documents** section. Shareholder management stays on Shareholders and
-register downloads on Documents. The summary gives the authorised shares when the class has a limit
-other than the internal quantity guard, says so while the class's ledger is not opened, and says when the
-class is recorded as non-transferable. Each recorded right sits on one line beside its name (owner,
-5 November 2026). The mobile app's class page has the same Summary, Class rights with **Edit** and Shareholder documents with
-**Add documents**.
+the previous page. The web workspace focuses on Class details, the company's optional
+[Class rights](issuing-shares.md#class-rights) and their class-wide documents, then Summary. The
+summary gives issued shares and current shareholders one line each, any authorised-share limit
+other than the internal quantity guard, whether the ledger is not yet opened, and whether the class
+is recorded as non-transferable. Shareholder attachments stay on each shareholder's page and
+register downloads on Documents. Each recorded right sits beside its name (owner, 5 November 2026).
+The mobile app's class page retains its Summary, Class rights with **Edit** and Shareholder documents
+with **Add documents**.
 
 The page no longer shows a class's chain state or offers its chain workflows: the owner removed the
 **On chain** card, **Chain actions** and **Put this class on chain** on 31 October 2026

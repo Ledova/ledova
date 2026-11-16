@@ -21,7 +21,6 @@ import { PageTitle } from '@components/PageTitle';
 import { LoadError, Loading, Row, Rows, Section, Status } from '@components/Ledger';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 import { ClassRights, RightsSummary } from './ClassRights';
-import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { AccountCheck } from '@components/AccountCheck';
 import { ClassSetup } from './ClassSetup';
@@ -236,7 +235,6 @@ function ShareClassDetails({
 }) {
   const preferences = useUserPreferences();
   const preferencesRead = useQueryClient().getQueryState(USER_PREFERENCES_QUERY_KEY);
-  const onDocumentsHeld = useCallback((held: boolean) => data.holdReads('member-documents', held), [data.holdReads]);
   const registerReady =
     !!preferences.preferences &&
     preferencesRead?.status === 'success' &&
@@ -260,23 +258,6 @@ function ShareClassDetails({
       ) : null}
       {hasSetup && <div hidden={unavailable}>{setup}</div>}
       {rights}
-      {!unavailable && data.owner && token && (
-        <MemberDocuments
-          title="Shareholder documents"
-          readsPaused={data.readingPaused}
-          onHeldChange={onDocumentsHeld}
-          owner={data.owner}
-          guard={data.guard}
-          company={token.companyUuid}
-          token={token.uuid}
-          sourceReady={registerReady}
-          holdings={(data.register.data?.holders ?? []).map((holder) => ({
-            member: holder.member,
-            token: token.uuid,
-            label: holder.name || 'Unnamed shareholder',
-          }))}
-        />
-      )}
       {!hasSetup && (
         <div hidden={unavailable}>
           {token && (

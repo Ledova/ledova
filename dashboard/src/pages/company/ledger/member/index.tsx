@@ -33,7 +33,7 @@ import { LinkRow, Section, LoadError, Loading, Failure } from '@components/Ledge
 import { Page, PageLink } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
-import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
+import { MemberDocuments } from './MemberDocuments';
 import { awardPath } from '@pages/company/ledger/shared/awards';
 import { AccountCheck } from '@components/AccountCheck';
 

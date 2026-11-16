@@ -652,7 +652,7 @@ The reads check the guard before and after each request and pass it as `ledovaSu
 a late reply after an account change or reauthentication is discarded. Query keys and cache timing
 stay unchanged.
 
-The class workspace at `/company/ledger/:uuid` owns its summary, rights, documents and setup in
+The class workspace at `/company/ledger/:uuid` owns its summary, class rights and documents, and setup in
 `dashboard/src/pages/company/ledger/detail/`. An unfinished class opens the existing stepped form
 for current preparers, reviewers or executors; readers retain the summary and permitted documents.
 Setup embeds the existing class details content in the **Share class** step of one **Ledger setup**
@@ -660,7 +660,8 @@ card, alongside the record date in the same responsive field grid. The bottom fo
 Edit/Delete with the first step's navigation; later steps show only their own relevant controls.
 The inline metadata task keeps its explicit save/recovery controls
 and blocks opening actions while held; it does not save through ledger confirmation. Completed web
-classes order their cards as Class details, Class rights, Shareholder documents, then Summary.
+classes order their cards as Class details, Class rights, then Summary. Shareholder attachments
+stay on each shareholder's page.
 Edit stays in Class details and **Delete share class** follows Summary in a right-aligned page footer.
 Unfinished setup stays first. Web Class rights
 has its own setup step between Share class and Shareholders, and retains its separate card for
@@ -731,7 +732,7 @@ An empty company's initial load also refreshes older appointments once after its
 so the same current-authority check can reveal the empty list and Add share class. This is a
 bounded source check, not polling.
 
-On the web, setup's shareholder editor and later shareholder/class pages share
+On the web, setup's shareholder editor and the shareholder's page share
 `dashboard/src/pages/company/ledger/shared/DocumentAttachments.tsx` for optional categorised
 files. Setup uploads supporting evidence before preparation and includes it in that member's
 proposal; company source copies stay at opening scope. The shared register-member-documents service
@@ -980,10 +981,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   register-read appointment.
 - A share class's page on the web (`dashboard/src/pages/company/ledger/detail`) reads the class and
   its current holders through the shared `useShareClass`, its Class rights through `useClassRights`
-  (whose rights groups, checks and summaries are in `packages/shared/src/utils/class-rights.ts`) and
-  its Shareholder documents through `useMemberDocuments`, which a shareholder's page uses too; their
-  downloads go through the client's `FileDelivery`. The app's Ledger overview and class page render
-  the same views at phone width ([navigation](mobile.md#navigation)).
+  (whose rights groups, checks and summaries are in `packages/shared/src/utils/class-rights.ts`).
+  Its class-wide document downloads use the client's `FileDelivery`; shareholder attachments stay
+  on the shareholder's page. The app's Ledger overview and class page retain their existing views
+  at phone width ([navigation](mobile.md#navigation)).
 - Choosing a person on the web: register setup, investor and non-paid issues, transfers and employee
   awards read one people list (`packages/shared/src/hooks/usePeople.ts`, the
   `register/members/` read validated by `isRegisterImportMembers`) and render `PersonSelect` and
@@ -1012,8 +1013,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   class (`register/entries/` with `member`) and their awards (`register-awards/` with `member`). It
   renders the person only while the account, classes and holders are current; particulars, history
   and awards also need `hasCurrentRegisterReadAuthority` on settled appointments and their own settled
-  read. Documents reads the person's retained attachments across classes; class details reads the
-  same links for its class. **Change particulars**, offered only when the member row's
+  read. Documents reads the person's retained attachments across classes; the app's class details
+  retains the same links for its class. **Change particulars**, offered only when the member row's
   `followsProfile` is not true, rechecks a current appointment that can change
   particulars (`appointmentForParticularsEdit`), adding documents rechecks current preparation
   authority, and attachment downloads require current register-read authority. While register work
@@ -1021,9 +1022,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   particulars change and Member access render the same views at phone width through the shared
   `shareholderList`, `usePersonRegistration`, `useShareholder`, `useParticularsMember`,
   `useParticularsEdit` and `useMemberAccessForm` ([navigation](mobile.md#navigation)). Both clients
-  reuse `useMemberDocuments` for the person's documents across classes and the class's documents
-  across people; the app shares `mobile/src/components/register/ShareholderDocuments.tsx` between
-  those two pages.
+  reuse `useMemberDocuments` for the person's documents across classes. The web UI lives beside its
+  page in `dashboard/src/pages/company/ledger/member/MemberDocuments.tsx`. The app retains its
+  class-document view too, sharing `mobile/src/components/register/ShareholderDocuments.tsx` between
+  its person and class pages.
 - Register reads: the web reads the person's appointments through the account-bound cache Team and Account
   share and rereads them after a revocation on Team, Account or Representative authority, a refused decision or
   preview and a recorded decision other than an import's (which refreshes the imports, the register

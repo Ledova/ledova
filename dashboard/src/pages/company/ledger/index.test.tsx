@@ -57,7 +57,7 @@ import CompanyDashboardPage from '@pages/home';
 import { CompanyContextProvider } from '@components/CompanyContextProvider';
 import { LedgerNavigationProvider } from '@components/LedgerNavigationProvider';
 import { ShareClass } from './detail/ShareClass';
-import { MemberDocuments } from './shared/MemberDocuments';
+import { MemberDocuments } from './member/MemberDocuments';
 import ShareClassPage from './detail';
 import { ImportForm } from './detail/ImportForm';
 import { APPOINTMENT as CURRENT_APPOINTMENT } from '../../../testSupport/company';
@@ -1094,8 +1094,8 @@ it('reads every class page and groups exact holdings by member identity with sea
   const documentCompany = crypto.randomUUID();
   const documentMember = crypto.randomUUID();
   const documentToken = crypto.randomUUID();
-  const firstMember = crypto.randomUUID();
-  const lastMember = crypto.randomUUID();
+  const firstToken = crypto.randomUUID();
+  const lastToken = crypto.randomUUID();
   let documentAppointment: OwnCompanyAppointment = {
     ...CURRENT_APPOINTMENT,
     company: documentCompany,
@@ -1182,17 +1182,24 @@ it('reads every class page and groups exact holdings by member identity with sea
       owner={{ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }}
       guard={() => {}}
       company={documentCompany}
+      member={documentMember}
       sourceReady
       holdings={[
-        { member: firstMember, token: documentToken, label: 'First Holder' },
-        { member: documentMember, token: documentToken, label: 'Chosen Holder' },
-        { member: lastMember, token: documentToken, label: 'Last Holder' },
+        { member: documentMember, token: firstToken, label: 'Ordinary shares · ORD' },
+        { member: documentMember, token: documentToken, label: 'Preference shares · PREF' },
+        { member: documentMember, token: lastToken, label: 'Deferred shares · DEF' },
       ]}
     />,
     'Shareholder',
   );
   fireEvent.click(await screen.findByRole('button', { name: 'Add documents' }));
-  await choose('Shareholder', 'Chosen Holder');
+  expect(api.get).toHaveBeenCalledWith(
+    COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS,
+    expect.objectContaining({
+      params: expect.objectContaining({ company: documentCompany, member: documentMember, token: undefined }),
+    }),
+  );
+  await choose('Share class', 'Preference shares · PREF');
   fireEvent.click(screen.getByRole('button', { name: 'Add document' }));
   fireEvent.change(within(screen.getByRole('group', { name: 'Document 1' })).getByLabelText('Category'), {
     target: { value: 'subscription_agreement' },
