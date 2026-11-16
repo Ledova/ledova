@@ -715,6 +715,9 @@ Closing the result keeps the operation held until the current class list returns
 marked stale without refetching the old class set; the refreshed list selects the remaining classes.
 Refresh the exact current holder set too, including when no class was removed. If a refresh fails,
 retain the result for another close attempt without resending deletions.
+An empty company's initial load also refreshes older appointments once after its class-list read,
+so the same current-authority check can reveal the empty list and Add share class. This is a
+bounded source check, not polling.
 
 On the web, setup's shareholder editor and later shareholder/class pages share
 `dashboard/src/pages/company/ledger/shared/DocumentAttachments.tsx` for optional categorised
