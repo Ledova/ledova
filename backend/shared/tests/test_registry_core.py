@@ -8,10 +8,11 @@ from urllib.parse import urlencode
 from uuid import uuid4
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import DatabaseError, connection
+from django.db import DatabaseError, connection, connections
 from django.utils import timezone
 from eth_account import Account
 from eth_account.messages import encode_defunct
@@ -43,7 +44,7 @@ from companies.services.team import (
 from feature_flags.models import FeatureFlag
 from operators.models import Operator
 from shared.database_setup import seed_reference_rows
-from shared.db import atomic, use_migrate, use_operator
+from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.core_fixtures import (
     PASSWORD,
     CoreFixtures,
@@ -53,6 +54,7 @@ from shared.tests.core_fixtures import (
     retained_evidence,
 )
 from tokens.models import (
+    ClassDetailsRevision,
     RegisterEntry,
     RegisterEvidence,
     RegisterEvidenceKind,
@@ -201,6 +203,21 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             (changed.json()["name"], changed.json()["symbol"], changed.json()["tokenType"]),
             (change["name"], "PREF", "preference"),
         )
+        with use_operator():
+            first_revision = ClassDetailsRevision.objects.get(token_id=details["uuid"])
+            self.assertEqual(first_revision.revision, 1)
+            self.assertEqual(
+                first_revision.before,
+                {"name": details["name"], "symbol": details["symbol"], "token_type": details["tokenType"]},
+            )
+            self.assertEqual(
+                first_revision.after,
+                {"name": change["name"], "symbol": "PREF", "token_type": "preference"},
+            )
+            self.assertEqual(first_revision.recorded_by_id, self.owner.pk)
+            self.assertEqual(first_revision.recorded_by_name, self.profile.full_name)
+            self.assertEqual(first_revision.appointment_id, self.appointment.pk)
+            self.assertEqual(first_revision.created_at, first_revision.updated_at)
         self.assertEqual(self.client.patch(class_path, change, format="json").status_code, 409)
         change["expectedUpdatedAt"] = changed.json()["updatedAt"]
         self.assertEqual(self.client.patch(class_path, {**change, "symbol": "ETH"}, format="json").status_code, 400)
@@ -235,7 +252,8 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         current = self.client.get(current_path).json()
         self.assertFalse(current["canEditDetails"])
         self.assertEqual(
-            current["editBlockedReason"], "Class details can change only before its ledger or dependent records exist."
+            current["editBlockedReason"],
+            "Class details can change only while its opening is empty and no dependent records exist.",
         )
         self.assertFalse(current["canDelete"])
         self.assertIn("confirmed ledger records", current["deletionBlockedReason"])
@@ -471,21 +489,105 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         empty_path = f"/api/v1/tokens/{empty_token.pk}/"
         available = self.client.get(empty_path).json()
         self.assertTrue(available["canDelete"])
-        self.assertFalse(available["canEditDetails"])
-        self.assertEqual(available["editBlockedReason"], current["editBlockedReason"])
+        self.assertTrue(available["canEditDetails"])
+        self.assertIsNone(available["editBlockedReason"])
         self.assertIsNone(available["deletionBlockedReason"])
-        self.assertEqual(
-            self.client.patch(
-                empty_path, {**change, "expectedUpdatedAt": available["updatedAt"]}, format="json"
-            ).status_code,
-            409,
+        empty_change = {
+            "name": "Revised empty preference class",
+            "symbol": "EMP",
+            "tokenType": "preference",
+            "expectedUpdatedAt": available["updatedAt"],
+        }
+        revised = self.client.patch(empty_path, empty_change, format="json")
+        self.assertEqual(revised.status_code, 200, revised.content)
+        self.assertTrue(revised.json()["canEditDetails"])
+        self.assertTrue(revised.json()["canDelete"])
+        self.assertEqual(self.client.patch(empty_path, empty_change, format="json").status_code, 409)
+        with use_operator():
+            revision = ClassDetailsRevision.objects.get(token=empty_token)
+            self.assertEqual(
+                revision.before, {"name": "Confirmed empty class", "symbol": "EMPTY", "token_type": "ordinary"}
+            )
+            self.assertEqual(
+                revision.after, {"name": empty_change["name"], "symbol": "EMP", "token_type": "preference"}
+            )
+            retained_revision = ClassDetailsRevision.objects.filter(pk=revision.pk).values().get()
+            with self.assertRaises(DatabaseError), atomic():
+                ClassDetailsRevision.objects.filter(pk=revision.pk).update(after=revision.before)
+            with self.assertRaises(DatabaseError), atomic():
+                ClassDetailsRevision.objects.filter(pk=revision.pk).delete()
+        with company_operation(self.owner, self.company.pk, "register_class_edit"), self.assertRaises(
+            DatabaseError
+        ), atomic():
+            ClassDetailsRevision.objects.create(
+                token=empty_token,
+                revision=2,
+                before=revision.after,
+                after={**revision.after, "name": "Forged history"},
+                recorded_by=self.owner,
+                recorded_by_name=self.profile.full_name,
+                appointment=self.appointment,
+            )
+        with company_operation(self.owner, self.company.pk, "register_class_edit"), self.assertRaisesMessage(
+            DatabaseError, "Class detail history must come from its share class"
+        ), atomic():
+            command_connection = connections[current_alias()]
+            with command_connection.cursor() as cursor:
+                cursor.execute("SET LOCAL ROLE " + command_connection.ops.quote_name(settings.RLS_ROLES["operator"]))
+                cursor.execute(
+                    "CREATE TEMP TABLE class_details_clone AS SELECT * FROM public.tokens_sharetoken WHERE uuid = %s",
+                    [empty_token.pk],
+                )
+                cursor.execute("UPDATE class_details_clone SET name = 'Forged original class name'")
+                cursor.execute(
+                    "CREATE TRIGGER class_details_clone_change AFTER UPDATE OF name ON class_details_clone "
+                    "FOR EACH ROW EXECUTE FUNCTION public.tokens_record_class_details_revision()"
+                )
+                cursor.execute("UPDATE class_details_clone SET name = %s", [revision.after["name"]])
+        with use_operator():
+            self.assertEqual(ClassDetailsRevision.objects.filter(token=empty_token).count(), 1)
+            self.assertEqual(
+                ShareToken.objects.filter(pk=empty_token.pk).values("name", "symbol", "token_type").get(),
+                revision.after,
+            )
+        repeated = self.client.patch(
+            empty_path, {**empty_change, "expectedUpdatedAt": revised.json()["updatedAt"]}, format="json"
         )
+        self.assertEqual(repeated.status_code, 200, repeated.content)
+        with use_operator():
+            self.assertEqual(ClassDetailsRevision.objects.filter(token=empty_token).count(), 1)
+        second_change = {**empty_change, "name": "Final empty class", "expectedUpdatedAt": repeated.json()["updatedAt"]}
+        final = self.client.patch(empty_path, second_change, format="json")
+        self.assertEqual(final.status_code, 200, final.content)
+        with use_operator():
+            latest = ClassDetailsRevision.objects.filter(token=empty_token).first()
+            self.assertEqual(latest.revision, 2)
+            self.assertEqual(latest.before, revision.after)
+            self.assertEqual(latest.after, {**revision.after, "name": "Final empty class"})
+        save_token = ShareToken.save
+
+        def revoke_during_edit(instance, *args, **kwargs):
+            result = save_token(instance, *args, **kwargs)
+            revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
+            return result
+
+        with patch("tokens.services.class_lifecycle.ShareToken.save", new=revoke_during_edit):
+            revoked = self.client.patch(
+                empty_path,
+                {**second_change, "name": "Revoked edit", "expectedUpdatedAt": final.json()["updatedAt"]},
+                format="json",
+            )
+        self.assertEqual(revoked.status_code, 503, revoked.content)
+        with use_operator():
+            empty_token.refresh_from_db()
+            self.assertEqual(empty_token.name, "Final empty class")
+            self.assertEqual(ClassDetailsRevision.objects.filter(token=empty_token).count(), 2)
         listed = self.client.get("/api/v1/tokens/register/").json()["results"]
         self.assertTrue(next(row for row in listed if row["uuid"] == str(empty_token.pk))["canDelete"])
         with use_operator():
             opening = RegisterEntry.objects.get(register__token=empty_token)
             opening_hash = opening.entry_hash
-        removed = delete_version(empty_path, available["updatedAt"])
+        removed = delete_version(empty_path, final.json()["updatedAt"])
         self.assertEqual(removed.status_code, 204, removed.content)
         self.assertEqual(self.client.get(empty_path).status_code, 404)
         retained_path = f"/api/v1/tokens/register-imports/{empty_proposal.json()['uuid']}/"
@@ -500,6 +602,8 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             404,
         )
         with use_operator():
+            self.assertEqual(ClassDetailsRevision.objects.filter(pk=revision.pk).values().get(), retained_revision)
+            self.assertEqual(ClassDetailsRevision.objects.filter(token=empty_token).count(), 2)
             opening.refresh_from_db()
             self.assertEqual((opening.kind, opening.changes, opening.entry_hash), ("opening", [], opening_hash))
             self.assertEqual(RegisterImport.objects.get(pk=empty_proposal.json()["uuid"]).status, "applied")
@@ -558,6 +662,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual((register.sequence, int(register.issued_supply)), (2, 0))
             self.assertEqual(RegisterPosition.objects.get(register=register).shares, 0)
         protected = self.client.get(current_path).json()
+        self.assertFalse(protected["canEditDetails"])
         self.assertFalse(protected["canDelete"])
         self.assertIn("confirmed ledger records", protected["deletionBlockedReason"])
         self.assertEqual(delete_version(current_path, protected["updatedAt"]).status_code, 409)

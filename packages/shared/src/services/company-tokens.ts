@@ -5,6 +5,8 @@ import type {
   CompanyShareTokenUpdate,
   CompanyShareTokenDeleteQueryParams,
   CompanyShareTokenListItem,
+  ClassDetailsHistory,
+  ClassDetailsHistoryQuery,
   TokenCreate,
   TokenHoldersResponse,
   CompanyOwnershipSummary,
@@ -20,6 +22,13 @@ import type {
 
 export const getCompanyToken = (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) =>
   apiClient.get<CompanyShareToken>(COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid), config);
+
+export const getClassDetailsHistory = (
+  apiClient: AxiosInstance,
+  uuid: string,
+  params: ClassDetailsHistoryQuery = {},
+  config: AxiosRequestConfig = {},
+) => apiClient.get<ClassDetailsHistory>(COMPANY_TOKEN_ENDPOINTS.CLASS_DETAILS_HISTORY(uuid), { ...config, params });
 
 export const createCompanyToken = (apiClient: AxiosInstance, data: TokenCreate, config?: AxiosRequestConfig) =>
   config === undefined

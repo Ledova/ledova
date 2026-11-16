@@ -12,7 +12,7 @@ from tokens.services.register_authority import register_command
 from tokens.services.register_imports import retire_class_imports
 from tokens.services.share_token_service import reserved_symbol
 
-EDIT_DETAILS_BLOCKED_REASON = "Class details can change only before its ledger or dependent records exist."
+EDIT_DETAILS_BLOCKED_REASON = "Class details can change only while its opening is empty and no dependent records exist."
 
 
 def class_lifecycle_access(token, actor):
@@ -77,6 +77,7 @@ def update_class_details(*, actor, token, expected_updated_at, changes):
         for field, value in changes.items():
             setattr(token, field, value)
         token.save(update_fields=["name", "symbol", "token_type", "updated_at"])
+        token.refresh_from_db(fields=["updated_at"])
         return class_lifecycle_access(token, current_actor)
 
 

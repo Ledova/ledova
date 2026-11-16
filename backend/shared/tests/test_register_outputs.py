@@ -4,6 +4,7 @@ import io
 import json
 import zipfile
 from datetime import date, timedelta
+from urllib.parse import urlencode
 from uuid import UUID, uuid4
 
 from django.conf import settings
@@ -34,6 +35,80 @@ from tokens.services.register import prepare_notice_figures
 
 class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
     def test_unsigned_company_own_transfer_certificate_and_complete_core_pack_retain_real_sources(self):
+        created_class = self.client.post(
+            "/api/v1/tokens/",
+            {
+                "company": str(self.company.pk),
+                "name": "Initial setup class",
+                "symbol": "INIT",
+                "total_supply": "1000",
+            },
+            format="json",
+        )
+        self.assertEqual(created_class.status_code, 201, created_class.content)
+        class_id = created_class.json()["uuid"]
+        details_endpoint = f"/api/v1/tokens/{class_id}/"
+        details_history_endpoint = f"{details_endpoint}class-details-history/"
+        changed_class = self.client.patch(
+            details_endpoint,
+            {
+                "expected_updated_at": created_class.json()["updatedAt"],
+                "name": "Preferred setup class",
+                "symbol": "PREF",
+                "token_type": "preference",
+            },
+            format="json",
+        )
+        self.assertEqual(changed_class.status_code, 200, changed_class.content)
+        renamed_class = self.client.patch(
+            details_endpoint,
+            {
+                "expected_updated_at": changed_class.json()["updatedAt"],
+                "name": "Retired setup class",
+                "symbol": "RET",
+                "token_type": "redeemable",
+            },
+            format="json",
+        )
+        self.assertEqual(renamed_class.status_code, 200, renamed_class.content)
+        details_history = self.client.get(details_history_endpoint, {"page_size": 1})
+        self.assertEqual(details_history.status_code, 200, details_history.content)
+        self.assertEqual(details_history.json()["count"], 2)
+        self.assertTrue(details_history.json()["next"])
+        self.assertEqual(details_history.json()["results"][0]["token"], class_id)
+        self.assertEqual(details_history.json()["results"][0]["revision"], 2)
+        self.assertEqual(
+            details_history.json()["results"][0]["before"],
+            {"name": "Preferred setup class", "symbol": "PREF", "tokenType": "preference"},
+        )
+        self.assertEqual(
+            details_history.json()["results"][0]["after"],
+            {"name": "Retired setup class", "symbol": "RET", "tokenType": "redeemable"},
+        )
+        self.assertTrue(details_history.json()["results"][0]["recordedByName"])
+        self.assertTrue(details_history.json()["results"][0]["createdAt"])
+        self.assertNotIn("recordedBy", details_history.json()["results"][0])
+        self.assertNotIn("appointment", details_history.json()["results"][0])
+        earlier_details = self.client.get(details_history_endpoint, {"page_size": 1, "page": 2})
+        self.assertEqual(earlier_details.status_code, 200, earlier_details.content)
+        self.assertEqual(earlier_details.json()["results"][0]["revision"], 1)
+        with use_operator():
+            type(self.owner).objects.filter(pk=self.owner.pk).update(is_active=False)
+        try:
+            self.assertTrue(self.owner.is_active)
+            self.assertEqual(self.client.get(details_history_endpoint).status_code, 404)
+        finally:
+            with use_operator():
+                type(self.owner).objects.filter(pk=self.owner.pk).update(is_active=True)
+        with use_operator():
+            type(self.owner).objects.filter(pk=self.owner.pk).update(is_email_verified=False)
+        try:
+            self.assertTrue(self.owner.is_email_verified)
+            self.assertEqual(self.client.get(details_history_endpoint).status_code, 404)
+        finally:
+            with use_operator():
+                type(self.owner).objects.filter(pk=self.owner.pk).update(is_email_verified=True)
+        self.assertEqual(self.client.get(details_history_endpoint).status_code, 200)
         rights_endpoint = f"/api/v1/tokens/{self.token.pk}/class-rights/"
         class_document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.CLASS_RIGHTS)
         rights = {
@@ -200,6 +275,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         )
         self.assertEqual(accepted.status_code, 200, accepted.content)
         self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "all"}).status_code, 404)
+        self.assertEqual(self.client.get(details_history_endpoint).status_code, 404)
         _, team_code, _ = issue_team_invitation(
             requester=self.owner,
             company_id=self.company.pk,
@@ -210,6 +286,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         reader = accept_team_invitation(
             requester=self.foreign, code=team_code, declaration_version=DECLARATION_VERSION, accept_declaration=True
         )
+        self.assertEqual(self.client.get(details_history_endpoint).json()["count"], 2)
         self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "can_prepare"}).json()["count"], 3)
         for private in ("member-invitations", "member-associations"):
             listed = self.client.get(f"/api/v1/tokens/{private}/", {"company": str(self.company.pk)})
@@ -222,6 +299,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(reader_preview.json()["sourceDigest"], linked)
         revoke_company_appointment(requester=self.owner, appointment_id=reader.pk)
         self.assertEqual(self.client.get(f"{company_endpoint}?sequence={entry.sequence}").status_code, 404)
+        self.assertEqual(self.client.get(details_history_endpoint).status_code, 404)
         self.client.force_authenticate(self.owner)
         ending_evidence = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
         ending = self.client.post(
@@ -255,6 +333,10 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
                 format="json",
             )
             self.assertEqual(linked.status_code, 201, linked.content)
+        removed_class = self.client.delete(
+            details_endpoint + "?" + urlencode({"expected_updated_at": renamed_class.json()["updatedAt"]})
+        )
+        self.assertEqual(removed_class.status_code, 204, removed_class.content)
         packed = self.client.post(
             f"/api/v1/companies/{self.company.pk}/pack/",
             {
@@ -287,6 +369,22 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             for file in manifest["files"]:
                 data = bundle.read(file["path"])
                 self.assertEqual((len(data), hashlib.sha256(data).hexdigest()), (file["size"], file["sha256"]))
+            retired_class = json.loads(bundle.read(f"classes/{class_id}/class.json"))
+            self.assertTrue(retired_class["deleted_at"])
+            exported_details = json.loads(bundle.read(f"classes/{class_id}/class_details_history.json"))
+            self.assertEqual([record["revision"] for record in exported_details], [1, 2])
+            self.assertEqual(
+                exported_details[0]["before"],
+                {"name": "Initial setup class", "symbol": "INIT", "token_type": "ordinary"},
+            )
+            self.assertEqual(
+                exported_details[1]["after"],
+                {"name": "Retired setup class", "symbol": "RET", "token_type": "redeemable"},
+            )
+            self.assertEqual(exported_details[0]["recorded_by_id"], self.owner.pk)
+            self.assertEqual(exported_details[0]["appointment_id"], str(self.appointment.pk))
+            self.assertTrue(exported_details[0]["recorded_by_name"])
+            self.assertTrue(exported_details[0]["created_at"])
             exported_rights = json.loads(bundle.read(f"classes/{self.token.pk}/class_rights.json"))
             self.assertEqual([record["revision"] for record in exported_rights], [1, 2])
             self.assertEqual(exported_rights[0]["summary"], rights["summary"])
@@ -338,15 +436,15 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertTrue(bundle.read(agreement_path).startswith(b"%PDF"))
             self.assertNotIn(str(self.foreign_company.pk), str(sources))
         with use_operator():
-            audit = RegisterExport.objects.get(kind="company_pack", produced_through="company")
+            audit = RegisterExport.objects.get(token=self.token, kind="company_pack", produced_through="company")
             self.assertEqual(audit.digest, hashlib.sha256(manifest_bytes).hexdigest())
             self.assertEqual(audit.requested_by_id, self.owner.pk)
             self.assertEqual(int(self.token.stored_register.issued_supply), 150)
             self.assertEqual(RegisterGrant.objects.get(pk=grant.json()["uuid"]).award_id, UUID(award["operation_id"]))
-            self.assertEqual(RegisterExport.objects.count(), 5)
+            self.assertEqual(RegisterExport.objects.count(), 7)
             self.assertEqual(
                 purge_register_exports(now=timezone.now() + timedelta(days=settings.FORMER_MEMBER_RETENTION_DAYS + 1)),
-                5,
+                7,
             )
             self.assertFalse(RegisterExport.objects.exists())
             figures, _ = prepare_notice_figures(

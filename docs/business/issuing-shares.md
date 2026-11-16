@@ -38,11 +38,14 @@ no custom limit. Creation records no shares and no legal registration. The techn
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
 Class codes are one to five ASCII letters, saved in uppercase, unique among the company's active classes, and may
 not reuse a reserved asset symbol. On the web, the same administrator or preparer can edit a
-class's name, code and type before its ledger is opened or dependent records exist. **Edit** stays
+class's name, code and type while it has no ownership activity or other dependent records, including
+after a confirmed empty opening. **Edit** stays
 visible for current preparers when locked, disabled with the server's reason; readers without that
 mandate get no Edit action. Reject any saved setup review first; the rejected draft stays recorded.
-An empty confirmed opening still locks these details: changing them would relabel the retained
-opening. Deleting an eligible unused class and adding another preserves the earlier class's identity.
+Each saved change retains its previous and new name, code and type, the representative, appointment
+and time. **Show previous details** reveals those changes; the original opening, decisions and hash
+remain unchanged. The company pack includes the full attributed details history, even after deletion.
+A zero balance after actual ownership activity does not permit editing.
 **Delete share class** removes an unused
 class from active use and automatically retires any saved, unconfirmed setup reviews in the same
 transaction. Rejected setup drafts and a confirmed empty opening do not prevent deletion.

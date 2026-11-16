@@ -27,6 +27,7 @@ import { AccountCheck } from '@components/AccountCheck';
 import { ClassSetup } from './ClassSetup';
 import { ClassDeleteAction, ClassDetails, ClassDetailsEditAction, ClassDetailsContent } from './ClassDetails';
 import { useClassDetails } from './useClassDetails';
+import { ClassDetailsHistory } from './ClassDetailsHistory';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 
 export function ShareClass({ uuid }: { uuid: string }) {
@@ -113,6 +114,7 @@ function ShareClassWorkspace({
   );
   const detailsAvailable = ready && !setupHeld && (!data.readingPaused || detailsHeld);
   const details = useClassDetails(data, owner, detailsAvailable, heldDetails);
+  const detailsHistory = <ClassDetailsHistory data={data} owner={owner} available={ready && !data.readingPaused} />;
   const company = data.token.data?.companyUuid;
   const recordsChanged = useCallback(() => {
     void data.token.refetch();
@@ -146,13 +148,19 @@ function ShareClassWorkspace({
     <>
       {setup === false && data.token.data && classDetailsVisible && (
         <div hidden={data.token.isError || data.register.isError || appointments.isError}>
-          <ClassDetails token={data.token.data} details={details} available={detailsAvailable} />
+          <ClassDetails
+            token={data.token.data}
+            details={details}
+            available={detailsAvailable}
+            history={detailsHistory}
+          />
         </div>
       )}
       <ShareClassDetails
         key={`${data.tokenKey.join('/')}/${data.token.data?.companyUuid}/${data.token.data?.isOwner === true}`}
         data={data}
         showClassDetails={!classDetailsVisible}
+        detailsHistory={!classDetailsVisible ? detailsHistory : undefined}
         setup={
           setup === null ? (
             data.register.isError ? (
@@ -185,7 +193,12 @@ function ShareClassWorkspace({
               }
               classDetails={(recordFields) =>
                 data.token.data && (
-                  <ClassDetailsContent token={data.token.data} details={details} available={detailsAvailable}>
+                  <ClassDetailsContent
+                    token={data.token.data}
+                    details={details}
+                    available={detailsAvailable}
+                    history={detailsHistory}
+                  >
                     {recordFields}
                   </ClassDetailsContent>
                 )
@@ -228,11 +241,13 @@ function ShareClassDetails({
   rights,
   setup,
   showClassDetails,
+  detailsHistory,
 }: {
   data: ReturnType<typeof useShareClass>;
   rights: ReactNode;
   setup?: ReactNode;
   showClassDetails: boolean;
+  detailsHistory?: ReactNode;
 }) {
   const preferences = useUserPreferences();
   const preferencesRead = useQueryClient().getQueryState(USER_PREFERENCES_QUERY_KEY);
@@ -332,6 +347,7 @@ function ShareClassDetails({
                   ) : null}
                 </section>
               )}
+              {detailsHistory}
             </Section>
           )}
         </div>

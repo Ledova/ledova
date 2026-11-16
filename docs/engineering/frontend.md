@@ -693,10 +693,15 @@ Confirmed changes invalidate the related class and ownership reads; deletion doe
 removed class. Setup decisions refresh class availability, so retiring a review can expose editing
 without a reload. Deleting a class retires saved setup reviews and removes the unused class from
 active use atomically, retaining the reviews, their decisions and deletion attribution;
-it never deletes confirmed ownership. Editing remains locked after an applied empty opening:
-the opening references the class without a name, code or type snapshot, so a direct edit would
-relabel historical context in later exports. Deletion retains the old class identity. A future
-metadata correction would need attributed before/after values rather than silently unlocking it.
+it never deletes confirmed ownership. An applied genuinely empty opening permits metadata editing
+when no other dependent records exist. Each actual edit automatically retains an immutable
+before/after revision and current actor/appointment at the database boundary. The opening and its
+hash are unchanged. The web's **Show previous details** loads the paginated company-private history
+only when expanded, reuses existing rows and load-more controls, and refreshes after confirmed saves
+or recovery without polling. The page-owned query
+(`dashboard/src/pages/company/ledger/detail/useClassDetailsHistory.ts`) keys reads by the confirmed
+class version, so a successful edit needs no separate history invalidation. Company packs include
+the same full attribution, including deleted classes. Past ownership activity still locks editing even if current supply is zero.
 Class rights retain their separate revision-based editor and permissions.
 The web's Class rights step owns an independent explicit save/cancel task outside the opening
 HTML form; step navigation and the opening footer are unavailable while that task is held. New classes

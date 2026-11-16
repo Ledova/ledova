@@ -2752,3 +2752,10 @@ clients now reuse the class edit/delete recovery logic and one owner-scoped owne
 Dashboard and Share classes use the same Ledger overview, and its class workspace includes setup,
 safe editing/deletion, rights and documents. The redundant native setup menu item is removed; new-class
 and saved review/correction entries remain supported through that workspace.
+
+On 16 November the owner approved editing an unused class after a confirmed empty opening,
+provided the original details remain in audit history. Every actual name, code or type change
+retains its before/after values, representative, appointment and time. The opening and its hash
+are unchanged. Existing ownership activity, linked business records and deployment restrictions
+remain; a zero current balance after past ownership does not qualify. This increment adds web
+history on demand and includes it in company packs; native presentation remains for later.
