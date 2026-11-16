@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from 'react';
+
 export function FormSteps({
   label,
   steps,
@@ -11,6 +13,13 @@ export function FormSteps({
   onSelect?: (id: string) => void;
   reachable?: (id: string) => boolean;
 }) {
+  const selected = useRef<string | null>(null);
+  const active = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (selected.current !== current) return;
+    selected.current = null;
+    active.current?.focus({ preventScroll: true });
+  }, [current]);
   return (
     <ol aria-label={label} className="grid auto-cols-fr grid-flow-col gap-2 sm:gap-3">
       {steps.map((step, index) => {
@@ -41,13 +50,18 @@ export function FormSteps({
                 type="button"
                 aria-label={`${index + 1}. ${step.label}`}
                 disabled={!(reachable?.(step.id) ?? true)}
-                onClick={() => onSelect(step.id)}
+                onClick={() => {
+                  selected.current = step.id;
+                  onSelect(step.id);
+                }}
                 className={`${layout} w-full rounded-md text-left transition-colors enabled:hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 {content}
               </button>
             ) : (
-              <div className={layout}>{content}</div>
+              <div ref={here ? active : undefined} tabIndex={onSelect && here ? -1 : undefined} className={layout}>
+                {content}
+              </div>
             )}
           </li>
         );

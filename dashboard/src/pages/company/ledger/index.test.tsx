@@ -2387,11 +2387,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await waitFor(() => expect(proposal!.status).toBe('rejected'));
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.getByRole('button', { name: 'Add a shareholder' })).toBeTruthy();
-  expect(
-    within(screen.getByRole('list', { name: 'Ledger setup steps' }))
-      .getAllByRole('listitem')[2]
-      .getAttribute('aria-current'),
-  ).toBe('step');
+  const shareholderStep = within(screen.getByRole('list', { name: 'Ledger setup steps' })).getAllByRole('listitem')[2];
+  expect(shareholderStep.getAttribute('aria-current')).toBe('step');
+  expect(shareholderStep.contains(document.activeElement)).toBe(true);
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
@@ -2401,11 +2399,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: '2. Class rights' }));
   await waitFor(() => expect(proposal!.status).toBe('rejected'));
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(
-    within(screen.getByRole('list', { name: 'Ledger setup steps' }))
-      .getAllByRole('listitem')[1]
-      .getAttribute('aria-current'),
-  ).toBe('step');
+  const rightsStep = within(screen.getByRole('list', { name: 'Ledger setup steps' })).getAllByRole('listitem')[1];
+  expect(rightsStep.getAttribute('aria-current')).toBe('step');
+  expect(rightsStep.contains(document.activeElement)).toBe(true);
   expect(screen.queryByRole('button', { name: 'Add a shareholder' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
   expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe(resumedDraft.asAt);

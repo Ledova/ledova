@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Keyboard, Text, TouchableOpacity, View, type KeyboardTypeOptions } from 'react-native';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Keyboard, Text, TouchableOpacity, View, type KeyboardTypeOptions } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import {
   FIELD_LIMITS,
@@ -125,6 +125,13 @@ export function FormSteps({
   onSelect?: (id: string) => void;
   reachable?: (id: string) => boolean;
 }) {
+  const selected = useRef<string | null>(null);
+  const active = useRef<View>(null);
+  useLayoutEffect(() => {
+    if (selected.current !== current) return;
+    selected.current = null;
+    if (active.current) AccessibilityInfo.sendAccessibilityEvent(active.current, 'focus');
+  }, [current]);
   const look = useThemedStyles((theme) => ({
     steps: { flexDirection: 'row' as const, gap: theme.spacing.smd },
     step: {
@@ -172,7 +179,10 @@ export function FormSteps({
               accessibilityLabel={`${index + 1}. ${step.label}`}
               accessibilityState={{ disabled: !open }}
               disabled={!open}
-              onPress={() => onSelect(step.id)}
+              onPress={() => {
+                selected.current = step.id;
+                onSelect(step.id);
+              }}
               style={[look.step, !open && look.disabled]}
             >
               {content}
@@ -182,6 +192,7 @@ export function FormSteps({
         return (
           <View
             key={step.id}
+            ref={here ? active : undefined}
             accessible
             accessibilityLabel={`${index + 1}. ${step.label}${here ? ', current step' : ''}`}
             style={[look.step, here && look.current]}
