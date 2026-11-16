@@ -54,7 +54,7 @@ export function ShareClasses({
   };
   return (
     <div hidden={!visible || !available} className="space-y-4">
-      <div hidden={!ready}>
+      <div hidden={!ready} className="space-y-4">
         <Section title="Share classes">
           {hasControls && (
             <CheckboxField
@@ -149,15 +149,15 @@ export function ShareClasses({
       </div>
       <Outcome>{deletion.outcome}</Outcome>
       {!operation && <Failure>{deletion.error}</Failure>}
-      <Modal
-        isOpen={!!operation && available && visible}
-        onClose={() => {
-          void close();
-        }}
-        title={`Delete ${operation?.targets.length ?? 0} ${operation?.targets.length === 1 ? 'share class' : 'share classes'}?`}
-        busy={deletion.busy}
-      >
-        {operation && (
+      {operation && (
+        <Modal
+          isOpen={!!operation && available && visible}
+          onClose={() => {
+            void close();
+          }}
+          title={`Delete ${operation.targets.length} ${operation.targets.length === 1 ? 'share class' : 'share classes'}?`}
+          busy={deletion.busy}
+        >
           <div className="space-y-4">
             <p className="text-sm text-text-muted">
               Unused classes are removed from active use. Their drafts and audit history are retained. Each class is
@@ -205,8 +205,8 @@ export function ShareClasses({
               )}
             </ModalActions>
           </div>
-        )}
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 }
