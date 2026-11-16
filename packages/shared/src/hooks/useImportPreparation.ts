@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_UNMET_COPY,
-  REGISTER_SETUP_STEPS,
+  REGISTER_SETUP_STEPS_WITH_RIGHTS,
 } from '../constants/business/register-imports';
 import { uploadRegisterEvidence } from '../services/register-commands';
 import { prepareRegisterImport } from '../services/register-imports';
@@ -39,9 +39,9 @@ import { importsKey } from './useRegisterImports';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 const CLOSED = 'This setup is closed. Reopen it before continuing.';
-type SetupPhase = (typeof REGISTER_SETUP_STEPS)[number]['id'];
+type SetupPhase = (typeof REGISTER_SETUP_STEPS_WITH_RIGHTS)[number]['id'];
 
-const SETUP_ORDER: readonly SetupPhase[] = REGISTER_SETUP_STEPS.map((step) => step.id);
+const SETUP_ORDER: readonly SetupPhase[] = REGISTER_SETUP_STEPS_WITH_RIGHTS.map((step) => step.id);
 
 type Upload = { file: RegisterDocumentFile; appointment: string; key: string; receipt: RegisterEvidence | null };
 
@@ -141,7 +141,7 @@ export function useImportPreparation({
   const [autoApply, setAutoApply] = useState(false);
   const [autoPreviewFinished, setAutoPreviewFinished] = useState(false);
   const [editing, setEditing] = useState(false);
-  const reopenTo = useRef<'details' | 'shareholders'>('details');
+  const reopenTo = useRef<'details' | 'rights' | 'shareholders'>('details');
   const applyOpened = useRef(false);
   const previewAttempt = useRef('');
   const preparation = useRef<RegisterImportPreparation | null>(null);
@@ -276,7 +276,7 @@ export function useImportPreparation({
   }, [autoApply, autoPreviewFinished, apply]);
   const deciding = approve.busy || apply.busy || reject.busy;
   const recovery = approve.recovery ? approve : apply.recovery ? apply : reject.recovery ? reject : null;
-  const mutable = phase === 'details' || phase === 'shareholders';
+  const mutable = phase !== 'review';
   const held = busy || uncertain || deciding || !!recovery || !mutable;
   useEffect(() => {
     onHeldChange?.(held);
@@ -502,7 +502,7 @@ export function useImportPreparation({
   const goTo = (step: SetupPhase) => {
     if (step === phase || !stepReachable(step)) return;
     if (phase === 'review') {
-      reopenTo.current = step === 'shareholders' ? 'shareholders' : 'details';
+      reopenTo.current = step === 'rights' || step === 'shareholders' ? step : 'details';
       setEditing(true);
       void reject.open('reject', 'Replaced while editing the copied records.');
       return;
@@ -513,10 +513,13 @@ export function useImportPreparation({
       return;
     }
     setAttempted(true);
-    if (phase === 'details' && detailProblems.length) return;
-    if (step === 'shareholders') {
+    if ((phase === 'details' || phase === 'rights') && detailProblems.length) {
+      setPhase('details');
+      return;
+    }
+    if (step === 'rights' || step === 'shareholders') {
       setAttempted(false);
-      setPhase('shareholders');
+      setPhase(step);
       return;
     }
     if (problems.length) setPhase('shareholders');

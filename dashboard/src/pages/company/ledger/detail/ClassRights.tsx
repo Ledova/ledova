@@ -328,7 +328,7 @@ export function ClassRights({
     </>
   );
   return embedded ? (
-    <div className="space-y-4 border-t border-border-subtle pt-4">
+    <div className="space-y-4">
       <h3 className="text-sm font-medium text-text-primary">Class rights</h3>
       {content}
     </div>

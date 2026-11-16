@@ -35,24 +35,28 @@ except Shareholders, which lists each person with only the classes they hold bel
 A stepped preparation (register setup, an investor issue, a transfer) is one card: its title names the class or
 the task, `FormSteps` sits at its top, each step has a small heading unless it would repeat the step's name, as in
 register setup, and one primary action ends the step.
-Register setup uses one **Ledger setup** card, with **Share class**, **Shareholders** and **Review**
-steps. The class name stays in the page header. Its first step groups name, code, type and record
+Web register setup uses one **Ledger setup** card, with **Share class**, **Class rights**,
+**Shareholders** and **Review** steps. The app retains its three steps: **Share class**,
+**Shareholders** and **Review**. The class name stays in the page header. The first step groups name, code, type and record
 date, reusing the inline metadata editor rather than a separate Class details card or nested card.
 In its read view, name/code and type/date share a two-column grid on wide screens, with labels
 above values, stacking on phones. Edit/Delete appear only on the Share class step, alongside
 Cancel/Import/Continue in one bottom-right workflow footer. Later steps show only their own
-navigation and decision controls. Shareholders groups **Back**, **Add a shareholder** and
+navigation and decision controls. Class rights has **Back** and **Continue** when its explicit editor is closed;
+continuing without rights creates no assumed terms or revision. Shareholders groups **Back**, **Add a shareholder** and
 **Continue** in that footer; an open shareholder editor keeps its own Cancel/Add or Save controls.
 Do not add a second class-action row or controls beside the setup heading.
 New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
 New-class presets use one full-width **Start with** radio row. Name/code and type/date then share
 the existing two-column form grid, stacking on phones. Keep Class type editable independently of
-the preset. An empty Class rights section groups its heading, status and Add action together;
+the preset. The Class rights step groups its heading, status and Add action together;
 the governing-document note appears with its editor or recorded terms.
 While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
 Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and
-ledger confirmation remain separate commands. Class rights is a distinct explicit task within the
-first setup step, and a recorded ledger shows its state as a `Status`.
+ledger confirmation remain separate commands. Class rights keeps its separate explicit Save/Cancel
+and recovery controls. Returning to it from Review retires the saved opening for editing before
+showing the selected step, preserving the copied date and shareholder draft. A recorded ledger shows
+its state as a `Status`.
 Company information, authority records and company team use this workspace frame too.
 Team is the selected company's page: its Appointments, **Invite a company user** and the invitations you
 issued (owner, 5 November 2026). Inviting replaces the collection with one focused inline task, a

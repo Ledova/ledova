@@ -7,6 +7,7 @@ import {
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_DECISIONS,
   REGISTER_SETUP_STEPS,
+  REGISTER_SETUP_STEPS_WITH_RIGHTS,
   formatDate,
   formatShareCount,
   formatShortDate,
@@ -27,8 +28,6 @@ import { useId, useRef, useState, type ReactNode } from 'react';
 import { BringRecords } from './BringRecords';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 import { MemberRecords, MemberRow } from '@pages/company/ledger/shared/MemberRecords';
-
-const STEP_ORDER = REGISTER_SETUP_STEPS.map((step) => step.id);
 
 const IMPORT_NOTE =
   'Coming soon. Import will read a document into these same editable forms. Review and correct the records before saving.';
@@ -74,6 +73,7 @@ export function ImportForm({
   onPrepared,
 }: ImportFormProps) {
   const { running, track } = useRunningAction();
+  const setupSteps = classContent ? REGISTER_SETUP_STEPS_WITH_RIGHTS : REGISTER_SETUP_STEPS;
   const navigate = useNavigate();
   const importDescription = useId();
   const preparationFormId = useId();
@@ -181,8 +181,14 @@ export function ImportForm({
   );
   const continueAction = (
     <PageAction
-      type="submit"
-      form={preparationFormId}
+      {...(phase === 'rights'
+        ? {
+            onClick: () => {
+              setTries((count) => count + 1);
+              goTo('shareholders');
+            },
+          }
+        : { type: 'submit', form: preparationFormId })}
       label="Continue"
       primary
       busy={phase === 'shareholders' && busy}
@@ -195,12 +201,13 @@ export function ImportForm({
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps
           label="Ledger setup steps"
-          steps={REGISTER_SETUP_STEPS}
+          steps={setupSteps}
           current={phase}
           reachable={(step) => !classContentHeld && stepReachable(step as typeof phase)}
           onSelect={(step) => {
             const target = step as typeof phase;
-            if (STEP_ORDER.indexOf(target) > STEP_ORDER.indexOf(phase)) setTries((count) => count + 1);
+            if (setupSteps.findIndex((step) => step.id === target) > setupSteps.findIndex((step) => step.id === phase))
+              setTries((count) => count + 1);
             goTo(target);
           }}
         />
@@ -212,6 +219,7 @@ export function ImportForm({
             canPrepare ? (
               <form
                 id={preparationFormId}
+                hidden={phase === 'rights'}
                 className="space-y-5"
                 noValidate
                 onSubmit={(event) => {
@@ -221,7 +229,7 @@ export function ImportForm({
                     setAttempted(true);
                     if (!detailProblems.length && !blocked) {
                       setAttempted(false);
-                      setPhase('shareholders');
+                      setPhase(classContent ? 'rights' : 'shareholders');
                     }
                   } else if (!holderEditor) void prepare();
                 }}
@@ -265,11 +273,11 @@ export function ImportForm({
                               <FormActions>
                                 <PageAction
                                   label="Back"
-                                  context="share class"
+                                  context={classContent ? 'class rights' : 'share class'}
                                   disabled={busy || blocked || holderEditor}
                                   onClick={() => {
                                     setAttempted(false);
-                                    setPhase('details');
+                                    setPhase(classContent ? 'rights' : 'details');
                                   }}
                                 />
                                 {addAction}
@@ -470,7 +478,7 @@ export function ImportForm({
           )}
         </>
       </div>
-      <div hidden={!visible || !mutable || phase !== 'details' || classHeld}>{classContent}</div>
+      <div hidden={!visible || !mutable || phase !== 'rights' || classHeld}>{classContent}</div>
       {visible &&
         mutable &&
         canPrepare &&
@@ -478,29 +486,40 @@ export function ImportForm({
         !classContentHeld &&
         !uncertain &&
         !holderEditor &&
-        phase === 'details' && (
+        (phase === 'details' || phase === 'rights') && (
           <FormActions>
-            {classActions}
-            <PageAction
-              label="Cancel"
-              disabled={busy || blocked}
-              onClick={() => {
-                const place = registerPlace({ company, token: register?.token.uuid });
-                navigate(place.to, { state: place.state });
-              }}
-            />
-            <button
-              type="button"
-              aria-disabled="true"
-              aria-describedby={importDescription}
-              title={IMPORT_NOTE}
-              className="inline-flex rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-muted opacity-60"
-            >
-              Import
-            </button>
-            <span id={importDescription} className="sr-only">
-              {IMPORT_NOTE}
-            </span>
+            {phase === 'details' ? (
+              <>
+                {classActions}
+                <PageAction
+                  label="Cancel"
+                  disabled={busy || blocked}
+                  onClick={() => {
+                    const place = registerPlace({ company, token: register?.token.uuid });
+                    navigate(place.to, { state: place.state });
+                  }}
+                />
+                <button
+                  type="button"
+                  aria-disabled="true"
+                  aria-describedby={importDescription}
+                  title={IMPORT_NOTE}
+                  className="inline-flex rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-muted opacity-60"
+                >
+                  Import
+                </button>
+                <span id={importDescription} className="sr-only">
+                  {IMPORT_NOTE}
+                </span>
+              </>
+            ) : (
+              <PageAction
+                label="Back"
+                context="share class"
+                disabled={busy || blocked}
+                onClick={() => goTo('details')}
+              />
+            )}
             {continueAction}
           </FormActions>
         )}
