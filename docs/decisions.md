@@ -1476,6 +1476,11 @@ Codex session: Playwright smoke also has a binding cap of nine executed cases.
 At capacity, a new case replaces an existing one or needs owner-approved cap
 changes in the same PR. This supersedes the earlier outside-cap treatment.
 
+**Owner follow-up, 17 November 2026**, supplied directly in the active Claude
+session and recorded on [#1670](https://github.com/Ledova/ledova/issues/1670):
+the per-case time limits are not increased. A case that nears its limit is cut
+back to the worst failures and one happy path, or made faster.
+
 The owner now authorises a ledova.io backup and read-only database/private-storage
 inventory. This supersedes the initial restriction above; that permission needs
 no repeat request. Access details and actual results belong to the separate

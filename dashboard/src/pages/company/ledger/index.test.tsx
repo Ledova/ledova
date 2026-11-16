@@ -32,7 +32,6 @@ import {
   type ClassRightsRequest,
   type RegisterMemberDocument,
   type RegisterMemberDocumentRequest,
-  peopleKey,
   importRegisterKey,
   ownAppointmentsKey,
   readPeople,
@@ -1386,8 +1385,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let historyEntries: RegisterEntry[] = [];
   let historyCorrections: RegisterCorrection[] = [];
   let historyParticulars: RegisterParticularsChange[] = [];
-  let pauseHistory = false;
-  let releaseHistory!: () => void;
   const attachment = new File(['%PDF-1.4 synthetic certificate'], 'share-certificate.pdf', { type: 'application/pdf' });
   const agreement = new File(['%PDF-1.4 synthetic agreement'], 'shareholder-agreement.pdf', {
     type: 'application/pdf',
@@ -1522,13 +1519,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === IMPORTS) return dataPage(proposal ? [proposal, ...retiredImports] : retiredImports);
     if (url === CORRECTIONS) return dataPage(historyCorrections);
     if (url === PARTICULARS) return dataPage(historyParticulars);
-    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token.uuid)) {
-      if (pauseHistory)
-        return new Promise((resolve) => {
-          releaseHistory = () => resolve(dataPage(historyEntries));
-        });
-      return dataPage(historyEntries);
-    }
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token.uuid)) return dataPage(historyEntries);
     return dataPage([]);
   });
   api.post.mockImplementation(async (url: string, body: RegisterImportPreparation | RegisterDecideRequest, config) => {
@@ -1783,13 +1774,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const allotmentFields = (number: number) => within(screen.getByRole('group', { name: `Allocation ${number}` }));
   const addAllotment = () => fireEvent.click(screen.getByRole('button', { name: 'Add allocation (shareholder 1)' }));
   addAllotment();
-  expect((allotmentFields(1).getByLabelText('Amount paid') as HTMLInputElement).value).toBe('0.00');
-  expect((allotmentFields(1).getByLabelText('Amount unpaid') as HTMLInputElement).value).toBe('0.00');
-  fireEvent.click(screen.getByRole('button', { name: 'Remove (allocation 1)' }));
-  expect(screen.queryByRole('group', { name: 'Allocation 1' })).toBeNull();
-  addAllotment();
-  addAllotment();
-  expect(screen.queryByRole('group', { name: 'Allocation 2' })).toBeNull();
   fireEvent.change(allotmentFields(1).getByLabelText('Date'), { target: { value: '2015-01-01' } });
   fireEvent.change(allotmentFields(1).getByLabelText('Shares'), { target: { value: '400' } });
   fireEvent.change(allotmentFields(1).getByLabelText('Amount paid'), { target: { value: '' } });
@@ -1797,42 +1781,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect((allotmentFields(1).getByLabelText('Amount paid') as HTMLInputElement).value).toBe('0.00');
   fireEvent.change(allotmentFields(1).getByLabelText('Amount paid'), { target: { value: '' } });
   fireEvent.change(allotmentFields(1).getByLabelText('Amount unpaid'), { target: { value: '' } });
-  expect(screen.queryByRole('group', { name: 'Held for someone else?' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'References (optional)' })).toBeNull();
-  expect(screen.queryByLabelText('Share numbers or reference')).toBeNull();
-  expect(screen.queryByLabelText('Certificate reference')).toBeNull();
-  expect(screen.queryByText(/Recorded:/)).toBeNull();
   addAllotment();
   expect(allotmentFields(1).queryByRole('textbox', { name: 'Shares' })).toBeNull();
   expect(allotmentFields(1).getByText(/400 shares/)).toBeTruthy();
   expect(allotmentFields(1).getByText('Paid 0.00 · Unpaid 0.00')).toBeTruthy();
-  addAllotment();
-  expect(screen.queryByRole('group', { name: 'Allocation 3' })).toBeNull();
-  fireEvent.change(allotmentFields(2).getByLabelText('Shares'), { target: { value: '200' } });
-  fireEvent.change(allotmentFields(2).getByLabelText('Amount paid'), { target: { value: '200' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Edit (allocation 1)' }));
-  expect(allotmentFields(2).queryByRole('textbox', { name: 'Shares' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-  expect((allotmentFields(2).getByRole('textbox', { name: 'Shares' }) as HTMLInputElement).value).toBe('200');
-  expect((allotmentFields(2).getByLabelText('Amount paid') as HTMLInputElement).value).toBe('200');
-  expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Edit (allocation 1)' }));
-  addAllotment();
-  expect(screen.queryByRole('group', { name: 'Allocation 3' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Remove (allocation 2)' }));
-  expect(screen.queryByRole('group', { name: 'Allocation 2' })).toBeNull();
-  expect((allotmentFields(1).getByRole('textbox', { name: 'Shares' }) as HTMLInputElement).value).toBe('400');
-  expect(screen.getByRole('button', { name: 'Remove (allocation 1)' })).toBeTruthy();
-  addAllotment();
   fireEvent.change(allotmentFields(2).getByLabelText('Date'), { target: { value: '2016-01-01' } });
-  fireEvent.change(allotmentFields(2).getByLabelText('Shares'), { target: { value: '9007199254740595' } });
+  fireEvent.change(allotmentFields(2).getByLabelText('Shares'), { target: { value: '201' } });
   fireEvent.change(allotmentFields(2).getByLabelText('Amount paid'), { target: { value: '200' } });
   fireEvent.change(allotmentFields(2).getByLabelText('Amount unpaid'), { target: { value: '' } });
-  fireEvent.change(screen.getByLabelText('Current shares held'), { target: { value: '9007199254740995' } });
-  expect(screen.queryByText(/Recorded:/)).toBeNull();
-  fireEvent.change(screen.getByLabelText('Current shares held'), { target: { value: '600' } });
-  fireEvent.change(allotmentFields(2).getByLabelText('Shares'), { target: { value: '201' } });
-  expect(screen.queryByText(/remaining|over$/)).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Add document' }));
   fireEvent.change(within(screen.getByRole('group', { name: 'Document 1' })).getByLabelText('Category'), {
     target: { value: 'share_certificate' },
@@ -1854,29 +1810,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByLabelText('Name')).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
-  expect(screen.queryByLabelText('Share numbers or reference')).toBeNull();
   expect(screen.getByText('share-certificate.pdf')).toBeTruthy();
   expect(screen.getByText('shareholder-agreement.pdf')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Remove (document 1)' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Discarded edit' } });
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Back (class rights)' }));
-  expect(
-    screen.getByRole('list', { name: 'Ledger setup steps' }).querySelector('[aria-current="step"]')?.textContent,
-  ).toContain('Class rights');
-  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
-  fireEvent.change(screen.getByLabelText('Record date'), { target: { value: '2010-01-01' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(screen.getByText(/original membership date no later than the record date/)).toBeTruthy();
-  expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Back (class rights)' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
-  fireEvent.change(screen.getByLabelText('Record date'), { target: { value: recordDate } });
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   const recover = await screen.findByRole('button', { name: 'Recover saved records' });
   expect(createdClass).toBe(true);
@@ -1916,12 +1855,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(shareholderList).getByText('Example Shareholder')).toBeTruthy();
   expect(within(shareholderList).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
   expect(within(shareholderList).getByText(/^100\.00% of class/)).toBeTruthy();
-  fireEvent.click(within(shareholderList).getByRole('button', { name: 'Allotments (Example Shareholder)' }));
-  const shareholderDetails = await screen.findByRole('dialog', { name: 'Example Shareholder' });
-  expect(within(shareholderDetails).getAllByText('Not recorded')).toHaveLength(2);
-  expect(within(shareholderDetails).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();
-  fireEvent.click(within(shareholderDetails).getByRole('button', { name: 'Close' }));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   const setupSteps = await screen.findByRole('list', { name: 'Ledger setup steps' });
   expect(within(setupSteps).getAllByRole('listitem')).toHaveLength(4);
   expect(within(setupSteps).getAllByRole('listitem')[3].getAttribute('aria-current')).toBe('step');
@@ -1967,25 +1900,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getAllByText(displayedRecordDate).length).toBeGreaterThan(0);
   fireEvent.click(screen.getByRole('button', { name: 'Allotments (Example Shareholder)' }));
   expect(await screen.findByRole('dialog', { name: 'Example Shareholder' })).toBeTruthy();
-  visibleClass = false;
-  await act(async () => {
-    await client.invalidateQueries({ predicate: (query) => query.queryKey.at(-1) === 'classes' });
-  });
-  expect(await screen.findByText(/Refresh current company access before showing these records/)).toBeTruthy();
-  expect(screen.queryAllByText(displayedRecordDate)).toHaveLength(0);
-  expect(screen.queryByRole('dialog')).toBeNull();
-  expect(screen.queryAllByText('1 Example Street, Sydney NSW 2000')).toHaveLength(0);
-  expect(screen.queryByRole('button', { name: 'Record review' })).toBeNull();
-  expect(() => previewGuard()).toThrow(/company, authority or source records changed/);
-  expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(0);
-  visibleClass = true;
-  await act(async () => {
-    await client.invalidateQueries({ predicate: (query) => query.queryKey.at(-1) === 'classes' });
-  });
-  expect(await screen.findByRole('button', { name: 'Record review' })).toBeTruthy();
-  expect(screen.getAllByText(displayedRecordDate).length).toBeGreaterThan(0);
-  fireEvent.click(screen.getByRole('button', { name: 'Allotments (Example Shareholder)' }));
-  expect(await screen.findByRole('dialog', { name: 'Example Shareholder' })).toBeTruthy();
   appointment = { ...appointment, status: 'revoked', isEffective: false, revokedAt: '2026-10-14T00:00:00Z' };
   await act(async () => {
     await client.invalidateQueries({ queryKey: ['company-appointments'] });
@@ -1995,6 +1909,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('dialog')).toBeNull();
   expect(screen.queryAllByText('1 Example Street, Sydney NSW 2000')).toHaveLength(0);
   expect(screen.queryByRole('button', { name: 'Record review' })).toBeNull();
+  expect(() => previewGuard()).toThrow(/company, authority or source records changed/);
   expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(0);
   appointment = { ...appointment, status: 'active', isEffective: true, revokedAt: null };
   await act(async () => {
@@ -2146,13 +2061,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       createdAt: '2026-10-22T02:00:00Z',
     },
   ];
-  function RegisterDestination() {
-    return useLocation().pathname === DESTINATIONS.certificates.path ? (
-      <h1>Certificates destination</h1>
-    ) : (
-      <CompanyRegisterPage />
-    );
-  }
   const decisionAppointment = appointment;
   appointment = { ...appointment, capabilities: ['read_register'] };
   cleanup();
@@ -2160,19 +2068,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   show(
     'company',
     <>
-      <RegisterDestination />
-      <Link to="/#transfer">Transfer shares</Link>
-      <Link to="/#documents" state={{ registerCompany: company.uuid, registerToken: token.uuid }}>
-        Open Documents
-      </Link>
-      <Link to="/#ledger-exports">Open old Ledger exports link</Link>
-      <Link to="/#company-pack">Open Company pack</Link>
-      <Link
-        to="/#history"
-        state={{ registerCompany: company.uuid, registerToken: token.uuid, registerTask: 'history', preserved: true }}
-      >
-        Open old History link
-      </Link>
+      <CompanyRegisterPage />
       <LedgerLocation />
       <Link to="/#corrections">Open Corrections</Link>
     </>,
@@ -2234,49 +2130,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(retainedSummary);
   expect(within(retained).getByRole('button', { name: /^Download the supporting document/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Approve|Apply|Reject) \(change for/ })).toBeNull();
-  fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));
-  await screen.findByRole('heading', { name: 'Changes' });
-  expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!)).toMatchObject({
-    hash: '#corrections',
-    state: { registerCompany: company.uuid, registerToken: token.uuid, registerTask: 'history', preserved: true },
-  });
-  const beforeHistoryRead = api.post.mock.calls.length;
-  pauseHistory = true;
-  let refreshingHistory!: Promise<void>;
-  act(() => {
-    refreshingHistory = client.refetchQueries({ predicate: (query) => query.queryKey.includes('entries') });
-  });
-  await waitFor(() => expect(releaseHistory).toBeTypeOf('function'));
-  expect(
-    within(screen.getByRole('list', { name: 'Ledger changes' })).queryByText('Ledger date', { exact: false }),
-  ).toBeNull();
-  await act(async () => {
-    pauseHistory = false;
-    releaseHistory();
-    await refreshingHistory;
-  });
-  expect(
-    await within(screen.getByRole('list', { name: 'Ledger changes' })).findByText('Ledger date', { exact: false }),
-  ).toBeTruthy();
-  expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
-  fireEvent.click(screen.getByRole('link', { name: 'Open Documents' }));
-  expect(await screen.findByRole('heading', { name: 'Certificates destination' })).toBeTruthy();
-  expect(JSON.parse(screen.getByLabelText('Ledger location').textContent!)).toMatchObject({
-    pathname: DESTINATIONS.certificates.path,
-    search: `?company=${company.uuid}&class=${token.uuid}`,
-    hash: '',
-    state: { registerCompany: company.uuid, registerToken: token.uuid },
-  });
-  expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
-  fireEvent.click(screen.getByRole('link', { name: 'Open old Ledger exports link' }));
-  expect(await screen.findByRole('heading', { level: 1, name: 'Inspection copies' })).toBeTruthy();
-  expect(await screen.findByRole('button', { name: 'Prepare inspection copy' })).toBeTruthy();
-  expect(screen.queryByRole('list', { name: 'Certificate records' })).toBeNull();
-  fireEvent.click(screen.getByRole('link', { name: 'Open Company pack' }));
-  expect(await screen.findByRole('heading', { level: 1, name: 'Company pack' })).toBeTruthy();
-  expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Prepare inspection copy' })).toBeNull();
-  fireEvent.click(screen.getByRole('link', { name: 'Open Corrections' }));
   const correctionEntry = (
     await within(await screen.findByRole('list', { name: 'Ledger changes' })).findByText('Ledger date', {
       exact: false,
@@ -2293,30 +2146,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     name: `Approve (correction of the transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
   });
   expect(approveCorrection.closest('li')!.previousElementSibling?.textContent).toBe('Needs a decision · 1');
-  fireEvent.click(screen.getByRole('link', { name: 'Open old History link' }));
-  expect(await screen.findByRole('heading', { name: 'Changes' })).toBeTruthy();
-  expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
-  expect(api.post.mock.calls).toHaveLength(beforeHistoryRead);
-  fireEvent.click(
-    await screen.findByRole('button', { name: 'Copied opening, 600 shares. Show details and documents' }),
-  );
-  const copiedSummary = await screen.findByRole('button', { name: /^Show the shareholders/ });
-  expect(copiedSummary.getAttribute('aria-expanded')).toBe('false');
-  fireEvent.click(copiedSummary);
-  expect(copiedSummary.getAttribute('aria-expanded')).toBe('true');
-  const copiedOpening = document.getElementById(copiedSummary.getAttribute('aria-controls')!)!;
-  const copiedMembers = within(copiedOpening).getByRole('list', { name: 'Shareholders' });
-  expect(within(copiedMembers).getByText('Example Shareholder')).toBeTruthy();
-  expect(within(copiedMembers).getByText('600 shares')).toBeTruthy();
-  expect(within(copiedMembers).getByText(new RegExp(`added ${formatShortDate('2020-01-01')}$`))).toBeTruthy();
-  const transferTask = screen.getByRole('link', { name: 'Transfer shares' });
-  fireEvent.click(within(copiedMembers).getByRole('button', { name: 'Allotments (Example Shareholder)' }));
-  const copiedDetails = await screen.findByRole('dialog', { name: 'Example Shareholder' });
-  expect(within(copiedDetails).getByText('CERT-001')).toBeTruthy();
-  expect(within(copiedDetails).getAllByRole('heading', { name: /^Allotment / })).toHaveLength(2);
-  fireEvent.click(transferTask);
-  expect(screen.queryByRole('dialog')).toBeNull();
-  expect(screen.queryByRole('list', { name: 'Shareholders' })).toBeNull();
   expect(proposal!.status).toBe('applied');
   expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
   cleanup();
@@ -2382,36 +2211,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     1,
   );
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(0);
-  const preparedAgain = proposal!;
-  fireEvent.click(screen.getByRole('button', { name: '3. Shareholders' }));
-  await waitFor(() => expect(proposal!.status).toBe('rejected'));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(screen.getByRole('button', { name: 'Add a shareholder' })).toBeTruthy();
-  const shareholderStep = within(screen.getByRole('list', { name: 'Ledger setup steps' })).getAllByRole('listitem')[2];
-  expect(shareholderStep.getAttribute('aria-current')).toBe('step');
-  expect(shareholderStep.contains(document.activeElement)).toBe(true);
-  expect(screen.getByText('Example Shareholder')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
-  expect(proposal!.uuid).not.toBe(preparedAgain.uuid);
-  expect(proposal!.members).toEqual(preparedAgain.members);
-  const beforeRightsReview = proposal!;
-  fireEvent.click(screen.getByRole('button', { name: '2. Class rights' }));
-  await waitFor(() => expect(proposal!.status).toBe('rejected'));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  const rightsStep = within(screen.getByRole('list', { name: 'Ledger setup steps' })).getAllByRole('listitem')[1];
-  expect(rightsStep.getAttribute('aria-current')).toBe('step');
-  expect(rightsStep.contains(document.activeElement)).toBe(true);
-  expect(screen.queryByRole('button', { name: 'Add a shareholder' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
-  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe(resumedDraft.asAt);
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(screen.getByText('Example Shareholder')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
-  expect(proposal!.uuid).not.toBe(beforeRightsReview.uuid);
-  expect(proposal!.members).toEqual(beforeRightsReview.members);
   cleanup();
   client.clear();
   api.post.mockClear();
@@ -2518,25 +2317,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       </QueryClientProvider>,
     );
   };
-  rejected.asicIssuedTotal = '601';
-  showReplacement('original-preparer');
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(screen.getByRole('button', { name: 'Show company source copies' }).getAttribute('aria-expanded')).toBe(
-    'false',
-  );
-  api.post.mockClear();
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(
-    screen.getByText(
-      'The earlier ASIC comparison differs from the shareholder records. Check the source or leave out the comparison.',
-    ),
-  ).toBeTruthy();
-  expect(api.post).not.toHaveBeenCalled();
-  rejected.asicIssuedTotal = '600';
-  showReplacement('original-preparer');
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(screen.getByText(/retained source copy will be reused/)).toBeTruthy();
-  expect(screen.getByText(/retained ASIC copy and figures will be reused/)).toBeTruthy();
   showReplacement('another-preparer');
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Show company source copies' }));
@@ -2663,25 +2443,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('link', { name: `${token.name} · ${token.symbol}` }));
   await waitFor(() => expect(screen.queryByLabelText('Class code')).toBeNull());
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
-  for (const status of ['deployed', 'paused', 'deploying'] as const) {
-    cleanup();
-    client.clear();
-    token.status = status;
-    showJourney(importPath);
-    expect(await screen.findByText('This class uses the chain, and the web app can’t open its register.')).toBeTruthy();
-    expect(screen.queryByLabelText('Record date')).toBeNull();
-  }
   cleanup();
   client.clear();
-  showJourney(DESTINATIONS.companyRegisterSetup.path);
-  const noDraftClasses = await screen.findByRole('group', { name: 'Start with' });
-  expect(screen.queryByText(/Continue a class you started/)).toBeNull();
-  expect(
-    within(noDraftClasses)
-      .getAllByRole('radio')
-      .map((radio) => (radio as HTMLInputElement).value),
-  ).toEqual(['ordinary', 'preference', 'redeemable', 'custom']);
-  expect((screen.getByLabelText('Class code') as HTMLInputElement).value).toBe('ORD');
+  token.status = 'deployed';
+  showJourney(importPath);
+  expect(await screen.findByText('This class uses the chain, and the web app can’t open its register.')).toBeTruthy();
+  expect(screen.queryByLabelText('Record date')).toBeNull();
   cleanup();
   client.clear();
   token.status = 'deployed';
@@ -2718,25 +2485,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  expect((screen.getByRole('combobox', { name: 'Company shareholder' }) as HTMLInputElement).value).toBe('');
-  const shareholder = screen.getByRole('combobox', { name: 'Company shareholder' });
-  fireEvent.change(shareholder, { target: { value: companyMembers[0].name } });
-  await screen.findByRole('option', { name: (name) => name.startsWith(companyMembers[0].name!) });
-  fireEvent.keyDown(shareholder, { key: 'Enter' });
-  expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
-  const chosen = screen.getByRole('combobox', { name: 'Company shareholder' });
-  fireEvent.change(chosen, { target: { value: 'nobody matches this' } });
-  await screen.findByRole('option', { name: 'New person' });
-  fireEvent.keyDown(chosen, { key: 'Enter' });
-  fireEvent.keyDown(chosen, { key: 'Escape' });
-  expect((screen.getByLabelText('Name') as HTMLInputElement).readOnly).toBe(true);
-  expect((screen.getByLabelText('Residential address') as HTMLInputElement).readOnly).toBe(true);
-  expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('');
-  expect((screen.getByLabelText('Current shares held') as HTMLInputElement).value).toBe('');
-  expect(screen.getByRole('button', { name: 'Add shareholder' })).toBeTruthy();
-  expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   const enterHolding = () => {
     if (!screen.queryByRole('group', { name: 'Allocation 1' }))
       fireEvent.click(screen.getByRole('button', { name: 'Add allocation (shareholder 1)' }));
@@ -2764,11 +2512,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await choose('Company shareholder', companyMembers[0].name!);
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('2020-01-01');
   expect(screen.getByRole('button', { name: 'Add shareholder' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
-  expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  await choose('Company shareholder', companyMembers[0].name!);
-  enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add shareholder' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
   fireEvent.change(screen.getByRole('combobox', { name: 'Company shareholder' }), {
@@ -2847,23 +2590,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('group', { name: 'Allocation 1' })).toBeNull();
   enterHolding();
   fireEvent.click(screen.getByRole('button', { name: 'Add shareholder' }));
-  const preferences = companyPreferences();
-  const recipientKey = peopleKey(
-    { userUuid: preferences.userProfile, ownerAccountUuid: preferences.userAccount!.uuid },
-    token.uuid,
-  );
-  companyMembers = [{ ...trustedRecipient, name: 'Changed recipient name' }];
-  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
-  expect(await screen.findByText(/keep the company person’s recorded name and address/)).toBeTruthy();
-  expect(api.post).not.toHaveBeenCalled();
-  companyMembers = [];
-  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
-  expect((await screen.findAllByText(/company person is no longer available/)).length).toBeGreaterThan(0);
-  expect(api.post).not.toHaveBeenCalled();
-  companyMembers = [trustedRecipient];
-  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
   fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
   const awardOpening = api.post.mock.calls[0][1] as RegisterImportPreparation;
@@ -2878,67 +2604,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   cleanup();
   client.clear();
   api.post.mockClear();
-  proposal = undefined;
-  let freshClassCreated = false;
-  const freshToken = {
-    ...token,
-    uuid: 'fresh-award-class',
-    name: 'Preference shares',
-    symbol: 'PRF',
-    tokenType: 'preference',
-  };
-  const oldReads = api.get.getMockImplementation()!;
-  api.get.mockImplementation((url, config) => {
-    if (url === REGISTER)
-      return Promise.resolve(dataPage([...setupClasses, ...(freshClassCreated ? [freshToken] : [])]));
-    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(freshToken.uuid))
-      return Promise.resolve({ data: { ...holders(), token: freshToken } });
-    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(freshToken.uuid))
-      return Promise.resolve({ data: { members: companyMembers, awardRecipients: [] } });
-    return oldReads(url, config);
-  });
-  api.post.mockImplementation(async (url, request, config) => {
-    config.ledovaSubmissionGuard();
-    if (url === COMPANY_TOKEN_ENDPOINTS.BASE) {
-      freshClassCreated = true;
-      companyMembers = [];
-      return { data: freshToken };
-    }
-    return prepareAwardOpening(url, request);
-  });
-  showJourney(DESTINATIONS.companyRegisterSetup.path);
-  fireEvent.click(
-    within(await screen.findByRole('group', { name: 'Start with' })).getByRole('radio', { name: 'Preference (PRF)' }),
-  );
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
-  await choose('Company shareholder', trustedRecipient.name);
-  expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe(trustedRecipient.name);
-  expect(api.post).not.toHaveBeenCalled();
-  enterHolding();
-  fireEvent.click(screen.getByRole('button', { name: 'Add shareholder' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect((await screen.findAllByText(/company person is no longer available/)).length).toBeGreaterThan(0);
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
-  expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(0);
-  companyMembers = [trustedRecipient];
-  await act(async () => client.invalidateQueries({ queryKey: recipientKey, exact: true }));
-  fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
-  await waitFor(() => expect(api.post.mock.calls.filter(([url]) => url === IMPORTS)).toHaveLength(1));
-  expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(1);
-  const freshAwardOpening = api.post.mock.calls.find(([url]) => url === IMPORTS)![1] as RegisterImportPreparation;
-  expect(freshAwardOpening.tokenId).toBe(freshToken.uuid);
-  expect(freshAwardOpening.members[0].member).toBe(trustedRecipient.member);
-  expect(freshAwardOpening.members[0].enteredOn).toBe('2020-01-01');
-  cleanup();
-  client.clear();
-  api.post.mockClear();
   opened = false;
   proposal = undefined;
   companyMembers = [];
-  api.get.mockImplementation(oldReads);
   appointment = { ...appointment, uuid: 'empty-register-appointee', capabilities: ['prepare', 'approve', 'apply'] };
   const previousReads = api.get.getMockImplementation()!;
   api.get.mockImplementation((url, config) =>
@@ -3235,48 +2903,25 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     deletionBlockedReason: index === 3 ? 'This class has ownership history.' : null,
   }));
   const removedClasses = new Set<string>();
-  let bulkMode: 'retry' | 'refuse' | 'missing' | 'first-refuse' = 'retry';
-  let bulkHoldingsChanged = false;
+  let refuseBulk = false;
   let interruptedBulk = false;
-  let omitProtected = false;
-  let hideBulkAppointment = false;
-  let failBulkAppointment = false;
-  let failBulkRefresh = false;
-  let refreshBulkClasses: (() => void) | undefined;
   api.get.mockImplementation(async (url) => {
     if (url === REGISTER) {
-      if (failBulkRefresh) throw new Error('Class list refresh interrupted');
-      if (refreshBulkClasses) await new Promise<void>((resolve) => (refreshBulkClasses = resolve));
       return dataPage([
-        ...bulkClasses.filter(({ uuid, canDelete }) => !removedClasses.has(uuid) && (!omitProtected || canDelete)),
+        ...bulkClasses.filter(({ uuid }) => !removedClasses.has(uuid)),
         { ...bulkClasses[0], uuid: 'foreign-class', companyUuid: 'foreign-company', companyName: 'Foreign company' },
       ]);
     }
-    if (url === APPOINTMENTS) {
-      if (failBulkAppointment) throw new Error('Appointment read interrupted');
-      return dataPage(hideBulkAppointment ? [] : [appointment]);
-    }
+    if (url === APPOINTMENTS) return dataPage([appointment]);
     const row = bulkClasses.find(({ uuid }) =>
       [COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid), COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid)].includes(url),
     );
     if (row) {
       if (removedClasses.has(row.uuid))
         throw Object.assign(new Error('Class unavailable'), { response: { status: 404 } });
-      const changed = bulkHoldingsChanged && row.uuid === 'selected-0';
       return url === COMPANY_TOKEN_ENDPOINTS.DETAIL(row.uuid)
         ? { data: row }
-        : {
-            data: {
-              ...holders(),
-              token: row,
-              initialized: changed,
-              issuedSupply: changed ? '7' : null,
-              holders: changed
-                ? [{ member: 'external-holder', name: 'External holder', balance: '7', percentage: 100 }]
-                : [],
-              totalHolders: changed ? 1 : 0,
-            },
-          };
+        : { data: { ...holders(), token: row, initialized: false, issuedSupply: null, holders: [], totalHolders: 0 } };
     }
     return dataPage([]);
   });
@@ -3285,15 +2930,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     const row = bulkClasses.find(({ uuid }) => COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid) === url)!;
     expect(row?.canDelete).toBe(true);
     expect(config.params).toEqual({ expected_updated_at: row.updatedAt });
-    if (bulkMode === 'first-refuse') {
-      bulkHoldingsChanged = true;
-      throw Object.assign(new Error('Class changed'), { response: { status: 409 } });
-    }
     if (row.uuid === 'selected-1') {
-      if (bulkMode === 'refuse') throw Object.assign(new Error('Class changed'), { response: { status: 409 } });
+      if (refuseBulk) throw Object.assign(new Error('Class changed'), { response: { status: 409 } });
       if (!interruptedBulk) {
         interruptedBulk = true;
-        if (bulkMode === 'missing') removedClasses.add(row.uuid);
         throw new Error('Deletion response interrupted');
       }
     }
@@ -3301,38 +2941,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     return { status: 204 };
   });
   showJourney(`/?company=${company.uuid}`);
-  const allClasses = await screen.findByRole('checkbox', { name: 'Select all' });
-  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select First unused' }));
-  expect((allClasses as HTMLInputElement).indeterminate).toBe(true);
-  fireEvent.click(allClasses);
-  expect((allClasses as HTMLInputElement).checked).toBe(true);
-  const protectedSelection = screen.getByRole('checkbox', { name: 'Select Protected records' }) as HTMLInputElement;
-  expect(protectedSelection.matches(':disabled')).toBe(false);
-  expect(protectedSelection.checked).toBe(true);
-  fireEvent.click(protectedSelection);
-  expect((allClasses as HTMLInputElement).indeterminate).toBe(true);
-  fireEvent.click(allClasses);
-  expect(protectedSelection.checked).toBe(true);
-  fireEvent.click(allClasses);
-  fireEvent.click(protectedSelection);
-  expect(screen.getByRole('button', { name: 'Delete selected' }).matches(':disabled')).toBe(true);
-  expect(api.delete).not.toHaveBeenCalled();
-  fireEvent.click(allClasses);
-  expect(screen.getAllByRole('checkbox', { name: 'Select First unused' })).toHaveLength(1);
-  expect(api.delete).not.toHaveBeenCalled();
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select all' }));
+  expect((screen.getByRole('checkbox', { name: 'Select Protected records' }) as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
   let bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
   expect(bulkDialog.getByText(/their saved setup reviews are retired automatically/)).toBeTruthy();
   expect(bulkDialog.getByText('Will be kept')).toBeTruthy();
   expect(bulkDialog.getByText(/Protected records/)).toBeTruthy();
   expect(bulkDialog.getByText('This class has ownership history.')).toBeTruthy();
-  fireEvent.click(bulkDialog.getByRole('button', { name: 'Cancel' }));
-  expect(api.delete).not.toHaveBeenCalled();
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect((screen.getByRole('checkbox', { name: 'Select all' }) as HTMLInputElement).checked).toBe(false);
-  fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
-  bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
   fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete selected' }));
   await bulkDialog.findByRole('button', { name: 'Check original deletion' });
   expect(api.delete.mock.calls.map(([url]) => url)).toEqual([
@@ -3355,113 +2971,31 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-1'),
     COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-2'),
   ]);
-  failBulkRefresh = true;
   fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(screen.queryByText('3 share classes deleted.')).toBeNull();
-  expect(api.delete).toHaveBeenCalledTimes(4);
-  failBulkRefresh = false;
-  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-  bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
-  expect(bulkDialog.getByText('3 deleted · 0 not confirmed')).toBeTruthy();
-  const deletedHolderReads = () =>
-    api.get.mock.calls.filter(([url]) =>
-      bulkClasses.slice(0, 3).some(({ uuid }) => COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid) === url),
-    ).length;
-  const readsBeforeClose = deletedHolderReads();
-  refreshBulkClasses = () => {};
-  fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
-  await waitFor(() => expect(client.isFetching({ predicate: ({ queryKey }) => queryKey.includes('classes') })).toBe(1));
-  expect(deletedHolderReads()).toBe(readsBeforeClose);
-  await act(async () => {
-    refreshBulkClasses?.();
-    refreshBulkClasses = undefined;
-  });
   expect(await screen.findByText('3 share classes deleted.')).toBeTruthy();
   await waitFor(() => expect(screen.queryByRole('link', { name: 'First unused (class details)' })).toBeNull());
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(deletedHolderReads()).toBe(readsBeforeClose);
   expect(screen.getByRole('link', { name: 'Protected records (class details)' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Delete selected' }).matches(':disabled')).toBe(true);
-  for (const mode of ['refuse', 'missing'] as const) {
-    cleanup();
-    client.clear();
-    api.delete.mockClear();
-    bulkMode = mode;
-    interruptedBulk = false;
-    removedClasses.clear();
-    showJourney(`/?company=${company.uuid}`);
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select all' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
-    bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
-    fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete selected' }));
-    if (mode === 'missing') {
-      fireEvent.click(await bulkDialog.findByRole('button', { name: 'Check original deletion' }));
-      expect(
-        await bulkDialog.findByText(
-          'Second unused is no longer available. Its deletion was not confirmed. Remaining classes were not sent.',
-        ),
-      ).toBeTruthy();
-    }
-    await bulkDialog.findByText('1 deleted · 2 not confirmed');
-    expect(api.delete.mock.calls.map(([url]) => url)).toEqual([
-      COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-0'),
-      COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-1'),
-    ]);
-    fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
-    expect(await screen.findByText('1 share class deleted. Remaining classes were kept or need review.')).toBeTruthy();
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(screen.getByRole('button', { name: 'Delete selected' }).matches(':disabled')).toBe(true);
-    expect(screen.getByRole('link', { name: 'Third unused (class details)' })).toBeTruthy();
-  }
   cleanup();
   client.clear();
   api.delete.mockClear();
+  refuseBulk = true;
   removedClasses.clear();
-  bulkMode = 'first-refuse';
   showJourney(`/?company=${company.uuid}`);
   fireEvent.click(await screen.findByRole('checkbox', { name: 'Select all' }));
   fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
   bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
   fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete selected' }));
-  await bulkDialog.findByText('0 deleted · 3 not confirmed');
+  await bulkDialog.findByText('1 deleted · 2 not confirmed');
+  expect(api.delete.mock.calls.map(([url]) => url)).toEqual([
+    COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-0'),
+    COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-1'),
+  ]);
   fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
-  expect(await screen.findByText('0 share classes deleted. Remaining classes were kept or need review.')).toBeTruthy();
-  expect(await screen.findByText('7')).toBeTruthy();
-  expect(api.delete).toHaveBeenCalledOnce();
-  cleanup();
-  client.clear();
-  api.delete.mockClear();
-  bulkHoldingsChanged = false;
-  bulkMode = 'retry';
-  interruptedBulk = true;
-  omitProtected = true;
-  showJourney(`/?company=${company.uuid}`);
-  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select all' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
-  bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
-  fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete selected' }));
-  await bulkDialog.findByText('3 deleted · 0 not confirmed');
-  hideBulkAppointment = true;
-  failBulkAppointment = true;
-  await act(async () => {
-    await Promise.all([
-      client.invalidateQueries({ queryKey: ['register'] }),
-      client.invalidateQueries({ queryKey: ['company-appointments'] }),
-    ]);
-  });
+  expect(await screen.findByText('1 share class deleted. Remaining classes were kept or need review.')).toBeTruthy();
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  failBulkAppointment = false;
-  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(screen.queryByRole('dialog')).toBeNull();
-  hideBulkAppointment = false;
-  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-  bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
-  fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
-  expect(await screen.findByText('3 share classes deleted.')).toBeTruthy();
-  expect(api.delete).toHaveBeenCalledTimes(3);
+  expect(screen.getByRole('link', { name: 'Third unused (class details)' })).toBeTruthy();
   cleanup();
   client.clear();
   api.delete.mockClear();
@@ -3509,8 +3043,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let rightsSetupCreated = false;
   let rightsSetupAdmin = false;
   let rightsSetupSaved: ClassRightsRevision | null = null;
-  let loseSetupCreation = false;
-  let releaseRightsOpening!: () => void;
   api.post.mockClear();
   api.get.mockImplementation(async (url, config) => {
     if (url === REGISTER) return dataPage(rightsSetupCreated ? [rightsSetupToken] : []);
@@ -3552,16 +3084,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         symbol: rightsSetupToken.symbol,
       });
       rightsSetupCreated = true;
-      if (loseSetupCreation) {
-        loseSetupCreation = false;
-        throw new Error('Class creation reply interrupted');
-      }
       return { data: rightsSetupToken };
     }
-    if (url === IMPORTS)
-      return new Promise((_, reject) => {
-        releaseRightsOpening = () => reject(new Error('Opening response interrupted'));
-      });
     expect(url).toBe(COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid));
     rightsSetupSaved = {
       ...request,
@@ -3586,25 +3110,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
   let setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  expect(setupRightsForm.getByRole('button', { name: 'Save class rights' }).matches(':disabled')).toBe(true);
-  expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('not_recorded');
-  expect(setupRightsForm.queryByRole('button', { name: /^Use .* example$/ })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
-  expect(screen.getByRole('button', { name: '1. Share class' }).matches(':disabled')).toBe(true);
-  expect(screen.getByRole('button', { name: '3. Shareholders' }).matches(':disabled')).toBe(true);
-  expect(screen.getByRole('button', { name: '4. Review' }).matches(':disabled')).toBe(true);
-  expect(document.querySelector('form form')).toBeNull();
-  fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
-  expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('general');
-  expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Cancel' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
-  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe('2026-10-13');
-  expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
-  setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('not_recorded');
   fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
   expect(
@@ -3650,66 +3155,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     summary: 'Company constitution applies.',
     effectiveDate: '2020-01-01',
   });
-  expect(
-    screen.getByRole('list', { name: 'Ledger setup steps' }).querySelector('[aria-current="step"]')?.textContent,
-  ).toContain('Class rights');
-  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
-  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe('2026-10-13');
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  expect(await screen.findByText('No shareholders added yet.')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Back (class rights)' }));
-  expect(await screen.findByText('Company constitution applies.')).toBeTruthy();
-  expect(api.post).toHaveBeenCalledTimes(2);
-  fireEvent.click(screen.getByRole('button', { name: '4. Review' }));
-  await waitFor(() => expect(api.post.mock.calls.some(([url]) => url === IMPORTS)).toBe(true));
-  const heldRightsEdit = screen.getByRole('button', { name: 'Edit class rights' });
-  expect(heldRightsEdit.matches(':disabled')).toBe(true);
-  fireEvent.click(heldRightsEdit);
-  expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull();
-  await act(async () => releaseRightsOpening());
-  expect(await screen.findByRole('button', { name: 'Recover saved records' })).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Edit class rights' }).matches(':disabled')).toBe(true);
-  expect(
-    api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid)),
-  ).toHaveLength(1);
-  cleanup();
-  client.clear();
-  api.post.mockClear();
-  rightsSetupCreated = false;
-  rightsSetupSaved = null;
-  loseSetupCreation = true;
-  showJourney(`${DESTINATIONS.companyRegisterSetup.path}?company=${company.uuid}`);
-  fireEvent.click(await screen.findByRole('radio', { name: 'Another class' }));
-  fireEvent.change(screen.getByLabelText('Class name'), { target: { value: rightsSetupToken.name } });
-  fireEvent.change(screen.getByLabelText('Class code'), { target: { value: rightsSetupToken.symbol } });
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
-  setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
-  expect(await setupRightsForm.findByRole('alert')).toBeTruthy();
-  expect(setupRightsForm.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(false);
-  expect(
-    client
-      .getQueryCache()
-      .findAll({ queryKey: ['register'], predicate: (query) => query.queryKey.includes('classes') })
-      .some((query) => query.state.isInvalidated),
-  ).toBe(true);
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Cancel' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
-  expect(screen.getByLabelText('Class code').matches(':disabled')).toBe(true);
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
-  setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
-  fireEvent.click(await setupRightsForm.findByRole('button', { name: 'Retry original save' }));
-  expect(await screen.findByText('Class rights saved.')).toBeTruthy();
-  expect(api.post.mock.calls.map(([url]) => url)).toEqual([
-    COMPANY_TOKEN_ENDPOINTS.BASE,
-    COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid),
-  ]);
   cleanup();
   client.clear();
   api.post.mockClear();
