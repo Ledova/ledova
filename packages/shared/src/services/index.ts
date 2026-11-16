@@ -54,7 +54,6 @@ export {
 } from './company-authority';
 export {
   getCompanyToken,
-  getClassDetailsHistory,
   createCompanyToken,
   updateCompanyToken,
   deleteCompanyToken,

@@ -48,7 +48,6 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(created_class.status_code, 201, created_class.content)
         class_id = created_class.json()["uuid"]
         details_endpoint = f"/api/v1/tokens/{class_id}/"
-        details_history_endpoint = f"{details_endpoint}class-details-history/"
         changed_class = self.client.patch(
             details_endpoint,
             {
@@ -71,44 +70,6 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(renamed_class.status_code, 200, renamed_class.content)
-        details_history = self.client.get(details_history_endpoint, {"page_size": 1})
-        self.assertEqual(details_history.status_code, 200, details_history.content)
-        self.assertEqual(details_history.json()["count"], 2)
-        self.assertTrue(details_history.json()["next"])
-        self.assertEqual(details_history.json()["results"][0]["token"], class_id)
-        self.assertEqual(details_history.json()["results"][0]["revision"], 2)
-        self.assertEqual(
-            details_history.json()["results"][0]["before"],
-            {"name": "Preferred setup class", "symbol": "PREF", "tokenType": "preference"},
-        )
-        self.assertEqual(
-            details_history.json()["results"][0]["after"],
-            {"name": "Retired setup class", "symbol": "RET", "tokenType": "redeemable"},
-        )
-        self.assertTrue(details_history.json()["results"][0]["recordedByName"])
-        self.assertTrue(details_history.json()["results"][0]["createdAt"])
-        self.assertNotIn("recordedBy", details_history.json()["results"][0])
-        self.assertNotIn("appointment", details_history.json()["results"][0])
-        earlier_details = self.client.get(details_history_endpoint, {"page_size": 1, "page": 2})
-        self.assertEqual(earlier_details.status_code, 200, earlier_details.content)
-        self.assertEqual(earlier_details.json()["results"][0]["revision"], 1)
-        with use_operator():
-            type(self.owner).objects.filter(pk=self.owner.pk).update(is_active=False)
-        try:
-            self.assertTrue(self.owner.is_active)
-            self.assertEqual(self.client.get(details_history_endpoint).status_code, 404)
-        finally:
-            with use_operator():
-                type(self.owner).objects.filter(pk=self.owner.pk).update(is_active=True)
-        with use_operator():
-            type(self.owner).objects.filter(pk=self.owner.pk).update(is_email_verified=False)
-        try:
-            self.assertTrue(self.owner.is_email_verified)
-            self.assertEqual(self.client.get(details_history_endpoint).status_code, 404)
-        finally:
-            with use_operator():
-                type(self.owner).objects.filter(pk=self.owner.pk).update(is_email_verified=True)
-        self.assertEqual(self.client.get(details_history_endpoint).status_code, 200)
         rights_endpoint = f"/api/v1/tokens/{self.token.pk}/class-rights/"
         class_document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.CLASS_RIGHTS)
         rights = {
@@ -275,7 +236,6 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         )
         self.assertEqual(accepted.status_code, 200, accepted.content)
         self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "all"}).status_code, 404)
-        self.assertEqual(self.client.get(details_history_endpoint).status_code, 404)
         _, team_code, _ = issue_team_invitation(
             requester=self.owner,
             company_id=self.company.pk,
@@ -286,7 +246,6 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         reader = accept_team_invitation(
             requester=self.foreign, code=team_code, declaration_version=DECLARATION_VERSION, accept_declaration=True
         )
-        self.assertEqual(self.client.get(details_history_endpoint).json()["count"], 2)
         self.assertEqual(self.client.get(entries_endpoint, {"certificate_status": "can_prepare"}).json()["count"], 3)
         for private in ("member-invitations", "member-associations"):
             listed = self.client.get(f"/api/v1/tokens/{private}/", {"company": str(self.company.pk)})
@@ -299,7 +258,6 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(reader_preview.json()["sourceDigest"], linked)
         revoke_company_appointment(requester=self.owner, appointment_id=reader.pk)
         self.assertEqual(self.client.get(f"{company_endpoint}?sequence={entry.sequence}").status_code, 404)
-        self.assertEqual(self.client.get(details_history_endpoint).status_code, 404)
         self.client.force_authenticate(self.owner)
         ending_evidence = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
         ending = self.client.post(

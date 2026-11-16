@@ -8,7 +8,7 @@ import { Modal, ModalActions } from '@components/Modal';
 import type { useClassDetails } from './useClassDetails';
 
 type Details = ReturnType<typeof useClassDetails>;
-type ClassDetailsProps = { token: CompanyShareToken; details: Details; available: boolean; history?: ReactNode };
+type ClassDetailsProps = { token: CompanyShareToken; details: Details; available: boolean };
 
 function ClassDetailsEditor({ details, available }: { details: Details; available: boolean }) {
   const name = useRef<HTMLInputElement>(null);
@@ -148,7 +148,6 @@ export function ClassDetailsContent({
   details,
   available,
   children,
-  history,
 }: ClassDetailsProps & { children?: ReactNode }) {
   const target = details.deleting;
   const currentDelete = available && target?.updatedAt === token.updatedAt && token.canDelete;
@@ -186,7 +185,6 @@ export function ClassDetailsContent({
               {!target && <Failure>{details.error}</Failure>}
             </>
           )}
-          {history}
         </div>
       </div>
       <Modal

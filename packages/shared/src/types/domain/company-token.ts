@@ -9,9 +9,6 @@ export type CompanyShareTokenUpdate = Required<ApiRequest<'api_v1_tokens_partial
 export type CompanyShareTokenDeleteQueryParams = ApiQuery<'api_v1_tokens_destroy'>;
 
 export type CompanyShareTokenListItem = ApiResponse<'api_v1_tokens_list'>['results'][number];
-export type ClassDetailsHistory = ApiResponse<'api_v1_tokens_class_details_history_list'>;
-export type ClassDetailsRevision = ClassDetailsHistory['results'][number];
-export type ClassDetailsHistoryQuery = ApiQuery<'api_v1_tokens_class_details_history_list'>;
 
 export type TokenHoldersResponse = ApiResponse<'api_v1_tokens_holders_retrieve'>;
 export type CompanyOwnershipSummary = ApiResponse<'api_v1_tokens_ownership_retrieve'>;

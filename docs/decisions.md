@@ -2757,5 +2757,6 @@ On 16 November the owner approved editing an unused class after a confirmed empt
 provided the original details remain in audit history. Every actual name, code or type change
 retains its before/after values, representative, appointment and time. The opening and its hash
 are unchanged. Existing ownership activity, linked business records and deployment restrictions
-remain; a zero current balance after past ownership does not qualify. This increment adds web
-history on demand and includes it in company packs; native presentation remains for later.
+remain; a zero current balance after past ownership does not qualify. The owner clarified that
+history should be retained without a visible history section. Company packs include the audit;
+there is no separate history page or read API. No native UI change is included.

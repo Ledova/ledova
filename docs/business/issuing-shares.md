@@ -43,8 +43,9 @@ after a confirmed empty opening. **Edit** stays
 visible for current preparers when locked, disabled with the server's reason; readers without that
 mandate get no Edit action. Reject any saved setup review first; the rejected draft stays recorded.
 Each saved change retains its previous and new name, code and type, the representative, appointment
-and time. **Show previous details** reveals those changes; the original opening, decisions and hash
-remain unchanged. The company pack includes the full attributed details history, even after deletion.
+and time automatically, without adding a history section to the page. The original opening,
+decisions and hash remain unchanged. The company pack includes the full attributed details history,
+even after deletion.
 A zero balance after actual ownership activity does not permit editing.
 **Delete share class** removes an unused
 class from active use and automatically retires any saved, unconfirmed setup reviews in the same

@@ -895,22 +895,6 @@ export interface ApiPaths {
     patch: ApiOperations['api_v1_tokens_partial_update'];
     trace?: never;
   };
-  '/api/v1/tokens/{uuid}/class-details-history/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_class_details_history_list'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/tokens/{uuid}/class-rights-file/': {
     parameters: {
       query?: never;
@@ -3725,26 +3709,6 @@ export interface ApiComponents {
       currentPassword: string;
       newPassword: string;
       newPasswordConfirm: string;
-    };
-    ClassDetailsHistory: {
-      count: number;
-      next: string | null;
-      previous: string | null;
-      results: ApiComponents['schemas']['ClassDetailsRevision'][];
-    };
-    ClassDetailsRevision: {
-      after: ApiComponents['schemas']['ClassDetailsSnapshot'];
-      before: ApiComponents['schemas']['ClassDetailsSnapshot'];
-      createdAt: string;
-      recordedByName: string;
-      revision: number;
-      token: string;
-      uuid: string;
-    };
-    ClassDetailsSnapshot: {
-      name: string;
-      symbol: string;
-      tokenType: ApiComponents['schemas']['TokenTypeEnum'];
     };
     ClassOwnershipHolders: {
       asAt: string;
@@ -9412,30 +9376,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['ShareTokenDetail'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_class_details_history_list: {
-    parameters: {
-      query?: {
-        page?: number;
-        page_size?: number;
-      };
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['ClassDetailsHistory'];
         };
       };
     };

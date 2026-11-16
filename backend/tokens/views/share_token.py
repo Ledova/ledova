@@ -26,11 +26,6 @@ from tokens.serializers import (
     ShareTokenDetailSerializer,
     ShareTokenListSerializer,
 )
-from tokens.serializers.class_details import (
-    ClassDetailsHistoryQuerySerializer,
-    ClassDetailsHistorySerializer,
-    ClassDetailsRevisionSerializer,
-)
 from tokens.serializers.class_rights import (
     ClassRightsFileQuerySerializer,
     ClassRightsPageSerializer,
@@ -62,7 +57,6 @@ from tokens.serializers.share_token import (
     ShareTokenEditSerializer,
     ShareTokenVersionSerializer,
 )
-from tokens.services.class_details import class_details_history
 from tokens.services.class_lifecycle import (
     class_lifecycle_access,
     delete_unused_class,
@@ -123,7 +117,6 @@ class ShareTokenViewSet(
             "register_members",
             "class_rights",
             "class_rights_file",
-            "class_details_history",
             "ownership",
             "ownership_holders",
         }
@@ -151,9 +144,7 @@ class ShareTokenViewSet(
         "The list of earlier inspection copies requires the same appointment and shows only copies recorded as "
         "produced through the company's pages. "
         "Private class-rights descriptions are read by exact-company register readers; their durable append-only "
-        "producer requires current personal company administration and retains attributable revisions. "
-        "Class-details history uses the same exact-company register-reader permission and retains attributable "
-        "before and after metadata without exposing unrelated company records. "
+        "producer requires current personal company administration and retains attributable revisions."
         "Ownership summaries and paged holder reads recheck the active actor and exact-company reader inside "
         "one read-only repeatable snapshot, aggregate stored positive balances and return no unrelated history."
     )
@@ -170,7 +161,6 @@ class ShareTokenViewSet(
             "register_certificate",
             "class_rights",
             "class_rights_file",
-            "class_details_history",
             "ownership",
             "ownership_holders",
         }
@@ -303,23 +293,6 @@ class ShareTokenViewSet(
         response = self.get_paginated_response(OwnershipHolderSerializer(result.pop("results"), many=True).data)
         response.data.update(result)
         return response
-
-    @extend_schema(
-        operation_id="api_v1_tokens_class_details_history_list",
-        parameters=[
-            OpenApiParameter("page", OpenApiTypes.INT),
-            OpenApiParameter("page_size", OpenApiTypes.INT),
-        ],
-        filters=False,
-        responses=ClassDetailsHistorySerializer,
-    )
-    @action(detail=True, methods=["get"], url_path="class-details-history")
-    def class_details_history(self, request, uuid=None):
-        query = ClassDetailsHistoryQuerySerializer(data=request.query_params)
-        query.is_valid(raise_exception=True)
-        with class_details_history(actor=request.user, token=self.get_object()) as revisions:
-            page = self.paginate_queryset(revisions)
-            return self.get_paginated_response(ClassDetailsRevisionSerializer(page, many=True).data)
 
     @extend_schema(
         methods=["GET"],

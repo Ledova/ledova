@@ -325,8 +325,8 @@ OPERATOR_ONLY = {
     "operator connection. Bounded prepare commands add links, and exact applied opening records retain their links; "
     "neither public nor member projections expose the files.",
     "tokens_classdetailsrevision": "Append-only class-detail changes, generated atomically by the database with "
-    "exact before and after values, personal actor, appointment and timestamp. Current exact-company register "
-    "readers and company-pack exports read them on the operator connection; the app role has no direct table grant.",
+    "exact before and after values, personal actor, appointment and timestamp. Permitted company-pack exports "
+    "read them on the operator connection; the app role has no direct table grant.",
     "tokens_classrightsrevision": "Append-only company-supplied class-rights descriptions. Current exact-company "
     "register readers read them through the class-rights action and permitted company-pack exports; the bounded "
     "producer requires a current personal ADMIN appointment and retains actor, time, exact revision history and "
