@@ -48,6 +48,7 @@ export function ClassSetup({
   classHeld,
   onHeldChange,
   classDetails,
+  classActions,
   onRecordsChanged,
 }: {
   uuid: string;
@@ -57,7 +58,8 @@ export function ClassSetup({
   externalHeld?: boolean;
   classHeld: boolean;
   onHeldChange?: (held: boolean) => void;
-  classDetails: ReactNode;
+  classDetails: (recordFields: ReactNode) => ReactNode;
+  classActions: ReactNode;
   onRecordsChanged?: () => void;
 }) {
   const client = useQueryClient();
@@ -231,6 +233,7 @@ export function ClassSetup({
               canOpenEmptyRegister(register.data, listed)
             }
             classDetails={classDetails}
+            classActions={classActions}
             classHeld={classHeld}
             appointment={canPrepare ? steps?.prepare : undefined}
             steps={steps ?? retained.steps}

@@ -38,6 +38,10 @@ register setup, and one primary action ends the step.
 Register setup uses one **Ledger setup** card, with **Share class**, **Shareholders** and **Review**
 steps. The class name stays in the page header. Its first step groups name, code, type and record
 date, reusing the inline metadata editor rather than a separate Class details card or nested card.
+In its read view, name/code and type/date share a two-column grid on wide screens, with labels
+above values, stacking on phones. Secondary Edit/Delete controls sit beside the card heading;
+Cancel/Import/Continue stays in one bottom workflow footer. Do not insert a separate metadata
+action row between the class facts and the date.
 New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
 While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
 Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and
@@ -154,7 +158,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
   muted sentence ("No share classes yet.") and at most one action; a state is never a
-  title. A card's title is a heading, such as Ledger's Share classes. On the web, every
+  title. A card's title is a heading, such as Ledger's Share classes. Its optional `actions` slot
+  keeps secondary record controls beside that heading; workflow actions stay in the bottom footer.
+  On the web, every
   paragraph in a card, including its forms' notes but not flex, right-aligned or truncated rows, and a page's
   lede keep a readable width (`max-w-prose`).
 - `Rows` and `Row`: ruled label and value pairs for a record's labelled facts, such as an
@@ -164,8 +170,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   keeps its label on the left and its value on the right at every width, a long value wrapping right-aligned beside it;
   an authority request's page uses it for every fact (owner, 5 November 2026), and a share class's page
   for its summary figures, recorded rights and effective date, register setup for its review's figures and a class's
-  details. Breakdowns of figures (company ownership) and an award's chart legend keep their own layout,
-  without tinted tiles.
+  completed details. Setup groups its class facts and date as fields instead. Breakdowns of figures
+  (company ownership) and an award's chart legend keep their own layout, without tinted tiles.
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines, an optional `figure` at the right of the
   title, such as an award's promised shares, and an aside. A step in a checklist, such

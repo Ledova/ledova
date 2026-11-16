@@ -1,7 +1,6 @@
-import { Field, TextArea, TextInput, FileField } from '@components/Field';
+import { FileField } from '@components/Field';
 import { useLayoutEffect, useState } from 'react';
 import {
-  FIELD_LIMITS,
   blankMember,
   formatShareCount,
   memberAddedOn,
@@ -18,28 +17,22 @@ import { ShowMore, Failure } from '@components/Ledger';
 
 export function BringRecords({
   draft,
-  today,
-  correction,
   busy,
   differs,
   update,
   setMember,
   companyMembers,
   preserveParticulars,
-  step,
   validateMember,
   onEditorChange,
 }: {
   draft: PreparationDraft;
-  today: string;
-  correction: boolean;
   busy: boolean;
   differs: boolean;
   update: (apply: (current: PreparationDraft) => PreparationDraft) => void;
   setMember: (index: number, patch: Partial<MemberDraft>) => void;
   companyMembers: RegisterTransferMember[];
   preserveParticulars: boolean;
-  step: 'details' | 'shareholders';
   validateMember: (index: number) => string[];
   onEditorChange: (open: boolean) => void;
 }) {
@@ -85,197 +78,162 @@ export function BringRecords({
   };
   return (
     <>
-      {step === 'details' && (
-        <fieldset className="space-y-3">
-          <legend className="sr-only">Record date</legend>
-          <Field label="Record date">
-            <TextInput
-              type="date"
-              max={today}
-              value={draft.asAt}
-              onChange={(event) => update((current) => ({ ...current, asAt: event.target.value }))}
-            />
-          </Field>
-          {correction && (
-            <Field label={correction ? 'Reason for correcting the mirror' : 'Reason'}>
-              <TextArea
-                rows={2}
-                value={draft.reason}
-                maxLength={FIELD_LIMITS.REASON}
-                onChange={(event) => update((current) => ({ ...current, reason: event.target.value }))}
-              />
-            </Field>
-          )}
-          {correction && (
+      <fieldset className="min-w-0 space-y-3">
+        <legend className="sr-only">Shareholders</legend>
+        {!editorOpen && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-text-muted">
-              This corrects a copied opening. The earlier snapshot and evidence remain in history. It does not change
-              the company’s legal records.
+              {count === 0
+                ? 'No shareholders added yet.'
+                : `${count} ${count === 1 ? 'shareholder' : 'shareholders'} in this draft`}
             </p>
-          )}
-        </fieldset>
-      )}
-      {step === 'shareholders' && (
-        <>
-          <fieldset className="min-w-0 space-y-3">
-            <legend className="sr-only">Shareholders</legend>
-            {!editorOpen && (
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-text-muted">
-                  {count === 0
-                    ? 'No shareholders added yet.'
-                    : `${count} ${count === 1 ? 'shareholder' : 'shareholders'} in this draft`}
-                </p>
-                <PageAction label="Add a shareholder" disabled={busy} onClick={add} />
-              </div>
-            )}
-            {listed && (
-              <ul aria-label="Draft shareholders" className="divide-y divide-border-subtle">
-                {draft.members.map((row, index) =>
-                  started(row) && row.member !== editor?.member ? (
-                    <MemberRow
-                      key={row.member}
-                      name={row.name || 'Shareholder details incomplete'}
-                      shares={row.shares ? shareCount(row.shares) : '—'}
-                      address={row.residentialAddress}
-                      facts={
-                        <>
-                          {memberAddedOn(row.enteredOn)}
-                          {validateMember(index).length > 0 && (
-                            <span className="text-error-light"> · Needs details</span>
-                          )}
-                        </>
-                      }
-                    >
-                      <PageAction
-                        compact
-                        label="Edit"
-                        context={`shareholder ${index + 1}`}
-                        disabled={busy || editorOpen}
-                        onClick={() => {
-                          forget();
-                          setEditor({ member: row.member, original: row });
-                        }}
-                      />
-                      <PageAction
-                        compact
-                        label="Remove"
-                        context={`shareholder ${index + 1}`}
-                        disabled={busy || editorOpen}
-                        onClick={() =>
-                          update((current) => ({
-                            ...current,
-                            members: current.members.filter((_, at) => at !== index),
-                          }))
-                        }
-                      />
-                    </MemberRow>
-                  ) : null,
-                )}
-              </ul>
-            )}
-            {editing && (
-              <div className={listed ? 'space-y-5 border-t border-border-subtle pt-5' : 'space-y-5'}>
-                <h3 className="text-base font-medium text-text-primary">
-                  {editor?.original ? 'Edit shareholder' : 'Add shareholder'}
-                </h3>
-                <ErrorSummary
-                  attempt={memberCheck.attempt}
-                  problems={memberCheck.problems
-                    .filter((problem) => failing.includes(problem))
-                    .map((message) => ({ message }))}
-                />
-                <MemberFields
-                  key={editing.member}
-                  row={editing}
-                  index={editingIndex}
-                  asAt={draft.asAt}
-                  companyMembers={companyMembers}
-                  preserveParticulars={preserveParticulars}
-                  usedMembers={draft.members.filter((_, at) => at !== editingIndex).map((member) => member.member)}
-                  validationAttempt={memberCheck.attempt}
-                  update={(patch) => {
-                    setMember(editingIndex, patch);
-                    if (patch.member) setEditor((current) => (current ? { ...current, member: patch.member! } : null));
-                  }}
-                />
-                <FormActions>
+            <PageAction label="Add a shareholder" disabled={busy} onClick={add} />
+          </div>
+        )}
+        {listed && (
+          <ul aria-label="Draft shareholders" className="divide-y divide-border-subtle">
+            {draft.members.map((row, index) =>
+              started(row) && row.member !== editor?.member ? (
+                <MemberRow
+                  key={row.member}
+                  name={row.name || 'Shareholder details incomplete'}
+                  shares={row.shares ? shareCount(row.shares) : '—'}
+                  address={row.residentialAddress}
+                  facts={
+                    <>
+                      {memberAddedOn(row.enteredOn)}
+                      {validateMember(index).length > 0 && <span className="text-error-light"> · Needs details</span>}
+                    </>
+                  }
+                >
                   <PageAction
-                    label="Cancel"
-                    context="shareholder edit"
-                    disabled={busy}
+                    compact
+                    label="Edit"
+                    context={`shareholder ${index + 1}`}
+                    disabled={busy || editorOpen}
                     onClick={() => {
-                      const original = editor?.original;
+                      forget();
+                      setEditor({ member: row.member, original: row });
+                    }}
+                  />
+                  <PageAction
+                    compact
+                    label="Remove"
+                    context={`shareholder ${index + 1}`}
+                    disabled={busy || editorOpen}
+                    onClick={() =>
                       update((current) => ({
                         ...current,
-                        members: original
-                          ? current.members.map((row, index) => (index === editingIndex ? original : row))
-                          : current.members.filter((_, index) => index !== editingIndex),
-                      }));
-                      setEditor(null);
-                      forget();
-                    }}
+                        members: current.members.filter((_, at) => at !== index),
+                      }))
+                    }
                   />
-                  <PageAction
-                    label={editor?.original ? 'Save changes' : 'Add shareholder'}
-                    primary
-                    disabled={busy}
-                    onClick={() => {
-                      setMemberCheck((current) => ({ attempt: current.attempt + 1, problems: failing }));
-                      if (!failing.length) setEditor(null);
-                    }}
-                  />
-                </FormActions>
-              </div>
+                </MemberRow>
+              ) : null,
             )}
-          </fieldset>
-          <ShowMore show="Show company source copies" hide="Hide company source copies">
-            {draft.earlierCopiesNotReused && (
+          </ul>
+        )}
+        {editing && (
+          <div className={listed ? 'space-y-5 border-t border-border-subtle pt-5' : 'space-y-5'}>
+            <h3 className="text-base font-medium text-text-primary">
+              {editor?.original ? 'Edit shareholder' : 'Add shareholder'}
+            </h3>
+            <ErrorSummary
+              attempt={memberCheck.attempt}
+              problems={memberCheck.problems
+                .filter((problem) => failing.includes(problem))
+                .map((message) => ({ message }))}
+            />
+            <MemberFields
+              key={editing.member}
+              row={editing}
+              index={editingIndex}
+              asAt={draft.asAt}
+              companyMembers={companyMembers}
+              preserveParticulars={preserveParticulars}
+              usedMembers={draft.members.filter((_, at) => at !== editingIndex).map((member) => member.member)}
+              validationAttempt={memberCheck.attempt}
+              update={(patch) => {
+                setMember(editingIndex, patch);
+                if (patch.member) setEditor((current) => (current ? { ...current, member: patch.member! } : null));
+              }}
+            />
+            <FormActions>
+              <PageAction
+                label="Cancel"
+                context="shareholder edit"
+                disabled={busy}
+                onClick={() => {
+                  const original = editor?.original;
+                  update((current) => ({
+                    ...current,
+                    members: original
+                      ? current.members.map((row, index) => (index === editingIndex ? original : row))
+                      : current.members.filter((_, index) => index !== editingIndex),
+                  }));
+                  setEditor(null);
+                  forget();
+                }}
+              />
+              <PageAction
+                label={editor?.original ? 'Save changes' : 'Add shareholder'}
+                primary
+                disabled={busy}
+                onClick={() => {
+                  setMemberCheck((current) => ({ attempt: current.attempt + 1, problems: failing }));
+                  if (!failing.length) setEditor(null);
+                }}
+              />
+            </FormActions>
+          </div>
+        )}
+      </fieldset>
+      <ShowMore show="Show company source copies" hide="Hide company source copies">
+        {draft.earlierCopiesNotReused && (
+          <p className="text-sm text-text-muted">
+            Earlier source documents remain with their original record. Add replacement documents if needed.
+          </p>
+        )}
+        <FileField
+          showUploadHint
+          label="Current share register"
+          hint={draft.registerEvidence && 'The retained source copy will be reused unless you choose another file.'}
+          onFile={(file) => update((current) => ({ ...current, registerFile: file }))}
+        />
+        <FileField
+          showUploadHint
+          label="ASIC extract"
+          hint={draft.asicEvidence && 'The retained ASIC copy and figures will be reused unless you change them.'}
+          onFile={(file) => update((current) => ({ ...current, asicFile: file }))}
+        />
+        {(draft.statedTotal || draft.statedCount) && (
+          <fieldset className="space-y-3 border-t border-border-subtle pt-3">
+            <legend className="sr-only">Earlier ASIC comparison</legend>
+            <p className="text-sm text-text-muted">
+              Earlier ASIC comparison
+              {draft.statedTotal && ` · ${formatShareCount(draft.statedTotal)} issued shares`}
+              {draft.statedCount &&
+                ` · ${formatShareCount(draft.statedCount)} ${draft.statedCount === '1' ? 'shareholder' : 'shareholders'} listed`}
+            </p>
+            {!draft.asicEvidence && !draft.asicFile && (
               <p className="text-sm text-text-muted">
-                Earlier source documents remain with their original record. Add replacement documents if needed.
+                Add a replacement ASIC extract above or leave out these earlier comparison figures.
               </p>
             )}
-            <FileField
-              showUploadHint
-              label="Current share register"
-              hint={draft.registerEvidence && 'The retained source copy will be reused unless you choose another file.'}
-              onFile={(file) => update((current) => ({ ...current, registerFile: file }))}
-            />
-            <FileField
-              showUploadHint
-              label="ASIC extract"
-              hint={draft.asicEvidence && 'The retained ASIC copy and figures will be reused unless you change them.'}
-              onFile={(file) => update((current) => ({ ...current, asicFile: file }))}
-            />
-            {(draft.statedTotal || draft.statedCount) && (
-              <fieldset className="space-y-3 border-t border-border-subtle pt-3">
-                <legend className="sr-only">Earlier ASIC comparison</legend>
-                <p className="text-sm text-text-muted">
-                  Earlier ASIC comparison
-                  {draft.statedTotal && ` · ${formatShareCount(draft.statedTotal)} issued shares`}
-                  {draft.statedCount &&
-                    ` · ${formatShareCount(draft.statedCount)} ${draft.statedCount === '1' ? 'shareholder' : 'shareholders'} listed`}
-                </p>
-                {!draft.asicEvidence && !draft.asicFile && (
-                  <p className="text-sm text-text-muted">
-                    Add a replacement ASIC extract above or leave out these earlier comparison figures.
-                  </p>
-                )}
-                {differs && (
-                  <Failure>
-                    The earlier comparison differs from the current shareholders. Check the source or leave out the
-                    comparison before continuing.
-                  </Failure>
-                )}
-                <PageAction
-                  label="Leave out ASIC comparison"
-                  disabled={busy}
-                  onClick={() => update((current) => ({ ...current, statedTotal: '', statedCount: '' }))}
-                />
-              </fieldset>
+            {differs && (
+              <Failure>
+                The earlier comparison differs from the current shareholders. Check the source or leave out the
+                comparison before continuing.
+              </Failure>
             )}
-          </ShowMore>
-        </>
-      )}
+            <PageAction
+              label="Leave out ASIC comparison"
+              disabled={busy}
+              onClick={() => update((current) => ({ ...current, statedTotal: '', statedCount: '' }))}
+            />
+          </fieldset>
+        )}
+      </ShowMore>
     </>
   );
 }

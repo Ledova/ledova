@@ -2328,7 +2328,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByRole('header', { name: 'Class details' })).toBeNull();
   expect(screen.getByLabelText('Class code: PRF')).toBeTruthy();
   const openingDate = '2026-11-14';
-  await fireEvent.changeText(screen.getByLabelText('Record date'), openingDate);
+  const recordDate = screen.getByLabelText('Record date');
+  await fireEvent.changeText(recordDate, openingDate);
   await fireEvent.press(screen.getByRole('button', { name: 'Edit Class details', disabled: false }));
   expect(screen.getByLabelText('Class name').props.value).toBe(PREFERENCE.name);
   expect(screen.queryByLabelText('Record date')).toBeNull();
@@ -2337,6 +2338,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.changeText(screen.getByLabelText('Class name'), 'Discarded class name');
   await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
   expect((await screen.findByLabelText('Record date')).props.value).toBe(openingDate);
+  expect(screen.getByLabelText('Record date')).toBe(recordDate);
   expect(screen.getByLabelText(`Class name: ${PREFERENCE.name}`)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Edit Class details', disabled: false }));
   await fireEvent.changeText(screen.getByLabelText('Class name'), 'Updated preference shares');

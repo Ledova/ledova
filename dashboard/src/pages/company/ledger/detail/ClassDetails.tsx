@@ -1,9 +1,9 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { REGISTER_CLASS_TYPES, type CompanyShareToken } from '@ledova/shared';
 import { Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
-import { Failure, Outcome, Row, Rows, Section } from '@components/Ledger';
-import { FormActions, PageAction } from '@components/Page';
+import { Fact, Failure, Outcome, Row, Rows, Section } from '@components/Ledger';
+import { Actions, FormActions, PageAction } from '@components/Page';
 import { Modal, ModalActions } from '@components/Modal';
 import type { useClassDetails } from './useClassDetails';
 
@@ -79,13 +79,13 @@ function ClassDetailsEditor({ details, available }: { details: Details; availabl
 
 export function ClassDetails(props: ClassDetailsProps) {
   return (
-    <Section title="Class details">
+    <Section title="Class details" actions={<ClassDetailsActions {...props} />}>
       <ClassDetailsContent {...props} />
     </Section>
   );
 }
 
-export function ClassDetailsContent({ token, details, available }: ClassDetailsProps) {
+export function ClassDetailsActions({ token, details, available }: ClassDetailsProps) {
   const edit = useRef<HTMLButtonElement>(null);
   const deletionReasonId = useId();
   const wasEditing = useRef(false);
@@ -96,57 +96,84 @@ export function ClassDetailsContent({ token, details, available }: ClassDetailsP
       wasEditing.current = false;
     }
   }, [details.editor, available]);
+  return (
+    <div hidden={!!details.editor}>
+      <Actions>
+        {token.canEditDetails && (
+          <PageAction
+            ref={edit}
+            compact
+            label="Edit"
+            context="Class details"
+            disabled={!available || details.held}
+            onClick={() => details.open('edit')}
+          />
+        )}
+        {(token.canDelete || token.deletionBlockedReason) && (
+          <PageAction
+            compact
+            label="Delete"
+            context="share class"
+            describedBy={token.deletionBlockedReason ? deletionReasonId : undefined}
+            disabled={!available || details.held || !token.canDelete}
+            onClick={() => details.open('delete')}
+          />
+        )}
+        {token.deletionBlockedReason && (
+          <span id={deletionReasonId} className="sr-only">
+            {token.deletionBlockedReason}
+          </span>
+        )}
+      </Actions>
+    </div>
+  );
+}
+
+export function ClassDetailsContent({
+  token,
+  details,
+  available,
+  children,
+}: ClassDetailsProps & { children?: ReactNode }) {
   const target = details.deleting;
   const currentDelete = available && target?.updatedAt === token.updatedAt && token.canDelete;
+  const facts = [
+    ['Class name', token.name],
+    ['Class code', token.symbol],
+    ['Class type', token.tokenTypeDisplay],
+  ];
   return (
     <>
-      {details.editor ? (
-        <ClassDetailsEditor details={details} available={available} />
-      ) : (
+      {details.editor && <ClassDetailsEditor details={details} available={available} />}
+      <div hidden={!!details.editor}>
         <div className="space-y-4">
-          <Rows>
-            <Row label="Class name" inline>
-              {token.name}
-            </Row>
-            <Row label="Class code" inline>
-              {token.symbol}
-            </Row>
-            <Row label="Class type" inline>
-              {token.tokenTypeDisplay}
-            </Row>
-          </Rows>
-          {token.deletionBlockedReason && (
-            <p id={deletionReasonId} className="text-sm text-text-muted">
-              {token.deletionBlockedReason}
-            </p>
+          {children ? (
+            <div className="grid min-w-0 items-start gap-6 md:grid-cols-2">
+              {facts.map(([label, value]) => (
+                <dl key={label}>
+                  <Fact label={label}>{value}</Fact>
+                </dl>
+              ))}
+              <div hidden={details.held}>{children}</div>
+            </div>
+          ) : (
+            <Rows>
+              {facts.map(([label, value]) => (
+                <Row key={label} label={label} inline>
+                  {value}
+                </Row>
+              ))}
+            </Rows>
           )}
-          {(token.canDelete || token.deletionBlockedReason || token.canEditDetails) && (
-            <FormActions>
-              {(token.canDelete || token.deletionBlockedReason) && (
-                <PageAction
-                  label="Delete"
-                  context="share class"
-                  destructive
-                  describedBy={token.deletionBlockedReason ? deletionReasonId : undefined}
-                  disabled={!available || details.held || !token.canDelete}
-                  onClick={() => details.open('delete')}
-                />
-              )}
-              {token.canEditDetails && (
-                <PageAction
-                  ref={edit}
-                  label="Edit"
-                  context="Class details"
-                  disabled={!available || details.held}
-                  onClick={() => details.open('edit')}
-                />
-              )}
-            </FormActions>
+          {!details.editor && (
+            <>
+              {token.deletionBlockedReason && <p className="text-sm text-text-muted">{token.deletionBlockedReason}</p>}
+              <Outcome>{details.outcome}</Outcome>
+              {!target && <Failure>{details.error}</Failure>}
+            </>
           )}
-          <Outcome>{details.outcome}</Outcome>
-          {!target && <Failure>{details.error}</Failure>}
         </div>
-      )}
+      </div>
       <Modal
         isOpen={!!target && available}
         onClose={details.close}
