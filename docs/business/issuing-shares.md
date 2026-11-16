@@ -83,7 +83,7 @@ mobile app keeps its editor below the class summary. Choose **Edit** to record:
 Each group starts **Not recorded**, distinct from recording that a right does not exist. The six
 choices share a compact layout, with relevant structured details beside each choice. One
 **Additional terms** field holds conditions, exceptions and custom rights, identifying the relevant
-right where useful. Earlier group conditions appear there with their category labels when editing;
+right where useful, within 20,000 characters. Earlier group conditions appear there with their category labels when editing;
 saving retains the combined text without rewriting earlier versions. Ledova supplies no assumed
 rights from a class name or type. Record a known effective date separately from the actual recording
 time; leave it blank when unknown.
