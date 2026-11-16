@@ -1900,6 +1900,25 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getAllByText(displayedRecordDate).length).toBeGreaterThan(0);
   fireEvent.click(screen.getByRole('button', { name: 'Allotments (Example Shareholder)' }));
   expect(await screen.findByRole('dialog', { name: 'Example Shareholder' })).toBeTruthy();
+  visibleClass = false;
+  await act(async () => {
+    await client.invalidateQueries({ predicate: (query) => query.queryKey.at(-1) === 'classes' });
+  });
+  expect(await screen.findByText(/Refresh current company access before showing these records/)).toBeTruthy();
+  expect(screen.queryAllByText(displayedRecordDate)).toHaveLength(0);
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(screen.queryAllByText('1 Example Street, Sydney NSW 2000')).toHaveLength(0);
+  expect(screen.queryByRole('button', { name: 'Record review' })).toBeNull();
+  expect(() => previewGuard()).toThrow(/company, authority or source records changed/);
+  expect(api.post.mock.calls.filter(([url]) => url.endsWith('/decide/'))).toHaveLength(0);
+  visibleClass = true;
+  await act(async () => {
+    await client.invalidateQueries({ predicate: (query) => query.queryKey.at(-1) === 'classes' });
+  });
+  expect(await screen.findByRole('button', { name: 'Record review' })).toBeTruthy();
+  expect(screen.getAllByText(displayedRecordDate).length).toBeGreaterThan(0);
+  fireEvent.click(screen.getByRole('button', { name: 'Allotments (Example Shareholder)' }));
+  expect(await screen.findByRole('dialog', { name: 'Example Shareholder' })).toBeTruthy();
   appointment = { ...appointment, status: 'revoked', isEffective: false, revokedAt: '2026-10-14T00:00:00Z' };
   await act(async () => {
     await client.invalidateQueries({ queryKey: ['company-appointments'] });
@@ -2440,6 +2459,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getByRole('link', { name: 'open Ledger' }).getAttribute('href')).toBe(
     `/company/ledger?company=${company.uuid}`,
   );
+  expect(screen.queryByRole('link', { name: 'Deployed shares · DEP' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: `${token.name} · ${token.symbol}` }));
   await waitFor(() => expect(screen.queryByLabelText('Class code')).toBeNull());
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
@@ -2451,7 +2471,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByLabelText('Record date')).toBeNull();
   cleanup();
   client.clear();
-  token.status = 'deployed';
   proposal = rejected;
   opened = true;
   showJourney(importPath);
