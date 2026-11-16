@@ -1,13 +1,12 @@
 import { SelectField } from '@components/SelectField';
 import { FilterPopover } from '@components/FilterPopover';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Navigate, generatePath, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
   appointmentForRegisterStep,
-  classFacts,
-  formatShareCount,
+  hasCurrentRegisterReadAuthority,
   ownershipSummary,
   useSubmissionOwner,
   useUserPreferences,
@@ -16,11 +15,11 @@ import {
   type TokenHoldersResponse,
   useOwnAppointments,
 } from '@ledova/shared';
-import { LinkRow, LoadError, Loading, Outcome, Section } from '@components/Ledger';
+import { LoadError, Loading, Outcome, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { documentView, ledgerTask, pageTitle, type DocumentView, type LedgerTask } from '@utils/destinations';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
-import { Actions, Page, PageActions, PageLink } from '@components/Page';
+import { Page, PageActions, PageLink } from '@components/Page';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { certificatesLocation } from '@utils/paths';
@@ -36,6 +35,7 @@ import { CompanyMemberAccess } from './CompanyMemberAccess';
 import { CompanyPack } from './CompanyPack';
 import { RegisterParticulars } from './RegisterParticulars';
 import { RegisterSetup } from './RegisterSetup';
+import { ShareClasses } from './ShareClasses';
 import { useCompanyRegister } from '@pages/company/shared/useCompanyRegister';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
@@ -177,6 +177,32 @@ function OwnRegister({
         ? { company, registers: registers.data }
         : null;
   const appointments = useOwnAppointments(owner, guard, { enabled: !!scope });
+  const classScope = scope ?? retainedScope;
+  const deletionAuthorityRead = useRef('');
+  useEffect(() => {
+    const read = `${scope?.company.uuid}/${classes.dataUpdatedAt}`;
+    if (
+      heldClasses.has('class-deletion') &&
+      classes.isSuccess &&
+      !classes.isFetching &&
+      !classes.data.some((row) => row.companyUuid === scope?.company.uuid) &&
+      appointments.dataUpdatedAt < classes.dataUpdatedAt &&
+      !appointments.isFetching &&
+      deletionAuthorityRead.current !== read
+    ) {
+      deletionAuthorityRead.current = read;
+      void appointments.refetch();
+    }
+  }, [
+    heldClasses,
+    classes.data,
+    classes.isSuccess,
+    classes.isFetching,
+    classes.dataUpdatedAt,
+    scope?.company.uuid,
+    appointments.dataUpdatedAt,
+    appointments.isFetching,
+  ]);
   const readable =
     preferences?.status === 'success' &&
     companiesReady &&
@@ -224,6 +250,7 @@ function OwnRegister({
     (token: string, held: boolean) => classHeld(`allotments/${token}`, held),
     [classHeld],
   );
+  const deletionHeld = useCallback((held: boolean) => classHeld('class-deletion', held), [classHeld]);
   const awardHeld = useCallback((token: string, held: boolean) => classHeld(`awards/${token}`, held), [classHeld]);
   const grantHeld = useCallback((token: string, held: boolean) => classHeld(`grants/${token}`, held), [classHeld]);
   const transferHeld = useCallback(
@@ -455,8 +482,11 @@ function OwnRegister({
           retry={() => {
             void classes.refetch();
             void registers.refetch();
+            if (heldClasses.has('class-deletion')) void appointments.refetch();
           }}
-          busy={classes.isFetching || registers.isFetching}
+          busy={
+            classes.isFetching || registers.isFetching || (heldClasses.has('class-deletion') && appointments.isFetching)
+          }
         >
           The register could not be loaded.
         </LoadError>
@@ -522,62 +552,45 @@ function OwnRegister({
       {view === 'register' && typeof location.state?.classNotice === 'string' && (
         <Outcome>{location.state.classNotice}</Outcome>
       )}
-      {scope && (view === 'register' || view === 'awards' || documents === 'inspection-copies') && (
-        <>
-          {view === 'register' && !selectedTask && ownershipReady && (
-            <Section title="Share classes">
-              {scope.registers.length === 0 ? (
-                <p className="text-sm text-text-muted">No share classes yet.</p>
-              ) : (
-                <ul className="divide-y divide-border-subtle">
-                  {scope.registers.map((register) => (
-                    <li key={register.token.uuid}>
-                      <LinkRow
-                        to={`${generatePath(DESTINATIONS.companyClass.path, { uuid: register.token.uuid })}?company=${scope.company.uuid}`}
-                        label={register.token.name}
-                        context="class details"
-                        figure={
-                          <span className="shrink-0 font-medium tabular-nums text-text-primary">
-                            {register.issuedSupply === null ? (
-                              <>
-                                <span className="sr-only">Issued shares </span>Not recorded
-                              </>
-                            ) : (
-                              <>
-                                {formatShareCount(register.issuedSupply)}
-                                <span className="sr-only"> issued shares</span>
-                              </>
-                            )}
-                          </span>
-                        }
-                        disabled={held}
-                      >
-                        <span className="block break-words text-xs text-text-muted">{classFacts(register)}</span>
-                      </LinkRow>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Section>
-          )}
-          {view === 'register' && !selectedTask && canAddClass && (
-            <Actions>
-              <PageLink
-                primary
-                to={`${DESTINATIONS.companyRegisterSetup.path}?company=${scope.company.uuid}`}
-                label="Add share class"
-              />
-            </Actions>
-          )}
-          {((view === 'register' && selectedTask) || documents === 'inspection-copies') &&
-            sourceReady &&
-            selectedClass && (
-              <p className="text-sm text-text-muted">
-                {selectedClass.name} · {selectedClass.symbol}
-              </p>
-            )}
-        </>
+      {classScope && (
+        <ShareClasses
+          key={classScope.company.uuid}
+          owner={owner}
+          company={classScope.company.uuid}
+          classes={classes.data ?? []}
+          registers={classScope.registers}
+          guard={guard}
+          available={
+            preferences?.status === 'success' &&
+            preferences.fetchStatus === 'idle' &&
+            companiesReady &&
+            classes.isSuccess &&
+            classes.fetchStatus === 'idle' &&
+            (classes.data.some((row) => row.companyUuid === classScope.company.uuid) ||
+              (appointments.isSuccess &&
+                !appointments.isFetching &&
+                appointments.dataUpdatedAt >= classes.dataUpdatedAt &&
+                hasCurrentRegisterReadAuthority(appointments.data, classScope.company.uuid))) &&
+            (requestedCompany === undefined || requestedCompany === classScope.company.uuid) &&
+            (!registerToken ||
+              classes.data?.some((row) => row.uuid === registerToken && row.companyUuid === classScope.company.uuid)) &&
+            (!held || heldClasses.has('class-deletion'))
+          }
+          ready={ownershipReady}
+          visible={view === 'register' && !selectedTask}
+          blocked={held}
+          canAdd={canAddClass}
+          onHeldChange={deletionHeld}
+        />
       )}
+      {scope &&
+        ((view === 'register' && selectedTask) || documents === 'inspection-copies') &&
+        sourceReady &&
+        selectedClass && (
+          <p className="text-sm text-text-muted">
+            {selectedClass.name} · {selectedClass.symbol}
+          </p>
+        )}
       {scope && (
         <ul hidden={includeEmptyCompanies} className="flex flex-col gap-6">
           {scope.registers.map((register) => (

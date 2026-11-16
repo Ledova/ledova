@@ -3136,6 +3136,171 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   client.clear();
   api.patch.mockClear();
   api.delete.mockClear();
+  const bulkClasses = ['First unused', 'Second unused', 'Third unused', 'Protected records'].map((name, index) => ({
+    ...lifecycle,
+    uuid: `selected-${index}`,
+    symbol: `SEL${index}`,
+    name,
+    canDelete: index < 3,
+    deletionBlockedReason: index === 3 ? 'This class has ownership history.' : null,
+  }));
+  const removedClasses = new Set<string>();
+  let bulkMode: 'retry' | 'refuse' | 'missing' = 'retry';
+  let interruptedBulk = false;
+  let omitProtected = false;
+  let hideBulkAppointment = false;
+  let failBulkAppointment = false;
+  api.get.mockImplementation(async (url) => {
+    if (url === REGISTER)
+      return dataPage([
+        ...bulkClasses.filter(({ uuid, canDelete }) => !removedClasses.has(uuid) && (!omitProtected || canDelete)),
+        { ...bulkClasses[0], uuid: 'foreign-class', companyUuid: 'foreign-company', companyName: 'Foreign company' },
+      ]);
+    if (url === APPOINTMENTS) {
+      if (failBulkAppointment) throw new Error('Appointment read interrupted');
+      return dataPage(hideBulkAppointment ? [] : [appointment]);
+    }
+    const row = bulkClasses.find(({ uuid }) =>
+      [COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid), COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid)].includes(url),
+    );
+    if (row) {
+      if (removedClasses.has(row.uuid))
+        throw Object.assign(new Error('Class unavailable'), { response: { status: 404 } });
+      return url === COMPANY_TOKEN_ENDPOINTS.DETAIL(row.uuid)
+        ? { data: row }
+        : { data: { ...holders(), token: row, initialized: false, issuedSupply: null, holders: [], totalHolders: 0 } };
+    }
+    return dataPage([]);
+  });
+  api.delete.mockImplementation(async (url, config) => {
+    config.ledovaSubmissionGuard();
+    const row = bulkClasses.find(({ uuid }) => COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid) === url)!;
+    expect(row?.canDelete).toBe(true);
+    expect(config.params).toEqual({ expected_updated_at: row.updatedAt });
+    if (row.uuid === 'selected-1') {
+      if (bulkMode === 'refuse') throw Object.assign(new Error('Class changed'), { response: { status: 409 } });
+      if (!interruptedBulk) {
+        interruptedBulk = true;
+        if (bulkMode === 'missing') removedClasses.add(row.uuid);
+        throw new Error('Deletion response interrupted');
+      }
+    }
+    removedClasses.add(row.uuid);
+    return { status: 204 };
+  });
+  showJourney(`/?company=${company.uuid}`);
+  const allClasses = await screen.findByRole('checkbox', { name: 'Select all' });
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select First unused' }));
+  expect((allClasses as HTMLInputElement).indeterminate).toBe(true);
+  fireEvent.click(allClasses);
+  expect((allClasses as HTMLInputElement).checked).toBe(true);
+  expect(screen.getByRole('checkbox', { name: 'Select Protected records' }).matches(':disabled')).toBe(true);
+  expect(screen.getAllByRole('checkbox', { name: 'Select First unused' })).toHaveLength(1);
+  expect(api.delete).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+  let bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
+  expect(bulkDialog.queryByText(/Protected records/)).toBeNull();
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Cancel' }));
+  expect(api.delete).not.toHaveBeenCalled();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect((screen.getByRole('checkbox', { name: 'Select all' }) as HTMLInputElement).checked).toBe(false);
+  fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+  bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete selected' }));
+  await bulkDialog.findByRole('button', { name: 'Check original deletion' });
+  expect(api.delete.mock.calls.map(([url]) => url)).toEqual([
+    COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-0'),
+    COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-1'),
+  ]);
+  await act(async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: ['register'] }),
+      client.invalidateQueries({ queryKey: ['company-appointments'] }),
+    ]);
+  });
+  expect(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' })).toBeTruthy();
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Check original deletion' }));
+  fireEvent.click(await bulkDialog.findByRole('button', { name: 'Retry original deletion' }));
+  await bulkDialog.findByText('3 deleted · 0 not confirmed');
+  expect(api.delete.mock.calls.map(([url]) => url)).toEqual([
+    COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-0'),
+    COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-1'),
+    COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-1'),
+    COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-2'),
+  ]);
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
+  expect(await screen.findByText('3 share classes deleted.')).toBeTruthy();
+  await waitFor(() => expect(screen.queryByRole('link', { name: 'First unused (class details)' })).toBeNull());
+  expect(screen.getByRole('link', { name: 'Protected records (class details)' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Delete selected' }).matches(':disabled')).toBe(true);
+  for (const mode of ['refuse', 'missing'] as const) {
+    cleanup();
+    client.clear();
+    api.delete.mockClear();
+    bulkMode = mode;
+    interruptedBulk = false;
+    removedClasses.clear();
+    showJourney(`/?company=${company.uuid}`);
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Select all' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+    bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
+    fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete selected' }));
+    if (mode === 'missing') {
+      fireEvent.click(await bulkDialog.findByRole('button', { name: 'Check original deletion' }));
+      expect(
+        await bulkDialog.findByText(
+          'Second unused is no longer available. Its deletion was not confirmed. Remaining classes were not sent.',
+        ),
+      ).toBeTruthy();
+    }
+    await bulkDialog.findByText('1 deleted · 2 not confirmed');
+    expect(api.delete.mock.calls.map(([url]) => url)).toEqual([
+      COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-0'),
+      COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-1'),
+    ]);
+    fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
+    expect(await screen.findByText('1 share class deleted. Remaining classes were kept or need review.')).toBeTruthy();
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    expect(screen.getByRole('button', { name: 'Delete selected' }).matches(':disabled')).toBe(true);
+    expect(screen.getByRole('link', { name: 'Third unused (class details)' })).toBeTruthy();
+  }
+  cleanup();
+  client.clear();
+  api.delete.mockClear();
+  removedClasses.clear();
+  bulkMode = 'retry';
+  interruptedBulk = true;
+  omitProtected = true;
+  showJourney(`/?company=${company.uuid}`);
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select all' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+  bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete selected' }));
+  await bulkDialog.findByText('3 deleted · 0 not confirmed');
+  hideBulkAppointment = true;
+  failBulkAppointment = true;
+  await act(async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: ['register'] }),
+      client.invalidateQueries({ queryKey: ['company-appointments'] }),
+    ]);
+  });
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  failBulkAppointment = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.queryByRole('dialog')).toBeNull();
+  hideBulkAppointment = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
+  expect(await screen.findByText('3 share classes deleted.')).toBeTruthy();
+  expect(api.delete).toHaveBeenCalledTimes(3);
+  cleanup();
+  client.clear();
+  api.delete.mockClear();
   let readRefusal: number | null = null;
   api.get.mockImplementation(async (url, config) => {
     config.ledovaSubmissionGuard();

@@ -176,6 +176,14 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
 
         self.assertTrue(details["canEditDetails"])
         self.assertTrue(details["canDelete"])
+        listed = self.client.get("/api/v1/tokens/register/", {"company_uuid": str(self.company.pk)})
+        self.assertEqual(listed.status_code, 200, listed.content)
+        classes = {row["uuid"]: row for row in listed.json()["results"]}
+        self.assertEqual(classes[details["uuid"]]["updatedAt"], details["updatedAt"])
+        self.assertTrue(classes[details["uuid"]]["canDelete"])
+        self.assertIsNone(classes[details["uuid"]]["deletionBlockedReason"])
+        self.assertFalse(classes[str(self.token.pk)]["canDelete"])
+        self.assertIn("confirmed ledger records", classes[str(self.token.pk)]["deletionBlockedReason"])
         change = {
             "name": "Synthetic preference shares",
             "symbol": "pref",
@@ -201,6 +209,9 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             400,
         )
         self.client.force_authenticate(self.foreign)
+        self.assertEqual(
+            self.client.get("/api/v1/tokens/register/", {"company_uuid": str(self.company.pk)}).json()["results"], []
+        )
         self.assertEqual(self.client.patch(class_path, change, format="json").status_code, 404)
         self.assertEqual(
             delete_version(class_path, change["expectedUpdatedAt"]).status_code,
@@ -253,6 +264,11 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         waiting = self.client.get(draft_path).json()
         self.assertFalse(waiting["canDelete"])
         self.assertEqual(waiting["deletionBlockedReason"], "Retire the saved setup review before deleting this class.")
+        listed = self.client.get("/api/v1/tokens/register/").json()["results"]
+        self.assertEqual(
+            next(row for row in listed if row["uuid"] == str(draft_token.pk))["deletionBlockedReason"],
+            waiting["deletionBlockedReason"],
+        )
         self.decision(
             "/api/v1/tokens/register-imports/", prepared.json()["uuid"], "reject", reason="Replace the draft details"
         )
@@ -355,6 +371,8 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertTrue(available["canDelete"])
         self.assertFalse(available["canEditDetails"])
         self.assertIsNone(available["deletionBlockedReason"])
+        listed = self.client.get("/api/v1/tokens/register/").json()["results"]
+        self.assertTrue(next(row for row in listed if row["uuid"] == str(empty_token.pk))["canDelete"])
         with use_operator():
             opening = RegisterEntry.objects.get(register__token=empty_token)
             opening_hash = opening.entry_hash
@@ -499,6 +517,9 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.client.force_authenticate(reader)
         self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 200)
         self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 200)
+        listed = self.client.get("/api/v1/tokens/register/").json()["results"]
+        self.assertTrue(listed)
+        self.assertTrue(all(not row["canDelete"] and row["deletionBlockedReason"] is None for row in listed))
         revoke_company_appointment(requester=self.owner, appointment_id=appointment.pk)
         self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 404)
         self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 404)
@@ -509,6 +530,9 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         )
         self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 200)
         self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 200)
+        listed = self.client.get("/api/v1/tokens/register/").json()["results"]
+        self.assertTrue(listed)
+        self.assertTrue(all(not row["canDelete"] and row["deletionBlockedReason"] is None for row in listed))
 
     def import_payload_for_ownership(self, token):
         from shared.tests.core_fixtures import import_payload
@@ -976,6 +1000,8 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         prepared_class = self.client.post("/api/v1/tokens/", class_payload, format="json")
         self.assertEqual(prepared_class.status_code, 201, prepared_class.content)
         self.assertFalse(prepared_class.json()["isOwner"])
+        listed = self.client.get("/api/v1/tokens/register/").json()["results"]
+        self.assertTrue(next(row for row in listed if row["uuid"] == prepared_class.json()["uuid"])["canDelete"])
         foreign_class = self.client.post(
             "/api/v1/tokens/", {**class_payload, "company": str(self.foreign_company.pk)}, format="json"
         )

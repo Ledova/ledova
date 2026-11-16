@@ -8,36 +8,24 @@ import { PageAction } from './Page';
 export function Section({
   title,
   headingRef,
-  actions,
   children,
 }: {
   title: string;
   headingRef?: Ref<HTMLHeadingElement>;
-  actions?: ReactNode;
   children: ReactNode;
 }) {
   const inFrame = useContext(InSignedInFrame);
-  const heading = (
-    <h2
-      ref={headingRef}
-      tabIndex={headingRef ? -1 : undefined}
-      className="break-words font-display text-xl tracking-[-0.01em] text-text-primary focus:outline-none"
-    >
-      {title}
-    </h2>
-  );
   return (
     <section
       className={`flex flex-col border border-border bg-surface-raised p-4 [&_p:not(.flex,.text-right,.truncate)]:max-w-prose ${inFrame ? 'min-w-0 gap-4 rounded-2xl sm:p-6' : 'gap-2 rounded-xl sm:p-5'}`}
     >
-      {actions ? (
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          {heading}
-          {actions}
-        </div>
-      ) : (
-        heading
-      )}
+      <h2
+        ref={headingRef}
+        tabIndex={headingRef ? -1 : undefined}
+        className="break-words font-display text-xl tracking-[-0.01em] text-text-primary focus:outline-none"
+      >
+        {title}
+      </h2>
       {children}
     </section>
   );

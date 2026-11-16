@@ -7261,6 +7261,7 @@ export interface ApiComponents {
     ShareTokenList: {
       bestAsk: string | null;
       bestBid: string | null;
+      canDelete: boolean;
       chain: string | null;
       company: string;
       companyName: string;
@@ -7268,6 +7269,7 @@ export interface ApiComponents {
       contractAddress: string | null;
       createdAt: string;
       decimals: number;
+      deletionBlockedReason: string | null;
       deployedAt: string | null;
       isDivisible: boolean;
       isTransferable: boolean;
@@ -7279,6 +7281,7 @@ export interface ApiComponents {
       tokenType: ApiComponents['schemas']['TokenTypeEnum'];
       tokenTypeDisplay: string;
       totalSupply: string;
+      updatedAt: string;
       uuid: string;
     };
     ShareTokenStatusEnum: 'draft' | 'deploying' | 'deployed' | 'paused';
