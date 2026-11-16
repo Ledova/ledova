@@ -81,7 +81,7 @@ export function ClassDetails(props: ClassDetailsProps) {
   return (
     <Section title="Class details">
       <ClassDetailsContent {...props} />
-      {props.token.canEditDetails && (
+      {(props.token.canEditDetails || props.token.editBlockedReason) && (
         <div hidden={!!props.details.editor}>
           <FormActions>
             <ClassDetailsEditAction {...props} />
@@ -94,6 +94,7 @@ export function ClassDetails(props: ClassDetailsProps) {
 
 export function ClassDetailsEditAction({ token, details, available }: ClassDetailsProps) {
   const edit = useRef<HTMLButtonElement>(null);
+  const reasonId = useId();
   const wasEditing = useRef(false);
   useEffect(() => {
     if (details.editor) wasEditing.current = true;
@@ -102,17 +103,23 @@ export function ClassDetailsEditAction({ token, details, available }: ClassDetai
       wasEditing.current = false;
     }
   }, [details.editor, available]);
-  if (!token.canEditDetails) return null;
+  if (details.editor || (!token.canEditDetails && !token.editBlockedReason)) return null;
   return (
-    <div hidden={!!details.editor}>
+    <>
       <PageAction
         ref={edit}
         label="Edit"
         context="Class details"
-        disabled={!available || details.held}
+        describedBy={token.editBlockedReason ? reasonId : undefined}
+        disabled={!available || details.held || !token.canEditDetails}
         onClick={() => details.open('edit')}
       />
-    </div>
+      {token.editBlockedReason && (
+        <p id={reasonId} className="order-last basis-full text-right text-sm text-text-muted">
+          {token.editBlockedReason}
+        </p>
+      )}
+    </>
   );
 }
 

@@ -7245,6 +7245,7 @@ export interface ApiComponents {
       deletionBlockedReason: string | null;
       deployedAt: string | null;
       deploymentTxHash: string | null;
+      editBlockedReason: string | null;
       isDivisible: boolean;
       isOwner: boolean;
       isTransferable: boolean;

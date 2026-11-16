@@ -681,7 +681,9 @@ gets no form: the page shows that the member keeps their particulars in their Le
 Non-paid and employee-award grants are prepared inline in Issue shares.
 
 The web and native class pages' `ClassDetails.tsx` use the shared `useClassDetails` hook to edit name, code and type
-or delete an unused class using the API's `canEditDetails`, `canDelete` and `updatedAt`. An authorised
+or delete an unused class using the API's `canEditDetails`, `editBlockedReason`, `canDelete` and
+`updatedAt`. On the web, a current preparer sees disabled Edit with `editBlockedReason` when details
+are locked; readers without preparation authority see no Edit action. An authorised
 preparer sees the API's `deletionBlockedReason` beside a disabled **Delete share class** action when records prevent
 deletion. The web confirmation explains that saved setup reviews are retired automatically and
 their records and audit history are kept. They pin the
@@ -691,7 +693,11 @@ Confirmed changes invalidate the related class and ownership reads; deletion doe
 removed class. Setup decisions refresh class availability, so retiring a review can expose editing
 without a reload. Deleting a class retires saved setup reviews and removes the unused class from
 active use atomically, retaining the reviews, their decisions and deletion attribution;
-it never deletes confirmed ownership. Class rights retain their separate revision-based editor and permissions.
+it never deletes confirmed ownership. Editing remains locked after an applied empty opening:
+the opening references the class without a name, code or type snapshot, so a direct edit would
+relabel historical context in later exports. Deletion retains the old class identity. A future
+metadata correction would need attributed before/after values rather than silently unlocking it.
+Class rights retain their separate revision-based editor and permissions.
 The web's Class rights step owns an independent explicit save/cancel task outside the opening
 HTML form; step navigation and the opening footer are unavailable while that task is held. New classes
 use the existing creation recovery before **Save class rights**, staying on Class rights with the

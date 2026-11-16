@@ -119,6 +119,7 @@ function ShareClassWorkspace({
   }, [data.token.refetch]);
   const classDetailsVisible = !!(
     data.token.data?.canEditDetails ||
+    data.token.data?.editBlockedReason ||
     data.token.data?.canDelete ||
     data.token.data?.deletionBlockedReason ||
     details.held ||

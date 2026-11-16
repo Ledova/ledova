@@ -12,13 +12,18 @@ from tokens.services.register_authority import register_command
 from tokens.services.register_imports import retire_class_imports
 from tokens.services.share_token_service import reserved_symbol
 
+EDIT_DETAILS_BLOCKED_REASON = "Class details can change only before its ledger or dependent records exist."
+
 
 def class_lifecycle_access(token, actor):
     token.can_edit_details = False
+    token.edit_blocked_reason = None
     token.can_delete = False
     token.deletion_blocked_reason = None
     if actor is not None and Company.objects.register_preparable_by(actor).filter(pk=token.company_id).exists():
         token.can_edit_details, token.deletion_blocked_reason = _available(token.pk)
+        if not token.can_edit_details:
+            token.edit_blocked_reason = EDIT_DETAILS_BLOCKED_REASON
         token.can_delete = token.deletion_blocked_reason is None
     return token
 
@@ -62,7 +67,7 @@ def update_class_details(*, actor, token, expected_updated_at, changes):
     with register_command(actor, token.company_id, "register_class_edit") as (_, current_actor, _profile, _operator):
         token = _current(token, current_actor, expected_updated_at)
         if not _available(token.pk)[0]:
-            raise RegisterChangeConflict("Class details can change only before its ledger or dependent records exist.")
+            raise RegisterChangeConflict(EDIT_DETAILS_BLOCKED_REASON)
         if (
             ShareToken.objects.filter(company_id=token.company_id, symbol=changes["symbol"])
             .exclude(pk=token.pk)

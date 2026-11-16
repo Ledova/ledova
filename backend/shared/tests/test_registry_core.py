@@ -179,6 +179,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             return self.client.delete(path + "?" + urlencode({"expected_updated_at": stamp}))
 
         self.assertTrue(details["canEditDetails"])
+        self.assertIsNone(details["editBlockedReason"])
         self.assertTrue(details["canDelete"])
         listed = self.client.get("/api/v1/tokens/register/", {"company_uuid": str(self.company.pk)})
         self.assertEqual(listed.status_code, 200, listed.content)
@@ -233,14 +234,16 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         current_path = f"/api/v1/tokens/{self.token.pk}/"
         current = self.client.get(current_path).json()
         self.assertFalse(current["canEditDetails"])
+        self.assertEqual(
+            current["editBlockedReason"], "Class details can change only before its ledger or dependent records exist."
+        )
         self.assertFalse(current["canDelete"])
         self.assertIn("confirmed ledger records", current["deletionBlockedReason"])
-        self.assertEqual(
-            self.client.patch(
-                current_path, {**change, "expectedUpdatedAt": current["updatedAt"]}, format="json"
-            ).status_code,
-            409,
+        blocked_edit = self.client.patch(
+            current_path, {**change, "expectedUpdatedAt": current["updatedAt"]}, format="json"
         )
+        self.assertEqual(blocked_edit.status_code, 409, blocked_edit.content)
+        self.assertEqual(blocked_edit.json()["detail"], current["editBlockedReason"])
         self.assertEqual(
             delete_version(current_path, current["updatedAt"]).status_code,
             409,
@@ -266,6 +269,8 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         draft_change = {**change, "symbol": "RES", "expectedUpdatedAt": draft.json()["updatedAt"]}
         self.assertEqual(self.client.patch(draft_path, draft_change, format="json").status_code, 409)
         waiting = self.client.get(draft_path).json()
+        self.assertFalse(waiting["canEditDetails"])
+        self.assertEqual(waiting["editBlockedReason"], current["editBlockedReason"])
         self.assertTrue(waiting["canDelete"])
         self.assertIsNone(waiting["deletionBlockedReason"])
         listed = self.client.get("/api/v1/tokens/register/").json()["results"]
@@ -279,6 +284,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         resumed = self.client.patch(draft_path, draft_change, format="json")
         self.assertEqual(resumed.status_code, 200, resumed.content)
         self.assertTrue(resumed.json()["canEditDetails"])
+        self.assertIsNone(resumed.json()["editBlockedReason"])
         self.assertTrue(resumed.json()["canDelete"])
         self.assertIsNone(resumed.json()["deletionBlockedReason"])
         with use_operator():
@@ -466,7 +472,14 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         available = self.client.get(empty_path).json()
         self.assertTrue(available["canDelete"])
         self.assertFalse(available["canEditDetails"])
+        self.assertEqual(available["editBlockedReason"], current["editBlockedReason"])
         self.assertIsNone(available["deletionBlockedReason"])
+        self.assertEqual(
+            self.client.patch(
+                empty_path, {**change, "expectedUpdatedAt": available["updatedAt"]}, format="json"
+            ).status_code,
+            409,
+        )
         listed = self.client.get("/api/v1/tokens/register/").json()["results"]
         self.assertTrue(next(row for row in listed if row["uuid"] == str(empty_token.pk))["canDelete"])
         with use_operator():
@@ -616,6 +629,9 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         listed = self.client.get("/api/v1/tokens/register/").json()["results"]
         self.assertTrue(listed)
         self.assertTrue(all(not row["canDelete"] and row["deletionBlockedReason"] is None for row in listed))
+        details = self.client.get(f"/api/v1/tokens/{self.token.pk}/").json()
+        self.assertFalse(details["canEditDetails"])
+        self.assertIsNone(details["editBlockedReason"])
         revoke_company_appointment(requester=self.owner, appointment_id=appointment.pk)
         self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 404)
         self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 404)
@@ -629,6 +645,9 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         listed = self.client.get("/api/v1/tokens/register/").json()["results"]
         self.assertTrue(listed)
         self.assertTrue(all(not row["canDelete"] and row["deletionBlockedReason"] is None for row in listed))
+        details = self.client.get(f"/api/v1/tokens/{self.token.pk}/").json()
+        self.assertFalse(details["canEditDetails"])
+        self.assertIsNone(details["editBlockedReason"])
 
     def import_payload_for_ownership(self, token):
         from shared.tests.core_fixtures import import_payload
