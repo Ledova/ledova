@@ -1196,9 +1196,12 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(api.get).toHaveBeenCalledWith(
     COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS,
     expect.objectContaining({
-      params: expect.objectContaining({ company: documentCompany, member: documentMember, token: undefined }),
+      params: expect.objectContaining({ company: documentCompany, member: documentMember }),
     }),
   );
+  expect(
+    api.get.mock.calls.find(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS)?.[1]?.params,
+  ).not.toHaveProperty('token');
   await choose('Share class', 'Preference shares · PREF');
   fireEvent.click(screen.getByRole('button', { name: 'Add document' }));
   fireEvent.change(within(screen.getByRole('group', { name: 'Document 1' })).getByLabelText('Category'), {

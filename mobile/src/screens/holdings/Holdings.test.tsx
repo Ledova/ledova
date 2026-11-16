@@ -258,13 +258,6 @@ const HOLDER_A = {
   wallets: [],
 };
 const HOLDER_B = { ...HOLDER_A, member: '36363636-3636-4636-8636-363636363636', name: 'Synthetic Holder B' };
-const HOLDER_C = {
-  ...HOLDER_A,
-  member: '44444444-4444-4444-8444-444444444444',
-  name: 'Synthetic Holder C',
-  balance: '1',
-  percentage: 11.11,
-};
 const LINK = {
   uuid: '37373737-3737-4737-8737-373737373737',
   company: ADMINISTERED.uuid,
@@ -658,7 +651,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let awards: RegisterAward[] = [];
   let vestings: RegisterAwardVesting[] = [];
   let rights: ClassRightsRevision[] = [];
-  let thirdHolder = false;
   let documentClasses = false;
   let unopenedPreference = false;
   let preferenceName = PREFERENCE.name;
@@ -722,13 +714,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
       return { data: { ...REGISTER, token: { ...REGISTER.token, ...ELSEWHERE }, issuedSupply: '1', holders } };
     }
     if (url === URLS.HOLDERS(FOUNDERS.uuid)) {
-      const holders = [HOLDER_A, { ...HOLDER_B, balance: '3', percentage: 37.5 }, ...(thirdHolder ? [HOLDER_C] : [])];
-      const issuedSupply = thirdHolder ? '9' : '8';
+      const holders = [HOLDER_A, { ...HOLDER_B, balance: '3', percentage: 37.5 }];
       return {
         data: {
           ...REGISTER,
           token: { ...REGISTER.token, ...FOUNDERS },
-          issuedSupply,
+          issuedSupply: '8',
           totalHolders: holders.length,
           holders,
         },
@@ -2694,6 +2685,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByText(REGISTER_IMPORT_COPY.READ_ONLY_NOTE)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Continue|Confirm)$/ })).toBeNull();
   expect(importPosts()).toHaveLength(decidedImports);
+  const documentReadsBeforeClass = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS).length;
   await view.rerender(<></>);
   client.removeQueries({
     queryKey: [...shareClassKey(FOUNDERS.uuid), owner.userUuid, owner.ownerAccountUuid],
@@ -2743,17 +2735,24 @@ it('associates a member by invitation code, switches to their company on Dashboa
       expect.anything(),
     ],
   ]);
-  thirdHolder = true;
-  await act(async () => screen.getByTestId('share-class-scroll').props.refreshControl.props.onRefresh());
+  expect(screen.queryByText('Shareholder documents')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
+  expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS)).toHaveLength(
+    documentReadsBeforeClass,
+  );
+  await view.rerender(
+    <ShareholderScreen
+      route={{
+        key: 'holder-b-documents',
+        name: 'Shareholder',
+        params: { company: ADMINISTERED.uuid, member: HOLDER_B.member },
+      }}
+    />,
+  );
   await waitFor(() =>
-    expect(
-      client.getQueryState([...memberDocumentsKey(owner, ADMINISTERED.uuid), '', FOUNDERS.uuid])?.error,
-    ).toBeNull(),
+    expect(client.getQueryState([...memberDocumentsKey(owner, ADMINISTERED.uuid), HOLDER_B.member])?.error).toBeNull(),
   );
   await fireEvent.press(await screen.findByRole('button', { name: 'Add documents', disabled: false }));
-  await fireEvent.press(await screen.findByRole('button', { name: 'Shareholder: Synthetic Holder A' }));
-  expect(screen.getByRole('radio', { name: 'Synthetic Holder C' })).toBeTruthy();
-  await fireEvent.press(screen.getByRole('radio', { name: 'Synthetic Holder B' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Add document' }));
   await fireEvent.press(screen.getByRole('button', { name: 'File. Choose file' }));
   await screen.findByRole('button', { name: 'File, synthetic.pdf. Choose file' });
@@ -2772,7 +2771,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
       expect.anything(),
     ],
   ]);
-  thirdHolder = false;
   await view.rerender(<CertificatesScreen route={{ key: 'register', name: 'Certificates', params: undefined }} />);
   await fireEvent.press(
     await screen.findByRole('button', {

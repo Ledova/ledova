@@ -8,18 +8,17 @@ import {
   type DocumentDraft,
   type RegisterMemberDocumentCategory,
 } from '@ledova/shared';
-import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../Ledger';
-import { FileField } from '../Field';
-import { SearchSelect } from '../SearchSelect';
-import { SelectField } from '../SelectField';
+import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
+import { FileField } from '../../components/Field';
+import { SearchSelect } from '../../components/SearchSelect';
+import { SelectField } from '../../components/SelectField';
 import { useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 
 type Props = Omit<Parameters<typeof useMemberDocuments>[0], 'files' | 'newKey' | 'session'> & {
-  title?: string;
-  onHeldChange?: (held: boolean) => void;
+  onHeldChange: (held: boolean) => void;
 };
 
 const CATEGORIES = Object.entries(REGISTER_MEMBER_DOCUMENT_CATEGORIES).map(([value, label]) => ({
@@ -30,13 +29,13 @@ const CATEGORIES = Object.entries(REGISTER_MEMBER_DOCUMENT_CATEGORIES).map(([val
 export function ShareholderDocuments(props: Props) {
   return (
     <OwnShareholderDocuments
-      key={`${props.owner.userUuid}/${props.owner.ownerAccountUuid}/${props.company}/${props.member ?? ''}/${props.token ?? ''}`}
+      key={`${props.owner.userUuid}/${props.owner.ownerAccountUuid}/${props.company}/${props.member}`}
       {...props}
     />
   );
 }
 
-function OwnShareholderDocuments({ onHeldChange, title = 'Shareholder documents', ...props }: Props) {
+function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
   const look = useThemedStyles((theme) => {
     const text = { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20 };
     return {
@@ -66,15 +65,15 @@ function OwnShareholderDocuments({ onHeldChange, title = 'Shareholder documents'
   });
   const { editor } = documents;
   useEffect(() => {
-    onHeldChange?.(!!editor || documents.busy || documents.held);
-    return () => onHeldChange?.(false);
+    onHeldChange(!!editor || documents.busy || documents.held);
+    return () => onHeldChange(false);
   }, [editor, documents.busy, documents.held, onHeldChange]);
   const locked = documents.busy || documents.held || !documents.ready;
   const chosen = !!editor?.documents.some((row) => row.file || row.evidence);
   const change = (rows: (current: DocumentDraft[]) => DocumentDraft[]) =>
     documents.setEditor((current) => current && { ...current, documents: rows(current.documents) });
   return (
-    <Section title={title}>
+    <Section title="Documents">
       {documents.appointments.isError ? (
         <LoadError retry={() => documents.appointments.refetch()} busy={documents.appointments.isFetching}>
           Your company appointments could not be loaded.
@@ -128,13 +127,13 @@ function OwnShareholderDocuments({ onHeldChange, title = 'Shareholder documents'
         <View style={look.fields}>
           {props.holdings.length > 1 && (
             <SearchSelect
-              label={props.member ? 'Share class' : 'Shareholder'}
+              label="Share class"
               choices={props.holdings.map((holding) => ({
                 value: `${holding.member}/${holding.token}`,
                 label: holding.label,
               }))}
               value={`${editor.member}/${editor.token}`}
-              noun={props.member ? ['share class', 'share classes'] : ['shareholder', 'shareholders']}
+              noun={['share class', 'share classes']}
               disabled={locked || chosen}
               onChange={(value) => {
                 if (chosen) return;

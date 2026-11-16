@@ -305,8 +305,8 @@ retention period; and while a deployment of the class is pending.
 On web and mobile, each shareholder can have optional Share certificate, Shareholder agreement,
 Subscription agreement or Other supporting document attachments. Add them in the shareholder form
 while setting up the ledger, or afterwards from the shareholder's page. That page keeps the person
-fixed and selects one of their recorded share classes. The web class page does not duplicate these
-attachments; the mobile class page retains its existing fixed-class document view.
+fixed and selects one of their recorded share classes. Class pages do not duplicate these
+attachments on either client.
 
 Each attachment belongs to the company, person and share class; a setup attachment also keeps its
 source opening record. Recording existing holdings creates no historical share issue. On the web,
@@ -800,8 +800,7 @@ summary gives issued shares and current shareholders one line each, any authoris
 other than the internal quantity guard, whether the ledger is not yet opened, and whether the class
 is recorded as non-transferable. Shareholder attachments stay on each shareholder's page and
 register downloads on Documents. Each recorded right sits beside its name (owner, 5 November 2026).
-The mobile app's class page retains its Summary, Class rights with **Edit** and Shareholder documents
-with **Add documents**.
+The native page keeps Class details, Summary and Class rights, with the same attachment placement.
 
 The page no longer shows a class's chain state or offers its chain workflows: the owner removed the
 **On chain** card, **Chain actions** and **Put this class on chain** on 31 October 2026

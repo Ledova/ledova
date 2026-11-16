@@ -1023,9 +1023,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   `shareholderList`, `usePersonRegistration`, `useShareholder`, `useParticularsMember`,
   `useParticularsEdit` and `useMemberAccessForm` ([navigation](mobile.md#navigation)). Both clients
   reuse `useMemberDocuments` for the person's documents across classes. The web UI lives beside its
-  page in `dashboard/src/pages/company/ledger/member/MemberDocuments.tsx`. The app retains its
-  class-document view too, sharing `mobile/src/components/register/ShareholderDocuments.tsx` between
-  its person and class pages.
+  page in `dashboard/src/pages/company/ledger/member/MemberDocuments.tsx`, and the native UI in
+  `mobile/src/screens/shareholders/ShareholderDocuments.tsx`. Neither class page duplicates these
+  attachments. The shared read is scoped to the person; the upload still binds the chosen share class.
 - Register reads: the web reads the person's appointments through the account-bound cache Team and Account
   share and rereads them after a revocation on Team, Account or Representative authority, a refused decision or
   preview and a recorded decision other than an import's (which refreshes the imports, the register
