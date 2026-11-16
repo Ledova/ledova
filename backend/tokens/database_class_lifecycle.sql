@@ -46,10 +46,6 @@ BEGIN
     IF NOT tokens_class_history_empty(token_uuid) THEN
         RETURN 'This class has confirmed ledger records and cannot be deleted.';
     END IF;
-    IF EXISTS (SELECT 1 FROM public.tokens_registerimport proposal WHERE proposal.token_id = token_uuid
-        AND proposal.status NOT IN ('rejected', 'applied')) THEN
-        RETURN 'Retire the saved setup review before deleting this class.';
-    END IF;
     FOR reference IN
         SELECT constraint_record.conrelid::regclass AS relation, attribute.attname AS column_name,
             cardinality(constraint_record.conkey) AS key_count
@@ -68,6 +64,19 @@ BEGIN
     END LOOP;
     RETURN NULL;
 END;
+$$;
+
+CREATE OR REPLACE FUNCTION tokens_class_review_retirement(proposal_uuid uuid, actor bigint, appointment_uuid uuid, decision_uuid uuid, decision_key uuid, decision_reason text)
+RETURNS boolean LANGUAGE sql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
+    SELECT COALESCE((SELECT current_user IN (__OPERATOR__, __MIGRATE__)
+        AND actor = NULLIF(current_setting('app.user_id', true), '')::bigint
+        AND current_setting('app.company_operation', true) = 'register_class_delete'
+        AND current_setting('app.company_id', true) = proposal.company_id::text
+        AND proposal.status = 'submitted' AND decision_key = decision_uuid
+        AND decision_reason = 'Retired automatically when deleting the unused share class.'
+        AND tokens_class_deletion_reason(proposal.token_id) IS NULL
+        AND tokens_register_appointment_current(appointment_uuid, proposal.company_id, actor, 'prepare', clock_timestamp())
+        FROM public.tokens_registerimport proposal WHERE proposal.uuid = proposal_uuid), false);
 $$;
 
 CREATE OR REPLACE FUNCTION tokens_class_details_available(token_uuid uuid, editing boolean)
@@ -140,7 +149,10 @@ BEGIN
     END IF;
     IF deleting THEN
         reason := tokens_class_deletion_reason(OLD.uuid);
-        IF reason IS NOT NULL OR NEW.deleted_at IS NULL OR NEW.deleted_by_id IS DISTINCT FROM principal
+        IF reason IS NOT NULL
+            OR EXISTS (SELECT 1 FROM public.tokens_registerimport proposal WHERE proposal.token_id = OLD.uuid
+                AND proposal.status NOT IN ('rejected', 'applied'))
+            OR NEW.deleted_at IS NULL OR NEW.deleted_by_id IS DISTINCT FROM principal
             OR (to_jsonb(NEW) - ARRAY['deleted_at', 'deleted_by_id', 'updated_at']) IS DISTINCT FROM
                 (to_jsonb(OLD) - ARRAY['deleted_at', 'deleted_by_id', 'updated_at']) THEN
             RAISE EXCEPTION '%', COALESCE(reason, 'Use the exact attributed class deletion') USING ERRCODE = '23514';

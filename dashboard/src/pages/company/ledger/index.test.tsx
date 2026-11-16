@@ -3100,7 +3100,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     expect(lifecycle.name).toBe('Renamed ordinary shares');
   }
   fireEvent.click(metadata.getByRole('button', { name: 'Cancel' }));
-  const blockedReason = 'Retire the saved setup review before deleting this class.';
+  const blockedReason = 'This class has retained documents, rights or other records and cannot be deleted.';
   lifecycle = {
     ...lifecycle,
     canDelete: false,
@@ -3240,6 +3240,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(api.delete).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
   let bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
+  expect(bulkDialog.getByText(/their saved setup reviews are retired automatically/)).toBeTruthy();
   expect(bulkDialog.getByText('Will be kept')).toBeTruthy();
   expect(bulkDialog.getByText(/Protected records/)).toBeTruthy();
   expect(bulkDialog.getByText('This class has ownership history.')).toBeTruthy();

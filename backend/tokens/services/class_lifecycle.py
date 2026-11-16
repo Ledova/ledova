@@ -9,6 +9,7 @@ from tokens.exceptions import RegisterChangeConflict
 from tokens.models import ShareRegister, ShareToken
 from tokens.models.choices import ShareTokenType
 from tokens.services.register_authority import register_command
+from tokens.services.register_imports import retire_class_imports
 from tokens.services.share_token_service import reserved_symbol
 
 
@@ -75,11 +76,12 @@ def update_class_details(*, actor, token, expected_updated_at, changes):
 
 
 def delete_unused_class(*, actor, token, expected_updated_at):
-    with register_command(actor, token.company_id, "register_class_delete") as (_, current_actor, _profile, _operator):
+    with register_command(actor, token.company_id, "register_class_delete") as (_, current_actor, profile, operator):
         token = _current(token, current_actor, expected_updated_at)
         reason = _available(token.pk)[1]
         if reason:
             raise RegisterChangeConflict(reason)
+        retire_class_imports(token, current_actor, profile, operator)
         token.deleted_at = timezone.now()
         token.deleted_by = current_actor
         token.save(update_fields=["deleted_at", "deleted_by", "updated_at"])
