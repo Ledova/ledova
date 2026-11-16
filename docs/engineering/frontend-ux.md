@@ -445,7 +445,7 @@ Current preparers see **Edit** even when editing is locked, disabled with the se
 `editBlockedReason` visible beside it and linked as its accessible description. Readers without
 preparation authority see no Edit action. Do not infer editing eligibility from deletion eligibility.
 Keep the setup draft mounted while that editor is open. A completed web class page orders its cards
-as **Class details**, **Class rights**, **Shareholder documents**, then **Summary**. **Edit** stays
+as **Class details**, **Class rights**, then **Summary**. **Edit** stays
 in Class details; **Delete share class** sits after Summary, aligned right, because it acts on the
 whole class. Unfinished setup stays first, and the native layout is unchanged.
 Hide deletion while the metadata or rights editor is open; keep its trigger mounted
@@ -455,11 +455,11 @@ automatically and their records and audit history are kept. When records prevent
 preparers with the API's plain reason visibly beside it and linked as its accessible description.
 A lost reply holds the original action for checking. Recorded ownership, rights revisions and
 documents are never erased by this control.
-Shareholder documents uses **Add documents**, not Edit: uploads append linked attachments rather
-than overwrite stored files. Keep the action visible to current preparers when no target exists,
-disabled with **Record a shareholder in this class before adding documents.** (or **Record a
-shareholding before adding documents.** on a person's page). Class-wide governing documents stay
-with Class rights.
+A shareholder's page owns their **Documents** section; do not duplicate it on the web class page.
+Use **Add documents**, not Edit: uploads append linked attachments rather than overwrite stored
+files. Keep the action visible to current preparers when no holding exists, disabled with
+**Record a shareholding before adding documents.** Class-wide governing documents stay with
+Class rights.
 Class rights follows this pattern: Edit replaces its read view and previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured
@@ -746,10 +746,9 @@ not automatically a shareholder or a Ledova user and remains a documentary field
     award recipients (`invitationMembers`), without addresses. The app's invitation form uses the same
     choices, matching and 50-match limit in its own searchable list, and its employee award form the
     same list with **New person** first.
-- **`SearchSelect`** (`dashboard/src/components/SearchSelect.tsx`) is used directly by a share
-  class's **Shareholder documents**, to choose the holder a new document belongs to from the
-  class's holders alone. The app has the same control (`mobile/src/components/SearchSelect.tsx`),
-  which its person lists wrap.
+- **`SearchSelect`** (`dashboard/src/components/SearchSelect.tsx`) is used by a shareholder's
+  **Documents** to choose the attachment's share class from that person's recorded holdings. The
+  app has the same control (`mobile/src/components/SearchSelect.tsx`), which its person lists wrap.
 
 How the list behaves:
 
