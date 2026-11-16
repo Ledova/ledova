@@ -2571,7 +2571,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       .map((radio) => (radio as HTMLInputElement).value),
   ).toEqual(['ordinary', 'preference', 'redeemable', 'custom']);
   expect(within(shareClass).getByRole('radio', { checked: true }).getAttribute('value')).toBe('ordinary');
-  expect(screen.queryByLabelText('Class code')).toBeNull();
+  expect((screen.getByLabelText('Class code') as HTMLInputElement).value).toBe('ORD');
+  expect(screen.queryByRole('button', { name: 'Add class rights' })).toBeNull();
   pick('Another class');
   fireEvent.change(screen.getByLabelText('Class name'), { target: { value: 'Company A shares' } });
   fireEvent.change(screen.getByLabelText('Class code'), { target: { value: 'A' } });
@@ -2579,11 +2580,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect((screen.getByLabelText('Class code') as HTMLInputElement).maxLength).toBe(5);
   pick('Preference (PRF)');
   expect(within(shareClass).getByRole('radio', { name: 'Preference (PRF)', checked: true })).toBeTruthy();
-  expect(screen.queryByLabelText('Class name')).toBeNull();
-  expect(screen.queryByLabelText('Class code')).toBeNull();
-  expect(screen.queryByRole('group', { name: 'Class type' })).toBeNull();
-  pick('Redeemable (RED)');
-  expect(within(shareClass).getByRole('radio', { name: 'Redeemable (RED)', checked: true })).toBeTruthy();
+  expect((screen.getByLabelText('Class name') as HTMLInputElement).value).toBe('Preference shares');
+  expect((screen.getByLabelText('Class code') as HTMLInputElement).value).toBe('PRF');
+  expect(screen.getByRole('group', { name: 'Class type' })).toBeTruthy();
+  pick('Redeemable preference (RED)');
+  expect(within(shareClass).getByRole('radio', { name: 'Redeemable preference (RED)', checked: true })).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
   expect(screen.getByRole('link', { name: 'open Ledger' }).getAttribute('href')).toBe(
     `/company/ledger?company=${company.uuid}`,
@@ -2609,7 +2610,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       .getAllByRole('radio')
       .map((radio) => (radio as HTMLInputElement).value),
   ).toEqual(['ordinary', 'preference', 'redeemable', 'custom']);
-  expect(screen.queryByLabelText('Class code')).toBeNull();
+  expect((screen.getByLabelText('Class code') as HTMLInputElement).value).toBe('ORD');
   cleanup();
   client.clear();
   token.status = 'deployed';
@@ -3301,6 +3302,206 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   cleanup();
   client.clear();
   api.delete.mockClear();
+  appointment = { ...appointment, capabilities: ['admin'] };
+  const rightsSetupToken = {
+    ...token,
+    uuid: crypto.randomUUID(),
+    name: 'Setup rights example',
+    symbol: 'SRE',
+    status: 'draft' as CompanyShareToken['status'],
+  };
+  let rightsSetupCreated = false;
+  let rightsSetupAdmin = false;
+  let rightsSetupSaved: ClassRightsRevision | null = null;
+  let loseSetupCreation = false;
+  let releaseRightsOpening!: () => void;
+  api.post.mockClear();
+  api.get.mockImplementation(async (url, config) => {
+    if (url === REGISTER) return dataPage(rightsSetupCreated ? [rightsSetupToken] : []);
+    if (url === APPOINTMENTS) return dataPage([appointment]);
+    if (url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid)) {
+      const matches =
+        rightsSetupSaved &&
+        (!config?.params?.idempotency_key || config.params.idempotency_key === rightsSetupSaved.idempotencyKey);
+      return {
+        data: {
+          ...dataPage(matches ? [rightsSetupSaved] : []).data,
+          current: rightsSetupSaved,
+          administrationAppointment: rightsSetupAdmin ? appointment.uuid : null,
+        },
+      };
+    }
+    if (url === COMPANY_TOKEN_ENDPOINTS.DETAIL(rightsSetupToken.uuid)) return { data: rightsSetupToken };
+    if (url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(rightsSetupToken.uuid))
+      return {
+        data: {
+          ...holders(),
+          token: rightsSetupToken,
+          initialized: false,
+          issuedSupply: null,
+          holders: [],
+          totalHolders: 0,
+        },
+      };
+    if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBERS(rightsSetupToken.uuid))
+      return { data: { members: [], awardRecipients: [] } };
+    return dataPage([]);
+  });
+  api.post.mockImplementation(async (url, request, config) => {
+    config.ledovaSubmissionGuard();
+    if (url === COMPANY_TOKEN_ENDPOINTS.BASE) {
+      expect(request).toMatchObject({
+        company: company.uuid,
+        name: rightsSetupToken.name,
+        symbol: rightsSetupToken.symbol,
+      });
+      rightsSetupCreated = true;
+      if (loseSetupCreation) {
+        loseSetupCreation = false;
+        throw new Error('Class creation reply interrupted');
+      }
+      return { data: rightsSetupToken };
+    }
+    if (url === IMPORTS)
+      return new Promise((_, reject) => {
+        releaseRightsOpening = () => reject(new Error('Opening response interrupted'));
+      });
+    expect(url).toBe(COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid));
+    rightsSetupSaved = {
+      ...request,
+      uuid: crypto.randomUUID(),
+      token: rightsSetupToken.uuid,
+      revision: request.previousRevision + 1,
+      effectiveDate: request.effectiveDate ?? null,
+      documentReference: '',
+      documents: [],
+      recordedBy: 1,
+      recordedByName: 'Example Director',
+      createdAt: '2026-10-14T00:00:00Z',
+    };
+    throw new Error('Rights response interrupted after recording');
+  });
+  showJourney(`${DESTINATIONS.companyRegisterSetup.path}?company=${company.uuid}`);
+  fireEvent.click(await screen.findByRole('radio', { name: 'Another class' }));
+  fireEvent.change(screen.getByLabelText('Class name'), { target: { value: rightsSetupToken.name } });
+  fireEvent.change(screen.getByLabelText('Class code'), { target: { value: rightsSetupToken.symbol } });
+  fireEvent.change(screen.getByLabelText('Record date'), { target: { value: '2026-10-13' } });
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
+  let setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
+  expect(setupRightsForm.getByRole('button', { name: 'Save class rights' }).matches(':disabled')).toBe(true);
+  expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('not_recorded');
+  expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
+  expect(document.querySelector('form form')).toBeNull();
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
+  expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('general');
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Cancel' }));
+  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe('2026-10-13');
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
+  setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
+  expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('not_recorded');
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
+  expect(
+    await setupRightsForm.findByText('The class rights changed. Close this form and reopen the current details.'),
+  ).toBeTruthy();
+  expect(setupRightsForm.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(false);
+  expect(api.post.mock.calls.map(([url]) => url)).toEqual([COMPANY_TOKEN_ENDPOINTS.BASE]);
+  expect(
+    client
+      .getQueryCache()
+      .findAll({ queryKey: ['register'], predicate: (query) => query.queryKey.includes('classes') })
+      .some((query) => query.state.isInvalidated),
+  ).toBe(true);
+  expect(
+    screen.getByText(
+      'The original class details are kept. Retry the original save, or close this form and continue setup.',
+    ),
+  ).toBeTruthy();
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Cancel' }));
+  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe('2026-10-13');
+  expect(screen.getByLabelText('Class name').matches(':disabled')).toBe(true);
+  rightsSetupAdmin = true;
+  fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
+  setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
+  fireEvent.change(setupRightsForm.getByLabelText('Additional terms'), {
+    target: { value: 'Company constitution applies.' },
+  });
+  fireEvent.change(setupRightsForm.getByLabelText('Effective date'), { target: { value: '2020-01-01' } });
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
+  expect((setupRightsForm.getByLabelText('Additional terms') as HTMLTextAreaElement).value).toBe(
+    'Company constitution applies.',
+  );
+  expect((setupRightsForm.getByLabelText('Effective date') as HTMLInputElement).value).toBe('2020-01-01');
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
+  const originalRightsSave = await setupRightsForm.findByRole('button', { name: 'Retry original save' });
+  expect(setupRightsForm.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(true);
+  fireEvent.click(originalRightsSave);
+  expect(await screen.findByText('Class rights saved.')).toBeTruthy();
+  expect(api.post.mock.calls.map(([url]) => url)).toEqual([
+    COMPANY_TOKEN_ENDPOINTS.BASE,
+    COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid),
+  ]);
+  expect((screen.getByLabelText('Record date') as HTMLInputElement).value).toBe('2026-10-13');
+  expect(
+    screen.getByRole('list', { name: 'Ledger setup steps' }).querySelector('[aria-current="step"]')?.textContent,
+  ).toContain('Share class');
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect(await screen.findByText('No shareholders added yet.')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Back (share class)' }));
+  expect(await screen.findByText('Company constitution applies.')).toBeTruthy();
+  expect(api.post).toHaveBeenCalledTimes(2);
+  fireEvent.click(screen.getByRole('button', { name: '3. Review' }));
+  await waitFor(() => expect(api.post.mock.calls.some(([url]) => url === IMPORTS)).toBe(true));
+  const heldRightsEdit = screen.getByRole('button', { name: 'Edit class rights' });
+  expect(heldRightsEdit.matches(':disabled')).toBe(true);
+  fireEvent.click(heldRightsEdit);
+  expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull();
+  await act(async () => releaseRightsOpening());
+  expect(await screen.findByRole('button', { name: 'Recover saved records' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Edit class rights' }).matches(':disabled')).toBe(true);
+  expect(
+    api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid)),
+  ).toHaveLength(1);
+  cleanup();
+  client.clear();
+  api.post.mockClear();
+  rightsSetupCreated = false;
+  rightsSetupSaved = null;
+  loseSetupCreation = true;
+  showJourney(`${DESTINATIONS.companyRegisterSetup.path}?company=${company.uuid}`);
+  fireEvent.click(await screen.findByRole('radio', { name: 'Another class' }));
+  fireEvent.change(screen.getByLabelText('Class name'), { target: { value: rightsSetupToken.name } });
+  fireEvent.change(screen.getByLabelText('Class code'), { target: { value: rightsSetupToken.symbol } });
+  fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
+  setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
+  expect(await setupRightsForm.findByRole('alert')).toBeTruthy();
+  expect(setupRightsForm.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(false);
+  expect(
+    client
+      .getQueryCache()
+      .findAll({ queryKey: ['register'], predicate: (query) => query.queryKey.includes('classes') })
+      .some((query) => query.state.isInvalidated),
+  ).toBe(true);
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Cancel' }));
+  expect(screen.getByLabelText('Class code').matches(':disabled')).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
+  setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
+  fireEvent.click(await setupRightsForm.findByRole('button', { name: 'Retry original save' }));
+  expect(await screen.findByText('Class rights saved.')).toBeTruthy();
+  expect(api.post.mock.calls.map(([url]) => url)).toEqual([
+    COMPANY_TOKEN_ENDPOINTS.BASE,
+    COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid),
+  ]);
+  cleanup();
+  client.clear();
+  api.post.mockClear();
   let readRefusal: number | null = null;
   api.get.mockImplementation(async (url, config) => {
     config.ledovaSubmissionGuard();

@@ -1,10 +1,11 @@
 import { Field, TextInput } from '@components/Field';
 import { Choices } from '@components/Choices';
-import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { generatePath, Link, useSearchParams } from 'react-router-dom';
 import {
   FIELD_LIMITS,
+  appointmentForRegisterStep,
   DESTINATIONS,
   REGISTER_CLASS_TYPES,
   REGISTER_IMPORT_COPY,
@@ -33,6 +34,9 @@ import { useCompanyContext } from '@hooks/useCompanyContext';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { ImportForm } from './ImportForm';
 import { LoadError, Loading } from '@components/Ledger';
+import { NewClassRights } from './NewClassRights';
+import { useNewClassRights } from './useNewClassRights';
+import { RightsSummary } from './ClassRights';
 
 const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };
 
@@ -47,6 +51,7 @@ type FreshClassProps = {
   ready: boolean;
   onHeldChange: (held: boolean) => void;
   onConflict: () => void;
+  administrator?: string;
 };
 export function NewClassSetup({
   owner,
@@ -148,7 +153,7 @@ export function NewClassSetup({
         <p className="text-sm text-text-muted">{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</p>
       ) : (
         <FreshClass
-          key={`${owner.userUuid}/${context.company.uuid}`}
+          key={`${owner.userUuid}/${owner.ownerAccountUuid}/${context.company.uuid}`}
           owner={owner}
           guard={guard}
           company={context.company}
@@ -159,6 +164,13 @@ export function NewClassSetup({
           ready={ready && company?.uuid === context.company.uuid}
           onHeldChange={setHeld}
           onConflict={retry}
+          administrator={
+            appointmentForRegisterStep(
+              (appointments.data ?? []).filter((row) => row.capabilities.includes('admin') && !row.revokedAt),
+              context.company.uuid,
+              'prepare',
+            )?.uuid
+          }
         />
       )}
     </div>
@@ -176,6 +188,7 @@ function FreshClass({
   ready,
   onHeldChange,
   onConflict,
+  administrator,
 }: FreshClassProps) {
   const started = useStartedClasses(
     owner,
@@ -198,6 +211,13 @@ function FreshClass({
     resolveRegister,
     problems,
   } = useNewShareClass({ guard, checkCurrent, company, classes, started, ready });
+  const [openingHeld, setOpeningHeld] = useState(false);
+  const rights = useNewClassRights({ owner, company: company.uuid, check, resolveRegister });
+  const rightsHeld = !!rights.editor || rights.pending || rights.busy;
+  useEffect(() => {
+    onHeldChange(openingHeld || rightsHeld);
+    return () => onHeldChange(false);
+  }, [openingHeld, rightsHeld, onHeldChange]);
 
   return (
     <ImportForm
@@ -209,13 +229,34 @@ function FreshClass({
       companyMembers={companyMembers}
       appointment={steps.prepare!}
       steps={steps}
-      blocked={!ready}
+      blocked={!ready || rightsHeld}
       visible={ready}
       onConflict={onConflict}
-      onHeldChange={onHeldChange}
+      onHeldChange={setOpeningHeld}
       resolveRegister={resolveRegister}
       emptyOpeningAllowed
       classProblems={problems}
+      classContent={
+        <NewClassRights
+          rights={rights}
+          administrator={administrator}
+          tokenType={tokenType}
+          problems={problems}
+          classLocked={classLocked}
+          blocked={openingHeld}
+        />
+      }
+      classContentHeld={rightsHeld}
+      classReview={
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-text-primary">Class rights</h3>
+          {rights.saved ? (
+            <RightsSummary revision={rights.saved} />
+          ) : (
+            <p className="text-sm text-text-muted">No rights recorded.</p>
+          )}
+        </div>
+      }
       classFields={
         <fieldset className="space-y-5">
           {started.length > 0 && !classLocked && (
@@ -255,39 +296,32 @@ function FreshClass({
               to bring in shareholder particulars.
             </p>
           )}
-          {choice === 'custom' && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Class name">
-                <TextInput
-                  maxLength={FIELD_LIMITS.CLASS_NAME}
-                  disabled={classLocked}
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </Field>
-              <Field label="Class code">
-                <TextInput
-                  maxLength={FIELD_LIMITS.CLASS_CODE}
-                  disabled={classLocked}
-                  value={symbol}
-                  onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-                />
-              </Field>
-              <Choices
-                legend="Class type"
-                options={REGISTER_CLASS_TYPES}
-                value={tokenType}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Class name">
+              <TextInput
+                maxLength={FIELD_LIMITS.CLASS_NAME}
                 disabled={classLocked}
-                onChange={setTokenType}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
               />
-            </div>
-          )}
-          {choice === 'custom' && (
-            <p className="text-xs text-text-muted">Use the recorded class code of 1–5 letters, such as A or ORD.</p>
-          )}
-          <p className="text-xs text-text-muted">
-            Class code and type do not define the rights attached to the shares.
-          </p>
+            </Field>
+            <Field label="Class code">
+              <TextInput
+                maxLength={FIELD_LIMITS.CLASS_CODE}
+                disabled={classLocked}
+                value={symbol}
+                onChange={(event) => setSymbol(event.target.value.toUpperCase())}
+              />
+            </Field>
+            <Choices
+              legend="Class type"
+              options={REGISTER_CLASS_TYPES}
+              value={tokenType}
+              disabled={classLocked}
+              onChange={setTokenType}
+            />
+          </div>
+          <p className="text-xs text-text-muted">Use the recorded class code of 1–5 letters, such as A or ORD.</p>
         </fieldset>
       }
     />

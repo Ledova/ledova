@@ -98,6 +98,7 @@ export { useAwardRecordDownload } from './useAwardRecordDownload';
 export { useShareClass, shareClassKey } from './useShareClass';
 export { useClassDetails } from './useClassDetails';
 export { classRightsKey, useClassRights } from './useClassRights';
+export { useClassRightsWriter, type ClassRightsDraft, type ClassRightsTarget } from './useClassRightsWriter';
 export { memberDocumentsKey, useMemberDocuments } from './useMemberDocuments';
 export type { DocumentHolding } from './useMemberDocuments';
 export { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';

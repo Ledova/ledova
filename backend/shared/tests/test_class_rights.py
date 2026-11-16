@@ -63,9 +63,13 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
         }
         for group in payload["attributes"].values():
             group["conditions"] = "Synthetic condition." * 100
+        rejected = self.client.post(endpoint, {**payload, "summary": "x" * 20001}, format="json")
+        self.assertEqual(rejected.status_code, 400, rejected.content)
+        payload["summary"] = "Synthetic additional terms. " * 200
         saved = self.client.post(endpoint, payload, format="json")
         self.assertEqual(saved.status_code, 201, saved.content)
         first = saved.json()
+        self.assertEqual(first["summary"], payload["summary"])
         self.assertEqual(first["revision"], 1)
         self.assertEqual(
             first["attributes"]["voting"],

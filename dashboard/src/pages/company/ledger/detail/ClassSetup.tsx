@@ -49,6 +49,9 @@ export function ClassSetup({
   onHeldChange,
   classDetails,
   classActions,
+  classContent,
+  classReview,
+  classContentHeld = false,
   onRecordsChanged,
 }: {
   uuid: string;
@@ -60,13 +63,16 @@ export function ClassSetup({
   onHeldChange?: (held: boolean) => void;
   classDetails: (recordFields: ReactNode) => ReactNode;
   classActions: ReactNode;
+  classContent?: ReactNode;
+  classReview?: ReactNode;
+  classContentHeld?: boolean;
   onRecordsChanged?: () => void;
 }) {
   const client = useQueryClient();
   const [search] = useSearchParams();
   const [held, setHeld] = useState(false);
   const [preparedHere, setPreparedHere] = useState<string | null>(null);
-  const keeping = held || classHeld;
+  const keeping = held || classHeld || classContentHeld;
   const [retained, setRetained] = useState<Retained | null>(null);
   useEffect(() => {
     onHeldChange?.(held);
@@ -149,7 +155,8 @@ export function ClassSetup({
   };
   const checkNew = () => {
     guard();
-    if (externalHeld || classHeld) throw createUserFriendlyError('Finish the current class action before continuing.');
+    if (externalHeld || classHeld || classContentHeld)
+      throw createUserFriendlyError('Finish the current class action before continuing.');
     for (const key of [
       registerClassesKey(owner),
       ownAppointmentsKey(owner),
@@ -236,6 +243,9 @@ export function ClassSetup({
             }
             classDetails={classDetails}
             classActions={classActions}
+            classContent={classContent}
+            classReview={classReview}
+            classContentHeld={classContentHeld}
             classHeld={classHeld}
             appointment={canPrepare ? steps?.prepare : undefined}
             steps={steps ?? retained.steps}

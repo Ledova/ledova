@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from 'react';
 import {
   FIELD_LIMITS,
+  CLASS_RIGHTS_EXAMPLES,
   classRightsTerms,
   formatDate,
   formatDateTime,
@@ -9,6 +10,7 @@ import {
   structuredRightsRows,
   utcToday,
   type ClassRightsRevision,
+  type TokenType,
   type useClassRights,
 } from '@ledova/shared';
 import { Field, FileField, TextArea, TextInput } from '@components/Field';
@@ -19,13 +21,14 @@ import { FormActions, PageAction } from '@components/Page';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import { StructuredRightsFields } from './StructuredRightsFields';
+import { rightsDetailsRecorded } from './classRightsDraft';
 
-function RightsSummary({
+export function RightsSummary({
   revision,
   rights,
 }: {
   revision: ClassRightsRevision;
-  rights: ReturnType<typeof useClassRights>;
+  rights?: Pick<ReturnType<typeof useClassRights>, 'downloading' | 'busy' | 'download'>;
 }) {
   const structured = Object.keys(revision.attributes).length > 0;
   const terms = classRightsTerms(revision.attributes, revision.summary);
@@ -68,14 +71,16 @@ function RightsSummary({
             {revision.documents.map((document) => (
               <li key={document.evidence} className="flex flex-wrap items-center justify-between gap-3 py-3">
                 <p className="min-w-0 break-words text-sm text-text-primary">{document.name}</p>
-                <PageAction
-                  label="Download"
-                  context={document.name}
-                  busy={rights.downloading === `${revision.uuid}/${document.evidence}`}
-                  busyLabel="Downloading…"
-                  disabled={rights.busy}
-                  onClick={() => void rights.download(revision, document)}
-                />
+                {rights && (
+                  <PageAction
+                    label="Download"
+                    context={document.name}
+                    busy={rights.downloading === `${revision.uuid}/${document.evidence}`}
+                    busyLabel="Downloading…"
+                    disabled={rights.busy}
+                    onClick={() => void rights.download(revision, document)}
+                  />
+                )}
               </li>
             ))}
           </ul>
@@ -88,7 +93,20 @@ function RightsSummary({
   );
 }
 
-function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> }) {
+export function RightsEditor({
+  rights,
+  tokenType,
+  saveLabel = 'Save',
+  saveDisabled = false,
+}: {
+  rights: Pick<
+    ReturnType<typeof useClassRights>,
+    'editor' | 'setEditor' | 'busy' | 'pending' | 'stale' | 'error' | 'save' | 'close'
+  >;
+  tokenType?: TokenType;
+  saveLabel?: string;
+  saveDisabled?: boolean;
+}) {
   const id = useId();
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
@@ -107,6 +125,7 @@ function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> })
       'Enter a complete effective date on or before today (UTC).',
   });
   const locked = rights.busy || rights.pending || rights.stale;
+  const example = tokenType ? CLASS_RIGHTS_EXAMPLES[tokenType] : undefined;
   return (
     <form
       ref={form}
@@ -115,10 +134,20 @@ function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> })
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        if (validation.check()) void rights.save();
+        if (!saveDisabled && validation.check()) void rights.save();
       }}
     >
       <ErrorSummary {...validation.summary} />
+      {example && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-text-muted">Use only rights that match the company’s governing documents.</p>
+          <PageAction
+            label={`Use ${example.label.toLowerCase()}`}
+            disabled={locked}
+            onClick={() => rights.setEditor({ ...editor, attributes: structuredClone(example.attributes) })}
+          />
+        </div>
+      )}
       <StructuredRightsFields
         attributes={editor.attributes}
         onChange={(attributes) => rights.setEditor({ ...editor, attributes })}
@@ -200,11 +229,11 @@ function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> })
         <PageAction label="Cancel" onClick={rights.close} disabled={rights.busy || rights.pending} />
         <PageAction
           type="submit"
-          label={rights.pending ? 'Retry original save' : 'Save'}
+          label={rights.pending ? 'Retry original save' : saveLabel}
           primary
           busy={rights.busy}
           busyLabel="Saving…"
-          disabled={rights.stale && !rights.pending}
+          disabled={saveDisabled || (rights.stale && !rights.pending)}
           describedBy={rights.error ? id : undefined}
         />
       </FormActions>
@@ -212,7 +241,17 @@ function RightsEditor({ rights }: { rights: ReturnType<typeof useClassRights> })
   );
 }
 
-export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRights> }) {
+export function ClassRights({
+  rights,
+  embedded = false,
+  tokenType,
+  blocked = false,
+}: {
+  rights: ReturnType<typeof useClassRights>;
+  embedded?: boolean;
+  tokenType?: TokenType;
+  blocked?: boolean;
+}) {
   const editAction = useRef<HTMLButtonElement>(null);
   const wasEditing = useRef(false);
   useEffect(() => {
@@ -224,8 +263,8 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
     }
   }, [rights.editor, rights.ready]);
   if (!rights.tokenReady) return null;
-  return (
-    <Section title="Class rights">
+  const content = (
+    <>
       {rights.hasError ? (
         <LoadError retry={rights.retry} busy={rights.isRefreshing}>
           The class rights could not be loaded. They may be unavailable to this account.
@@ -238,7 +277,12 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
             Company-recorded terms. The governing documents determine the rights.
           </p>
           {rights.editor ? (
-            <RightsEditor rights={rights} />
+            <RightsEditor
+              rights={rights}
+              tokenType={tokenType}
+              saveLabel={embedded ? 'Save class rights' : 'Save'}
+              saveDisabled={!rights.current && !rightsDetailsRecorded(rights.editor)}
+            />
           ) : rights.current ? (
             <RightsSummary revision={rights.current} rights={rights} />
           ) : (
@@ -248,9 +292,9 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
             <FormActions>
               <PageAction
                 ref={editAction}
-                label="Edit"
-                context="Class rights"
-                disabled={rights.busy}
+                label={embedded ? 'Edit class rights' : 'Edit'}
+                context={embedded ? undefined : 'Class rights'}
+                disabled={rights.busy || blocked}
                 onClick={rights.open}
               />
             </FormActions>
@@ -281,6 +325,14 @@ export function ClassRights({ rights }: { rights: ReturnType<typeof useClassRigh
           )}
         </>
       )}
-    </Section>
+    </>
+  );
+  return embedded ? (
+    <div className="space-y-4 border-t border-border-subtle pt-4">
+      <h3 className="text-sm font-medium text-text-primary">Class rights</h3>
+      {content}
+    </div>
+  ) : (
+    <Section title="Class rights">{content}</Section>
   );
 }
