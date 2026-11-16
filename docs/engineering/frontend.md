@@ -711,7 +711,8 @@ explicitly retried before continuing.
 The interface reports partial results, retains audit history and does not imply an atomic batch.
 Closing the result keeps the operation held until the current class list returns. Holder reads are
 marked stale without refetching the old class set; the refreshed list selects the remaining classes.
-If that refresh fails, retain the result for another close attempt without resending deletions.
+Refresh the exact current holder set too, including when no class was removed. If a refresh fails,
+retain the result for another close attempt without resending deletions.
 
 On the web, setup's shareholder editor and later shareholder/class pages share
 `dashboard/src/pages/company/ledger/shared/DocumentAttachments.tsx` for optional categorised

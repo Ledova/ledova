@@ -10,6 +10,7 @@ import {
   importRegisterKey,
   registerClassesKey,
   registerHoldersKey,
+  registersQuery,
   shareClassKey,
   useApiClient,
   type CompanyShareTokenListItem,
@@ -185,6 +186,11 @@ export function useClassDeletion({
         for (const queryKey of keys) client.removeQueries({ queryKey, exact: true });
         await client.invalidateQueries({ queryKey: registerHoldersKey(owner), refetchType: 'none' });
         await client.invalidateQueries({ queryKey: registerClassesKey(owner) }, { throwOnError: true });
+        if (!owned()) return false;
+        const listed = client.getQueryData<CompanyShareTokenListItem[]>(registerClassesKey(owner));
+        if (!listed) throw createUserFriendlyError('The current class list is unavailable. Try closing again.');
+        const uuids = listed.filter((row) => row.companyUuid === company).map(({ uuid }) => uuid);
+        if (uuids.length) await client.fetchQuery(registersQuery(apiClient, owner, uuids, current.current.guard));
       }
       if (!owned()) return false;
       attempt.current = null;
