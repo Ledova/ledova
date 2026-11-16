@@ -46,7 +46,8 @@ The class must never have recorded actual ownership activity. It keeps the class
 deletion actor and time, drafts, decisions and evidence as audit history. Its code can then be reused
 by a new class without changing the earlier record. An empty register stub alone does not prevent
 deletion. Actual ownership history, rights and other dependent records still do. The web shows the
-reason beside a disabled Delete action. Deletion retirement records its actor, time and reason
+reason beside a disabled **Delete share class** action. On a completed class page, this action sits
+below the ownership, rights and document cards, while Edit stays with Class details. Deletion retirement records its actor, time and reason
 without granting ordinary review approval authority. If retirement or deletion fails, both roll back. These
 controls are also available in the native app. On the web, Share classes supports selecting classes
 individually or every visible class with **Select all**, including protected classes. **Delete selected**

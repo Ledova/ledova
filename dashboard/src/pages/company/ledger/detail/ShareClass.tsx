@@ -16,7 +16,7 @@ import {
   registerSteps,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
-import { Page } from '@components/Page';
+import { Actions, Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { LoadError, Loading, Row, Rows, Section, Status } from '@components/Ledger';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
@@ -25,7 +25,7 @@ import { MemberDocuments } from '@pages/company/ledger/shared/MemberDocuments';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { AccountCheck } from '@components/AccountCheck';
 import { ClassSetup } from './ClassSetup';
-import { ClassDetails, ClassDetailsActions, ClassDetailsContent } from './ClassDetails';
+import { ClassDeleteAction, ClassDetails, ClassDetailsEditAction, ClassDetailsContent } from './ClassDetails';
 import { useClassDetails } from './useClassDetails';
 import { useLedgerNavigation } from '@components/LedgerNavigation';
 
@@ -176,7 +176,10 @@ function ShareClassWorkspace({
               onHeldChange={heldSetup}
               classActions={
                 data.token.data && (
-                  <ClassDetailsActions token={data.token.data} details={details} available={detailsAvailable} />
+                  <>
+                    <ClassDetailsEditAction token={data.token.data} details={details} available={detailsAvailable} />
+                    <ClassDeleteAction token={data.token.data} details={details} available={detailsAvailable} />
+                  </>
                 )
               }
               classDetails={(recordFields) =>
@@ -206,6 +209,15 @@ function ShareClassWorkspace({
         }
         rights={setup === false ? <ClassRights rights={rights} /> : null}
       />
+      {setup === false && data.token.data && (data.token.data.canDelete || data.token.data.deletionBlockedReason) && (
+        <div
+          hidden={data.token.isError || data.register.isError || appointments.isError || !!details.editor || rightsHeld}
+        >
+          <Actions>
+            <ClassDeleteAction token={data.token.data} details={details} available={detailsAvailable} />
+          </Actions>
+        </div>
+      )}
     </>
   );
 }

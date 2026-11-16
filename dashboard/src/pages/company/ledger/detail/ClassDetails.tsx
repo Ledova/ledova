@@ -3,7 +3,7 @@ import { REGISTER_CLASS_TYPES, type CompanyShareToken } from '@ledova/shared';
 import { Field, TextInput } from '@components/Field';
 import { SelectField } from '@components/SelectField';
 import { Fact, Failure, Outcome, Row, Rows, Section } from '@components/Ledger';
-import { Actions, FormActions, PageAction } from '@components/Page';
+import { FormActions, PageAction } from '@components/Page';
 import { Modal, ModalActions } from '@components/Modal';
 import type { useClassDetails } from './useClassDetails';
 
@@ -81,10 +81,10 @@ export function ClassDetails(props: ClassDetailsProps) {
   return (
     <Section title="Class details">
       <ClassDetailsContent {...props} />
-      {(props.token.canEditDetails || props.token.canDelete || props.token.deletionBlockedReason) && (
+      {props.token.canEditDetails && (
         <div hidden={!!props.details.editor}>
           <FormActions>
-            <ClassDetailsActions {...props} />
+            <ClassDetailsEditAction {...props} />
           </FormActions>
         </div>
       )}
@@ -92,9 +92,8 @@ export function ClassDetails(props: ClassDetailsProps) {
   );
 }
 
-export function ClassDetailsActions({ token, details, available }: ClassDetailsProps) {
+export function ClassDetailsEditAction({ token, details, available }: ClassDetailsProps) {
   const edit = useRef<HTMLButtonElement>(null);
-  const deletionReasonId = useId();
   const wasEditing = useRef(false);
   useEffect(() => {
     if (details.editor) wasEditing.current = true;
@@ -103,34 +102,37 @@ export function ClassDetailsActions({ token, details, available }: ClassDetailsP
       wasEditing.current = false;
     }
   }, [details.editor, available]);
+  if (!token.canEditDetails) return null;
   return (
     <div hidden={!!details.editor}>
-      <Actions>
-        {token.canEditDetails && (
-          <PageAction
-            ref={edit}
-            label="Edit"
-            context="Class details"
-            disabled={!available || details.held}
-            onClick={() => details.open('edit')}
-          />
-        )}
-        {(token.canDelete || token.deletionBlockedReason) && (
-          <PageAction
-            label="Delete"
-            context="share class"
-            describedBy={token.deletionBlockedReason ? deletionReasonId : undefined}
-            disabled={!available || details.held || !token.canDelete}
-            onClick={() => details.open('delete')}
-          />
-        )}
-        {token.deletionBlockedReason && (
-          <span id={deletionReasonId} className="sr-only">
-            {token.deletionBlockedReason}
-          </span>
-        )}
-      </Actions>
+      <PageAction
+        ref={edit}
+        label="Edit"
+        context="Class details"
+        disabled={!available || details.held}
+        onClick={() => details.open('edit')}
+      />
     </div>
+  );
+}
+
+export function ClassDeleteAction({ token, details, available }: ClassDetailsProps) {
+  const reasonId = useId();
+  if (details.editor || (!token.canDelete && !token.deletionBlockedReason)) return null;
+  return (
+    <>
+      <PageAction
+        label="Delete share class"
+        describedBy={token.deletionBlockedReason ? reasonId : undefined}
+        disabled={!available || details.held || !token.canDelete}
+        onClick={() => details.open('delete')}
+      />
+      {token.deletionBlockedReason && (
+        <p id={reasonId} className="order-last basis-full text-right text-sm text-text-muted">
+          {token.deletionBlockedReason}
+        </p>
+      )}
+    </>
   );
 }
 
@@ -172,7 +174,6 @@ export function ClassDetailsContent({
           )}
           {!details.editor && (
             <>
-              {token.deletionBlockedReason && <p className="text-sm text-text-muted">{token.deletionBlockedReason}</p>}
               <Outcome>{details.outcome}</Outcome>
               {!target && <Failure>{details.error}</Failure>}
             </>

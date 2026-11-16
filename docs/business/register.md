@@ -214,7 +214,7 @@ web and, at phone width, in the app:
 2. **Share class**: continue the selected unfinished class, or choose a common class (Ordinary
    ORD, Preference PRF or Redeemable preference RED) or Another class with the company's own name, code and
    type. Name, code, type and record date sit together in the first step of one **Ledger setup**
-   card. Edit/Delete join Cancel/Continue in its bottom footer only on the Share class step.
+   card. **Edit** and **Delete share class** join Cancel/Continue in its bottom footer only on the Share class step.
    Existing class details use the inline editor where permitted; saving those details is
    separate from confirming the copied opening. The company choices come from current personal administrator or preparer appointments,
    without granting access to private company Settings
