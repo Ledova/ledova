@@ -247,6 +247,7 @@ function ShareClassDetails({
   const token = data.token.data;
   const unavailable = data.token.isPending || data.token.isError || !token;
   const register = registerReady ? data.register.data : undefined;
+  const hasSetup = setup !== undefined && setup !== null;
   return (
     <>
       {data.token.isPending ? (
@@ -256,9 +257,28 @@ function ShareClassDetails({
           This share class could not be loaded. It may be unavailable to this account.
         </LoadError>
       ) : null}
-      <div hidden={unavailable}>
-        {setup ??
-          (token && (
+      {hasSetup && <div hidden={unavailable}>{setup}</div>}
+      {rights}
+      {!unavailable && data.owner && token && (
+        <MemberDocuments
+          title="Shareholder documents"
+          readsPaused={data.readingPaused}
+          onHeldChange={onDocumentsHeld}
+          owner={data.owner}
+          guard={data.guard}
+          company={token.companyUuid}
+          token={token.uuid}
+          sourceReady={registerReady}
+          holdings={(data.register.data?.holders ?? []).map((holder) => ({
+            member: holder.member,
+            token: token.uuid,
+            label: holder.name || 'Unnamed shareholder',
+          }))}
+        />
+      )}
+      {!hasSetup && (
+        <div hidden={unavailable}>
+          {token && (
             <Section title="Summary">
               {showClassDetails && (
                 <p className="text-sm text-text-muted">
@@ -312,25 +332,8 @@ function ShareClassDetails({
                 </section>
               )}
             </Section>
-          ))}
-      </div>
-      {rights}
-      {!unavailable && data.owner && token && (
-        <MemberDocuments
-          title="Shareholder documents"
-          readsPaused={data.readingPaused}
-          onHeldChange={onDocumentsHeld}
-          owner={data.owner}
-          guard={data.guard}
-          company={token.companyUuid}
-          token={token.uuid}
-          sourceReady={registerReady}
-          holdings={(data.register.data?.holders ?? []).map((holder) => ({
-            member: holder.member,
-            token: token.uuid,
-            label: holder.name || 'Unnamed shareholder',
-          }))}
-        />
+          )}
+        </div>
       )}
     </>
   );

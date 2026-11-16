@@ -659,9 +659,10 @@ Setup embeds the existing class details content in the **Share class** step of o
 card, alongside the record date in the same responsive field grid. The bottom footer groups
 Edit/Delete with the first step's navigation; later steps show only their own relevant controls.
 The inline metadata task keeps its explicit save/recovery controls
-and blocks opening actions while held; it does not save through ledger confirmation. Completed
-classes keep Edit in the Class details card and **Delete share class** in a right-aligned page footer
-after the ownership, rights and document cards. Web Class rights
+and blocks opening actions while held; it does not save through ledger confirmation. Completed web
+classes order their cards as Class details, Class rights, Shareholder documents, then Summary.
+Edit stays in Class details and **Delete share class** follows Summary in a right-aligned page footer.
+Unfinished setup stays first. Web Class rights
 has its own setup step between Share class and Shareholders, and retains its separate card for
 completed classes. The native layout remains unchanged.
 Preparing and retiring the current form's own review keeps that form instance and its selected

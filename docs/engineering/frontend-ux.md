@@ -438,9 +438,11 @@ fields under the same heading, with Cancel and Save together at the bottom right
 field when editing opens and return focus to Edit when it ends, if that action is still available.
 Company information and personal Profile details follow this pattern.
 An eligible class uses the same inline Edit, Cancel and Save pattern for its name, code and type.
-Keep the setup draft mounted while that editor is open. On a completed class page, **Edit** stays
-in Class details; **Delete share class** sits below all cards, aligned right, because it acts on the
-whole class. Hide deletion while the metadata or rights editor is open; keep its trigger mounted
+Keep the setup draft mounted while that editor is open. A completed web class page orders its cards
+as **Class details**, **Class rights**, **Shareholder documents**, then **Summary**. **Edit** stays
+in Class details; **Delete share class** sits after Summary, aligned right, because it acts on the
+whole class. Unfinished setup stays first, and the native layout is unchanged.
+Hide deletion while the metadata or rights editor is open; keep its trigger mounted
 while the deletion confirmation is open. Deletion is available only for an unused class and asks
 for confirmation naming that class. Explain that saved setup reviews are retired
 automatically and their records and audit history are kept. When records prevent deletion, retain a disabled **Delete share class** action for authorised
