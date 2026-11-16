@@ -10,7 +10,11 @@ from rest_framework.test import APITransactionTestCase
 from companies.services.team import revoke_company_appointment
 from operators.models import Operator
 from shared.db import atomic, use_operator
-from shared.tests.core_fixtures import CoreFixtures, retained_evidence
+from shared.tests.core_fixtures import (
+    CoreFixtures,
+    populated_register,
+    retained_evidence,
+)
 from tokens.constants import MAX_UINT256
 from tokens.models import (
     RegisterAward,
@@ -86,6 +90,19 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         token = ShareToken.objects.get(pk=created.json()["uuid"])
         endpoint = "/api/v1/tokens/register-imports/"
         payload = self.mirror_payload(token)
+        payload["members"][0]["identity_choice"] = "new"
+        existing_choice = deepcopy(payload)
+        existing_choice["members"][0]["identity_choice"] = "existing"
+        self.assertEqual(self.client.post(endpoint, existing_choice, format="json").status_code, 400)
+        forged_new = deepcopy(payload)
+        forged_new["members"][0]["member"] = str(self.member.pk)
+        self.assertEqual(self.client.post(endpoint, forged_new, format="json").status_code, 400)
+        _, foreign_member = populated_register(self.foreign, self.foreign_company, self.foreign_appointment)
+        forged_new["members"][0]["member"] = str(foreign_member.pk)
+        self.assertEqual(self.client.post(endpoint, forged_new, format="json").status_code, 400)
+        invalid_choice = deepcopy(payload)
+        invalid_choice["members"][0]["identity_choice"] = "unavailable"
+        self.assertEqual(self.client.post(endpoint, invalid_choice, format="json").status_code, 400)
         supporting = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
         payload["members"][0]["documents"] = [{"evidence": str(supporting.pk), "category": "share_certificate"}]
         allotments = payload["members"][0]["allotments"]
@@ -105,6 +122,14 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
             prepared = self.client.post(endpoint, payload, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
         identifier = prepared.json()["uuid"]
+        self.assertEqual(prepared.json()["members"][0]["identityChoice"], "new")
+        self.assertEqual(self.client.get(f"{endpoint}{identifier}/").json()["members"][0]["identityChoice"], "new")
+        forged = RegisterImport.objects.get(pk=identifier)
+        forged.pk = uuid4()
+        forged.members = deepcopy(forged.members)
+        forged.members[0]["member"] = str(self.member.pk)
+        with self.assertRaises(DatabaseError), register_command(self.owner, self.company.pk, "register_import_prepare"):
+            forged.save(force_insert=True)
         self.assertIsNone(RegisterImport.objects.get(pk=identifier).members[0]["allotments"][2]["beneficially_held"])
         with use_operator():
             retained_documents, retained_files = member_documents(self.company)
@@ -129,8 +154,34 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
             )
             self.assertFalse(unavailable.json()["canDecide"])
             self.assertIn("evidence_unavailable", unavailable.json()["unmetRequirements"])
+        collision_payload = self.mirror_payload(token)
+        collision_payload["members"][0]["identity_choice"] = "new"
+        collision_record = self.client.post(endpoint, collision_payload, format="json")
+        self.assertEqual(collision_record.status_code, 201, collision_record.content)
+        collision_person = self.client.post(
+            "/api/v1/tokens/register-people/",
+            {
+                "operation_id": str(uuid4()),
+                "company": str(self.company.pk),
+                "appointment": str(self.appointment.pk),
+                "member": collision_payload["members"][0]["member"],
+                "name": collision_payload["members"][0]["name"],
+                "residential_address": collision_payload["members"][0]["residential_address"],
+            },
+            format="json",
+        )
+        self.assertEqual(collision_person.status_code, 201, collision_person.content)
+        collision = self.client.post(
+            f"{endpoint}{collision_record.json()['uuid']}/decision-preview/",
+            {"appointment": str(self.appointment.pk), "kind": "approve"},
+            format="json",
+        )
+        self.assertEqual(collision.status_code, 200, collision.content)
+        self.assertFalse(collision.json()["canDecide"])
+        self.assertIn("member_identity_changed", collision.json()["unmetRequirements"])
         self.decision(endpoint, identifier, "approve")
         self.decision(endpoint, identifier, "apply")
+        self.assertEqual(self.client.post(endpoint, payload, format="json").status_code, 200)
         documents_endpoint = "/api/v1/tokens/register-member-documents/"
         documents = self.client.get(
             documents_endpoint, {"member": payload["members"][0]["member"], "token": str(token.pk)}
@@ -220,6 +271,7 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         recorded_award = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
         self.assertEqual(recorded_award.status_code, 201, recorded_award.content)
         correction = deepcopy(payload)
+        correction["members"][0]["identity_choice"] = "existing"
         correction.update(operation_id=str(uuid4()), correction_of=identifier, reason="Correct a copied quantity")
         correction["members"][0]["shares"] = "90"
         prepared = self.client.post(endpoint, correction, format="json")

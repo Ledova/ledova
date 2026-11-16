@@ -101,6 +101,7 @@ export function registerImportOf(record: RegisterImportRecord): RegisterImport {
     !rowsOf<RegisterImportFormerRow>(formerMembers, FORMER_TEXT) ||
     members.some(
       (row) =>
+        (row.identityChoice !== undefined && !['existing', 'award', 'new'].includes(row.identityChoice)) ||
         (row.allotments !== undefined && !currentRowOf(row)) ||
         (row.documents !== undefined && !isRegisterImportMemberDocuments(row.documents, record.company)) ||
         (record.sourceConfirmed === true && row.allotments === undefined),
@@ -149,6 +150,7 @@ function memberRows(rows: (RegisterImportMemberRow | RegisterImportCurrentMember
       .sort((left, right) => left.member.localeCompare(right.member))
       .map((row) => [
         row.member,
+        row.identityChoice,
         row.name,
         row.residentialAddress,
         row.shares,

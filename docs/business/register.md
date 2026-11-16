@@ -275,6 +275,10 @@ checks the current step first, and reaching Review saves the draft, so there is 
 button. Choosing Share class, Class rights or Shareholders on Review retires the saved draft for editing and needs
 preparation and rejection authority. After retirement, the selected step opens with the copied
 date and shareholder details retained; Class rights and Shareholders each open the selected step.
+Saved drafts retain whether each person was explicitly entered as new or selected from company
+records, so reopening a new person's editor needs no second selection. The server validates that
+choice against the company records. Older drafts without this choice still require an explicit
+selection when the person cannot be matched; an unavailable existing person is never assumed new.
 
 Award recipients without shares appear in the same list as members, marked as such. Select the
 exact company recipient to keep their ID, current particulars and any accepted member access; enter

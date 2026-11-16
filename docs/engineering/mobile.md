@@ -438,7 +438,10 @@ while held. Skipping it records no rights revision; Review shows only the rights
 Reopened Review keeps those validated rights readable while their edit and download actions stay blocked.
 Dates are typed as `YYYY-MM-DD` (UTC). Each save and decision keeps the web's retry
 of an uncertain result, and the step headings (`FormSteps` with `goTo`) move between steps as on the web,
-retiring a prepared draft for editing when chosen from Review. Shareholders are
+retiring a prepared draft for editing when chosen from Review. Reopened shareholders retain
+the saved, server-validated identity choice; a newly entered person stays selected
+after reopening. Older records without that choice remain ambiguous rather than silently becoming
+new people. Shareholders are
 compact rows (`MemberRow` in `ImportRecord.tsx`), with **Edit** and **Remove** in the draft and **Show
 allotments** on Review, whose record date, shares held and shareholders are one line each. **Continue**
 moves to the next step, saving the draft on the way to Review. Saving keeps the class page and

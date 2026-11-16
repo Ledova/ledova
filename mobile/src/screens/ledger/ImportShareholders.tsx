@@ -134,8 +134,14 @@ export function ImportShareholders({
   const add = () => {
     if (locked || editorOpen) return;
     const blank = draft.members.find((row) => !started(row));
-    const row = blank ?? blankMember(randomUUID);
-    if (!blank) update((current) => ({ ...current, members: [...current.members, row] }));
+    const row = {
+      ...(blank ?? blankMember(randomUUID)),
+      ...(companyMembers.length === 0 ? { identityChoice: 'new' as const } : {}),
+    };
+    update((current) => ({
+      ...current,
+      members: blank ? current.members.map((member) => (member === blank ? row : member)) : [...current.members, row],
+    }));
     edit(row.member, null);
   };
   return (

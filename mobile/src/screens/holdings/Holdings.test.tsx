@@ -2336,7 +2336,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
     expect(mockSetParams).toHaveBeenLastCalledWith({ token: FOUNDERS.uuid, record: imports[0].uuid }),
   );
   const replacement = imports[0];
-  const holderA = { member: HOLDER_A.member, name: HOLDER_A.name, residentialAddress: `${HOLDER_A.name} address` };
+  const holderA = {
+    member: HOLDER_A.member,
+    name: HOLDER_A.name,
+    residentialAddress: `${HOLDER_A.name} address`,
+    identityChoice: 'existing',
+  };
   const copied = { sourceReference: 'Company-provided share records', sourceConfirmed: true, formerMembers: [] };
   expect(importPosts()[4]).toEqual([
     URLS.REGISTER_IMPORTS,
@@ -2452,7 +2457,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Add a shareholder' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Company shareholder: none chosen' }));
-  await fireEvent.press(screen.getByRole('radio', { name: /^Synthetic Holder A/ }));
+  await fireEvent.press(screen.getByRole('radio', { name: 'New person' }));
+  await fireEvent.changeText(screen.getByLabelText('Name'), 'Synthetic New Shareholder');
+  await fireEvent.changeText(screen.getByLabelText('Residential address'), '14 Synthetic Avenue');
   await fireEvent.changeText(screen.getByLabelText('Date first added to register'), '2026-10-26');
   await fireEvent.changeText(screen.getByLabelText('Current shares held'), '5');
   await fireEvent.press(screen.getByRole('button', { name: 'Add shareholder' }));
@@ -2531,6 +2538,17 @@ it('associates a member by invitation code, switches to their company on Dashboa
     await client.invalidateQueries({ queryKey: importsKey(owner, PREFERENCE.uuid) });
   });
   expect(await screen.findByLabelText('Review ledger')).toBeTruthy();
+  await view.rerender(<></>);
+  await view.rerender(
+    <ShareClassScreen
+      route={{
+        key: 'cold-saved-new-shareholder',
+        name: 'ShareClass',
+        params: { ...unopened, record: preparedOpening.uuid },
+      }}
+    />,
+  );
+  expect(await screen.findByLabelText('Review ledger')).toBeTruthy();
   await fireEvent.press(
     await screen.findByRole('button', {
       name: '3. Shareholders',
@@ -2548,11 +2566,13 @@ it('associates a member by invitation code, switches to their company on Dashboa
       disabled: false,
     }),
   );
+  expect(screen.getByRole('button', { name: 'Company shareholder: New person' })).toBeTruthy();
   expect(screen.getByLabelText('Current shares held').props.value).toBe('5');
   expect(screen.getByLabelText('Date first added to register').props.value).toBe('2026-10-26');
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Show company source copies' }));
-  expect(screen.getByRole('button', { name: 'Current share register, synthetic.pdf. Choose file' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Current share register. Choose file' })).toBeTruthy();
+  expect(screen.getByText(/The retained source copy will be reused unless you choose another file/)).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: '1. Share class' }));
   await fireEvent.changeText(screen.getByLabelText('Record date'), '2026-10-25');
   const beforeInvalid = preparePosts().length;
@@ -2580,7 +2600,17 @@ it('associates a member by invitation code, switches to their company on Dashboa
         tokenId: PREFERENCE.uuid,
         asAt: '2026-10-26',
         registerEvidence: preparedOpening.registerEvidence,
-        members: [{ ...holderA, shares: '5', enteredOn: '2026-10-26', allotments: [] }],
+        members: [
+          expect.objectContaining({
+            member: preparedOpening.members[0]!.member,
+            name: 'Synthetic New Shareholder',
+            residentialAddress: '14 Synthetic Avenue',
+            identityChoice: 'new',
+            shares: '5',
+            enteredOn: '2026-10-26',
+            allotments: [],
+          }),
+        ],
       }),
       expect.anything(),
     ],

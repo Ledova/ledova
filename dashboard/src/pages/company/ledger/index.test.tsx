@@ -2324,6 +2324,19 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   api.post.mockClear();
   opened = false;
   proposal = { ...proposal!, status: 'submitted', stage: 'submitted', decisions: [] };
+  expect(proposal.members[0].identityChoice).toBe('new');
+  companyMembers = [
+    {
+      member: 'another-company-person',
+      name: 'Another Company Person',
+      residentialAddress: '2 Company Road, Sydney NSW 2000',
+      currentShares: '0',
+      enteredOn: null,
+      lastCeasedOn: null,
+      walletless: true,
+      particularsRetained: true,
+    },
+  ];
   appointment = { ...appointment, uuid: 'combined-confirmer', capabilities: ['prepare', 'approve', 'apply'] };
   const resumedDraft = proposal;
   const classPath = DESTINATIONS.companyClass.path.replace(':uuid', token.uuid);
@@ -2354,9 +2367,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: '3. Shareholders' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
+  expect((screen.getByRole('combobox', { name: 'Company shareholder' }) as HTMLInputElement).value).toBe('New person');
+  expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Example Shareholder');
+  expect((screen.getByLabelText('Current shares held') as HTMLInputElement).value).toBe('600');
   expect(screen.getByText('share-certificate.pdf')).toBeTruthy();
   expect(screen.getByText('shareholder-agreement.pdf')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
   expect(proposal!.uuid).not.toBe(resumedDraft.uuid);
@@ -2403,6 +2419,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   cleanup();
   client.clear();
   api.post.mockClear();
+  companyMembers = [];
   failNextPreview = true;
   interruptNextApply = true;
   showJourney(`${importPath}?record=${proposal.uuid}`);
@@ -2479,7 +2496,20 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
               guard={() => {}}
               company={company.uuid}
               register={holders()}
-              companyMembers={[]}
+              companyMembers={
+                correction
+                  ? correction.members.map((member) => ({
+                      member: member.member,
+                      name: member.name,
+                      residentialAddress: member.residentialAddress,
+                      currentShares: member.shares,
+                      enteredOn: member.enteredOn,
+                      lastCeasedOn: null,
+                      walletless: true,
+                      particularsRetained: true,
+                    }))
+                  : []
+              }
               appointment={preparationAppointment}
               steps={{ prepare: preparationAppointment }}
               saved={correction ? undefined : rejected}

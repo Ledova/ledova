@@ -31,7 +31,7 @@ export type MemberDraft = {
   enteredOn: string;
   allotments: AllotmentDraft[];
   documents: DocumentDraft[];
-  identityChoice?: 'existing' | 'award' | 'new';
+  identityChoice?: RegisterImportCurrentMemberRow['identityChoice'];
 };
 
 type FormerDraft = { id: string; name: string; residentialAddress: string; shares: string; ceasedOn: string };
@@ -104,6 +104,7 @@ export function initialMembers(
   if (correction)
     return correction.members.map((row) => ({
       member: row.member,
+      identityChoice: correction.status === 'applied' ? 'existing' : row.identityChoice,
       name: row.name,
       residentialAddress: row.residentialAddress,
       shares: row.shares,
@@ -133,6 +134,7 @@ export function initialMembers(
 export function memberRows(members: MemberDraft[]): RegisterImportCurrentMemberRow[] {
   return members.map((row) => ({
     member: row.member,
+    ...(row.identityChoice ? { identityChoice: row.identityChoice } : {}),
     name: row.name.trim(),
     residentialAddress: row.residentialAddress.trim(),
     shares: positiveShares(row.shares) ?? row.shares.trim(),
