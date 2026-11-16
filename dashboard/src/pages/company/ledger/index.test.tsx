@@ -2564,7 +2564,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     return dataPage([]);
   });
   showJourney(DESTINATIONS.companyRegisterSetup.path);
-  const shareClass = await screen.findByRole('group', { name: 'Share class' });
+  const shareClass = await screen.findByRole('group', { name: 'Start with' });
   const pick = (name: string) => fireEvent.click(within(shareClass).getByRole('radio', { name }));
   expect(
     within(shareClass)
@@ -2604,7 +2604,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   cleanup();
   client.clear();
   showJourney(DESTINATIONS.companyRegisterSetup.path);
-  const noDraftClasses = await screen.findByRole('group', { name: 'Share class' });
+  const noDraftClasses = await screen.findByRole('group', { name: 'Start with' });
   expect(screen.queryByText(/Continue a class you started/)).toBeNull();
   expect(
     within(noDraftClasses)
@@ -2836,7 +2836,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   });
   showJourney(DESTINATIONS.companyRegisterSetup.path);
   fireEvent.click(
-    within(await screen.findByRole('group', { name: 'Share class' })).getByRole('radio', { name: 'Preference (PRF)' }),
+    within(await screen.findByRole('group', { name: 'Start with' })).getByRole('radio', { name: 'Preference (PRF)' }),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
