@@ -250,7 +250,7 @@ wallet in an opened draft class for someone who can prepare the register, opens 
 preparation with them as transferor, as on the web. **Documents** lists that person's retained
 supporting files across classes, with category, class and **Download**. **Add documents**, for someone
 who can prepare the register, keeps the person fixed and offers **Share class** when they hold more
-than one class. It reuses `components/register/ShareholderDocuments.tsx` with the class page, through
+than one class. `screens/shareholders/ShareholderDocuments.tsx` uses
 `useMemberDocuments`, with the same appointment checks and uncertain-save recovery. Picking a file
 locks its class, and pulling down waits while the editor or a save is open.
 Member access
@@ -320,10 +320,8 @@ date on one line, the documents with **Download**, the recorded
 line and **Show previous versions**, and **Edit** when the server names a current administration
 appointment, which opens the web's form in the card: the six rights groups with the fields their
 choice needs, Additional terms, the effective date typed as `YYYY-MM-DD` (UTC) and the documents, with
-the web's retry of an uncertain save; and Shareholder documents (`mobile/src/components/register/ShareholderDocuments.tsx`, through
-the shared `useMemberDocuments`) with the class's retained supporting files, each with its category,
-holder and **Download**, and **Add documents** for someone who can prepare the register, choosing the
-holder from a searchable list and each file's category. Without register access to the company, both
+the web's retry of an uncertain save. Shareholder attachments stay on each shareholder's page;
+the class page keeps only its class-wide governing documents in Class rights. Without register access to the company, both
 pages read nothing and point to Dashboard, and a class of another company is not in a register you can
 read. Class details uses the shared `useClassDetails` action/recovery hook, an inline name/code/type editor and a named deletion confirmation. The server supplies edit/delete eligibility and a visible deletion-blocking reason. Original uncertain requests stay on the page for checking or retry, with navigation blocked until resolved. Successful deletion returns to Ledger; retained records are not erased. The class and setup reuse one owner-scoped ownership query. The class page's top bar has the back arrow ([navigation](#navigation)). Pulling
 down rereads either page while no form is open.

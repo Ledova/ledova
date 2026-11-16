@@ -36,7 +36,7 @@ import {
 import { Action, Actions, LinkRow, LoadError, Loading, Outcome, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
-import { ShareholderDocuments } from '../../components/register/ShareholderDocuments';
+import { ShareholderDocuments } from './ShareholderDocuments';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
@@ -487,7 +487,6 @@ function OwnShareholder({
       {content}
       {data.company && (
         <ShareholderDocuments
-          title="Documents"
           owner={owner}
           accountGuard={accountGuard}
           guard={guard}

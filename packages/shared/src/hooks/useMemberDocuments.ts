@@ -44,7 +44,6 @@ export function useMemberDocuments({
   accountGuard = guard,
   company,
   member,
-  token,
   sourceReady,
   holdings,
   readsPaused = false,
@@ -56,8 +55,7 @@ export function useMemberDocuments({
   guard: () => void;
   accountGuard?: () => void;
   company: string;
-  member?: string;
-  token?: string;
+  member: string;
   sourceReady: boolean;
   holdings: DocumentHolding[];
   readsPaused?: boolean;
@@ -122,12 +120,12 @@ export function useMemberDocuments({
   };
   const config = (ledovaSubmissionGuard: () => void) => ({ ...session?.requestConfig(), ledovaSubmissionGuard });
   const query = useQuery({
-    queryKey: [...memberDocumentsKey(owner, company), member ?? '', token ?? ''],
+    queryKey: [...memberDocumentsKey(owner, company), member],
     enabled: authorised && !readsPaused,
     queryFn: () =>
       readEveryPage(async (page) => {
         check();
-        const result = await getRegisterMemberDocuments(apiClient, { company, member, token, page }, config(check));
+        const result = await getRegisterMemberDocuments(apiClient, { company, member, page }, config(check));
         check();
         return result;
       }),

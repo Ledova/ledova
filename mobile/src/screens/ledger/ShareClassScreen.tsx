@@ -12,7 +12,6 @@ import {
   USER_PREFERENCES_QUERY_KEY,
   classRightsKey,
   formatShareCount,
-  memberDocumentsKey,
   ownAppointmentsKey,
   useClassRights,
   useClassDetails,
@@ -34,7 +33,6 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ClassRights } from './ClassRights';
 import { ClassDetails, ClassDetailsActions, ClassDetailsContent } from './ClassDetails';
 import { ClassSetup, NewClassSetup } from './ClassSetup';
-import { ShareholderDocuments } from '../../components/register/ShareholderDocuments';
 import { useLedgerStyles } from './useLedgerStyles';
 
 const TITLE = DESTINATIONS.companyClass.title;
@@ -254,7 +252,6 @@ function ClassPage({
     holdReads('class-rights', !!rights.editor || rights.pending || rights.busy);
     return () => holdReads('class-rights', false);
   }, [rights.editor, rights.pending, rights.busy, holdReads]);
-  const onDocumentsHeld = useCallback((held: boolean) => holdReads('member-documents', held), [holdReads]);
   const registerReady =
     available &&
     !!preferences.preferences &&
@@ -273,10 +270,7 @@ function ClassPage({
     if (!read.isSuccess) return;
     await data.register.refetch();
     await client.invalidateQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
-    await Promise.all([
-      client.invalidateQueries({ queryKey: classRightsKey(owner, token) }),
-      client.invalidateQueries({ queryKey: memberDocumentsKey(owner, read.data.companyUuid) }),
-    ]);
+    await client.invalidateQueries({ queryKey: classRightsKey(owner, token) });
   };
   return (
     <Page
@@ -406,23 +400,6 @@ function ClassPage({
         </View>
       )}
       <ClassRights rights={rights} />
-      {listed && owner && (
-        <ShareholderDocuments
-          readsPaused={data.readingPaused}
-          onHeldChange={onDocumentsHeld}
-          owner={owner}
-          accountGuard={data.accountGuard}
-          guard={data.guard}
-          company={listed.companyUuid}
-          token={listed.uuid}
-          sourceReady={registerReady}
-          holdings={(data.register.data?.holders ?? []).map((holder) => ({
-            member: holder.member,
-            token: listed.uuid,
-            label: holder.name || 'Unnamed shareholder',
-          }))}
-        />
-      )}
     </Page>
   );
 }
