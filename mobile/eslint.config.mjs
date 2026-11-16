@@ -100,6 +100,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['node_modules/', 'dist/', '.expo/', 'ios/', 'android/', 'plugins/'],
+    ignores: ['node_modules/', 'dist/', '.expo/', 'ios/', 'android/', 'plugins/', 'expo-env.d.ts'],
   },
 );

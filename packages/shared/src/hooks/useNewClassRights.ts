@@ -1,34 +1,36 @@
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  appointmentForRegisterStep,
-  createUserFriendlyError,
-  getClassRights,
-  ownAppointmentsKey,
-  registerClassesKey,
-  registerHoldersKey,
-  useApiClient,
-  useClassRightsWriter,
-  type ImportPreparationOptions,
-  type OrderSubmissionOwner,
-  type OwnCompanyAppointment,
-} from '@ledova/shared';
+import { getClassRights } from '../services/class-rights';
+import { createUserFriendlyError } from '../utils/errors';
+import { appointmentForRegisterStep } from '../utils/register-commands';
+import type { OwnCompanyAppointment } from '../types';
+import { useApiClient } from './useApiClient';
+import { useClassRightsWriter } from './useClassRightsWriter';
+import type { ImportPreparationOptions } from './useImportPreparation';
+import { ownAppointmentsKey } from './useOwnAppointments';
+import { registerClassesKey, registerHoldersKey } from './useCompanyOwnership';
+import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 export function useNewClassRights({
   owner,
   company,
   check,
   resolveRegister,
+  newKey,
+  session,
 }: {
   owner: OrderSubmissionOwner;
   company: string;
   check: () => void;
   resolveRegister: NonNullable<ImportPreparationOptions['resolveRegister']>;
+  newKey: () => string;
+  session?: OrderSubmissionSession;
 }) {
   const api = useApiClient();
   const client = useQueryClient();
   return useClassRightsWriter({
     guard: check,
-    newKey: () => crypto.randomUUID(),
+    newKey,
+    session,
     resolveTarget: async () => {
       check();
       const { register } = await resolveRegister().finally(() =>
@@ -38,7 +40,15 @@ export function useNewClassRights({
         ]),
       );
       check();
-      const { data } = await getClassRights(api, register.token.uuid, {}, { ledovaSubmissionGuard: check });
+      const { data } = await getClassRights(
+        api,
+        register.token.uuid,
+        {},
+        {
+          ...session?.requestConfig(),
+          ledovaSubmissionGuard: check,
+        },
+      );
       check();
       if (data.current && data.current.token !== register.token.uuid)
         throw createUserFriendlyError('The class rights did not identify the new share class.');

@@ -26,6 +26,7 @@ import {
   usePeople,
   registerSteps,
   useNewShareClass,
+  useNewClassRights,
   useStartedClasses,
 } from '@ledova/shared';
 
@@ -35,7 +36,6 @@ import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { ImportForm } from './ImportForm';
 import { LoadError, Loading } from '@components/Ledger';
 import { NewClassRights } from './NewClassRights';
-import { useNewClassRights } from './useNewClassRights';
 import { RightsSummary } from './ClassRights';
 
 const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };
@@ -212,7 +212,13 @@ function FreshClass({
     problems,
   } = useNewShareClass({ guard, checkCurrent, company, classes, started, ready });
   const [openingHeld, setOpeningHeld] = useState(false);
-  const rights = useNewClassRights({ owner, company: company.uuid, check, resolveRegister });
+  const rights = useNewClassRights({
+    owner,
+    company: company.uuid,
+    check,
+    resolveRegister,
+    newKey: () => crypto.randomUUID(),
+  });
   const rightsHeld = !!rights.editor || rights.pending || rights.busy;
   useEffect(() => {
     onHeldChange(openingHeld || rightsHeld);

@@ -22,7 +22,7 @@ import {
   useSubmissionOwner,
   useUserPreferences,
 } from '@ledova/shared';
-import { Fact, LoadError, Loading, Rows, Section, Status } from '../../components/Ledger';
+import { Actions, Fact, LoadError, Loading, Rows, Section, Status } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
@@ -30,8 +30,8 @@ import { useRetainedScope } from '../../hooks/useRetainedScope';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { ClassRights } from './ClassRights';
-import { ClassDetails, ClassDetailsActions, ClassDetailsContent } from './ClassDetails';
+import { ClassRights, RightsSummary } from './ClassRights';
+import { ClassDeleteAction, ClassDetails, ClassDetailsActions, ClassDetailsContent } from './ClassDetails';
 import { ClassSetup, NewClassSetup } from './ClassSetup';
 import { useLedgerStyles } from './useLedgerStyles';
 
@@ -225,7 +225,6 @@ function ClassPage({
         confirmed ? 'Share class deleted.' : 'This share class is no longer available. Deletion was not confirmed.',
       ),
   });
-  usePreventRemove(details.busy || details.pending, () => {});
   useEffect(() => {
     if (deleted && !details.busy && !details.pending) navigation.popTo('Ledger', { outcome: deleted });
   }, [deleted, details.busy, details.pending, navigation]);
@@ -234,6 +233,7 @@ function ClassPage({
   }, [data.token.refetch]);
   const classDetailsVisible = !!(
     data.token.data?.canEditDetails ||
+    data.token.data?.editBlockedReason ||
     data.token.data?.canDelete ||
     data.token.data?.deletionBlockedReason ||
     details.held ||
@@ -242,14 +242,17 @@ function ClassPage({
   const listed = data.token.data;
   const rights = useClassRights(
     token,
-    available && data.token.isSuccess && data.token.fetchStatus === 'idle' && !setupHeld && !detailsHeld,
+    available && data.token.isSuccess && data.token.fetchStatus === 'idle' && !detailsHeld,
     listed?.companyUuid,
     SHARE_SHEET_FILES,
     randomUUID,
     orderSubmissionSession,
+    setupHeld || detailsHeld,
   );
+  const rightsHeld = !!rights.editor || rights.pending || rights.busy;
+  usePreventRemove(details.busy || details.pending || rights.busy || rights.pending, () => {});
   useEffect(() => {
-    holdReads('class-rights', !!rights.editor || rights.pending || rights.busy);
+    holdReads('class-rights', rightsHeld);
     return () => holdReads('class-rights', false);
   }, [rights.editor, rights.pending, rights.busy, holdReads]);
   const registerReady =
@@ -277,7 +280,7 @@ function ClassPage({
       testID="share-class-scroll"
       title={available ? (listed?.name ?? TITLE) : TITLE}
       available={available}
-      held={details.busy || details.pending}
+      held={details.busy || details.pending || rightsHeld}
       unavailable={<RegisterAccess owner={owner} />}
       refreshControl={
         <RefreshControl
@@ -313,7 +316,57 @@ function ClassPage({
         </LoadError>
       ) : setup === null ? (
         <Loading>Loading the share class…</Loading>
-      ) : setup ? null : (
+      ) : null}
+      {setup === true && listed && (
+        <View style={sourceError && look.hidden}>
+          <ClassSetup
+            owner={owner}
+            currentOwner={() => {
+              data.guard();
+              return owner;
+            }}
+            accountOwner={() => {
+              data.accountGuard();
+              return owner;
+            }}
+            available={available && !sourceError}
+            company={company}
+            token={token}
+            record={record}
+            externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
+            classHeld={details.held}
+            classContent={<ClassRights rights={rights} embedded blocked={setupHeld || detailsHeld} />}
+            classContentHeld={rightsHeld}
+            classReview={
+              <View style={look.summary}>
+                <Text accessibilityRole="header" style={look.title}>
+                  Class rights
+                </Text>
+                {rights.current ? (
+                  <RightsSummary revision={rights.current} />
+                ) : !rights.ready && !rights.hasError ? (
+                  <Loading>Loading class rights…</Loading>
+                ) : (
+                  <Text style={look.muted}>
+                    {rights.ready ? 'No rights recorded.' : 'Class rights are not currently available.'}
+                  </Text>
+                )}
+              </View>
+            }
+            classFields={(recordFields) => (
+              <ClassDetailsContent token={listed} details={details} available={detailsAvailable}>
+                {recordFields}
+              </ClassDetailsContent>
+            )}
+            classActions={<ClassDetailsActions token={listed} details={details} available={detailsAvailable} />}
+            onHeldChange={heldSetup}
+            onRecordsChanged={recordsChanged}
+            {...flow}
+          />
+        </View>
+      )}
+      {setup === false && <ClassRights rights={rights} />}
+      {setup === false && listed && data.token.isSuccess && (
         <Section title="Summary">
           {requested && !canSetUp && <Text style={look.muted}>{REGISTER_IMPORT_COPY.READ_ONLY_NOTE}</Text>}
           {!classDetailsVisible && (
@@ -369,37 +422,16 @@ function ClassPage({
           )}
         </Section>
       )}
-      {setup === true && listed && (
-        <View style={sourceError && look.hidden}>
-          <ClassSetup
-            owner={owner}
-            currentOwner={() => {
-              data.guard();
-              return owner;
-            }}
-            accountOwner={() => {
-              data.accountGuard();
-              return owner;
-            }}
-            available={available && !sourceError}
-            company={company}
-            token={token}
-            record={record}
-            externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
-            classHeld={details.held}
-            classFields={(recordFields) => (
-              <ClassDetailsContent token={listed} details={details} available={detailsAvailable}>
-                {recordFields}
-              </ClassDetailsContent>
-            )}
-            classActions={<ClassDetailsActions token={listed} details={details} available={detailsAvailable} />}
-            onHeldChange={heldSetup}
-            onRecordsChanged={recordsChanged}
-            {...flow}
-          />
-        </View>
-      )}
-      <ClassRights rights={rights} />
+      {setup === false &&
+        listed &&
+        !sourceError &&
+        !details.editor &&
+        !rightsHeld &&
+        (listed.canDelete || listed.deletionBlockedReason) && (
+          <Actions>
+            <ClassDeleteAction token={listed} details={details} available={detailsAvailable} />
+          </Actions>
+        )}
     </Page>
   );
 }

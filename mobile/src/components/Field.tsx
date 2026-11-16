@@ -55,12 +55,14 @@ export function Field({
 
 export function Checkbox({
   label,
+  accessibilityLabel = label,
   checked,
   disabled,
   error,
   onChange,
 }: {
   label: string;
+  accessibilityLabel?: string;
   checked: boolean;
   disabled: boolean;
   error: string | null;
@@ -98,17 +100,18 @@ export function Checkbox({
   return (
     <Pressable
       accessibilityRole="checkbox"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ checked, disabled }}
       accessibilityHint={error ?? undefined}
       disabled={disabled}
-      hitSlop={4}
+      hitSlop={label ? 4 : 12}
       onPress={() => onChange(!checked)}
       style={[look.choice, disabled && look.disabled]}
     >
       <View style={[look.box, checked && look.ticked]}>
         {checked && <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.utility.white} weight="bold" />}
       </View>
-      <Text style={look.label}>{label}</Text>
+      {!!label && <Text style={look.label}>{label}</Text>}
     </Pressable>
   );
 }

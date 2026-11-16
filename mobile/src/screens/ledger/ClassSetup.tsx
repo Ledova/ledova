@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
+import { usePreventRemove } from '@react-navigation/native';
+import { randomUUID } from 'expo-crypto';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AUTH_QUERY_KEY,
@@ -9,6 +11,7 @@ import {
   REGISTER_IMPORT_COPY as COPY,
   REGISTER_SETUP_CHOICES,
   USER_PREFERENCES_QUERY_KEY,
+  appointmentForRegisterStep,
   canOpenEmptyRegister,
   createUserFriendlyError,
   importRegisterKey,
@@ -19,6 +22,7 @@ import {
   registerSteps,
   useImportRegister,
   useNewShareClass,
+  useNewClassRights,
   useOwnAppointments,
   usePeople,
   useRegisterClasses,
@@ -42,6 +46,8 @@ import { Choices, Field } from '../../components/Field';
 import { useThemedStyles } from '../../contexts';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ImportForm } from './ImportForm';
+import { NewClassRights } from './NewClassRights';
+import { RightsSummary } from './ClassRights';
 import { useLedgerStyles } from './useLedgerStyles';
 
 const TITLE = DESTINATIONS.companyRegisterSetup.title;
@@ -191,6 +197,7 @@ export function NewClassSetup({
     <Page
       testID="register-setup-scroll"
       title={TITLE}
+      held={held}
       available={showForm}
       unavailable={
         !available ? <RegisterAccess owner={owner} /> : (content ?? <Loading>Loading the register…</Loading>)
@@ -211,6 +218,13 @@ export function NewClassSetup({
           onHeldChange={setHeld}
           onConflict={retry}
           onContinue={onContinue}
+          administrator={
+            appointmentForRegisterStep(
+              (appointments.data ?? []).filter((row) => row.capabilities.includes('admin') && !row.revokedAt),
+              context.company.uuid,
+              'prepare',
+            )?.uuid
+          }
           {...flow}
         />
       )}
@@ -236,6 +250,7 @@ function FreshClass({
   onOpen,
   onPrepared,
   onFinished,
+  administrator,
 }: Flow & {
   owner: OrderSubmissionOwner;
   guard: () => void;
@@ -249,6 +264,7 @@ function FreshClass({
   onHeldChange: (held: boolean) => void;
   onConflict: () => void;
   onContinue: (token: string) => void;
+  administrator?: string;
 }) {
   const look = useLedgerStyles();
   const link = useLinkStyle();
@@ -269,6 +285,21 @@ function FreshClass({
     ready,
     session: orderSubmissionSession,
   });
+  const [openingHeld, setOpeningHeld] = useState(false);
+  const rights = useNewClassRights({
+    owner,
+    company: company.uuid,
+    check: fresh.check,
+    resolveRegister: fresh.resolveRegister,
+    newKey: randomUUID,
+    session: orderSubmissionSession,
+  });
+  const rightsHeld = !!rights.editor || rights.pending || rights.busy;
+  usePreventRemove(rights.busy || rights.pending, () => {});
+  useEffect(() => {
+    onHeldChange(openingHeld || rightsHeld);
+    return () => onHeldChange(false);
+  }, [openingHeld, rightsHeld, onHeldChange]);
   return (
     <ImportForm
       owner={owner}
@@ -283,13 +314,35 @@ function FreshClass({
       companyMembers={companyMembers}
       appointment={steps.prepare!}
       steps={steps}
-      blocked={!ready}
+      blocked={!ready || rightsHeld}
       visible={visible}
       onConflict={onConflict}
-      onHeldChange={onHeldChange}
+      onHeldChange={setOpeningHeld}
       resolveRegister={fresh.resolveRegister}
       emptyOpeningAllowed
       classProblems={fresh.problems}
+      classContent={
+        <NewClassRights
+          rights={rights}
+          administrator={administrator}
+          problems={fresh.problems}
+          classLocked={fresh.classLocked}
+          blocked={openingHeld}
+        />
+      }
+      classContentHeld={rightsHeld}
+      classReview={
+        <View style={look.summary}>
+          <Text accessibilityRole="header" style={look.title}>
+            Class rights
+          </Text>
+          {rights.saved ? (
+            <RightsSummary revision={rights.saved} />
+          ) : (
+            <Text style={look.muted}>No rights recorded.</Text>
+          )}
+        </View>
+      }
       onCancel={onCancel}
       onPrepared={onPrepared}
       onFinished={onFinished}
@@ -310,7 +363,7 @@ function FreshClass({
             </Text>
           )}
           <Choices
-            legend="Share class"
+            legend="Start with"
             options={REGISTER_SETUP_CHOICES}
             value={fresh.choice}
             disabled={fresh.classLocked || !ready}
@@ -325,35 +378,31 @@ function FreshClass({
               to bring in shareholder particulars.
             </Text>
           )}
-          {fresh.choice === 'custom' && (
-            <>
-              <Field
-                label="Class name"
-                value={fresh.name}
-                maxLength={FIELD_LIMITS.CLASS_NAME}
-                editable={!fresh.classLocked && ready}
-                onChange={fresh.setName}
-              />
-              <Field
-                label="Class code"
-                value={fresh.symbol}
-                maxLength={FIELD_LIMITS.CLASS_CODE}
-                autoCapitalize="characters"
-                autoCorrect={false}
-                editable={!fresh.classLocked && ready}
-                onChange={(symbol) => fresh.setSymbol(symbol.toUpperCase())}
-              />
-              <Choices
-                legend="Class type"
-                options={REGISTER_CLASS_TYPES}
-                value={fresh.tokenType}
-                disabled={fresh.classLocked || !ready}
-                onChange={fresh.setTokenType}
-              />
-              <Text style={look.small}>Use the recorded class code of 1–5 letters, such as A or ORD.</Text>
-            </>
-          )}
-          <Text style={look.small}>Class code and type do not define the rights attached to the shares.</Text>
+          <>
+            <Field
+              label="Class name"
+              value={fresh.name}
+              maxLength={FIELD_LIMITS.CLASS_NAME}
+              editable={!fresh.classLocked && ready}
+              onChange={fresh.setName}
+            />
+            <Field
+              label="Class code"
+              value={fresh.symbol}
+              maxLength={FIELD_LIMITS.CLASS_CODE}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!fresh.classLocked && ready}
+              onChange={(symbol) => fresh.setSymbol(symbol.toUpperCase())}
+            />
+            <Choices
+              legend="Class type"
+              options={REGISTER_CLASS_TYPES}
+              value={fresh.tokenType}
+              disabled={fresh.classLocked || !ready}
+              onChange={fresh.setTokenType}
+            />
+          </>
         </View>
       }
     />
@@ -383,6 +432,9 @@ export function ClassSetup({
   classFields,
   classActions,
   classHeld,
+  classContent,
+  classReview,
+  classContentHeld,
   ...flow
 }: Flow & {
   owner: OrderSubmissionOwner;
@@ -398,6 +450,9 @@ export function ClassSetup({
   classFields: (recordFields: ReactNode) => ReactNode;
   classActions: ReactNode;
   classHeld: boolean;
+  classContent: ReactNode;
+  classReview: ReactNode;
+  classContentHeld: boolean;
 }) {
   const look = useLedgerStyles();
   const link = useLinkStyle();
@@ -405,7 +460,7 @@ export function ClassSetup({
   const [held, setHeld] = useState(false);
   const [retained, setRetained] = useState<Retained | null>(null);
   const [preparedHere, setPreparedHere] = useState<string | null>(null);
-  const retaining = held || classHeld;
+  const retaining = held || classHeld || classContentHeld;
   useEffect(() => {
     onHeldChange(held);
     return () => onHeldChange(false);
@@ -500,7 +555,15 @@ export function ClassSetup({
       if (state?.status !== 'success' || state.fetchStatus !== 'idle')
         throw createUserFriendlyError('Refresh current company authority before continuing.');
     }
-    if (!fresh || !canOpen || classHeld || (record && !saved) || retained?.listed.companyUuid !== listed?.companyUuid)
+    if (
+      !fresh ||
+      !canOpen ||
+      externalHeld ||
+      classHeld ||
+      classContentHeld ||
+      (record && !saved) ||
+      retained?.listed.companyUuid !== listed?.companyUuid
+    )
       throw createUserFriendlyError('Your company, authority or source records changed. Refresh before continuing.');
   };
   const notice = (children: string) => <Text style={look.muted}>{children}</Text>;
@@ -564,9 +627,9 @@ export function ClassSetup({
             newEffectGuard={checkNew}
             company={retained!.listed.companyUuid}
             shareClass={{
-              name: retained!.listed.name,
-              symbol: retained!.listed.symbol,
-              type: retained!.listed.tokenTypeDisplay || 'Not recorded',
+              name: listed?.name ?? retained!.listed.name,
+              symbol: listed?.symbol ?? retained!.listed.symbol,
+              type: listed?.tokenTypeDisplay ?? retained!.listed.tokenTypeDisplay,
             }}
             register={retained!.register}
             companyMembers={(members.data ?? retained!.members).members}
@@ -580,12 +643,15 @@ export function ClassSetup({
             classFields={classFields}
             classActions={classActions}
             classHeld={classHeld}
+            classContent={classContent}
+            classReview={classReview}
+            classContentHeld={classContentHeld}
             appointment={canPrepare ? steps?.prepare : undefined}
             steps={steps ?? retained!.steps}
             correction={retained!.correction}
             saved={retained!.saved}
             blocked={!fresh || !canOpen || externalHeld || classHeld}
-            visible={showForm && !externalHeld}
+            visible={showForm}
             onConflict={retry}
             onHeldChange={setHeld}
             onCancel={flow.onCancel}

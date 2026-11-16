@@ -61,7 +61,7 @@ import {
   type TokenCreate,
 } from '@ledova/shared';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react-native';
 import { useState } from 'react';
 import type { AxiosInstance } from 'axios';
 import { File } from 'expo-file-system';
@@ -172,8 +172,15 @@ jest.mock('expo-file-system', () => {
   }
   return { Directory, File, Paths: { cache: new Directory('file:///cache'), document: new Directory('file:///docs') } };
 });
-jest.mock('../../services/apiClient', () => ({ apiClient: { get: jest.fn(), post: jest.fn(), patch: jest.fn() } }));
-const api = { get: jest.mocked(apiClient.get), post: jest.mocked(apiClient.post), patch: jest.mocked(apiClient.patch) };
+jest.mock('../../services/apiClient', () => ({
+  apiClient: { get: jest.fn(), post: jest.fn(), patch: jest.fn(), delete: jest.fn() },
+}));
+const api = {
+  get: jest.mocked(apiClient.get),
+  post: jest.mocked(apiClient.post),
+  patch: jest.mocked(apiClient.patch),
+  delete: jest.mocked(apiClient.delete),
+};
 const client = new QueryClient({
   defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: 0 } },
 });
@@ -671,6 +678,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   let transfers: RegisterTransfer[] = [];
   let corrections: RegisterCorrection[] = [];
   let imports: RegisterImport[] = [OPENING];
+  api.delete.mockReset().mockImplementation(async (url) => {
+    if (url !== URLS.DETAIL(PREFERENCE.uuid)) throw new Error('Unexpected synthetic deletion');
+    unopenedPreference = false;
+    return { status: 204 };
+  });
   api.get.mockReset().mockImplementation(async (url, config) => {
     if (url === '/api/user-preferences/') {
       if (preferencesWait) await preferencesWait;
@@ -693,7 +705,14 @@ it('associates a member by invitation code, switches to their company on Dashboa
       const company = (config?.params as { company_uuid?: string } | undefined)?.company_uuid;
       if (classesWait && !company) await classesWait;
       const classes = [
-        { ...FOUNDERS, companyUuid: ADMINISTERED.uuid, tokenTypeDisplay: 'Ordinary', totalSupply: '1000' },
+        {
+          ...FOUNDERS,
+          companyUuid: ADMINISTERED.uuid,
+          tokenTypeDisplay: 'Ordinary',
+          totalSupply: '1000',
+          canDelete: false,
+          deletionBlockedReason: 'Issued shares keep this class in the register.',
+        },
         { ...ELSEWHERE, companyUuid: ELSEWHERE_COMPANY },
         ...(documentClasses || unopenedPreference
           ? [
@@ -702,6 +721,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
                 ...PREFERENCE,
                 name: preferenceName,
                 companyUuid: ADMINISTERED.uuid,
+                canDelete: true,
+                updatedAt: preferenceUpdatedAt,
                 tokenTypeDisplay: 'Preference',
               },
             ]
@@ -802,7 +823,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
     }
     if (url === URLS.CLASS_RIGHTS(FOUNDERS.uuid) || url === URLS.CLASS_RIGHTS(PREFERENCE.uuid)) {
       const administrationAppointment = own.capabilities.includes('admin') ? own.uuid : null;
-      return { data: { ...page(rights).data, previous: null, current: rights[0] ?? null, administrationAppointment } };
+      const revisions = rights.filter((revision) => url === URLS.CLASS_RIGHTS(revision.token));
+      return {
+        data: { ...page(revisions).data, previous: null, current: revisions[0] ?? null, administrationAppointment },
+      };
     }
     if (url === URLS.REGISTER_MEMBER_DOCUMENTS) {
       const {
@@ -1770,6 +1794,29 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByRole('button', { name: /^Elsewhere, / })).toBeNull();
   await fireEvent.press(foundersRow);
   expect(mockNavigate).toHaveBeenLastCalledWith('ShareClass', founders);
+  unopenedPreference = true;
+  await act(async () => screen.getByTestId('ledger-scroll').props.refreshControl.props.onRefresh());
+  await fireEvent.press(await screen.findByRole('checkbox', { name: 'Select all' }));
+  expect(screen.getByRole('checkbox', { name: `Select ${FOUNDERS.name}` }).props.accessibilityState.checked).toBe(true);
+  expect(screen.getByRole('checkbox', { name: `Select ${PREFERENCE.name}` }).props.accessibilityState.checked).toBe(
+    true,
+  );
+  await fireEvent.press(screen.getByRole('button', { name: 'Delete selected', disabled: false }));
+  expect(screen.getByText('Will be kept')).toBeTruthy();
+  expect(screen.getAllByText('Issued shares keep this class in the register.').length).toBeGreaterThan(0);
+  await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
+  expect(api.delete).not.toHaveBeenCalled();
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Select all' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Delete selected', disabled: false }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Delete selected', disabled: false }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Close', disabled: false }));
+  expect(api.delete).toHaveBeenCalledWith(
+    URLS.DETAIL(PREFERENCE.uuid),
+    expect.objectContaining({ params: { expected_updated_at: preferenceUpdatedAt } }),
+  );
+  expect(await screen.findByText('1 share class deleted.')).toBeTruthy();
+  expect(screen.queryByRole('checkbox', { name: `Select ${PREFERENCE.name}` })).toBeNull();
+  expect(screen.getByRole('checkbox', { name: `Select ${FOUNDERS.name}` })).toBeTruthy();
   await fireEvent.press(await screen.findByRole('button', { name: 'Add share class' }));
   const setup = { company: ADMINISTERED.uuid };
   expect(mockNavigate).toHaveBeenLastCalledWith('RegisterSetup', setup);
@@ -2282,6 +2329,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
     'Synthetic opening correction',
   );
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  expect(screen.getByLabelText('2. Class rights, current step')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
   await waitFor(() =>
     expect(mockSetParams).toHaveBeenLastCalledWith({ token: FOUNDERS.uuid, record: imports[0].uuid }),
@@ -2306,6 +2355,36 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(await screen.findByRole('button', { name: 'Cancel (ledger setup)', disabled: false }));
   expect(mockNavigate).toHaveBeenLastCalledWith('Corrections', { company: ADMINISTERED.uuid, token: FOUNDERS.uuid });
   await settled();
+  const savedTerms = 'Preference dividends follow the company constitution.';
+  rights = [
+    {
+      uuid: '42424242-4242-4242-8242-424242424242',
+      token: PREFERENCE.uuid,
+      revision: 1,
+      appointment: ADMINISTRATION.uuid,
+      summary: savedTerms,
+      attributes: { voting: { type: 'general' } },
+      effectiveDate: null,
+      documentReference: '',
+      documents: [
+        {
+          evidence: '44444444-4444-4444-8444-444444444444',
+          company: ADMINISTERED.uuid,
+          documentType: 'class_rights',
+          providedBy: 'company',
+          name: 'preference-rights.pdf',
+          fileSize: 4,
+          mimeType: 'application/pdf',
+          sha256: 'a'.repeat(64),
+        },
+      ],
+      idempotencyKey: '45454545-4545-4545-8545-454545454545',
+      recordedBy: 1,
+      recordedByName: PROFILE.fullName,
+      createdAt: '2026-11-04T00:00:00Z',
+    },
+    ...rights,
+  ];
   unopenedPreference = true;
   await act(async () => {
     await client.invalidateQueries({
@@ -2325,7 +2404,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByLabelText('Class name').props.value).toBe(PREFERENCE.name);
   expect(screen.queryByLabelText('Record date')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
-  expect(screen.getByRole('button', { name: '2. Shareholders', disabled: true })).toBeTruthy();
+  expect(screen.getByRole('button', { name: '3. Shareholders', disabled: true })).toBeTruthy();
   await fireEvent.changeText(screen.getByLabelText('Class name'), 'Discarded class name');
   await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
   expect((await screen.findByLabelText('Record date')).props.value).toBe(openingDate);
@@ -2369,6 +2448,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
   ]);
   await fireEvent.changeText(screen.getByLabelText('Record date'), utcToday());
   await fireEvent.press(await screen.findByRole('button', { name: 'Continue' }));
+  expect(screen.getByLabelText('2. Class rights, current step')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Add a shareholder' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Company shareholder: none chosen' }));
   await fireEvent.press(screen.getByRole('radio', { name: /^Synthetic Holder A/ }));
@@ -2421,6 +2502,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
     />,
   );
   expect(screen.getByLabelText('Review ledger') === pendingReview).toBe(true);
+  const resumedReview = within(screen.getByLabelText('Review ledger'));
+  expect(await resumedReview.findByText(savedTerms)).toBeTruthy();
+  expect(resumedReview.getByLabelText(/^Voting: General voting/)).toBeTruthy();
+  expect(resumedReview.getByText('preference-rights.pdf')).toBeTruthy();
+  expect(resumedReview.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+  expect(resumedReview.queryByRole('button', { name: 'Download (preference-rights.pdf)' })).toBeNull();
   expect(preparePosts()).toHaveLength(preparedBefore + 1);
   importsReadFailure = true;
   await act(async () => {
@@ -2446,7 +2533,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByLabelText('Review ledger')).toBeTruthy();
   await fireEvent.press(
     await screen.findByRole('button', {
-      name: '2. Shareholders',
+      name: '3. Shareholders',
       disabled: false,
     }),
   );
@@ -2454,7 +2541,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     expect(imports.find((proposal) => proposal.uuid === preparedOpening.uuid)?.status).toBe('rejected'),
   );
   await settled();
-  expect(screen.getByLabelText('2. Shareholders, current step')).toBeTruthy();
+  expect(screen.getByLabelText('3. Shareholders, current step')).toBeTruthy();
   await fireEvent.press(
     await screen.findByRole('button', {
       name: 'Edit (shareholder 1)',
@@ -2466,20 +2553,20 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Show company source copies' }));
   expect(screen.getByRole('button', { name: 'Current share register, synthetic.pdf. Choose file' })).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Back (share class)' }));
+  await fireEvent.press(screen.getByRole('button', { name: '1. Share class' }));
   await fireEvent.changeText(screen.getByLabelText('Record date'), '2026-10-25');
   const beforeInvalid = preparePosts().length;
-  await fireEvent.press(screen.getByRole('button', { name: '3. Review' }));
-  expect(screen.getByLabelText('2. Shareholders, current step')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: '4. Review' }));
+  expect(screen.getByLabelText('3. Shareholders, current step')).toBeTruthy();
   expect(
     screen.getByText(
       'Shareholder 1: enter a name, address, shares and original membership date no later than the record date.',
     ),
   ).toBeTruthy();
   expect(preparePosts()).toHaveLength(beforeInvalid);
-  await fireEvent.press(screen.getByRole('button', { name: 'Back (share class)' }));
+  await fireEvent.press(screen.getByRole('button', { name: '1. Share class' }));
   await fireEvent.changeText(screen.getByLabelText('Record date'), '2026-10-26');
-  await fireEvent.press(screen.getByRole('button', { name: '3. Review' }));
+  await fireEvent.press(screen.getByRole('button', { name: '4. Review' }));
   await screen.findByLabelText('Review ledger');
   await settled();
   expect(
@@ -2510,12 +2597,12 @@ it('associates a member by invitation code, switches to their company on Dashboa
     />,
   );
   await screen.findByLabelText('Review ledger');
-  await fireEvent.press(await screen.findByRole('button', { name: '2. Shareholders', disabled: false }));
+  await fireEvent.press(await screen.findByRole('button', { name: '3. Shareholders', disabled: false }));
   await waitFor(() =>
     expect(imports.find((proposal) => proposal.uuid === preparedAgain.uuid)?.status).toBe('rejected'),
   );
   await settled();
-  expect(screen.getByLabelText('2. Shareholders, current step')).toBeTruthy();
+  expect(screen.getByLabelText('3. Shareholders, current step')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Add a shareholder' })).toBeTruthy();
   await view.rerender(<></>);
   unopenedPreference = false;
@@ -2532,6 +2619,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(<ShareClassScreen route={{ key: 'new-class', name: 'RegisterSetup', params: setup }} />);
   await fireEvent.press(await screen.findByRole('radio', { name: 'Preference (PRF)' }));
   await settled();
+  await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+  expect(screen.getByLabelText('2. Class rights, current step')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Add a shareholder' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Company shareholder: none chosen' }));

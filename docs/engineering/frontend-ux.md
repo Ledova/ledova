@@ -35,9 +35,8 @@ except Shareholders, which lists each person with only the classes they hold bel
 A stepped preparation (register setup, an investor issue, a transfer) is one card: its title names the class or
 the task, `FormSteps` sits at its top, each step has a small heading unless it would repeat the step's name, as in
 register setup, and one primary action ends the step.
-Web register setup uses one **Ledger setup** card, with **Share class**, **Class rights**,
-**Shareholders** and **Review** steps. The app retains its three steps: **Share class**,
-**Shareholders** and **Review**. The class name stays in the page header. The first step groups name, code, type and record
+Web and native register setup use one **Ledger setup** card, with **Share class**, **Class rights**,
+**Shareholders** and **Review** steps. The class name stays in the page header. The first step groups name, code, type and record
 date, reusing the inline metadata editor rather than a separate Class details card or nested card.
 In its read view, name/code and type/date share a two-column grid on wide screens, with labels
 above values, stacking on phones. **Edit** and **Delete share class** appear only on the Share class step, alongside
