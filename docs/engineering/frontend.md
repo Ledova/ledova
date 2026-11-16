@@ -656,11 +656,13 @@ The class workspace at `/company/ledger/:uuid` owns its summary, rights, documen
 `dashboard/src/pages/company/ledger/detail/`. An unfinished class opens the existing stepped form
 for current preparers, reviewers or executors; readers retain the summary and permitted documents.
 Setup embeds the existing class details content in the **Share class** step of one **Ledger setup**
-card, alongside the record date in the same responsive field grid. The card heading holds its
-secondary metadata actions; the bottom footer holds only the current workflow actions.
+card, alongside the record date in the same responsive field grid. The bottom footer groups
+Edit/Delete with the first step's navigation; later steps show only their own relevant controls.
 The inline metadata task keeps its explicit save/recovery controls
 and blocks opening actions while held; it does not save through ledger confirmation. Completed
 classes keep their separate details view, and Class rights remains below setup.
+Preparing and retiring the current form's own review keeps that form instance and its selected
+step; a different externally selected saved record still gets its own form.
 New classes at `/company/ledger/setup` and explicit imports at `/company/ledger/:uuid/import` use
 the same page entry. An explicit import keeps its saved-record or opening-correction context;
 ordinary class selection does not start a replacement opening. Setup chooses or creates a class,

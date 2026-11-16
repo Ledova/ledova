@@ -65,6 +65,7 @@ export function ClassSetup({
   const client = useQueryClient();
   const [search] = useSearchParams();
   const [held, setHeld] = useState(false);
+  const [preparedHere, setPreparedHere] = useState<string | null>(null);
   const keeping = held || classHeld;
   const [retained, setRetained] = useState<Retained | null>(null);
   useEffect(() => {
@@ -96,6 +97,7 @@ export function ClassSetup({
         proposal.sourceConfirmed &&
         proposal.correctionOf === (correction?.uuid ?? null),
   );
+  const savedSource = saved?.uuid === preparedHere ? retained?.saved : saved;
   const fetching =
     classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching || members.isFetching;
   const stale = classes.isError || appointments.isError || register.isError || imports.isError || members.isError;
@@ -123,7 +125,7 @@ export function ClassSetup({
     (retained?.listed !== listed ||
       retained?.register !== register.data ||
       retained?.correction !== correction ||
-      retained?.saved !== saved ||
+      retained?.saved !== savedSource ||
       retained?.members !== members.data ||
       retained?.steps.prepare?.uuid !== steps?.prepare?.uuid ||
       retained?.steps.approve?.uuid !== steps?.approve?.uuid ||
@@ -135,7 +137,7 @@ export function ClassSetup({
       register: register.data!,
       steps: steps!,
       correction,
-      saved,
+      saved: savedSource,
       members: members.data!,
     });
   const retry = () => {
@@ -241,6 +243,7 @@ export function ClassSetup({
             saved={retained.saved}
             blocked={!fresh || !canOpen || externalHeld || classHeld}
             visible={showForm}
+            onPrepared={(_, saved) => setPreparedHere(saved)}
             onConflict={retry}
             onHeldChange={setHeld}
           />

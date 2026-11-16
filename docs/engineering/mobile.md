@@ -417,8 +417,9 @@ for an unfinished class, or from Corrections, it brings records into its unopene
 or replaces the latest applied opening's shareholder rows in full with a reason, and resumes a saved
 draft for review. One **Ledger setup** card owns the steps: the first groups name, code, type and
 record date as stacked fields, with the existing inline metadata editor and safe deletion where
-permitted. Edit/Delete sit beside the card heading, with the workflow actions together at the
-bottom. It replaces
+permitted. Edit/Delete join the workflow actions in the bottom footer only on Share class;
+Shareholders groups Back, Add a shareholder and Continue in the same footer, while an open
+shareholder editor keeps its own Cancel/Add or Save controls. Review keeps its decision controls. It replaces
 the separate Class details card during setup; completed and read-only class views keep their details.
 The metadata task's explicit Save/Cancel or recovery controls replace the opening footer while held;
 the opening fields stay mounted and hidden, and step changes are blocked without losing the draft.

@@ -2459,6 +2459,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
       disabled: false,
     }),
   );
+  await waitFor(() =>
+    expect(imports.find((proposal) => proposal.uuid === preparedOpening.uuid)?.status).toBe('rejected'),
+  );
+  await settled();
+  expect(screen.getByLabelText('2. Shareholders, current step')).toBeTruthy();
   await fireEvent.press(
     await screen.findByRole('button', {
       name: 'Edit (shareholder 1)',
@@ -2502,6 +2507,25 @@ it('associates a member by invitation code, switches to their company on Dashboa
       expect.anything(),
     ],
   ]);
+  const preparedAgain = imports[0];
+  expect(mockSetParams).toHaveBeenLastCalledWith({ token: PREFERENCE.uuid, record: preparedAgain.uuid });
+  await view.rerender(
+    <ShareClassScreen
+      route={{
+        key: 'unopened-class',
+        name: 'ShareClass',
+        params: { ...unopened, record: preparedAgain.uuid },
+      }}
+    />,
+  );
+  await screen.findByLabelText('Review ledger');
+  await fireEvent.press(await screen.findByRole('button', { name: '2. Shareholders', disabled: false }));
+  await waitFor(() =>
+    expect(imports.find((proposal) => proposal.uuid === preparedAgain.uuid)?.status).toBe('rejected'),
+  );
+  await settled();
+  expect(screen.getByLabelText('2. Shareholders, current step')).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Add a shareholder' })).toBeTruthy();
   await view.rerender(<></>);
   unopenedPreference = false;
   preferenceName = PREFERENCE.name;

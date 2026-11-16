@@ -39,6 +39,7 @@ type ImportFormProps = Omit<ImportPreparationOptions, 'onPrepared' | 'onFinished
   classDetails?: (recordFields: ReactNode) => ReactNode;
   classActions?: ReactNode;
   classHeld?: boolean;
+  onPrepared?: ImportPreparationOptions['onPrepared'];
 };
 
 export function ImportForm({
@@ -64,6 +65,7 @@ export function ImportForm({
   emptyOpeningAllowed = false,
   visible = true,
   onHeldChange,
+  onPrepared,
 }: ImportFormProps) {
   const { running, track } = useRunningAction();
   const navigate = useNavigate();
@@ -127,10 +129,12 @@ export function ImportForm({
     visible,
     onHeldChange,
     newKey: () => crypto.randomUUID(),
-    onPrepared: (token, record) =>
+    onPrepared: (token, record) => {
+      onPrepared?.(token, record);
       navigate(`${generatePath(DESTINATIONS.companyClass.path, { uuid: token })}?record=${record}`, {
         replace: true,
-      }),
+      });
+    },
     onFinished: () => navigate(COMPANY_DASHBOARD_PATH, { state: { registerCompany: company } }),
   });
 
@@ -169,11 +173,18 @@ export function ImportForm({
       )}
     </fieldset>
   );
+  const continueAction = (
+    <PageAction
+      type="submit"
+      label="Continue"
+      primary
+      busy={phase === 'shareholders' && busy}
+      busyLabel="Saving draft…"
+      disabled={busy || blocked || holderEditor}
+    />
+  );
   return (
-    <Section
-      title={REGISTER_IMPORT_COPY.SETUP_TITLE}
-      actions={classActions && <div hidden={!visible || !mutable || phase !== 'details'}>{classActions}</div>}
-    >
+    <Section title={REGISTER_IMPORT_COPY.SETUP_TITLE}>
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps
           label="Ledger setup steps"
@@ -235,61 +246,59 @@ export function ImportForm({
                         preserveParticulars={preserveParticulars}
                         validateMember={holderProblems}
                         onEditorChange={setHolderEditor}
+                        footer={(addAction) =>
+                          !uncertain && (
+                            <>
+                              {emptyOpeningAllowed && !correction && draft.members.length === 0 && (
+                                <p className="text-sm text-text-muted">
+                                  If no shares have been issued, continue with no shareholders. Confirming records an
+                                  empty opening; the first share issue is a separate company decision.
+                                </p>
+                              )}
+                              <FormActions>
+                                <PageAction
+                                  label="Back"
+                                  context="share class"
+                                  disabled={busy || blocked || holderEditor}
+                                  onClick={() => {
+                                    setAttempted(false);
+                                    setPhase('details');
+                                  }}
+                                />
+                                {addAction}
+                                {continueAction}
+                              </FormActions>
+                            </>
+                          )
+                        }
                       />
-                    )}
-                    {phase === 'shareholders' && emptyOpeningAllowed && !correction && draft.members.length === 0 && (
-                      <p className="text-sm text-text-muted">
-                        If no shares have been issued, continue with no shareholders. Confirming records an empty
-                        opening; the first share issue is a separate company decision.
-                      </p>
                     )}
                   </fieldset>
                 )}
-                {!uncertain && !holderEditor && (
+                {!uncertain && !holderEditor && phase === 'details' && (
                   <FormActions>
-                    {phase === 'shareholders' && (
-                      <PageAction
-                        label="Back"
-                        context="share class"
-                        disabled={busy || blocked || holderEditor}
-                        onClick={() => {
-                          setAttempted(false);
-                          setPhase('details');
-                        }}
-                      />
-                    )}
-                    {phase === 'details' && (
-                      <>
-                        <PageAction
-                          label="Cancel"
-                          disabled={busy || blocked}
-                          onClick={() => {
-                            const place = registerPlace({ company, token: register?.token.uuid });
-                            navigate(place.to, { state: place.state });
-                          }}
-                        />
-                        <button
-                          type="button"
-                          aria-disabled="true"
-                          aria-describedby={importDescription}
-                          title={IMPORT_NOTE}
-                          className="inline-flex rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-muted opacity-60"
-                        >
-                          Import
-                        </button>
-                        <span id={importDescription} className="sr-only">
-                          {IMPORT_NOTE}
-                        </span>
-                      </>
-                    )}
+                    {classActions}
                     <PageAction
-                      type="submit"
-                      label="Continue"
-                      primary
-                      busy={phase === 'shareholders' && busy}
-                      busyLabel="Saving draft…"
-                      disabled={busy || blocked || holderEditor}
+                      label="Cancel"
+                      disabled={busy || blocked}
+                      onClick={() => {
+                        const place = registerPlace({ company, token: register?.token.uuid });
+                        navigate(place.to, { state: place.state });
+                      }}
                     />
+                    <button
+                      type="button"
+                      aria-disabled="true"
+                      aria-describedby={importDescription}
+                      title={IMPORT_NOTE}
+                      className="inline-flex rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-muted opacity-60"
+                    >
+                      Import
+                    </button>
+                    <span id={importDescription} className="sr-only">
+                      {IMPORT_NOTE}
+                    </span>
+                    {continueAction}
                   </FormActions>
                 )}
               </form>
