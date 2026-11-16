@@ -102,8 +102,114 @@ export function ImportForm({
       )}
     </View>
   );
+  const footer = (addAction?: ReactNode) => (
+    <>
+      {uncertain && (
+        <View style={look.list}>
+          <Text style={look.muted}>
+            The save result is uncertain. Keep the original details and recover the same request.
+          </Text>
+          <Action label="Recover saved records" disabled={busy} onPress={() => void model.prepare(true)} />
+        </View>
+      )}
+      {!!recovery && (
+        <View style={look.list}>
+          <Text style={look.muted}>
+            The confirmation result is uncertain. Recover the original request before continuing.
+          </Text>
+          <Action label="Recover confirmation" disabled={deciding} onPress={() => void recovery.recover()} />
+        </View>
+      )}
+      {model.errors.map((message, index) => (
+        <Text key={index} accessibilityRole="alert" style={styles.error}>
+          {message}
+        </Text>
+      ))}
+      {!visible && (
+        <Text style={look.muted}>
+          Refresh current company access before showing these records or starting another action.
+        </Text>
+      )}
+      {editable && phase === 'shareholders' && emptyOpeningAllowed && !correction && draft.members.length === 0 && (
+        <Text style={look.muted}>
+          If no shares have been issued, continue with no shareholders. Confirming records an empty opening; the first
+          share issue is a separate company decision.
+        </Text>
+      )}
+      <View style={(model.holderEditor || classHeld) && look.hidden}>
+        <FormActions>
+          {editable && !uncertain && phase === 'details' && classActions}
+          {editable && !uncertain && phase === 'shareholders' && (
+            <Action
+              label="Back"
+              accessibilityLabel="Back (share class)"
+              disabled={locked}
+              onPress={() => {
+                Keyboard.dismiss();
+                model.setAttempted(false);
+                model.setPhase('details');
+              }}
+            />
+          )}
+          {addAction}
+          {reviewing && !model.currentTarget && !recovery && (
+            <Action
+              label={
+                running !== 'confirm' && model.decision.busy && !autoApply
+                  ? 'Loading confirmation…'
+                  : 'Load confirmation'
+              }
+              disabled={busy || deciding || autoApply || blocked || !steps[kind]}
+              onPress={() => void model.loadPreview()}
+            />
+          )}
+          {!recorded && !(editable && !uncertain && phase === 'shareholders') && (
+            <Action
+              label="Cancel"
+              accessibilityLabel="Cancel (ledger setup)"
+              disabled={busy || uncertain || deciding || !!recovery || autoApply || model.editing}
+              onPress={() => {
+                Keyboard.dismiss();
+                onCancel();
+              }}
+            />
+          )}
+          {editable && !uncertain && (
+            <Action
+              primary
+              label={phase === 'shareholders' && busy ? 'Saving draft…' : 'Continue'}
+              disabled={locked}
+              onPress={submit}
+            />
+          )}
+          {reviewing && !recovery && (
+            <Action
+              primary
+              label={
+                running === 'confirm' || (autoApply && deciding)
+                  ? 'Confirming…'
+                  : kind === 'approve' && !steps.apply
+                    ? 'Record review'
+                    : 'Confirm'
+              }
+              disabled={!model.ready || deciding || autoApply}
+              onPress={() => track('confirm', model.decision.confirm())}
+            />
+          )}
+          {recorded && (
+            <Action
+              primary
+              label={running === 'finish' ? 'Opening company ownership…' : 'View company ownership'}
+              disabled={running === 'finish'}
+              onPress={() => track('finish', model.finish())}
+            />
+          )}
+        </FormActions>
+      </View>
+    </>
+  );
   return (
-    <Section title={COPY.SETUP_TITLE} actions={visible && mutable && phase === 'details' ? classActions : undefined}>
+    <Section title={COPY.SETUP_TITLE}>
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps
           label="Ledger setup steps"
@@ -139,13 +245,8 @@ export function ImportForm({
             preserveParticulars={model.preserveParticulars}
             validateMember={model.holderProblems}
             onEditorChange={model.setHolderEditor}
+            footer={editable && phase === 'shareholders' ? footer : undefined}
           />
-          {emptyOpeningAllowed && !correction && draft.members.length === 0 && (
-            <Text style={look.muted}>
-              If no shares have been issued, continue with no shareholders. Confirming records an empty opening; the
-              first share issue is a separate company decision.
-            </Text>
-          )}
         </View>
       </View>
       {visible && mutable && !canPrepare && <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>}
@@ -266,100 +367,7 @@ export function ImportForm({
           )}
         </View>
       )}
-      {uncertain && (
-        <View style={look.list}>
-          <Text style={look.muted}>
-            The save result is uncertain. Keep the original details and recover the same request.
-          </Text>
-          <Action label="Recover saved records" disabled={busy} onPress={() => void model.prepare(true)} />
-        </View>
-      )}
-      {!!recovery && (
-        <View style={look.list}>
-          <Text style={look.muted}>
-            The confirmation result is uncertain. Recover the original request before continuing.
-          </Text>
-          <Action label="Recover confirmation" disabled={deciding} onPress={() => void recovery.recover()} />
-        </View>
-      )}
-      {model.errors.map((message, index) => (
-        <Text key={index} accessibilityRole="alert" style={styles.error}>
-          {message}
-        </Text>
-      ))}
-      {!visible && (
-        <Text style={look.muted}>
-          Refresh current company access before showing these records or starting another action.
-        </Text>
-      )}
-      {!model.holderEditor && !classHeld && (
-        <FormActions>
-          {editable && !uncertain && phase === 'shareholders' && (
-            <Action
-              label="Back"
-              accessibilityLabel="Back (share class)"
-              disabled={locked}
-              onPress={() => {
-                Keyboard.dismiss();
-                model.setAttempted(false);
-                model.setPhase('details');
-              }}
-            />
-          )}
-          {reviewing && !model.currentTarget && !recovery && (
-            <Action
-              label={
-                running !== 'confirm' && model.decision.busy && !autoApply
-                  ? 'Loading confirmation…'
-                  : 'Load confirmation'
-              }
-              disabled={busy || deciding || autoApply || blocked || !steps[kind]}
-              onPress={() => void model.loadPreview()}
-            />
-          )}
-          {!recorded && !(editable && !uncertain && phase === 'shareholders') && (
-            <Action
-              label="Cancel"
-              accessibilityLabel="Cancel (ledger setup)"
-              disabled={busy || uncertain || deciding || !!recovery || autoApply || model.editing}
-              onPress={() => {
-                Keyboard.dismiss();
-                onCancel();
-              }}
-            />
-          )}
-          {editable && !uncertain && (
-            <Action
-              primary
-              label={phase === 'shareholders' && busy ? 'Saving draft…' : 'Continue'}
-              disabled={locked}
-              onPress={submit}
-            />
-          )}
-          {reviewing && !recovery && (
-            <Action
-              primary
-              label={
-                running === 'confirm' || (autoApply && deciding)
-                  ? 'Confirming…'
-                  : kind === 'approve' && !steps.apply
-                    ? 'Record review'
-                    : 'Confirm'
-              }
-              disabled={!model.ready || deciding || autoApply}
-              onPress={() => track('confirm', model.decision.confirm())}
-            />
-          )}
-          {recorded && (
-            <Action
-              primary
-              label={running === 'finish' ? 'Opening company ownership…' : 'View company ownership'}
-              disabled={running === 'finish'}
-              onPress={() => track('finish', model.finish())}
-            />
-          )}
-        </FormActions>
-      )}
+      {(!editable || phase !== 'shareholders') && footer()}
     </Section>
   );
 }

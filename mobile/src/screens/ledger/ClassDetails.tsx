@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { FIELD_LIMITS, REGISTER_CLASS_TYPES, type CompanyShareToken, type useClassDetails } from '@ledova/shared';
 import { Choices, Field } from '../../components/Field';
-import { Action, Actions, Fact, FormActions, Outcome, Rows, Section } from '../../components/Ledger';
+import { Action, Fact, FormActions, Outcome, Rows, Section } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useLedgerStyles } from './useLedgerStyles';
 
@@ -87,18 +87,12 @@ export function ClassDetails(props: ClassDetailsProps) {
   );
 }
 
-export function ClassDetailsActions({
-  token,
-  details,
-  available,
-  compact = false,
-}: ClassDetailsProps & { compact?: boolean }) {
+export function ClassDetailsActions({ token, details, available }: ClassDetailsProps) {
   if (details.editor || !(token.canDelete || token.deletionBlockedReason || token.canEditDetails)) return null;
-  const buttons = (
+  return (
     <>
       {token.canEditDetails && (
         <Action
-          compact={compact}
           label="Edit"
           accessibilityLabel="Edit Class details"
           disabled={!available || details.held}
@@ -107,7 +101,6 @@ export function ClassDetailsActions({
       )}
       {(token.canDelete || token.deletionBlockedReason) && (
         <Action
-          compact={compact}
           label="Delete"
           accessibilityLabel="Delete share class"
           disabled={!available || details.held || !token.canDelete}
@@ -116,7 +109,6 @@ export function ClassDetailsActions({
       )}
     </>
   );
-  return compact ? <Actions compact>{buttons}</Actions> : buttons;
 }
 
 export function ClassDetailsContent({

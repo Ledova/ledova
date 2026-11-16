@@ -398,7 +398,7 @@ function ClassPage({
                 {recordFields}
               </ClassDetailsContent>
             )}
-            classActions={<ClassDetailsActions compact token={listed} details={details} available={detailsAvailable} />}
+            classActions={<ClassDetailsActions token={listed} details={details} available={detailsAvailable} />}
             onHeldChange={heldSetup}
             onRecordsChanged={recordsChanged}
             {...flow}

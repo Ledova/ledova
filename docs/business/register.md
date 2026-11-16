@@ -214,7 +214,7 @@ web and, at phone width, in the app:
 2. **Share class**: continue the selected unfinished class, or choose a common class (Ordinary
    ORD, Preference PRF or Redeemable RED) or Another class with the company's own name, code and
    type. Name, code, type and record date sit together in the first step of one **Ledger setup**
-   card. Edit/Delete sit beside that card's heading, and Cancel/Continue stays at the bottom.
+   card. Edit/Delete join Cancel/Continue in its bottom footer only on the Share class step.
    Existing class details use the inline editor where permitted; saving those details is
    separate from confirming the copied opening. The company choices come from current personal administrator or preparer appointments,
    without granting access to private company Settings
@@ -263,7 +263,8 @@ appointee can resume review or confirmation without preparation access. The step
 form move between Share class, Shareholders and Review. Going forward, from a heading or **Continue**,
 checks the current step first, and reaching Review saves the draft, so there is no separate save
 button. Choosing Share class or Shareholders on Review retires the saved draft for editing and needs
-preparation and rejection authority.
+preparation and rejection authority. After retirement, the selected step opens with the copied
+date and shareholder details retained; Shareholders does not redirect to Share class.
 
 Award recipients without shares appear in the same list as members, marked as such. Select the
 exact company recipient to keep their ID, current particulars and any accepted member access; enter

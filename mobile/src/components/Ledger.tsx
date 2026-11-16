@@ -15,13 +15,6 @@ export function useCardStyles() {
       borderRadius: theme.borderRadius.xl,
       backgroundColor: theme.colors.surface.raised,
     },
-    heading: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      alignItems: 'center' as const,
-      gap: theme.spacing.md,
-    },
-    headingTitle: { flexGrow: 1, flexShrink: 1 },
     title: {
       fontFamily: theme.fontFamily.display,
       fontSize: theme.fontSize.xl,
@@ -32,23 +25,13 @@ export function useCardStyles() {
   }));
 }
 
-export function Section({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
+export function Section({ title, children }: { title: string; children: ReactNode }) {
   const styles = useCardStyles();
-  const heading = (
-    <Text accessibilityRole="header" style={[styles.title, !!actions && styles.headingTitle]}>
-      {title}
-    </Text>
-  );
   return (
     <View style={styles.card}>
-      {actions ? (
-        <View style={styles.heading}>
-          {heading}
-          {actions}
-        </View>
-      ) : (
-        heading
-      )}
+      <Text accessibilityRole="header" style={styles.title}>
+        {title}
+      </Text>
       {children}
     </View>
   );

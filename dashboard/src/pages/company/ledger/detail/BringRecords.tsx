@@ -1,5 +1,5 @@
 import { FileField } from '@components/Field';
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState, type ReactNode } from 'react';
 import {
   blankMember,
   formatShareCount,
@@ -25,6 +25,7 @@ export function BringRecords({
   preserveParticulars,
   validateMember,
   onEditorChange,
+  footer,
 }: {
   draft: PreparationDraft;
   busy: boolean;
@@ -35,6 +36,7 @@ export function BringRecords({
   preserveParticulars: boolean;
   validateMember: (index: number) => string[];
   onEditorChange: (open: boolean) => void;
+  footer: (addAction: ReactNode) => ReactNode;
 }) {
   const [editor, setEditor] = useState<{ member: string; original: MemberDraft | null } | null>(null);
   const [memberCheck, setMemberCheck] = useState<{ attempt: number; problems: string[] }>({ attempt: 0, problems: [] });
@@ -81,14 +83,11 @@ export function BringRecords({
       <fieldset className="min-w-0 space-y-3">
         <legend className="sr-only">Shareholders</legend>
         {!editorOpen && (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-text-muted">
-              {count === 0
-                ? 'No shareholders added yet.'
-                : `${count} ${count === 1 ? 'shareholder' : 'shareholders'} in this draft`}
-            </p>
-            <PageAction label="Add a shareholder" disabled={busy} onClick={add} />
-          </div>
+          <p className="text-sm text-text-muted">
+            {count === 0
+              ? 'No shareholders added yet.'
+              : `${count} ${count === 1 ? 'shareholder' : 'shareholders'} in this draft`}
+          </p>
         )}
         {listed && (
           <ul aria-label="Draft shareholders" className="divide-y divide-border-subtle">
@@ -234,6 +233,7 @@ export function BringRecords({
           </fieldset>
         )}
       </ShowMore>
+      {!editorOpen && footer(<PageAction label="Add a shareholder" disabled={busy} onClick={add} />)}
     </>
   );
 }

@@ -2309,8 +2309,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   cleanup();
   client.clear();
   appointment = { ...appointment, capabilities: ['prepare', 'approve', 'apply'] };
-  showJourney();
-  fireEvent.click(await screen.findByRole('link', { name: 'Ordinary shares (class details)' }));
+  showJourney(`${classPath}?record=${resumedDraft.uuid}`);
   expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
   fireEvent.click(editStep());
   expect(await screen.findByLabelText('Record date')).toBeTruthy();
@@ -2341,6 +2340,21 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     1,
   );
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.BASE)).toHaveLength(0);
+  const preparedAgain = proposal!;
+  fireEvent.click(screen.getByRole('button', { name: '2. Shareholders' }));
+  await waitFor(() => expect(proposal!.status).toBe('rejected'));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.getByRole('button', { name: 'Add a shareholder' })).toBeTruthy();
+  expect(
+    within(screen.getByRole('list', { name: 'Ledger setup steps' }))
+      .getAllByRole('listitem')[1]
+      .getAttribute('aria-current'),
+  ).toBe('step');
+  expect(screen.getByText('Example Shareholder')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
+  expect(proposal!.uuid).not.toBe(preparedAgain.uuid);
+  expect(proposal!.members).toEqual(preparedAgain.members);
   cleanup();
   client.clear();
   api.post.mockClear();

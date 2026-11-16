@@ -243,6 +243,7 @@ export function useImportPreparation({
       preparation.current = null;
       setAutoApply(false);
       setEditing(false);
+      setAttempted(false);
       setPhase(reopenTo.current);
       reopenTo.current = 'details';
       await client.invalidateQueries({ queryKey: importsKey(owner, activeRegister.current!.token.uuid) });

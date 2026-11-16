@@ -39,9 +39,11 @@ Register setup uses one **Ledger setup** card, with **Share class**, **Sharehold
 steps. The class name stays in the page header. Its first step groups name, code, type and record
 date, reusing the inline metadata editor rather than a separate Class details card or nested card.
 In its read view, name/code and type/date share a two-column grid on wide screens, with labels
-above values, stacking on phones. Secondary Edit/Delete controls sit beside the card heading;
-Cancel/Import/Continue stays in one bottom workflow footer. Do not insert a separate metadata
-action row between the class facts and the date.
+above values, stacking on phones. Edit/Delete appear only on the Share class step, alongside
+Cancel/Import/Continue in one bottom-right workflow footer. Later steps show only their own
+navigation and decision controls. Shareholders groups **Back**, **Add a shareholder** and
+**Continue** in that footer; an open shareholder editor keeps its own Cancel/Add or Save controls.
+Do not add a second class-action row or controls beside the setup heading.
 New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
 While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
 Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and
@@ -158,8 +160,9 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   things to act on are cards too; a group inside a card, such as a form or a record, gets a hairline
   rule above it or a small heading, never a nested card. An empty section keeps its real title, one
   muted sentence ("No share classes yet.") and at most one action; a state is never a
-  title. A card's title is a heading, such as Ledger's Share classes. Its optional `actions` slot
-  keeps secondary record controls beside that heading; workflow actions stay in the bottom footer.
+  title. A card's title is a heading, such as Ledger's Share classes. The web's optional `actions` slot
+  keeps secondary record controls beside that heading; stepped setup keeps its contextual controls
+  together in the bottom footer.
   On the web, every
   paragraph in a card, including its forms' notes but not flex, right-aligned or truncated rows, and a page's
   lede keep a readable width (`max-w-prose`).
@@ -1019,7 +1022,8 @@ Some messages keep their own form:
   so its steps are buttons (owner, 15 November 2026). An earlier step opens directly and a later one runs
   the current step's checks first. Each step's main button is **Continue**, and reaching Review saves
   the draft, so there is no separate save button. From Review an earlier step retires the saved draft
-  for editing.
+  for editing, then opens that exact step with the draft retained. Updates to a form's own saved
+  record must not remount it and reset the requested step.
   Show class context once above the form; the footer identifies the current company. Keep exact
   company names in declarations or captured review targets, without a duplicate information card or
   routine technical and upload descriptions. Transfer preparation follows the investor pattern:

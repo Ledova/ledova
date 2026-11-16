@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 import { Keyboard, Text, View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import {
@@ -85,6 +85,7 @@ export function ImportShareholders({
   preserveParticulars,
   validateMember,
   onEditorChange,
+  footer,
 }: {
   draft: PreparationDraft;
   locked: boolean;
@@ -95,6 +96,7 @@ export function ImportShareholders({
   preserveParticulars: boolean;
   validateMember: (index: number) => string[];
   onEditorChange: (open: boolean) => void;
+  footer?: (addAction: ReactNode) => ReactNode;
 }) {
   const look = useLedgerStyles();
   const styles = useCompanyStyles();
@@ -140,14 +142,11 @@ export function ImportShareholders({
     <>
       <View style={look.fields}>
         {!editorOpen && (
-          <View style={look.line}>
-            <Text style={[look.muted, look.fill]}>
-              {count === 0
-                ? 'No shareholders added yet.'
-                : `${count} ${count === 1 ? 'shareholder' : 'shareholders'} in this draft`}
-            </Text>
-            <Action label="Add a shareholder" disabled={locked} onPress={add} />
-          </View>
+          <Text style={look.muted}>
+            {count === 0
+              ? 'No shareholders added yet.'
+              : `${count} ${count === 1 ? 'shareholder' : 'shareholders'} in this draft`}
+          </Text>
         )}
         {listed && (
           <View accessibilityLabel="Draft shareholders">
@@ -317,6 +316,7 @@ export function ImportShareholders({
           </View>
         )}
       </ShowMore>
+      {footer?.(!editorOpen ? <Action label="Add a shareholder" disabled={locked} onPress={add} /> : null)}
     </>
   );
 }
