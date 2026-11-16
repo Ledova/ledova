@@ -34,6 +34,7 @@ import {
   type RegisterMemberDocumentRequest,
   peopleKey,
   importRegisterKey,
+  ownAppointmentsKey,
   readPeople,
   blankAllotment,
   blankMember,
@@ -3383,6 +3384,39 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   cleanup();
   client.clear();
   api.delete.mockClear();
+  api.get.mockClear();
+  api.get.mockImplementation(async (url) => {
+    if (url === REGISTER) return dataPage([]);
+    if (url === APPOINTMENTS) return dataPage([appointment]);
+    if (url === COMPANY_ENDPOINTS.BASE) return dataPage([company]);
+    return dataPage([]);
+  });
+  prepareCompanyClient(client);
+  client.setQueryData(ownAppointmentsKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }), [appointment], {
+    updatedAt: Date.now() - 1000,
+  });
+  render(
+    <QueryClientProvider client={client}>
+      <ApiClientProvider client={apiClient}>
+        <TestRouter initialEntries={[`/?company=${company.uuid}`]}>
+          <LedgerNavigationProvider>
+            <CompanyContextProvider>
+              <CompanyRegisterPage />
+            </CompanyContextProvider>
+          </LedgerNavigationProvider>
+        </TestRouter>
+      </ApiClientProvider>
+    </QueryClientProvider>,
+  );
+  expect(await screen.findByText('No share classes yet.')).toBeTruthy();
+  expect((await screen.findByRole('link', { name: 'Add share class' })).getAttribute('href')).toBe(
+    `${DESTINATIONS.companyRegisterSetup.path}?company=${company.uuid}`,
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(api.get.mock.calls.filter(([url]) => url === APPOINTMENTS)).toHaveLength(2);
+  expect(api.get.mock.calls.some(([url]) => url.endsWith('/holders/'))).toBe(false);
+  cleanup();
+  client.clear();
   appointment = { ...appointment, capabilities: ['admin'] };
   const rightsSetupToken = {
     ...token,

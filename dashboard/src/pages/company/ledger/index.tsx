@@ -178,23 +178,22 @@ function OwnRegister({
         : null;
   const appointments = useOwnAppointments(owner, guard, { enabled: !!scope });
   const classScope = scope ?? retainedScope;
-  const deletionAuthorityRead = useRef('');
+  const emptyAuthorityRead = useRef('');
   useEffect(() => {
     const read = `${scope?.company.uuid}/${classes.dataUpdatedAt}`;
     if (
-      heldClasses.has('class-deletion') &&
+      scope &&
       classes.isSuccess &&
       !classes.isFetching &&
       !classes.data.some((row) => row.companyUuid === scope?.company.uuid) &&
       appointments.dataUpdatedAt < classes.dataUpdatedAt &&
       !appointments.isFetching &&
-      deletionAuthorityRead.current !== read
+      emptyAuthorityRead.current !== read
     ) {
-      deletionAuthorityRead.current = read;
+      emptyAuthorityRead.current = read;
       void appointments.refetch();
     }
   }, [
-    heldClasses,
     classes.data,
     classes.isSuccess,
     classes.isFetching,
