@@ -79,18 +79,20 @@ function ClassDetailsEditor({ details, available }: { details: Details; availabl
 
 export function ClassDetails(props: ClassDetailsProps) {
   return (
-    <Section title="Class details" actions={<ClassDetailsActions {...props} compact />}>
+    <Section title="Class details">
       <ClassDetailsContent {...props} />
+      {(props.token.canEditDetails || props.token.canDelete || props.token.deletionBlockedReason) && (
+        <div hidden={!!props.details.editor}>
+          <FormActions>
+            <ClassDetailsActions {...props} />
+          </FormActions>
+        </div>
+      )}
     </Section>
   );
 }
 
-export function ClassDetailsActions({
-  token,
-  details,
-  available,
-  compact = false,
-}: ClassDetailsProps & { compact?: boolean }) {
+export function ClassDetailsActions({ token, details, available }: ClassDetailsProps) {
   const edit = useRef<HTMLButtonElement>(null);
   const deletionReasonId = useId();
   const wasEditing = useRef(false);
@@ -107,7 +109,6 @@ export function ClassDetailsActions({
         {token.canEditDetails && (
           <PageAction
             ref={edit}
-            compact={compact}
             label="Edit"
             context="Class details"
             disabled={!available || details.held}
@@ -116,7 +117,6 @@ export function ClassDetailsActions({
         )}
         {(token.canDelete || token.deletionBlockedReason) && (
           <PageAction
-            compact={compact}
             label="Delete"
             context="share class"
             describedBy={token.deletionBlockedReason ? deletionReasonId : undefined}

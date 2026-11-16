@@ -27,6 +27,8 @@ class MarketSummaryListSerializer(serializers.ListSerializer):
 
 class ShareTokenListSerializer(serializers.ModelSerializer):
 
+    can_delete = serializers.SerializerMethodField()
+    deletion_blocked_reason = serializers.CharField(read_only=True, allow_null=True, default=None)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     token_type_display = serializers.CharField(source="get_token_type_display", read_only=True)
     company_uuid = serializers.UUIDField(source="company.uuid", read_only=True)
@@ -57,11 +59,17 @@ class ShareTokenListSerializer(serializers.ModelSerializer):
             "is_divisible",
             "deployed_at",
             "created_at",
+            "updated_at",
+            "can_delete",
+            "deletion_blocked_reason",
             "last_price",
             "best_bid",
             "best_ask",
         ]
         read_only_fields = fields
+
+    def get_can_delete(self, obj) -> bool:
+        return bool(getattr(obj, "class_preparable", False) and obj.deletion_blocked_reason is None)
 
     def market_summary(self, obj):
         if not hasattr(self, "market_summaries"):

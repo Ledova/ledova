@@ -660,7 +660,7 @@ card, alongside the record date in the same responsive field grid. The bottom fo
 Edit/Delete with the first step's navigation; later steps show only their own relevant controls.
 The inline metadata task keeps its explicit save/recovery controls
 and blocks opening actions while held; it does not save through ledger confirmation. Completed
-classes keep their separate details view, and Class rights remains below setup.
+classes keep their separate details view with Edit/Delete in its bottom-right footer, and Class rights remains below setup.
 Preparing and retiring the current form's own review keeps that form instance and its selected
 step; a different externally selected saved record still gets its own form.
 New classes at `/company/ledger/setup` and explicit imports at `/company/ledger/:uuid/import` use
@@ -686,6 +686,14 @@ Confirmed changes invalidate the related class and ownership reads; deletion doe
 removed class. Setup decisions refresh class availability, so retiring a review can expose editing
 without a reload. Deleting a class removes it from active use while keeping abandoned setup history;
 it never deletes confirmed ownership. Class rights retain their separate revision-based editor and permissions.
+
+The web Share classes list uses checkboxes beside each class link and **Select all** for the current
+company's removable classes. The list API supplies each class's deletion permission, blocked reason
+and version; a disabled checkbox explains protected records. **Delete selected** shares the bottom
+action area with **Add share class**. Confirmation pins the selected names and versions, then sends
+the existing guarded delete commands in order. Earlier successes are retained if a later command is
+refused or uncertain; an uncertain original must be checked or explicitly retried before continuing.
+The interface reports partial results, retains audit history and does not imply an atomic batch.
 
 On the web, setup's shareholder editor and later shareholder/class pages share
 `dashboard/src/pages/company/ledger/shared/DocumentAttachments.tsx` for optional categorised

@@ -184,6 +184,8 @@ class ShareTokenViewSet(
             queryset = queryset.register_readable_by(self.request.user)
         else:
             queryset = queryset.issued_by(self.request.user)
+        if self.action in {"list", "register"}:
+            queryset = queryset.with_class_deletion_access(self.request.user)
         return queryset.with_company()
 
     def filter_queryset(self, queryset):

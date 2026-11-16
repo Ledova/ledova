@@ -1,5 +1,15 @@
 from django.db import models
-from django.db.models import OuterRef, QuerySet
+from django.db.models import (
+    Case,
+    Exists,
+    F,
+    Func,
+    OuterRef,
+    QuerySet,
+    TextField,
+    Value,
+    When,
+)
 
 
 class ShareTokenQuerySet(QuerySet):
@@ -38,6 +48,21 @@ class ShareTokenQuerySet(QuerySet):
 
     def with_company(self):
         return self.select_related("company")
+
+    def with_class_deletion_access(self, user):
+        from companies.models import Company
+
+        preparable = Company.objects.register_preparable_by(user).filter(pk=OuterRef("company_id"))
+        return self.annotate(class_preparable=Exists(preparable)).annotate(
+            deletion_blocked_reason=Case(
+                When(
+                    class_preparable=True,
+                    then=Func(F("pk"), function="tokens_class_deletion_reason", output_field=TextField()),
+                ),
+                default=Value(None),
+                output_field=TextField(),
+            )
+        )
 
     def with_issued_shares(self):
         from tokens.querysets.share_issuance import completed_supply_annotation

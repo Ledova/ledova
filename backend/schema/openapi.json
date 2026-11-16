@@ -19071,6 +19071,10 @@
             "readOnly": true,
             "type": "string"
           },
+          "canDelete": {
+            "readOnly": true,
+            "type": "boolean"
+          },
           "chain": {
             "description": "Blockchain the contract was deployed to (null until deployment confirms)",
             "nullable": true,
@@ -19105,6 +19109,11 @@
           "decimals": {
             "readOnly": true,
             "type": "integer"
+          },
+          "deletionBlockedReason": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
           },
           "deployedAt": {
             "format": "date-time",
@@ -19161,6 +19170,11 @@
             "readOnly": true,
             "type": "string"
           },
+          "updatedAt": {
+            "format": "date-time",
+            "readOnly": true,
+            "type": "string"
+          },
           "uuid": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
@@ -19171,6 +19185,7 @@
         "required": [
           "bestAsk",
           "bestBid",
+          "canDelete",
           "chain",
           "company",
           "companyName",
@@ -19178,6 +19193,7 @@
           "contractAddress",
           "createdAt",
           "decimals",
+          "deletionBlockedReason",
           "deployedAt",
           "isDivisible",
           "isTransferable",
@@ -19189,6 +19205,7 @@
           "tokenType",
           "tokenTypeDisplay",
           "totalSupply",
+          "updatedAt",
           "uuid"
         ],
         "type": "object"
