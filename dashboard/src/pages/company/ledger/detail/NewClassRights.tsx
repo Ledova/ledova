@@ -1,4 +1,4 @@
-import { classRightsTerms, rightsWithoutConditions, type TokenType } from '@ledova/shared';
+import { classRightsTerms, rightsWithoutConditions } from '@ledova/shared';
 import { Failure, Outcome } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { RightsEditor, RightsSummary } from './ClassRights';
@@ -8,14 +8,12 @@ import type { useNewClassRights } from './useNewClassRights';
 export function NewClassRights({
   rights,
   administrator,
-  tokenType,
   problems,
   classLocked,
   blocked,
 }: {
   rights: ReturnType<typeof useNewClassRights>;
   administrator?: string;
-  tokenType: TokenType;
   problems: string[];
   classLocked: boolean;
   blocked: boolean;
@@ -57,7 +55,6 @@ export function NewClassRights({
           ))}
           <RightsEditor
             rights={{ ...rights, stale: false }}
-            tokenType={tokenType}
             saveLabel="Save class rights"
             saveDisabled={problems.length > 0 || !rightsDetailsRecorded(rights.editor)}
           />

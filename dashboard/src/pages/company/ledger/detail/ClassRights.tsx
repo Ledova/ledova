@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import {
   FIELD_LIMITS,
-  CLASS_RIGHTS_EXAMPLES,
   classRightsTerms,
   formatDate,
   formatDateTime,
@@ -10,7 +9,6 @@ import {
   structuredRightsRows,
   utcToday,
   type ClassRightsRevision,
-  type TokenType,
   type useClassRights,
 } from '@ledova/shared';
 import { Field, FileField, TextArea, TextInput } from '@components/Field';
@@ -95,7 +93,6 @@ export function RightsSummary({
 
 export function RightsEditor({
   rights,
-  tokenType,
   saveLabel = 'Save',
   saveDisabled = false,
 }: {
@@ -103,7 +100,6 @@ export function RightsEditor({
     ReturnType<typeof useClassRights>,
     'editor' | 'setEditor' | 'busy' | 'pending' | 'stale' | 'error' | 'save' | 'close'
   >;
-  tokenType?: TokenType;
   saveLabel?: string;
   saveDisabled?: boolean;
 }) {
@@ -125,7 +121,6 @@ export function RightsEditor({
       'Enter a complete effective date on or before today (UTC).',
   });
   const locked = rights.busy || rights.pending || rights.stale;
-  const example = tokenType ? CLASS_RIGHTS_EXAMPLES[tokenType] : undefined;
   return (
     <form
       ref={form}
@@ -138,16 +133,6 @@ export function RightsEditor({
       }}
     >
       <ErrorSummary {...validation.summary} />
-      {example && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-text-muted">Use only rights that match the company’s governing documents.</p>
-          <PageAction
-            label={`Use ${example.label.toLowerCase()}`}
-            disabled={locked}
-            onClick={() => rights.setEditor({ ...editor, attributes: structuredClone(example.attributes) })}
-          />
-        </div>
-      )}
       <StructuredRightsFields
         attributes={editor.attributes}
         onChange={(attributes) => rights.setEditor({ ...editor, attributes })}
@@ -244,12 +229,10 @@ export function RightsEditor({
 export function ClassRights({
   rights,
   embedded = false,
-  tokenType,
   blocked = false,
 }: {
   rights: ReturnType<typeof useClassRights>;
   embedded?: boolean;
-  tokenType?: TokenType;
   blocked?: boolean;
 }) {
   const editAction = useRef<HTMLButtonElement>(null);
@@ -279,7 +262,6 @@ export function ClassRights({
           {rights.editor ? (
             <RightsEditor
               rights={rights}
-              tokenType={tokenType}
               saveLabel={embedded ? 'Save class rights' : 'Save'}
               saveDisabled={!rights.current && !rightsDetailsRecorded(rights.editor)}
             />

@@ -73,7 +73,7 @@ never starts or broadcasts a new transaction.
 ### Class rights
 
 Choose the class on Ledger. **Class rights** records the company's description of existing terms.
-On the web, it is available in setup's **Share class** step and in the completed class view; the
+On the web, it is available in setup's **Class rights** step and in the completed class view; the
 mobile app keeps its editor below the class summary. Choose **Edit** to record:
 
 - **Voting:** general or conditional voting, including a recorded weight on a poll.
@@ -91,11 +91,9 @@ saving retains the combined text without rewriting earlier versions. Ledova supp
 rights from a class name or type. Record a known effective date separately from the actual recording
 time; leave it blank when unknown.
 
-The web editor offers an explicit editable example for Ordinary, Preference or Redeemable
-preference shares. Choosing a class does not select its rights. **Use example** fills only the
-structured choices, keeping additional terms, dates and documents; check every choice against the
-company's actual documents. Rates, preference amounts, ranking and other unknown details remain
-unrecorded. A class's name, code and broad type remain company-supplied details, not legal templates.
+The company supplies the rights from its governing documents. Choosing a class does not select
+its rights, and the editor supplies no examples or legal templates. Leave rates, preference amounts,
+ranking and other unknown details unrecorded.
 
 Class rights are optional in setup. On the web they have their own step between Share class and
 Shareholders. **Save class rights** is a separate explicit save, not part of moving between steps

@@ -240,7 +240,6 @@ function FreshClass({
         <NewClassRights
           rights={rights}
           administrator={administrator}
-          tokenType={tokenType}
           problems={problems}
           classLocked={classLocked}
           blocked={openingHeld}

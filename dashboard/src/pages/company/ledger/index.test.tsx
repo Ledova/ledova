@@ -3544,12 +3544,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   expect(setupRightsForm.getByRole('button', { name: 'Save class rights' }).matches(':disabled')).toBe(true);
   expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('not_recorded');
+  expect(setupRightsForm.queryByRole('button', { name: /^Use .* example$/ })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
   expect(screen.getByRole('button', { name: '1. Share class' }).matches(':disabled')).toBe(true);
   expect(screen.getByRole('button', { name: '3. Shareholders' }).matches(':disabled')).toBe(true);
   expect(screen.getByRole('button', { name: '4. Review' }).matches(':disabled')).toBe(true);
   expect(document.querySelector('form form')).toBeNull();
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
+  fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
   expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('general');
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Cancel' }));
@@ -3560,7 +3561,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
   setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   expect((setupRightsForm.getByLabelText('Voting') as HTMLSelectElement).value).toBe('not_recorded');
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
+  fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
   expect(
     await setupRightsForm.findByText('The class rights changed. Close this form and reopen the current details.'),
@@ -3590,11 +3591,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     target: { value: 'Company constitution applies.' },
   });
   fireEvent.change(setupRightsForm.getByLabelText('Effective date'), { target: { value: '2020-01-01' } });
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
-  expect((setupRightsForm.getByLabelText('Additional terms') as HTMLTextAreaElement).value).toBe(
-    'Company constitution applies.',
-  );
-  expect((setupRightsForm.getByLabelText('Effective date') as HTMLInputElement).value).toBe('2020-01-01');
+  fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
   const originalRightsSave = await setupRightsForm.findByRole('button', { name: 'Retry original save' });
   expect(setupRightsForm.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(true);
@@ -3604,6 +3601,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     COMPANY_TOKEN_ENDPOINTS.BASE,
     COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid),
   ]);
+  expect(api.post.mock.calls[1][1]).toMatchObject({
+    attributes: { voting: { type: 'general' } },
+    summary: 'Company constitution applies.',
+    effectiveDate: '2020-01-01',
+  });
   expect(
     screen.getByRole('list', { name: 'Ledger setup steps' }).querySelector('[aria-current="step"]')?.textContent,
   ).toContain('Class rights');
@@ -3640,7 +3642,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
   setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
+  fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
   expect(await setupRightsForm.findByRole('alert')).toBeTruthy();
   expect(setupRightsForm.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(false);
@@ -3656,7 +3658,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
   setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Use ordinary example' }));
+  fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
   fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
   fireEvent.click(await setupRightsForm.findByRole('button', { name: 'Retry original save' }));
   expect(await screen.findByText('Class rights saved.')).toBeTruthy();
