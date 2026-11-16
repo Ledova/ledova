@@ -6,8 +6,10 @@ BEGIN
     IF jsonb_typeof(members) IS DISTINCT FROM 'array' OR jsonb_array_length(members) > 10000 THEN RETURN false; END IF;
     FOR member IN SELECT value FROM jsonb_array_elements(members) LOOP
         IF jsonb_typeof(member) IS DISTINCT FROM 'object'
-            OR (SELECT array_agg(key ORDER BY key COLLATE "C") FROM jsonb_object_keys(member - 'documents') key)
+            OR (SELECT array_agg(key ORDER BY key COLLATE "C") FROM jsonb_object_keys(member - 'documents' - 'identity_choice') key)
                 IS DISTINCT FROM ARRAY['allotments','amount_paid','entered_on','member','name','residential_address','shares']
+            OR (member ? 'identity_choice' AND (jsonb_typeof(member->'identity_choice') IS DISTINCT FROM 'string'
+                OR member->>'identity_choice' NOT IN ('new', 'existing', 'award')))
             OR jsonb_typeof(member->'member') IS DISTINCT FROM 'string'
             OR member->>'member' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
             OR jsonb_typeof(member->'name') IS DISTINCT FROM 'string' OR length(btrim(member->>'name')) NOT BETWEEN 1 AND 255
@@ -170,6 +172,11 @@ BEGIN
             OR NOT tokens_register_appointment_current(candidate.preparing_appointment_id, candidate.company_id, principal, 'prepare', at_time)
             OR EXISTS (SELECT 1 FROM jsonb_array_elements(candidate.members) item JOIN tokens_registermember member ON member.uuid::text = item->>'member'
                 WHERE member.company_id <> candidate.company_id)
+            OR EXISTS (SELECT 1 FROM jsonb_array_elements(candidate.members) item
+                WHERE (item->>'identity_choice' = 'new' AND EXISTS (SELECT 1 FROM tokens_registermember member
+                    WHERE member.uuid::text = item->>'member'))
+                OR (item->>'identity_choice' IN ('existing', 'award') AND NOT EXISTS (SELECT 1 FROM tokens_registermember member
+                    WHERE member.uuid::text = item->>'member' AND member.company_id = candidate.company_id)))
             OR (candidate.correction_of_id IS NOT NULL AND NOT tokens_mirror_correction_ready(candidate))
             OR (candidate.correction_of_id IS NULL AND (candidate.base_sequence IS NOT NULL OR candidate.base_hash <> ''
                 OR EXISTS (SELECT 1 FROM tokens_registerimport confirmed WHERE confirmed.token_id = candidate.token_id AND confirmed.status = 'applied')))

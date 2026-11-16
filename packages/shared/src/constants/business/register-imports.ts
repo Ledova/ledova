@@ -18,6 +18,8 @@ export const REGISTER_IMPORT_UNMET_COPY: Record<string, string> = {
   mirror_correction_member_activity:
     'Member access or particulars have changed since setup. An opening correction cannot change those records.',
   deployment_pending: 'A share-class deployment is pending. Wait for its outcome before changing the mirror.',
+  member_identity_changed:
+    'A shareholder choice no longer matches the company’s records. Reopen this setup and choose the person again.',
   award_recipient_identity_changed:
     'An award recipient in these records no longer matches the company’s award records. Reject this import and ' +
     'prepare a new one.',

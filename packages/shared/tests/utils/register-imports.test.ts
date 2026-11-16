@@ -3,10 +3,14 @@ import {
   isRegisterMemberDocument,
   isRegisterMemberDocumentReceipt,
   registerImportMoney,
+  initialMembers,
+  memberIdentityProblems,
+  memberRows,
   type RegisterImportPreparation,
   type RegisterImportRecord,
 } from '../../src';
 import { registerImportOf } from '../../src/utils/register-imports';
+import { REGISTER } from '../fixtures/employee-awards';
 
 it('matches the complete company mirror and retained correction source without inventing older allotment particulars', () => {
   const request: RegisterImportPreparation = {
@@ -86,6 +90,42 @@ it('matches the complete company mirror and retained correction source without i
     createdAt: '2026-10-14T00:00:00Z',
   };
   const proposal = registerImportOf(record);
+  const explicitNew = registerImportOf({
+    ...record,
+    members: proposal.members.map((member) => ({ ...member, identityChoice: 'new' })),
+  });
+  const resumed = initialMembers(REGISTER, explicitNew, () => 'resumed-row');
+  expect(resumed[0]!.identityChoice).toBe('new');
+  expect(initialMembers(REGISTER, { ...explicitNew, status: 'applied' })[0]!.identityChoice).toBe('existing');
+  const anotherMember = {
+    member: 'existing-person',
+    name: 'Existing Person',
+    residentialAddress: 'Recorded Address',
+    currentShares: '1',
+    enteredOn: null,
+    lastCeasedOn: null,
+    walletless: true,
+    particularsRetained: true,
+  };
+  expect(memberIdentityProblems(resumed, [anotherMember], true)).toEqual([]);
+  expect(memberRows(resumed)[0]!.identityChoice).toBe('new');
+  expect(isPreparedRegisterImport(explicitNew, { ...request, members: memberRows(resumed) })).toBe(true);
+  expect(isPreparedRegisterImport(proposal, { ...request, members: memberRows(resumed) })).toBe(false);
+  const unavailable = initialMembers(
+    REGISTER,
+    { ...explicitNew, members: explicitNew.members.map((member) => ({ ...member, identityChoice: 'existing' })) },
+    () => 'unavailable-row',
+  );
+  expect(memberIdentityProblems(unavailable, [anotherMember], true)).toContain(
+    'Shareholder 1: the existing company member is no longer available. Refresh before continuing.',
+  );
+  expect(memberIdentityProblems(initialMembers(REGISTER, proposal), [anotherMember], true).length).toBeGreaterThan(0);
+  expect(() =>
+    registerImportOf({
+      ...record,
+      members: proposal.members.map((member) => ({ ...member, identityChoice: 'unknown' })),
+    }),
+  ).toThrow('The register import rows could not be read.');
   const evidence = '10000000-0000-4000-8000-000000000001';
   const attachment = {
     evidence,

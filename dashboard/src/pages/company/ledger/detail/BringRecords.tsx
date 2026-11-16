@@ -73,8 +73,14 @@ export function BringRecords({
   const add = () => {
     if (busy || editorOpen) return;
     const blank = draft.members.find((row) => !started(row));
-    const row = blank ?? blankMember();
-    if (!blank) update((current) => ({ ...current, members: [...current.members, row] }));
+    const row = {
+      ...(blank ?? blankMember()),
+      ...(companyMembers.length === 0 ? { identityChoice: 'new' as const } : {}),
+    };
+    update((current) => ({
+      ...current,
+      members: blank ? current.members.map((member) => (member === blank ? row : member)) : [...current.members, row],
+    }));
     forget();
     setEditor({ member: row.member, original: null });
   };

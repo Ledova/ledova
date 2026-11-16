@@ -19,6 +19,7 @@ export type RegisterImportAllotment = {
 
 export type RegisterImportMemberRow = {
   member: string;
+  identityChoice?: 'existing' | 'award' | 'new';
   name: string;
   residentialAddress: string;
   shares: string;

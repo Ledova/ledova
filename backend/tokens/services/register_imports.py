@@ -162,7 +162,9 @@ def _rows(members, former_members, as_at):
             raise ValueError
         current = []
         for row in members:
-            if not isinstance(row, dict) or set(row) - {"documents"} != MEMBER_FIELDS:
+            if not isinstance(row, dict) or set(row) - {"documents", "identity_choice"} != MEMBER_FIELDS:
+                raise ValueError
+            if "identity_choice" in row and row["identity_choice"] not in ("new", "existing", "award"):
                 raise ValueError
             shares = _whole(row["shares"])
             entered_on = _day(row["entered_on"], as_at)
@@ -170,6 +172,7 @@ def _rows(members, former_members, as_at):
             current.append(
                 {
                     **({"documents": document_rows(row["documents"])} if "documents" in row else {}),
+                    **({"identity_choice": row["identity_choice"]} if "identity_choice" in row else {}),
                     "member": str(UUID(str(row["member"]))),
                     "name": _text(row["name"], "name"),
                     "residential_address": _text(row["residential_address"], "residential address"),
@@ -352,6 +355,18 @@ def _award_identities_valid(company_id, operation_id, members):
         return cursor.fetchone()[0]
 
 
+def _member_choices_valid(company_id, members):
+    known = {
+        str(member.uuid): member.company_id
+        for member in RegisterMember.objects.filter(uuid__in=[row["member"] for row in members])
+    }
+    return not any(
+        (row.get("identity_choice") == "new" and row["member"] in known)
+        or (row.get("identity_choice") in ("existing", "award") and known.get(row["member"]) != company_id)
+        for row in members
+    )
+
+
 def prepare_import(
     *,
     actor,
@@ -445,6 +460,8 @@ def prepare_import(
                 ):
                     raise RegisterChangeConflict()
                 return existing, False
+            if not _member_choices_valid(company.pk, current):
+                raise ValidationError("The shareholder choice no longer matches the company's records.")
             unmet = _empty_opening_requirements(
                 RegisterImport(token=token, members=current, former_members=former, correction_of_id=correction_of)
             )
@@ -599,6 +616,8 @@ def _effect_requirements(proposal):
     from tokens.services.register_deployments import pending_deployment
 
     unmet = _empty_opening_requirements(proposal)
+    if not _member_choices_valid(proposal.company_id, proposal.members):
+        unmet.append("member_identity_changed")
     if not _award_identities_valid(proposal.company_id, proposal.pk, proposal.members):
         unmet.append("award_recipient_identity_changed")
     if pending_deployment(proposal.token):
