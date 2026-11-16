@@ -258,9 +258,9 @@ function FreshClass({
         </div>
       }
       classFields={
-        <fieldset className="space-y-5">
+        <>
           {started.length > 0 && !classLocked && (
-            <p className="text-sm text-text-muted">
+            <p className="text-sm text-text-muted md:col-span-2">
               Continue a class you started:{' '}
               {started.map((token, index) => (
                 <Fragment key={token.uuid}>
@@ -276,15 +276,17 @@ function FreshClass({
               .
             </p>
           )}
-          <Choices
-            legend="Share class"
-            options={REGISTER_SETUP_CHOICES}
-            value={choice}
-            disabled={classLocked}
-            onChange={choose}
-          />
+          <div className="md:col-span-2">
+            <Choices
+              legend="Start with"
+              options={REGISTER_SETUP_CHOICES}
+              value={choice}
+              disabled={classLocked}
+              onChange={choose}
+            />
+          </div>
           {classes.some((token) => token.status !== 'draft') && (
-            <p className="text-sm text-text-muted">
+            <p className="text-sm text-text-muted md:col-span-2">
               For existing chain classes,{' '}
               <Link
                 to={`${DESTINATIONS.companyRegister.path}?company=${company.uuid}`}
@@ -296,33 +298,30 @@ function FreshClass({
               to bring in shareholder particulars.
             </p>
           )}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Class name">
-              <TextInput
-                maxLength={FIELD_LIMITS.CLASS_NAME}
-                disabled={classLocked}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </Field>
-            <Field label="Class code">
-              <TextInput
-                maxLength={FIELD_LIMITS.CLASS_CODE}
-                disabled={classLocked}
-                value={symbol}
-                onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-              />
-            </Field>
-            <Choices
-              legend="Class type"
-              options={REGISTER_CLASS_TYPES}
-              value={tokenType}
+          <Field label="Class name">
+            <TextInput
+              maxLength={FIELD_LIMITS.CLASS_NAME}
               disabled={classLocked}
-              onChange={setTokenType}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
             />
-          </div>
-          <p className="text-xs text-text-muted">Use the recorded class code of 1–5 letters, such as A or ORD.</p>
-        </fieldset>
+          </Field>
+          <Field label="Class code">
+            <TextInput
+              maxLength={FIELD_LIMITS.CLASS_CODE}
+              disabled={classLocked}
+              value={symbol}
+              onChange={(event) => setSymbol(event.target.value.toUpperCase())}
+            />
+          </Field>
+          <Choices
+            legend="Class type"
+            options={REGISTER_CLASS_TYPES}
+            value={tokenType}
+            disabled={classLocked}
+            onChange={setTokenType}
+          />
+        </>
       }
     />
   );

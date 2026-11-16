@@ -1,6 +1,6 @@
 import { classRightsTerms, rightsWithoutConditions, type TokenType } from '@ledova/shared';
 import { Failure, Outcome } from '@components/Ledger';
-import { Actions, PageAction } from '@components/Page';
+import { PageAction } from '@components/Page';
 import { RightsEditor, RightsSummary } from './ClassRights';
 import { rightsDetailsRecorded } from './classRightsDraft';
 import type { useNewClassRights } from './useNewClassRights';
@@ -34,8 +34,22 @@ export function NewClassRights({
   };
   return (
     <div className="space-y-4 border-t border-border-subtle pt-4">
-      <h3 className="text-sm font-medium text-text-primary">Class rights</h3>
-      <p className="text-sm text-text-muted">Company-recorded terms. The governing documents determine the rights.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-text-primary">Class rights</h3>
+          {!rights.editor && !revision && <p className="text-sm text-text-muted">No rights recorded.</p>}
+        </div>
+        {!rights.editor && administrator && (
+          <PageAction
+            label={revision ? 'Edit class rights' : 'Add class rights'}
+            onClick={open}
+            disabled={rights.busy || blocked}
+          />
+        )}
+      </div>
+      {(rights.editor || revision) && (
+        <p className="text-sm text-text-muted">Company-recorded terms. The governing documents determine the rights.</p>
+      )}
       {rights.editor ? (
         <>
           {problems.map((problem) => (
@@ -50,20 +64,7 @@ export function NewClassRights({
         </>
       ) : (
         <>
-          {revision ? (
-            <RightsSummary revision={revision} />
-          ) : (
-            <p className="text-sm text-text-muted">No rights recorded.</p>
-          )}
-          {administrator && (
-            <Actions>
-              <PageAction
-                label={revision ? 'Edit class rights' : 'Add class rights'}
-                onClick={open}
-                disabled={rights.busy || blocked}
-              />
-            </Actions>
-          )}
+          {revision && <RightsSummary revision={revision} />}
           <Outcome>{rights.outcome}</Outcome>
           <Failure>{rights.error}</Failure>
         </>

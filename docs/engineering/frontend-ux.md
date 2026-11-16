@@ -45,10 +45,14 @@ navigation and decision controls. Shareholders groups **Back**, **Add a sharehol
 **Continue** in that footer; an open shareholder editor keeps its own Cancel/Add or Save controls.
 Do not add a second class-action row or controls beside the setup heading.
 New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
+New-class presets use one full-width **Start with** radio row. Name/code and type/date then share
+the existing two-column form grid, stacking on phones. Keep Class type editable independently of
+the preset. An empty Class rights section groups its heading, status and Add action together;
+the governing-document note appears with its editor or recorded terms.
 While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
 Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and
-ledger confirmation remain separate commands. Class rights stays separate below setup, and a
-recorded ledger shows its state as a `Status`.
+ledger confirmation remain separate commands. Class rights is a distinct explicit task within the
+first setup step, and a recorded ledger shows its state as a `Status`.
 Company information, authority records and company team use this workspace frame too.
 Team is the selected company's page: its Appointments, **Invite a company user** and the invitations you
 issued (owner, 5 November 2026). Inviting replaces the collection with one focused inline task, a
