@@ -3147,7 +3147,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await act(async () =>
     client.invalidateQueries({ predicate: (query) => (query.state.data as CompanyShareToken)?.uuid === token.uuid }),
   );
-  const blockedDeletion = await screen.findByRole('button', { name: 'Delete (share class)' });
+  const blockedDeletion = await screen.findByRole('button', { name: 'Delete share class' });
   expect(blockedDeletion.matches(':disabled')).toBe(true);
   expect(document.getElementById(blockedDeletion.getAttribute('aria-describedby')!)?.textContent).toBe(blockedReason);
   fireEvent.click(blockedDeletion);
@@ -3157,11 +3157,11 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await act(async () =>
     client.invalidateQueries({ predicate: (query) => (query.state.data as CompanyShareToken)?.uuid === token.uuid }),
   );
-  fireEvent.click(await screen.findByRole('button', { name: 'Delete (share class)' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete share class' }));
   let deletion = within(await screen.findByRole('dialog', { name: 'Delete Renamed ordinary shares?' }));
   fireEvent.click(deletion.getByRole('button', { name: 'Cancel' }));
   expect(api.delete).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Delete (share class)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Delete share class' }));
   deletion = within(await screen.findByRole('dialog', { name: 'Delete Renamed ordinary shares?' }));
   const detailReadsBeforeDelete = api.get.mock.calls.filter(([url]) => url === lifecycleDetail).length;
   const holdersBeforeDelete = api.get.mock.calls.filter(

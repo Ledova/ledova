@@ -659,8 +659,10 @@ Setup embeds the existing class details content in the **Share class** step of o
 card, alongside the record date in the same responsive field grid. The bottom footer groups
 Edit/Delete with the first step's navigation; later steps show only their own relevant controls.
 The inline metadata task keeps its explicit save/recovery controls
-and blocks opening actions while held; it does not save through ledger confirmation. Completed
-classes keep their separate details view with Edit/Delete in its bottom-right footer. Web Class rights
+and blocks opening actions while held; it does not save through ledger confirmation. Completed web
+classes order their cards as Class details, Class rights, Shareholder documents, then Summary.
+Edit stays in Class details and **Delete share class** follows Summary in a right-aligned page footer.
+Unfinished setup stays first. Web Class rights
 has its own setup step between Share class and Shareholders, and retains its separate card for
 completed classes. The native layout remains unchanged.
 Preparing and retiring the current form's own review keeps that form instance and its selected
@@ -680,7 +682,7 @@ Non-paid and employee-award grants are prepared inline in Issue shares.
 
 The web and native class pages' `ClassDetails.tsx` use the shared `useClassDetails` hook to edit name, code and type
 or delete an unused class using the API's `canEditDetails`, `canDelete` and `updatedAt`. An authorised
-preparer sees the API's `deletionBlockedReason` beside a disabled Delete action when records prevent
+preparer sees the API's `deletionBlockedReason` beside a disabled **Delete share class** action when records prevent
 deletion. The web confirmation explains that saved setup reviews are retired automatically and
 their records and audit history are kept. They pin the
 original class, company and version when opening the action, preserve edits during source checks,

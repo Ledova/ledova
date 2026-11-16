@@ -40,7 +40,7 @@ Web register setup uses one **Ledger setup** card, with **Share class**, **Class
 **Shareholders** and **Review**. The class name stays in the page header. The first step groups name, code, type and record
 date, reusing the inline metadata editor rather than a separate Class details card or nested card.
 In its read view, name/code and type/date share a two-column grid on wide screens, with labels
-above values, stacking on phones. Edit/Delete appear only on the Share class step, alongside
+above values, stacking on phones. **Edit** and **Delete share class** appear only on the Share class step, alongside
 Cancel/Import/Continue in one bottom-right workflow footer. Later steps show only their own
 navigation and decision controls. Class rights has **Back** and **Continue** when its explicit editor is closed;
 continuing without rights creates no assumed terms or revision. Shareholders groups **Back**, **Add a shareholder** and
@@ -438,9 +438,14 @@ fields under the same heading, with Cancel and Save together at the bottom right
 field when editing opens and return focus to Edit when it ends, if that action is still available.
 Company information and personal Profile details follow this pattern.
 An eligible class uses the same inline Edit, Cancel and Save pattern for its name, code and type.
-Keep the setup draft mounted while that editor is open. Delete is available only for an unused
-class and asks for confirmation naming that class. Explain that saved setup reviews are retired
-automatically and their records and audit history are kept. When records prevent deletion, retain a disabled Delete action for authorised
+Keep the setup draft mounted while that editor is open. A completed web class page orders its cards
+as **Class details**, **Class rights**, **Shareholder documents**, then **Summary**. **Edit** stays
+in Class details; **Delete share class** sits after Summary, aligned right, because it acts on the
+whole class. Unfinished setup stays first, and the native layout is unchanged.
+Hide deletion while the metadata or rights editor is open; keep its trigger mounted
+while the deletion confirmation is open. Deletion is available only for an unused class and asks
+for confirmation naming that class. Explain that saved setup reviews are retired
+automatically and their records and audit history are kept. When records prevent deletion, retain a disabled **Delete share class** action for authorised
 preparers with the API's plain reason visibly beside it and linked as its accessible description.
 A lost reply holds the original action for checking. Recorded ownership, rights revisions and
 documents are never erased by this control.
