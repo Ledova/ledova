@@ -56,6 +56,8 @@ ledger confirmation remain separate commands. Class rights keeps its separate ex
 and recovery controls. Returning to it from Review retires the saved opening for editing before
 showing the selected step, preserving the copied date and shareholder draft. A recorded ledger shows
 its state as a `Status`.
+After a selected step opens, focus moves to its current-step label on web and native, including
+after a saved Review is retired. Validation errors keep their existing error-summary focus.
 Company information, authority records and company team use this workspace frame too.
 Team is the selected company's page: its Appointments, **Invite a company user** and the invitations you
 issued (owner, 5 November 2026). Inviting replaces the collection with one focused inline task, a
