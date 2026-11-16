@@ -10,6 +10,7 @@ import {
   importRegisterKey,
   registerClassesKey,
   registerHoldersKey,
+  registersQuery,
   shareClassKey,
   useApiClient,
   type CompanyShareTokenListItem,
@@ -169,25 +170,44 @@ export function useClassDeletion({
   const close = async () => {
     const operation = attempt.current;
     if (!operation || running.current || operation.pending || !owned()) return false;
-    attempt.current = null;
-    setOutcome(
-      operation.finished
-        ? `${operation.next} ${operation.next === 1 ? 'share class' : 'share classes'} deleted.${operation.next < operation.targets.length ? ' Remaining classes were kept or need review.' : ''}`
-        : '',
-    );
-    flushSync(() => setRemoval(null));
-    if (!operation.finished && operation.next === 0) return true;
-    const keys = operation.targets.flatMap((target) => [
-      [...shareClassKey(target.uuid), owner.userUuid, owner.ownerAccountUuid],
-      importRegisterKey(owner, target.uuid),
-    ]);
-    await Promise.all(keys.map((queryKey) => client.cancelQueries({ queryKey, exact: true })));
-    for (const queryKey of keys) client.removeQueries({ queryKey, exact: true });
-    await Promise.all([
-      client.invalidateQueries({ queryKey: registerClassesKey(owner) }),
-      client.invalidateQueries({ queryKey: registerHoldersKey(owner) }),
-    ]);
-    return true;
+    running.current = true;
+    setBusy(true);
+    setError('');
+    try {
+      if (operation.finished || operation.next > 0) {
+        const keys = operation.targets.flatMap((target) => [
+          [...shareClassKey(target.uuid), owner.userUuid, owner.ownerAccountUuid],
+          importRegisterKey(owner, target.uuid),
+        ]);
+        await Promise.all([
+          client.cancelQueries({ queryKey: registerHoldersKey(owner) }),
+          ...keys.map((queryKey) => client.cancelQueries({ queryKey, exact: true })),
+        ]);
+        for (const queryKey of keys) client.removeQueries({ queryKey, exact: true });
+        await client.invalidateQueries({ queryKey: registerHoldersKey(owner), refetchType: 'none' });
+        await client.invalidateQueries({ queryKey: registerClassesKey(owner) }, { throwOnError: true });
+        if (!owned()) return false;
+        const listed = client.getQueryData<CompanyShareTokenListItem[]>(registerClassesKey(owner));
+        if (!listed) throw createUserFriendlyError('The current class list is unavailable. Try closing again.');
+        const uuids = listed.filter((row) => row.companyUuid === company).map(({ uuid }) => uuid);
+        if (uuids.length) await client.fetchQuery(registersQuery(apiClient, owner, uuids, current.current.guard));
+      }
+      if (!owned()) return false;
+      attempt.current = null;
+      setOutcome(
+        operation.finished
+          ? `${operation.next} ${operation.next === 1 ? 'share class' : 'share classes'} deleted.${operation.next < operation.targets.length ? ' Remaining classes were kept or need review.' : ''}`
+          : '',
+      );
+      flushSync(() => setRemoval(null));
+      return true;
+    } catch (failure) {
+      if (owned()) setError(apiErrorSentence(failure, 'The class list could not be refreshed. Try closing again.'));
+      return false;
+    } finally {
+      running.current = false;
+      if (owned()) setBusy(false);
+    }
   };
   return {
     removal,

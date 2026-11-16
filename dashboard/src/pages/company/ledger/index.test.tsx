@@ -3126,10 +3126,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Delete (share class)' }));
   deletion = within(await screen.findByRole('dialog', { name: 'Delete Renamed ordinary shares?' }));
   const detailReadsBeforeDelete = api.get.mock.calls.filter(([url]) => url === lifecycleDetail).length;
+  const holdersBeforeDelete = api.get.mock.calls.filter(
+    ([url]) => url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid),
+  ).length;
   fireEvent.click(deletion.getByRole('button', { name: 'Delete class' }));
   expect(await screen.findByText('Share class deleted.')).toBeTruthy();
   expect(api.delete).toHaveBeenCalledOnce();
   expect(api.get.mock.calls.filter(([url]) => url === lifecycleDetail)).toHaveLength(detailReadsBeforeDelete);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid))).toHaveLength(
+    holdersBeforeDelete,
+  );
   expect(screen.queryByRole('dialog')).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open another page' }));
   expect(await screen.findByText('Another page')).toBeTruthy();
@@ -3146,17 +3153,23 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     deletionBlockedReason: index === 3 ? 'This class has ownership history.' : null,
   }));
   const removedClasses = new Set<string>();
-  let bulkMode: 'retry' | 'refuse' | 'missing' = 'retry';
+  let bulkMode: 'retry' | 'refuse' | 'missing' | 'first-refuse' = 'retry';
+  let bulkHoldingsChanged = false;
   let interruptedBulk = false;
   let omitProtected = false;
   let hideBulkAppointment = false;
   let failBulkAppointment = false;
+  let failBulkRefresh = false;
+  let refreshBulkClasses: (() => void) | undefined;
   api.get.mockImplementation(async (url) => {
-    if (url === REGISTER)
+    if (url === REGISTER) {
+      if (failBulkRefresh) throw new Error('Class list refresh interrupted');
+      if (refreshBulkClasses) await new Promise<void>((resolve) => (refreshBulkClasses = resolve));
       return dataPage([
         ...bulkClasses.filter(({ uuid, canDelete }) => !removedClasses.has(uuid) && (!omitProtected || canDelete)),
         { ...bulkClasses[0], uuid: 'foreign-class', companyUuid: 'foreign-company', companyName: 'Foreign company' },
       ]);
+    }
     if (url === APPOINTMENTS) {
       if (failBulkAppointment) throw new Error('Appointment read interrupted');
       return dataPage(hideBulkAppointment ? [] : [appointment]);
@@ -3167,9 +3180,21 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (row) {
       if (removedClasses.has(row.uuid))
         throw Object.assign(new Error('Class unavailable'), { response: { status: 404 } });
+      const changed = bulkHoldingsChanged && row.uuid === 'selected-0';
       return url === COMPANY_TOKEN_ENDPOINTS.DETAIL(row.uuid)
         ? { data: row }
-        : { data: { ...holders(), token: row, initialized: false, issuedSupply: null, holders: [], totalHolders: 0 } };
+        : {
+            data: {
+              ...holders(),
+              token: row,
+              initialized: changed,
+              issuedSupply: changed ? '7' : null,
+              holders: changed
+                ? [{ member: 'external-holder', name: 'External holder', balance: '7', percentage: 100 }]
+                : [],
+              totalHolders: changed ? 1 : 0,
+            },
+          };
     }
     return dataPage([]);
   });
@@ -3178,6 +3203,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     const row = bulkClasses.find(({ uuid }) => COMPANY_TOKEN_ENDPOINTS.DETAIL(uuid) === url)!;
     expect(row?.canDelete).toBe(true);
     expect(config.params).toEqual({ expected_updated_at: row.updatedAt });
+    if (bulkMode === 'first-refuse') {
+      bulkHoldingsChanged = true;
+      throw Object.assign(new Error('Class changed'), { response: { status: 409 } });
+    }
     if (row.uuid === 'selected-1') {
       if (bulkMode === 'refuse') throw Object.assign(new Error('Class changed'), { response: { status: 409 } });
       if (!interruptedBulk) {
@@ -3243,9 +3272,32 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-1'),
     COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-2'),
   ]);
+  failBulkRefresh = true;
   fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.queryByText('3 share classes deleted.')).toBeNull();
+  expect(api.delete).toHaveBeenCalledTimes(4);
+  failBulkRefresh = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
+  expect(bulkDialog.getByText('3 deleted · 0 not confirmed')).toBeTruthy();
+  const deletedHolderReads = () =>
+    api.get.mock.calls.filter(([url]) =>
+      bulkClasses.slice(0, 3).some(({ uuid }) => COMPANY_TOKEN_ENDPOINTS.HOLDERS(uuid) === url),
+    ).length;
+  const readsBeforeClose = deletedHolderReads();
+  refreshBulkClasses = () => {};
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
+  await waitFor(() => expect(client.isFetching({ predicate: ({ queryKey }) => queryKey.includes('classes') })).toBe(1));
+  expect(deletedHolderReads()).toBe(readsBeforeClose);
+  await act(async () => {
+    refreshBulkClasses?.();
+    refreshBulkClasses = undefined;
+  });
   expect(await screen.findByText('3 share classes deleted.')).toBeTruthy();
   await waitFor(() => expect(screen.queryByRole('link', { name: 'First unused (class details)' })).toBeNull());
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(deletedHolderReads()).toBe(readsBeforeClose);
   expect(screen.getByRole('link', { name: 'Protected records (class details)' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Delete selected' }).matches(':disabled')).toBe(true);
   for (const mode of ['refuse', 'missing'] as const) {
@@ -3283,6 +3335,21 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   client.clear();
   api.delete.mockClear();
   removedClasses.clear();
+  bulkMode = 'first-refuse';
+  showJourney(`/?company=${company.uuid}`);
+  fireEvent.click(await screen.findByRole('checkbox', { name: 'Select all' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+  bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete selected' }));
+  await bulkDialog.findByText('0 deleted · 3 not confirmed');
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Close' }));
+  expect(await screen.findByText('0 share classes deleted. Remaining classes were kept or need review.')).toBeTruthy();
+  expect(await screen.findByText('7')).toBeTruthy();
+  expect(api.delete).toHaveBeenCalledOnce();
+  cleanup();
+  client.clear();
+  api.delete.mockClear();
+  bulkHoldingsChanged = false;
   bulkMode = 'retry';
   interruptedBulk = true;
   omitProtected = true;

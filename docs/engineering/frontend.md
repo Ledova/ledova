@@ -709,6 +709,10 @@ kept, with their reasons; only reviewed removable targets receive delete command
 are retained if a later command is refused or uncertain; an uncertain original must be checked or
 explicitly retried before continuing.
 The interface reports partial results, retains audit history and does not imply an atomic batch.
+Closing the result keeps the operation held until the current class list returns. Holder reads are
+marked stale without refetching the old class set; the refreshed list selects the remaining classes.
+Refresh the exact current holder set too, including when no class was removed. If a refresh fails,
+retain the result for another close attempt without resending deletions.
 
 On the web, setup's shareholder editor and later shareholder/class pages share
 `dashboard/src/pages/company/ledger/shared/DocumentAttachments.tsx` for optional categorised
