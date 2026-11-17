@@ -1479,7 +1479,9 @@ changes in the same PR. This supersedes the earlier outside-cap treatment.
 **Owner follow-up, 17 November 2026**, supplied directly in the active Claude
 session and recorded on [#1670](https://github.com/Ledova/ledova/issues/1670):
 the per-case time limits are not increased. A case that nears its limit is cut
-back to the worst failures and one happy path, or made faster.
+back to the worst failures and one happy path, or made faster. The owner also approved
+splitting the app's single journey case into two, taking Mobile Jest from 6 to 7 of its 10 cases
+with no cap change.
 
 The owner now authorises a ledova.io backup and read-only database/private-storage
 inventory. This supersedes the initial restriction above; that permission needs
