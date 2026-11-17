@@ -896,8 +896,8 @@ beforeEach(async () => {
       return { data: { company: ADMINISTERED.uuid, asAt: '2026-11-01T00:00:00Z', complete: true, ...totals, classes } };
     }
     if (url === URLS.OWNERSHIP_HOLDERS(FOUNDERS.uuid)) {
-      const shown = (config?.params as { page: number }).page;
-      const results = HOLDERS.slice((shown - 1) * 25, shown * 25);
+      const { page: shown, page_size: size } = config?.params as { page: number; page_size: number };
+      const results = HOLDERS.slice((shown - 1) * size, shown * size);
       return { data: { count: 26, token: FOUNDERS.uuid, sequence: 1, issuedSupply: '30', results } };
     }
     if (url === URLS.MEMBER_ASSOCIATIONS)
@@ -1674,9 +1674,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(
     await screen.findByRole('button', { name: 'Highlight Synthetic Holder 1’s holding, 5 shares, 16.67% of FND' }),
   ).toBeTruthy();
-  expect(screen.getByText('1–25 of 26 shareholders')).toBeTruthy();
+  expect(screen.getByText('1–10 of 26 shareholders')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Next (Class shareholders)' }));
-  expect(await screen.findByText('26–26 of 26 shareholders')).toBeTruthy();
+  expect(await screen.findByText('11–20 of 26 shareholders')).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Next (Class shareholders)' }));
+  expect(await screen.findByText('21–26 of 26 shareholders')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Class details (Founders)' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('ShareClass', founders);
   expect(

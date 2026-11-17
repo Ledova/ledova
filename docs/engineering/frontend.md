@@ -572,7 +572,7 @@ transitions, without an entrance animation that could replay during fresh reads.
 Keep hover feedback in the centre and linked list rather than a duplicate floating tooltip; honour
 reduced motion, including changes while the page is open. Every class remains selectable in the list,
 including classes with no issued shares; do not merge small classes into an artificial Other class.
-Long class lists use the shared search and 25-row pager. Narrow screens and a failed chart load keep
+Long class lists use the shared search and the [standard pager](frontend-ux.md#lists-search-filters-and-paging). Narrow screens and a failed chart load keep
 the same list without the ring. Other delivered charts retain their existing SVG implementation.
 Do not add a second chart library or a general chart framework. Visible quantities and percentages
 use exact share arithmetic; only normalised drawing coordinates use JavaScript numbers. The ring

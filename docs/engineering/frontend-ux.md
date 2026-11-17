@@ -96,7 +96,7 @@ class code, its share of the company's issued shares and, for a member, **You:**
 Names wrap without displacing the count. Select a segment or class row to open an aligned class
 details card beneath the overview. A muted trailing chevron identifies class rows that open this
 detail; holder rows keep their highlight-only interaction. Show the relevant exact totals and own
-position, followed by the ranked holder list, 25 to a page, only for company-authorised readers. The
+position, followed by the ranked holder list, a [page](#lists-search-filters-and-paging) at a time, only for company-authorised readers. The
 card has no **Filters**: the class rows switch classes, the trail's **Company ownership** returns to
 the overview, also from a class the overview no longer lists, and shareholder search stays on
 Shareholders (owner, 3 November 2026). For company-authorised readers, a **Class details** row at the
@@ -114,7 +114,7 @@ class-coloured glow and a short lift. Reduced motion keeps this emphasis static;
 entrance animation is needed.
 Keep the ring aligned at the top beside its list, so a long list never pushes it below the overview.
 Keep class colours consistent in both views and through list search and paging. Long class lists
-use shared search and a 25-row pager; small and zero-share classes remain directly selectable.
+use shared search and the standard [pager](#lists-search-filters-and-paging); small and zero-share classes remain directly selectable.
 Returning to the overview by the trail restores focus to the class row or class search.
 While company ownership loads, reserve the dashboard's summary and chart space with a static,
 data-free placeholder. The same neutral ring covers the lazy chart import. Show confirmed data
@@ -926,12 +926,18 @@ server:
   keep their column grid, with dates and status in muted text.
   Keep their list semantics and editor lifetimes;
   focused editors remain unboxed. `Pager` under a paged table gives the rows shown, such as
-  "1–25 of 1,240 requests", and Previous, the page number and Next when there is more than one
+  "1–10 of 1,240 requests", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy.
 - **Feeds:** `LoadMore` ends a feed with "Load more notifications" (or
   entries and so on), which names its work while it runs. When a later page fails, the shown
   rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
-- **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
+- **Page size:** 10 rows at every width on web and app (owner, 18 November 2026), so a first page
+  fits about one phone screen. `PAGE_SIZE` in `packages/shared` is the single size, and `pageOf`
+  (`packages/shared/src/utils/paging.ts`) is the single page calculation: both pagers and every
+  list with numbered pages in the client use it. The API's own default stays 25 and accepts `page_size` up to 100.
+- **Which pattern:** numbered pages for a list people scan and return to, Load more for a
+  newest-first feed, and a short capped group with Show all only for a section within a page. The pager sits under its list,
+  inside the card and above the page's main action.
 
 Shareholders searches and pages the register the page has already read in
 full, since its ownership totals need every holding: Search people and the class filter share the
@@ -940,7 +946,7 @@ popover, with the same search timing and pager. Search matches every word, ignor
 closes the panel.
 
 The feeds are the notification bell, a class's register entries and each class's former
-shareholders, shown 25 at a time from the register already read. A list bounded by one person
+shareholders, shown a page at a time from the register already read. A list bounded by one person
 reads every page. Other lists still read every page
 ([frontend](frontend.md#lists-figures-and-currency)).
 
@@ -953,7 +959,7 @@ to revisit if registers grow large ([decision](../decisions.md#frontend-ux-stand
 
 Every table uses `Table`, apart from dashboard chart legends, which keep a compact layout with
 their own captions and header scopes. The company ring compares issued share counts across classes;
-its selected-class bar list keeps server search and a 25-row pager, showing percentages of the full
+its selected-class bar list keeps server search and the standard pager, showing percentages of the full
 class even when only some holders are visible. A member's own-only chart shows the composition of
 their holdings; a company-enabled overview adds aggregate class totals and their own position.
 Neither chart implies voting power or value. An import's member snapshot opens each member's allotments in a dialog named Allotments, so Details always opens a

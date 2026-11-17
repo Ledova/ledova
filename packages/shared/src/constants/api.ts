@@ -18,7 +18,7 @@ export const READ_TIMING = {
   refetchOnReconnect: false,
 };
 
-export const PAGE_SIZE = 25;
+export const PAGE_SIZE = 10;
 
 export const AUTH_ENDPOINTS = {
   SIGNIN: '/api/signin/',

@@ -711,11 +711,11 @@ documents go to the phone's share sheet. Opening records have Bring records or C
 opening and the reviewing and confirming of copied openings, as on the web.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
-name search, a Share class filter and 25 rows per page, giving each class's shares and percentage
+name search, a Share class filter and 10 rows per page, giving each class's shares and percentage
 and flagging an identity that needs review. The search, the filter and the page stay in the address.
 Details opens the shareholder's page. On narrow screens each shareholder is one row listing only the
 classes they hold, and the row opens their page. Former shareholders follows, holding each class's
-Former-member history 25 at a time, with Details for a former member the register names.
+Former-member history 10 at a time, with Details for a former member the register names.
 Shareholders' sidebar submenus open Employee scheme for employee awards and Member access for invitations and
 access ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page. The mobile app's Shareholders
