@@ -1816,7 +1816,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   expect(await screen.findByText('1 share class deleted.')).toBeTruthy();
   expect(screen.queryByRole('checkbox', { name: `Select ${PREFERENCE.name}` })).toBeNull();
-  expect(screen.getByRole('checkbox', { name: `Select ${FOUNDERS.name}` })).toBeTruthy();
+  expect(screen.queryByRole('checkbox', { name: `Select ${FOUNDERS.name}` })).toBeNull();
   await fireEvent.press(await screen.findByRole('button', { name: 'Add share class' }));
   const setup = { company: ADMINISTERED.uuid };
   expect(mockNavigate).toHaveBeenLastCalledWith('RegisterSetup', setup);
