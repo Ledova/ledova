@@ -59,18 +59,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(changed_class.status_code, 200, changed_class.content)
-        renamed_class = self.client.patch(
-            details_endpoint,
-            {
-                "expected_updated_at": changed_class.json()["updatedAt"],
-                "name": "Retired setup class",
-                "symbol": "RET",
-                "token_type": "redeemable",
-            },
-            format="json",
-        )
-        self.assertEqual(renamed_class.status_code, 200, renamed_class.content)
-        rights_endpoint = f"/api/v1/tokens/{self.token.pk}/class-rights/"
+        rights_endpoint = f"/api/v1/tokens/{class_id}/class-rights/"
         class_document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.CLASS_RIGHTS)
         rights = {
             "appointment": str(self.appointment.pk),
@@ -95,6 +84,17 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(latest_rights.status_code, 201, latest_rights.content)
+        renamed_class = self.client.patch(
+            details_endpoint,
+            {
+                "expected_updated_at": changed_class.json()["updatedAt"],
+                "name": "Retired setup class",
+                "symbol": "RET",
+                "token_type": "redeemable",
+            },
+            format="json",
+        )
+        self.assertEqual(renamed_class.status_code, 200, renamed_class.content)
         award = self.award_payload(
             name="Synthetic Employee 陈 Demo / José / ليلى",
             residential_address=("Level 12 Example Building, 2 Example Street, Sydney NSW 2000, Australia. " * 15)[
@@ -343,7 +343,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(exported_details[0]["appointment_id"], str(self.appointment.pk))
             self.assertTrue(exported_details[0]["recorded_by_name"])
             self.assertTrue(exported_details[0]["created_at"])
-            exported_rights = json.loads(bundle.read(f"classes/{self.token.pk}/class_rights.json"))
+            exported_rights = json.loads(bundle.read(f"classes/{class_id}/class_rights.json"))
             self.assertEqual([record["revision"] for record in exported_rights], [1, 2])
             self.assertEqual(exported_rights[0]["summary"], rights["summary"])
             self.assertEqual(exported_rights[1]["summary"], "Clarified company summary.")
@@ -356,7 +356,7 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             self.assertTrue(exported_rights[0]["created_at"])
             self.assertEqual(exported_rights[0]["documents"][0]["evidence"], str(class_document.pk))
             class_documents = json.loads(bundle.read("class_documents.json"))
-            self.assertEqual(len(class_documents), 2)
+            self.assertEqual([row["token"] for row in class_documents], [class_id, class_id])
             self.assertEqual(
                 {row["revision"] for row in class_documents},
                 {first_rights.json()["uuid"], latest_rights.json()["uuid"]},

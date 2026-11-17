@@ -381,18 +381,20 @@ export function ClassRights({
             <Text style={look.muted}>No rights recorded.</Text>
           )}
           {(rights.appointment || rights.pending) && !rights.editor && (
-            <Action
-              label="Edit"
-              accessibilityLabel="Edit (Class rights)"
-              disabled={rights.busy || blocked}
-              onPress={() => {
-                try {
-                  rights.open();
-                } catch {
-                  return;
-                }
-              }}
-            />
+            <FormActions>
+              <Action
+                label="Edit"
+                accessibilityLabel="Edit (Class rights)"
+                disabled={rights.busy || blocked}
+                onPress={() => {
+                  try {
+                    rights.open();
+                  } catch {
+                    return;
+                  }
+                }}
+              />
+            </FormActions>
           )}
           {!!rights.outcome && <Outcome>{rights.outcome}</Outcome>}
           {!rights.editor && !!rights.error && (

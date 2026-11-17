@@ -38,8 +38,9 @@ no custom limit. Creation records no shares and no legal registration. The techn
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
 Class codes are one to five ASCII letters, saved in uppercase, unique among the company's active classes, and may
 not reuse a reserved asset symbol. On the web, the same administrator or preparer can edit a
-class's name, code and type while it has no ownership activity or other dependent records, including
-after a confirmed empty opening. **Edit** stays
+class's name, code and type while it has no ownership activity or operational dependencies, including
+after a confirmed empty opening. Saved Class rights and their governing documents do not prevent
+these edits and remain unchanged. **Edit** stays
 visible for current preparers when locked, disabled with the server's reason; readers without that
 mandate get no Edit action. Reject any saved setup review first; the rejected draft stays recorded.
 Each saved change retains its previous and new name, code and type, the representative, appointment
@@ -53,7 +54,9 @@ transaction. Rejected setup drafts and a confirmed empty opening do not prevent 
 The class must never have recorded actual ownership activity. It keeps the class,
 deletion actor and time, drafts, decisions and evidence as audit history. Its code can then be reused
 by a new class without changing the earlier record. An empty register stub alone does not prevent
-deletion. Actual ownership history, rights and other dependent records still do. The web shows the
+deletion. Class rights revisions and their governing documents also remain in the audit and company
+pack without preventing retirement. Actual ownership history and other operational dependencies
+still block deletion. The web shows the
 reason beside a disabled **Delete share class** action. On a completed class page, this action sits
 below the ownership, rights and document cards, while Edit stays with Class details. Deletion retirement records its actor, time and reason
 without granting ordinary review approval authority. If retirement or deletion fails, both roll back. These
@@ -109,8 +112,8 @@ Shareholders. **Save class rights** is a separate explicit save, not part of mov
 or confirming holdings. For a new class, it first creates or recovers that
 class, then records the rights, and stays on Class rights. If the later save fails, the class remains
 and the original rights draft can be recovered. A preparer without administration authority can
-continue with rights **Not recorded**. A saved rights revision is retained history and can prevent
-later class editing or deletion; cancelling an opening does not erase it.
+continue with rights **Not recorded**. A saved rights revision is retained history and does not
+prevent later class editing or deletion; neither those changes nor cancelling an opening erase it.
 
 **Documents** uses actual supporting files; no upload is required. The file's name identifies the
 document, with no category to choose. Each document is linked to the class and the rights

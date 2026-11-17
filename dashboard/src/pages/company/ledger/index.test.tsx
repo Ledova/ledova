@@ -2863,7 +2863,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     expect(lifecycle.name).toBe('Renamed ordinary shares');
   }
   fireEvent.click(metadata.getByRole('button', { name: 'Cancel' }));
-  const blockedReason = 'This class has retained documents, rights or other records and cannot be deleted.';
+  const blockedReason = 'This class has other dependent records and cannot be deleted.';
   const editBlockedReason = 'Class details can change only while its opening is empty and no dependent records exist.';
   lifecycle = {
     ...lifecycle,
