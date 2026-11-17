@@ -112,8 +112,8 @@ Shareholders. **Save class rights** is a separate explicit save, not part of mov
 or confirming holdings. For a new class, it first creates or recovers that
 class, then records the rights, and stays on Class rights. If the later save fails, the class remains
 and the original rights draft can be recovered. A preparer without administration authority can
-continue with rights **Not recorded**. A saved rights revision is retained history and can prevent
-later class editing or deletion; cancelling an opening does not erase it.
+continue with rights **Not recorded**. A saved rights revision is retained history and does not
+prevent later class editing or deletion; neither those changes nor cancelling an opening erase it.
 
 **Documents** uses actual supporting files; no upload is required. The file's name identifies the
 document, with no category to choose. Each document is linked to the class and the rights
