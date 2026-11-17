@@ -538,146 +538,135 @@ const SECOND_ENTRY = {
   delta: '5',
 };
 
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership, class and awards, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, lists and opens an administered company’s overview with its paged shareholders, reads its team only with current administration and revokes only the confirmed appointment, opens a representative authority request from its list and revokes only that request’s appointment after its confirmation, establishes a pending request’s appointment only once its declaration is ticked, offers and reads company documents, shareholders and member access only with register access, prepares each document for only the chosen entry, class or company, reporting a share sheet that cannot open, lists the company’s shareholders and opens one, revokes only the confirmed person’s member access, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
-  function PickedFile({ shown }: { shown: boolean }) {
-    const [file, setFile] = useState<PickedDocument | null>(null);
-    return shown ? <FileField label="Retained file" value={file} onFile={setFile} disabled={false} /> : null;
-  }
-  const picker = jest.mocked(File.pickFileAsync);
-  const chosen = 'file:///cache/picked/synthetic.pdf';
-  const picked = await render(<PickedFile shown />);
-  await fireEvent.press(screen.getByRole('button', { name: 'Retained file. Choose file' }));
-  await screen.findByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' });
-  await picked.rerender(<PickedFile shown={false} />);
-  expect(mockDeletedCopies).not.toHaveBeenCalledWith(chosen);
-  await picked.rerender(<PickedFile shown />);
-  expect(screen.getByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' })).toBeTruthy();
-  let finishPick: (file: File) => void = () => undefined;
-  const delayedPick = () =>
-    new Promise<File>((resolve) => {
-      finishPick = resolve;
+const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
+const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
+let ownRecord: OwnMemberRecord;
+let associated: boolean;
+let refused: boolean;
+let administered: boolean;
+let appointed: boolean;
+let own: OwnCompanyAppointment;
+let revoked: boolean;
+let revokedLink: string;
+let awards: RegisterAward[];
+let vestings: RegisterAwardVesting[];
+let rights: ClassRightsRevision[];
+let documentClasses: boolean;
+let unopenedPreference: boolean;
+let preferenceName: string;
+let preferenceUpdatedAt: string;
+let importsWait: Promise<void> | null;
+let classesWait: Promise<void> | null;
+let importsReadFailure: boolean;
+let preferencesWait: Promise<void> | null;
+let preferencesFailure: boolean;
+let directoryFailure: boolean;
+let loseInvitationReply: boolean;
+let appointmentsWait: Promise<void> | null;
+let loseVestingReply: boolean;
+let classReadFailure: boolean;
+const supportingDocuments: RegisterMemberDocument[] = [];
+let allotments: RegisterAllotment[];
+let grants: RegisterGrant[];
+let transfers: RegisterTransfer[];
+let corrections: RegisterCorrection[];
+let imports: RegisterImport[];
+const wrapper = ({ children }: { children: React.ReactNode }) => (
+  <QueryClientProvider client={client}>
+    <ApiClientProvider client={api as unknown as AxiosInstance}>
+      <SafeAreaInsetsContext.Provider value={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+        <MemberRecordsProvider>{children}</MemberRecordsProvider>
+      </SafeAreaInsetsContext.Provider>
+    </ApiClientProvider>
+  </QueryClientProvider>
+);
+const pauseAccountRead = async () => {
+  let release: () => void = () => undefined;
+  preferencesWait = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let reading: Promise<void> = Promise.resolve();
+  await act(async () => {
+    reading = client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
+  });
+  await waitFor(() => expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.fetchStatus).toBe('fetching'));
+  return async () => {
+    await act(async () => {
+      preferencesWait = null;
+      release();
+      await reading;
     });
-  picker.mockImplementationOnce(delayedPick);
-  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' }));
-  await picked.rerender(<PickedFile shown={false} />);
-  await act(async () => finishPick(new File(chosen)));
-  expect(mockDeletedCopies).not.toHaveBeenCalledWith(chosen);
-  await picked.rerender(<PickedFile shown />);
-  const replacementFile = new File('file:///cache/picked/replacement.pdf');
-  picker.mockResolvedValueOnce(replacementFile);
-  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' }));
-  await screen.findByRole('button', { name: 'Retained file, replacement.pdf. Choose file' });
-  expect(mockDeletedCopies.mock.calls.filter(([uri]) => uri === chosen)).toHaveLength(1);
-  picker.mockImplementationOnce(delayedPick);
-  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, replacement.pdf. Choose file' }));
-  await picked.rerender(<PickedFile shown={false} />);
-  const late = new File('file:///cache/picked/late.pdf');
-  await act(async () => finishPick(late));
-  expect(mockDeletedCopies).toHaveBeenCalledWith(late.uri);
-  expect(mockDeletedCopies).not.toHaveBeenCalledWith(replacementFile.uri);
-  await picked.rerender(<PickedFile shown />);
-  expect(screen.getByRole('button', { name: 'Retained file, replacement.pdf. Choose file' })).toBeTruthy();
-  const refusedFile = new File('file:///cache/picked/refused.txt');
-  picker.mockResolvedValueOnce(refusedFile);
-  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, replacement.pdf. Choose file' }));
-  await waitFor(() => expect(mockDeletedCopies).toHaveBeenCalledWith(refusedFile.uri));
-  expect(mockDeletedCopies).toHaveBeenCalledWith(replacementFile.uri);
-  await fireEvent.press(screen.getByRole('button', { name: 'Retained file. Choose file' }));
-  await screen.findByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' });
-  await act(async () => invalidateSessionScope());
-  expect(mockMissingCopies.has(chosen)).toBe(true);
-  await picked.unmount();
-
-  const firstOwner = { userUuid: 'scope-user', ownerAccountUuid: 'first-account' };
-  const otherOwner = { userUuid: 'scope-user', ownerAccountUuid: 'other-account' };
-  let currentScopeOwner: OrderSubmissionOwner | null = firstOwner;
-  const scopeOwner = () => currentScopeOwner;
-  const initialScope: {
-    owner: OrderSubmissionOwner | null;
-    requested: string | undefined;
-    available: boolean;
-    selection: string | null | undefined;
-  } = {
-    owner: firstOwner,
-    requested: 'company/first-record',
-    available: true,
-    selection: 'company',
   };
-  const retained = await renderHook(
-    ({ owner, requested, available, selection }: typeof initialScope) =>
-      useRetainedScope(owner, scopeOwner, requested, available, selection),
-    {
-      initialProps: initialScope,
-    },
-  );
-  await retained.rerender({ ...initialScope, requested: undefined, available: false });
-  expect(retained.result.current.scope).toBe(initialScope.requested);
-  expect(retained.result.current.currentOwner()).toBeNull();
-  await retained.rerender(initialScope);
-  expect(retained.result.current.currentOwner()).toBe(firstOwner);
-  await retained.rerender({ ...initialScope, requested: 'fallback-company/other-record' });
-  expect(retained.result.current.scope).toBe(initialScope.requested);
-  expect(retained.result.current.available).toBe(false);
-  expect(retained.result.current.currentOwner()).toBeNull();
-  await retained.rerender({
-    ...initialScope,
-    requested: 'other-company/other-record',
-    selection: 'other-company',
-    available: false,
-  });
-  expect(retained.result.current.scope).toBeUndefined();
-  await retained.rerender({
-    ...initialScope,
-    requested: 'company/other-record',
-    selection: undefined,
-    available: false,
-  });
-  expect(retained.result.current.scope).toBeUndefined();
-  currentScopeOwner = otherOwner;
-  await retained.rerender({ ...initialScope, owner: otherOwner, available: false });
-  expect(retained.result.current.scope).toBeUndefined();
-  await retained.rerender({ ...initialScope, owner: otherOwner });
-  await act(async () => invalidateSessionScope());
-  expect(retained.result.current.currentOwner()).toBeNull();
-  await retained.rerender({ ...initialScope, owner: otherOwner, available: false });
-  expect(retained.result.current.scope).toBeUndefined();
-  await retained.unmount();
-
-  const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-one', role: 'investor' } };
-  const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
+};
+const companyChoiceKey = `ledova.company.${owner.userUuid}.${owner.ownerAccountUuid}`;
+const acceptOfficerPage = (
+  <TeamScreen route={{ key: 'accept-first-officer', name: 'Team', params: { accept: true } }} />
+);
+const companyOfficerPage = (
+  <TeamScreen route={{ key: 'accept-first-officer', name: 'Team', params: { accept: false } }} />
+);
+const settled = () => waitFor(() => expect(client.isFetching()).toBe(0));
+const importPosts = () =>
+  api.post.mock.calls.filter(([url]) => url === URLS.BASE || url.startsWith(URLS.REGISTER_IMPORTS));
+const outputPosts = () => api.post.mock.calls.filter(([url]) => /\/register\/|\/pack\/$/.test(url));
+const shareholder = { company: ADMINISTERED.uuid, member: HOLDER_A.member };
+const founders = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid };
+const decision = (kind: string) => ({ appointment: ADMINISTRATION.uuid, kind, reason: '' });
+const decided = (kind: string) => ({
+  ...decision(kind),
+  idempotencyKey: expect.stringMatching(/^00000000-0000-4000-8000-/),
+  previewDigest: DIGEST,
+  confirmation: true,
+});
+const bringing = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, from: 'Corrections' as const };
+const setup = { company: ADMINISTERED.uuid };
+const evidence = expect.stringMatching(/^eeeeeeee-/);
+const record = MEMBER_RECORD.uuid;
+const token = MEMBER_RECORD.classes[0].uuid;
+const certificatesPage = (
+  <CertificatesScreen route={{ key: 'certificates', name: 'Certificates', params: { record, token } }} />
+);
+const holderA = {
+  member: HOLDER_A.member,
+  name: HOLDER_A.name,
+  residentialAddress: `${HOLDER_A.name} address`,
+  identityChoice: 'existing',
+};
+const copied = { sourceReference: 'Company-provided share records', sourceConfirmed: true, formerMembers: [] };
+beforeEach(async () => {
+  ownRecord = OWNED_RECORD;
+  associated = false;
+  refused = false;
+  administered = false;
+  appointed = false;
+  own = ADMINISTRATION;
+  revoked = false;
+  revokedLink = '';
+  awards = [];
+  vestings = [];
+  rights = [];
+  documentClasses = false;
+  unopenedPreference = false;
+  preferenceName = PREFERENCE.name;
+  preferenceUpdatedAt = '2026-11-15T00:00:00Z';
+  importsWait = null;
+  classesWait = null;
+  importsReadFailure = false;
+  preferencesWait = null;
+  preferencesFailure = false;
+  directoryFailure = false;
+  loseInvitationReply = true;
+  appointmentsWait = null;
+  loseVestingReply = false;
+  classReadFailure = false;
+  supportingDocuments.length = 0;
+  allotments = [];
+  grants = [];
+  transfers = [];
+  corrections = [];
+  imports = [OPENING];
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
-  let ownRecord: OwnMemberRecord = OWNED_RECORD;
-  let associated = false;
-  let refused = false;
-  let administered = false;
-  let appointed = false;
-  let own = ADMINISTRATION;
-  let revoked = false;
-  let revokedLink = '';
-  let awards: RegisterAward[] = [];
-  let vestings: RegisterAwardVesting[] = [];
-  let rights: ClassRightsRevision[] = [];
-  let documentClasses = false;
-  let unopenedPreference = false;
-  let preferenceName = PREFERENCE.name;
-  let preferenceUpdatedAt = '2026-11-15T00:00:00Z';
-  let importsWait: Promise<void> | null = null;
-  let classesWait: Promise<void> | null = null;
-  let importsReadFailure = false;
-  let preferencesWait: Promise<void> | null = null;
-  let preferencesFailure = false;
-  let directoryFailure = false;
-  let loseInvitationReply = true;
-  let appointmentsWait: Promise<void> | null = null;
-  let loseVestingReply = false;
-  let classReadFailure = false;
-  const supportingDocuments: RegisterMemberDocument[] = [];
-  let allotments: RegisterAllotment[] = [];
-  let grants: RegisterGrant[] = [];
-  let transfers: RegisterTransfer[] = [];
-  let corrections: RegisterCorrection[] = [];
-  let imports: RegisterImport[] = [OPENING];
   api.delete.mockReset().mockImplementation(async (url) => {
     if (url !== URLS.DETAIL(PREFERENCE.uuid)) throw new Error('Unexpected synthetic deletion');
     unopenedPreference = false;
@@ -1376,94 +1365,112 @@ it('associates a member by invitation code, switches to their company on Dashboa
     preferenceUpdatedAt = '2026-11-15T01:00:00Z';
     throw new Error('Synthetic lost class save reply');
   });
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={client}>
-      <ApiClientProvider client={api as unknown as AxiosInstance}>
-        <SafeAreaInsetsContext.Provider value={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-          <MemberRecordsProvider>{children}</MemberRecordsProvider>
-        </SafeAreaInsetsContext.Provider>
-      </ApiClientProvider>
-    </QueryClientProvider>
-  );
-  const pauseAccountRead = async () => {
-    let release: () => void = () => undefined;
-    preferencesWait = new Promise<void>((resolve) => {
-      release = resolve;
+  await AsyncStorage.removeItem(companyChoiceKey);
+});
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership and class, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, opens an administered company’s overview with its paged shareholders, reads its team only with current administration, revokes only the confirmed appointment, request or member access, and records an award, share issues, a transfer and a correction only for the chosen class and people, with no register action under a read-only appointment', async () => {
+  function PickedFile({ shown }: { shown: boolean }) {
+    const [file, setFile] = useState<PickedDocument | null>(null);
+    return shown ? <FileField label="Retained file" value={file} onFile={setFile} disabled={false} /> : null;
+  }
+  const picker = jest.mocked(File.pickFileAsync);
+  const chosen = 'file:///cache/picked/synthetic.pdf';
+  const picked = await render(<PickedFile shown />);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file. Choose file' }));
+  await screen.findByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' });
+  await picked.rerender(<PickedFile shown={false} />);
+  expect(mockDeletedCopies).not.toHaveBeenCalledWith(chosen);
+  await picked.rerender(<PickedFile shown />);
+  expect(screen.getByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' })).toBeTruthy();
+  let finishPick: (file: File) => void = () => undefined;
+  const delayedPick = () =>
+    new Promise<File>((resolve) => {
+      finishPick = resolve;
     });
-    let reading: Promise<void> = Promise.resolve();
-    await act(async () => {
-      reading = client.refetchQueries({ queryKey: USER_PREFERENCES_QUERY_KEY, exact: true });
-    });
-    await waitFor(() => expect(client.getQueryState(USER_PREFERENCES_QUERY_KEY)?.fetchStatus).toBe('fetching'));
-    return async () => {
-      await act(async () => {
-        preferencesWait = null;
-        release();
-        await reading;
-      });
-    };
+  picker.mockImplementationOnce(delayedPick);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' }));
+  await picked.rerender(<PickedFile shown={false} />);
+  await act(async () => finishPick(new File(chosen)));
+  expect(mockDeletedCopies).not.toHaveBeenCalledWith(chosen);
+  await picked.rerender(<PickedFile shown />);
+  const replacementFile = new File('file:///cache/picked/replacement.pdf');
+  picker.mockResolvedValueOnce(replacementFile);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' }));
+  await screen.findByRole('button', { name: 'Retained file, replacement.pdf. Choose file' });
+  expect(mockDeletedCopies.mock.calls.filter(([uri]) => uri === chosen)).toHaveLength(1);
+  picker.mockImplementationOnce(delayedPick);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, replacement.pdf. Choose file' }));
+  await picked.rerender(<PickedFile shown={false} />);
+  const late = new File('file:///cache/picked/late.pdf');
+  await act(async () => finishPick(late));
+  expect(mockDeletedCopies).toHaveBeenCalledWith(late.uri);
+  expect(mockDeletedCopies).not.toHaveBeenCalledWith(replacementFile.uri);
+  await picked.rerender(<PickedFile shown />);
+  expect(screen.getByRole('button', { name: 'Retained file, replacement.pdf. Choose file' })).toBeTruthy();
+  const refusedFile = new File('file:///cache/picked/refused.txt');
+  picker.mockResolvedValueOnce(refusedFile);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file, replacement.pdf. Choose file' }));
+  await waitFor(() => expect(mockDeletedCopies).toHaveBeenCalledWith(refusedFile.uri));
+  expect(mockDeletedCopies).toHaveBeenCalledWith(replacementFile.uri);
+  await fireEvent.press(screen.getByRole('button', { name: 'Retained file. Choose file' }));
+  await screen.findByRole('button', { name: 'Retained file, synthetic.pdf. Choose file' });
+  await act(async () => invalidateSessionScope());
+  expect(mockMissingCopies.has(chosen)).toBe(true);
+  await picked.unmount();
+
+  const firstOwner = { userUuid: 'scope-user', ownerAccountUuid: 'first-account' };
+  const otherOwner = { userUuid: 'scope-user', ownerAccountUuid: 'other-account' };
+  let currentScopeOwner: OrderSubmissionOwner | null = firstOwner;
+  const scopeOwner = () => currentScopeOwner;
+  const initialScope: {
+    owner: OrderSubmissionOwner | null;
+    requested: string | undefined;
+    available: boolean;
+    selection: string | null | undefined;
+  } = {
+    owner: firstOwner,
+    requested: 'company/first-record',
+    available: true,
+    selection: 'company',
   };
-  const companyChoiceKey = `ledova.company.${owner.userUuid}.${owner.ownerAccountUuid}`;
-  await AsyncStorage.removeItem(companyChoiceKey);
-  const acceptOfficerPage = (
-    <TeamScreen route={{ key: 'accept-first-officer', name: 'Team', params: { accept: true } }} />
+  const retained = await renderHook(
+    ({ owner, requested, available, selection }: typeof initialScope) =>
+      useRetainedScope(owner, scopeOwner, requested, available, selection),
+    {
+      initialProps: initialScope,
+    },
   );
-  const companyOfficerPage = (
-    <TeamScreen route={{ key: 'accept-first-officer', name: 'Team', params: { accept: false } }} />
-  );
-  const officer = await render(<TeamScreen />, { wrapper });
-  await waitFor(() => expect(mockSetParams).toHaveBeenLastCalledWith({ accept: true }));
-  await officer.rerender(acceptOfficerPage);
-  await fireEvent.changeText(await screen.findByLabelText('Invitation code'), MEMBER_CODE);
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation', disabled: false }));
-  const officerReceipt = `Appointment recorded for ${ADMINISTERED.name}.`;
-  await screen.findByText(officerReceipt);
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(screen.getByText(officerReceipt)).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Done', disabled: false }));
-  expect(mockSetParams).toHaveBeenLastCalledWith({ accept: false });
-  await officer.rerender(companyOfficerPage);
-  await screen.findByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/, disabled: false });
-  expect(await AsyncStorage.getItem(companyChoiceKey)).toBeNull();
-  expect(api.post.mock.calls).toContainEqual([
-    `${TEAM_INVITATIONS}accept/`,
-    { code: MEMBER_CODE, declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION, acceptDeclaration: true },
-    expect.anything(),
-  ]);
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  await officer.unmount();
-  client.clear();
-  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
-  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
-  await AsyncStorage.setItem(companyChoiceKey, ELSEWHERE_COMPANY);
-  const deniedCompanyOfficer = await render(acceptOfficerPage, { wrapper });
-  await fireEvent.changeText(await screen.findByLabelText('Invitation code'), OTHER_CODE);
-  expect(screen.queryByRole('button', { name: /^Revoke appointment \(/ })).toBeNull();
-  await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation', disabled: false }));
-  await screen.findByText(officerReceipt);
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(screen.getByText(officerReceipt)).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^Revoke appointment \(/ })).toBeNull();
-  await fireEvent.press(screen.getByRole('button', { name: 'Done', disabled: false }));
-  expect(mockSetParams).toHaveBeenLastCalledWith({ accept: false });
-  await deniedCompanyOfficer.rerender(companyOfficerPage);
-  await screen.findByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/, disabled: false });
-  expect(await AsyncStorage.getItem(companyChoiceKey)).toBe(ELSEWHERE_COMPANY);
-  expect(api.post.mock.calls.filter(([url]) => url === `${TEAM_INVITATIONS}accept/`)).toHaveLength(2);
-  expect(api.post.mock.calls).toContainEqual([
-    `${TEAM_INVITATIONS}accept/`,
-    { code: OTHER_CODE, declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION, acceptDeclaration: true },
-    expect.anything(),
-  ]);
-  await deniedCompanyOfficer.unmount();
-  await AsyncStorage.removeItem(companyChoiceKey);
-  client.clear();
-  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
-  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
-  appointed = false;
-  own = ADMINISTRATION;
+  await retained.rerender({ ...initialScope, requested: undefined, available: false });
+  expect(retained.result.current.scope).toBe(initialScope.requested);
+  expect(retained.result.current.currentOwner()).toBeNull();
+  await retained.rerender(initialScope);
+  expect(retained.result.current.currentOwner()).toBe(firstOwner);
+  await retained.rerender({ ...initialScope, requested: 'fallback-company/other-record' });
+  expect(retained.result.current.scope).toBe(initialScope.requested);
+  expect(retained.result.current.available).toBe(false);
+  expect(retained.result.current.currentOwner()).toBeNull();
+  await retained.rerender({
+    ...initialScope,
+    requested: 'other-company/other-record',
+    selection: 'other-company',
+    available: false,
+  });
+  expect(retained.result.current.scope).toBeUndefined();
+  await retained.rerender({
+    ...initialScope,
+    requested: 'company/other-record',
+    selection: undefined,
+    available: false,
+  });
+  expect(retained.result.current.scope).toBeUndefined();
+  currentScopeOwner = otherOwner;
+  await retained.rerender({ ...initialScope, owner: otherOwner, available: false });
+  expect(retained.result.current.scope).toBeUndefined();
+  await retained.rerender({ ...initialScope, owner: otherOwner });
+  await act(async () => invalidateSessionScope());
+  expect(retained.result.current.currentOwner()).toBeNull();
+  await retained.rerender({ ...initialScope, owner: otherOwner, available: false });
+  expect(retained.result.current.scope).toBeUndefined();
+  await retained.unmount();
   api.get.mockClear();
   api.post.mockClear();
   mockSetParams.mockClear();
@@ -1512,66 +1519,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
     }),
   );
   expect(screen.getByLabelText('Your share of this class: 25.00%')).toBeTruthy();
-  const record = MEMBER_RECORD.uuid;
-  const token = MEMBER_RECORD.classes[0].uuid;
   await fireEvent.press(screen.getByRole('button', { name: 'Certificates' }));
   expect(mockNavigate).toHaveBeenCalledWith('Certificates', { record, token });
-  const certificatesPage = (
-    <CertificatesScreen route={{ key: 'certificates', name: 'Certificates', params: { record, token } }} />
-  );
-  ownRecord = {
-    ...OWNED_RECORD,
-    awards: [
-      {
-        ...MEMBER_RECORD.awards[0],
-        shares: '20',
-        vestedShares: '6',
-        issuedShares: '1',
-        availableShares: '2',
-        endedUnvestedShares: '4',
-        endedVestedShares: '3',
-        unvestedRemainingShares: '10',
-        remainingUnissuedShares: '12',
-        vestings: [{ ...MEMBER_RECORD.awards[0].vestings[0], shares: '8' }],
-        ends: [
-          {
-            uuid: 'own-end',
-            unvestedShares: '4',
-            vestedShares: '3',
-            companyEventOn: '2026-10-03',
-            reason: 'Company selected reduction',
-            createdAt: '2026-10-05T00:00:00Z',
-          },
-        ],
-        vestingReversals: [
-          {
-            uuid: 'own-reversal',
-            vesting: MEMBER_RECORD.awards[0].vestings[0].uuid,
-            reversedShares: '2',
-            companyEventOn: '2026-10-04',
-            reason: 'Correct recorded quantity',
-            createdAt: '2026-10-05T00:00:00Z',
-          },
-        ],
-      },
-    ],
-  };
-  await act(async () => screen.getByTestId('dashboard-scroll').props.refreshControl.props.onRefresh());
-  await screen.findByLabelText('Vested rights ended: 3 shares');
-  expect(screen.getByText('20 shares promised')).toBeTruthy();
-  expect(screen.getByLabelText('Issued from award: 1 share')).toBeTruthy();
-  expect(screen.getByLabelText('Vested, awaiting issue: 2 shares')).toBeTruthy();
-  expect(screen.getByLabelText('Unvested: 10 shares')).toBeTruthy();
-  expect(screen.getByLabelText('Unvested rights ended: 4 shares')).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Show award details' }));
-  expect(screen.getByText('2 October 2026 · 8 recorded vested')).toBeTruthy();
-  expect(
-    screen.getByText('3 October 2026 · 4 unvested and 3 vested unissued rights ended · Company selected reduction'),
-  ).toBeTruthy();
-  expect(
-    screen.getByText('4 October 2026 · 2 vesting reversed · from 8 vested 2 October 2026 · Correct recorded quantity'),
-  ).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /Download.*(entitlement|correction)/ })).toBeNull();
   ownRecord = MEMBER_RECORD;
   await view.rerender(certificatesPage);
   expect(await screen.findByText(/^Transfer · ORD/)).toBeTruthy();
@@ -1593,7 +1542,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
         url === URLS.DETAIL(MEMBER_RECORD.classes[0].uuid) ||
         /\/(register|holders|packs|class-rights|register-member-documents)\/|-holders\/$/.test(url),
     );
-  const outputPosts = () => api.post.mock.calls.filter(([url]) => /\/register\/|\/pack\/$/.test(url));
   const menu = <AppMenu visible current="Documents" route="Certificates" onSelect={jest.fn()} onClose={jest.fn()} />;
   await view.rerender(menu);
   expect(await screen.findByRole('button', { name: 'Documents', selected: true })).toBeTruthy();
@@ -1602,7 +1550,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
       name: /Ledger|Issue shares|Transfer shares|Corrections|Inspection copies|Company pack|Documents navigation|Shareholders|Employee scheme|Member access/,
     }),
   ).toBeNull();
-  const shareholder = { company: ADMINISTERED.uuid, member: HOLDER_A.member };
   for (const page of [
     <InspectionCopiesScreen key="copies" />,
     <CompanyPackScreen key="pack" />,
@@ -1699,7 +1646,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByText('1–25 of 26 shareholders')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Next (Class shareholders)' }));
   expect(await screen.findByText('26–26 of 26 shareholders')).toBeTruthy();
-  const founders = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid };
   await fireEvent.press(screen.getByRole('button', { name: 'Class details (Founders)' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('ShareClass', founders);
   expect(
@@ -1774,19 +1720,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(menu);
   expect(await screen.findByRole('button', { name: 'Inspection copies' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Company pack' })).toBeTruthy();
-  expect(
-    screen.getAllByText(/^(Dashboard|Ledger|Shareholders|Documents|Settings)$/).map(({ props }) => props.children),
-  ).toEqual(['Dashboard', 'Ledger', 'Shareholders', 'Documents', 'Settings']);
-  await fireEvent.press(screen.getByRole('button', { name: 'Shareholders', expanded: false }));
-  expect(
-    screen.getAllByText(/^(All shareholders|Employee scheme|Member access)$/).map(({ props }) => props.children),
-  ).toEqual(['All shareholders', 'Employee scheme', 'Member access']);
-  await fireEvent.press(screen.getByRole('button', { name: 'Ledger', expanded: false }));
-  expect(
-    screen
-      .getAllByText(/^(Set up your ledger|Share classes|Issue shares|Transfer shares|Corrections)$/)
-      .map(({ props }) => props.children),
-  ).toEqual(['Share classes', 'Issue shares', 'Transfer shares', 'Corrections']);
   await view.rerender(<LedgerScreen route={{ key: 'ledger', name: 'Ledger' }} />);
   const foundersRow = await screen.findByRole('button', {
     name: /^Founders, 8 issued shares, FND · 2 current shareholders/,
@@ -1818,7 +1751,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByRole('checkbox', { name: `Select ${PREFERENCE.name}` })).toBeNull();
   expect(screen.queryByRole('checkbox', { name: `Select ${FOUNDERS.name}` })).toBeNull();
   await fireEvent.press(await screen.findByRole('button', { name: 'Add share class' }));
-  const setup = { company: ADMINISTERED.uuid };
   expect(mockNavigate).toHaveBeenLastCalledWith('RegisterSetup', setup);
   await view.rerender(<ShareholdersScreen />);
   expect(await screen.findByText('FND 5 · 62.50%')).toBeTruthy();
@@ -1920,7 +1852,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: REGISTER_AWARD_COPY.SUBMIT }));
   const agreement = `${HOLDER_B.name} (employee award, agreement ${formatDate(utcToday())})`;
   await fireEvent.press(await screen.findByRole('button', { name: agreement }));
-  const evidence = expect.stringMatching(/^eeeeeeee-/);
   const recorded = awards[0];
   expect(awardPosts()).toEqual([
     [
@@ -1987,7 +1918,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
     ],
   ]);
   const issuePosts = () => api.post.mock.calls.filter(([url]) => /\/register-(allotments|grants)\//.test(url));
-  const settled = () => waitFor(() => expect(client.isFetching()).toBe(0));
   await fireEvent.press(await screen.findByRole('button', { name: 'Issue vested shares' }));
   const vestedIssue = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, award: recorded.uuid };
   expect(mockNavigate).toHaveBeenLastCalledWith('IssueShares', vestedIssue);
@@ -2056,13 +1986,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: /^Record issue \(grant for Synthetic Holder B / }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Record issue', disabled: false }));
   expect(await screen.findByText('Issued · 1')).toBeTruthy();
-  const decision = (kind: string) => ({ appointment: ADMINISTRATION.uuid, kind, reason: '' });
-  const decided = (kind: string) => ({
-    ...decision(kind),
-    idempotencyKey: expect.stringMatching(/^00000000-0000-4000-8000-/),
-    previewDigest: DIGEST,
-    confirmation: true,
-  });
   expect(issuePosts().slice(1)).toEqual([
     [URLS.REGISTER_GRANT_PREVIEW(grant.uuid), decision('approve'), expect.anything()],
     [URLS.REGISTER_GRANT_DECIDE(grant.uuid), decided('approve'), expect.anything()],
@@ -2233,7 +2156,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const opening = `copied opening, record date ${formatDate(OPENING.asAt)}`;
   expect(screen.getByRole('button', { name: `Review (${opening})` })).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Bring records (Founders)' }));
-  const bringing = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, from: 'Corrections' as const };
   expect(mockNavigate).toHaveBeenLastCalledWith('RegisterSetup', bringing);
   await fireEvent.press(correct);
   const correcting = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, entry: CERTIFIED.uuid };
@@ -2304,8 +2226,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
     [URLS.REGISTER_CORRECTION_PREVIEW(correction.uuid), decision('apply'), expect.anything()],
     [URLS.REGISTER_CORRECTION_DECIDE(correction.uuid), decided('apply'), expect.anything()],
   ]);
-  const importPosts = () =>
-    api.post.mock.calls.filter(([url]) => url === URLS.BASE || url.startsWith(URLS.REGISTER_IMPORTS));
   await fireEvent.press(screen.getByRole('button', { name: `Review (${opening})` }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Review import', disabled: false }));
   await waitFor(() => expect(importPosts()).toHaveLength(2));
@@ -2336,13 +2256,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
     expect(mockSetParams).toHaveBeenLastCalledWith({ token: FOUNDERS.uuid, record: imports[0].uuid }),
   );
   const replacement = imports[0];
-  const holderA = {
-    member: HOLDER_A.member,
-    name: HOLDER_A.name,
-    residentialAddress: `${HOLDER_A.name} address`,
-    identityChoice: 'existing',
-  };
-  const copied = { sourceReference: 'Company-provided share records', sourceConfirmed: true, formerMembers: [] };
   expect(importPosts()[4]).toEqual([
     URLS.REGISTER_IMPORTS,
     {
@@ -2360,6 +2273,151 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(await screen.findByRole('button', { name: 'Cancel (ledger setup)', disabled: false }));
   expect(mockNavigate).toHaveBeenLastCalledWith('Corrections', { company: ADMINISTERED.uuid, token: FOUNDERS.uuid });
   await settled();
+  await view.rerender(awardPage);
+  own = { ...ADMINISTRATION, capabilities: ['read_register'] };
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+  });
+  expect(await screen.findByText(REGISTER_AWARD_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(screen.getByText('40 shares promised')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Record vesting|End unissued rights|Correct)/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^10 shares, prepared/ })).toBeNull();
+  await view.rerender(scheme);
+  expect(await screen.findByText(REGISTER_AWARD_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: REGISTER_AWARD_COPY.PREPARE })).toBeNull();
+  expect(awardPosts()).toHaveLength(2);
+  await view.rerender(<IssueSharesScreen route={{ key: 'read-only', name: 'IssueShares', params: undefined }} />);
+  expect(await screen.findByText(REGISTER_ALLOTMENT_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(screen.getByText(REGISTER_GRANT_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(await screen.findByText('Issued · 2')).toBeTruthy();
+  expect(screen.getByRole('button', { name: allotmentSummary })).toBeTruthy();
+  expect(screen.getByRole('button', { name: grantSummary })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Prepare issue|Review and approve|Record issue|Reject)/ })).toBeNull();
+  expect(issuePosts()).toHaveLength(8);
+  const pending = { ...transfers[0], uuid: '48484848-4848-4848-8848-484848484848', status: 'submitted' as const };
+  transfers = [{ ...pending, stage: 'submitted', registerEntry: null, reviewedAt: null, decisions: [] }, ...transfers];
+  await view.rerender(
+    <TransferSharesScreen route={{ key: 'read-only-transfers', name: 'TransferShares', params: undefined }} />,
+  );
+  expect(await screen.findByText(REGISTER_TRANSFER_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  await act(async () => screen.getByTestId('transfer-shares-scroll').props.refreshControl.props.onRefresh());
+  expect(await screen.findByLabelText('Status: Prepared')).toBeTruthy();
+  expect(screen.getByText('Transferred · 1')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Prepare a non-paid transfer|Review and approve|Reject)/ })).toBeNull();
+  await view.rerender(<ShareholderScreen route={{ key: 'read-only', name: 'Shareholder', params: shareholder }} />);
+  expect(await screen.findByText('Founders · FND')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Transfer shares|Issue shares to them)/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
+  expect(transferPosts()).toHaveLength(3);
+  const pendingCorrection = {
+    ...correction,
+    uuid: '51515151-5151-4151-8151-515151515151',
+    createdAt: '2026-11-04T07:00:00Z',
+  };
+  corrections = [pendingCorrection, ...corrections];
+  await view.rerender(
+    <CorrectionsScreen route={{ key: 'read-only-corrections', name: 'Corrections', params: undefined }} />,
+  );
+  await act(async () => screen.getByTestId('corrections-scroll').props.refreshControl.props.onRefresh());
+  expect(await screen.findByText(REGISTER_CORRECTION_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  const corrected = `Correction of the issue of ${formatShortDate(CERTIFIED.companyEventOn)} to Synthetic Holder 1`;
+  await waitFor(() => expect(screen.getAllByText(corrected)).toHaveLength(2));
+  await settled();
+  expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
+  expect(screen.getAllByText('Copied opening correction')).toHaveLength(1);
+  expect(
+    screen.queryByRole('button', { name: /^(Correct|Approve|Apply|Reject|Review|Confirm|Bring records)( |$)/ }),
+  ).toBeNull();
+  expect(correctionPosts()).toHaveLength(5);
+  const decidedImports = importPosts().length;
+  await view.rerender(<LedgerScreen route={{ key: 'ledger', name: 'Ledger' }} />);
+  expect(await screen.findByRole('button', { name: /^Founders, / })).toBeTruthy();
+  await settled();
+  expect(screen.queryByRole('button', { name: 'Add share class' })).toBeNull();
+  await view.rerender(<ShareClassScreen route={{ key: 'read-only-setup', name: 'RegisterSetup', params: bringing }} />);
+  expect(await screen.findByText(REGISTER_IMPORT_COPY.READ_ONLY_NOTE)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^(Continue|Confirm)$/ })).toBeNull();
+  expect(importPosts()).toHaveLength(decidedImports);
+  await view.rerender(<></>);
+  client.removeQueries({
+    queryKey: [...shareClassKey(FOUNDERS.uuid), owner.userUuid, owner.ownerAccountUuid],
+    exact: true,
+  });
+  classReadFailure = true;
+  await view.rerender(<ShareClassScreen route={{ key: 'failed-class', name: 'ShareClass', params: founders }} />);
+  expect(
+    await screen.findByText('This share class could not be loaded. It may be unavailable to this account.'),
+  ).toBeTruthy();
+  expect(screen.queryByText('Loading the share class…')).toBeNull();
+  classReadFailure = false;
+  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+  await act(async () => {
+    await client.invalidateQueries({ queryKey: classRightsKey(owner, FOUNDERS.uuid) });
+  });
+  await view.rerender(<ShareClassScreen route={{ key: 'founders', name: 'ShareClass', params: founders }} />);
+  expect(await screen.findByText('No rights recorded.')).toBeTruthy();
+  expect(screen.getByText('FND · Ordinary')).toBeTruthy();
+  expect(screen.getByLabelText('Issued shares: 8')).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+});
+it('records an accepted officer invitation without changing the chosen company, sets up, edits and brings records only for the chosen class, records class rights and shareholder documents only for the chosen class and holder, prepares each document for only the chosen entry, class or company, reporting a share sheet that cannot open, refuses cached records after current read loss, and routes each notification to its page and an old certificate or publication notice nowhere', async () => {
+  const officer = await render(<TeamScreen />, { wrapper });
+  await waitFor(() => expect(mockSetParams).toHaveBeenLastCalledWith({ accept: true }));
+  await officer.rerender(acceptOfficerPage);
+  await fireEvent.changeText(await screen.findByLabelText('Invitation code'), MEMBER_CODE);
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation', disabled: false }));
+  const officerReceipt = `Appointment recorded for ${ADMINISTERED.name}.`;
+  await screen.findByText(officerReceipt);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.getByText(officerReceipt)).toBeTruthy();
+  await fireEvent.press(screen.getByRole('button', { name: 'Done', disabled: false }));
+  expect(mockSetParams).toHaveBeenLastCalledWith({ accept: false });
+  await officer.rerender(companyOfficerPage);
+  await screen.findByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/, disabled: false });
+  expect(await AsyncStorage.getItem(companyChoiceKey)).toBeNull();
+  expect(api.post.mock.calls).toContainEqual([
+    `${TEAM_INVITATIONS}accept/`,
+    { code: MEMBER_CODE, declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION, acceptDeclaration: true },
+    expect.anything(),
+  ]);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  await officer.unmount();
+  client.clear();
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
+  await AsyncStorage.setItem(companyChoiceKey, ELSEWHERE_COMPANY);
+  const deniedCompanyOfficer = await render(acceptOfficerPage, { wrapper });
+  await fireEvent.changeText(await screen.findByLabelText('Invitation code'), OTHER_CODE);
+  expect(screen.queryByRole('button', { name: /^Revoke appointment \(/ })).toBeNull();
+  await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation', disabled: false }));
+  await screen.findByText(officerReceipt);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.getByText(officerReceipt)).toBeTruthy();
+  expect(screen.queryByRole('button', { name: /^Revoke appointment \(/ })).toBeNull();
+  await fireEvent.press(screen.getByRole('button', { name: 'Done', disabled: false }));
+  expect(mockSetParams).toHaveBeenLastCalledWith({ accept: false });
+  await deniedCompanyOfficer.rerender(companyOfficerPage);
+  await screen.findByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/, disabled: false });
+  expect(await AsyncStorage.getItem(companyChoiceKey)).toBe(ELSEWHERE_COMPANY);
+  expect(api.post.mock.calls.filter(([url]) => url === `${TEAM_INVITATIONS}accept/`)).toHaveLength(2);
+  expect(api.post.mock.calls).toContainEqual([
+    `${TEAM_INVITATIONS}accept/`,
+    { code: OTHER_CODE, declarationVersion: COMPANY_AUTHORITY_DECLARATION_VERSION, acceptDeclaration: true },
+    expect.anything(),
+  ]);
+  await deniedCompanyOfficer.unmount();
+  await AsyncStorage.removeItem(companyChoiceKey);
+  client.clear();
+  client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
+  client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
+  associated = true;
+  administered = true;
+  appointed = true;
+  own = ADMINISTRATION;
+  await AsyncStorage.setItem(companyChoiceKey, ADMINISTERED.uuid);
+  const view = await render(<></>, { wrapper });
   const savedTerms = 'Preference dividends follow the company constitution.';
   rights = [
     {
@@ -2739,98 +2797,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
     [URLS.REGISTER_IMPORT_PREVIEW(opened.uuid), decision('apply'), expect.anything()],
     [URLS.REGISTER_IMPORT_DECIDE(opened.uuid), decided('apply'), expect.anything()],
   ]);
-  await view.rerender(awardPage);
-  own = { ...ADMINISTRATION, capabilities: ['read_register'] };
-  await act(async () => {
-    await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
-  });
-  expect(await screen.findByText(REGISTER_AWARD_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  expect(screen.getByText('40 shares promised')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Record vesting|End unissued rights|Correct)/ })).toBeNull();
-  expect(screen.queryByRole('button', { name: /^10 shares, prepared/ })).toBeNull();
-  await view.rerender(scheme);
-  expect(await screen.findByText(REGISTER_AWARD_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  expect(screen.queryByRole('button', { name: REGISTER_AWARD_COPY.PREPARE })).toBeNull();
-  expect(awardPosts()).toHaveLength(2);
-  await view.rerender(<IssueSharesScreen route={{ key: 'read-only', name: 'IssueShares', params: undefined }} />);
-  expect(await screen.findByText(REGISTER_ALLOTMENT_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  expect(screen.getByText(REGISTER_GRANT_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  expect(await screen.findByText('Issued · 2')).toBeTruthy();
-  expect(screen.getByRole('button', { name: allotmentSummary })).toBeTruthy();
-  expect(screen.getByRole('button', { name: grantSummary })).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Prepare issue|Review and approve|Record issue|Reject)/ })).toBeNull();
-  expect(issuePosts()).toHaveLength(8);
-  const pending = { ...transfers[0], uuid: '48484848-4848-4848-8848-484848484848', status: 'submitted' as const };
-  transfers = [{ ...pending, stage: 'submitted', registerEntry: null, reviewedAt: null, decisions: [] }, ...transfers];
-  await view.rerender(
-    <TransferSharesScreen route={{ key: 'read-only-transfers', name: 'TransferShares', params: undefined }} />,
-  );
-  expect(await screen.findByText(REGISTER_TRANSFER_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  await act(async () => screen.getByTestId('transfer-shares-scroll').props.refreshControl.props.onRefresh());
-  expect(await screen.findByLabelText('Status: Prepared')).toBeTruthy();
-  expect(screen.getByText('Transferred · 1')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Prepare a non-paid transfer|Review and approve|Reject)/ })).toBeNull();
-  await view.rerender(<ShareholderScreen route={{ key: 'read-only', name: 'Shareholder', params: shareholder }} />);
-  expect(await screen.findByText('Founders · FND')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Transfer shares|Issue shares to them)/ })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
-  expect(transferPosts()).toHaveLength(3);
-  const pendingCorrection = {
-    ...correction,
-    uuid: '51515151-5151-4151-8151-515151515151',
-    createdAt: '2026-11-04T07:00:00Z',
-  };
-  corrections = [pendingCorrection, ...corrections];
-  await view.rerender(
-    <CorrectionsScreen route={{ key: 'read-only-corrections', name: 'Corrections', params: undefined }} />,
-  );
-  await act(async () => screen.getByTestId('corrections-scroll').props.refreshControl.props.onRefresh());
-  expect(await screen.findByText(REGISTER_CORRECTION_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  const corrected = `Correction of the issue of ${formatShortDate(CERTIFIED.companyEventOn)} to Synthetic Holder 1`;
-  await waitFor(() => expect(screen.getAllByText(corrected)).toHaveLength(2));
-  await settled();
-  expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
-  expect(screen.getAllByText('Copied opening correction')).toHaveLength(1);
-  expect(
-    screen.queryByRole('button', { name: /^(Correct|Approve|Apply|Reject|Review|Confirm|Bring records)( |$)/ }),
-  ).toBeNull();
-  expect(correctionPosts()).toHaveLength(5);
-  const decidedImports = importPosts().length;
-  await view.rerender(<LedgerScreen route={{ key: 'ledger', name: 'Ledger' }} />);
-  expect(await screen.findByRole('button', { name: /^Founders, / })).toBeTruthy();
-  await settled();
-  expect(screen.queryByRole('button', { name: 'Add share class' })).toBeNull();
-  await view.rerender(<ShareClassScreen route={{ key: 'read-only-setup', name: 'RegisterSetup', params: bringing }} />);
-  expect(await screen.findByText(REGISTER_IMPORT_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Continue|Confirm)$/ })).toBeNull();
-  expect(importPosts()).toHaveLength(decidedImports);
   const documentReadsBeforeClass = api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS).length;
-  await view.rerender(<></>);
-  client.removeQueries({
-    queryKey: [...shareClassKey(FOUNDERS.uuid), owner.userUuid, owner.ownerAccountUuid],
-    exact: true,
-  });
-  classReadFailure = true;
-  await view.rerender(<ShareClassScreen route={{ key: 'failed-class', name: 'ShareClass', params: founders }} />);
-  expect(
-    await screen.findByText('This share class could not be loaded. It may be unavailable to this account.'),
-  ).toBeTruthy();
-  expect(screen.queryByText('Loading the share class…')).toBeNull();
-  classReadFailure = false;
-  await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
-  await act(async () => {
-    await client.invalidateQueries({ queryKey: classRightsKey(owner, FOUNDERS.uuid) });
-  });
   await view.rerender(<ShareClassScreen route={{ key: 'founders', name: 'ShareClass', params: founders }} />);
-  expect(await screen.findByText('No rights recorded.')).toBeTruthy();
-  expect(screen.getByText('FND · Ordinary')).toBeTruthy();
-  expect(screen.getByLabelText('Issued shares: 8')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
-  own = ADMINISTRATION;
-  await act(async () => {
-    await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
-  });
-  await act(async () => screen.getByTestId('share-class-scroll').props.refreshControl.props.onRefresh());
   await fireEvent.press(await screen.findByRole('button', { name: 'Edit (Class rights)' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Voting: Not recorded' }));
   await fireEvent.press(screen.getByRole('radio', { name: 'General voting' }));
