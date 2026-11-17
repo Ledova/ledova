@@ -261,17 +261,20 @@ until confirmed, and each invitation's name and status, then its email and short
 any deadline beneath. **Invite a member** replaces them with the web's form, choosing the recipient from a
 searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
 access to the company, these pages read no private company records and point to Dashboard. Pulling down rereads
-each of them while no form or action is open. On some pages an unresolved request (in flight, or unanswered and waiting for its original retry)
-blocks leaving by the back gesture, the back arrow or the menu (`usePreventRemove`), so its retry is
-not dropped: adding a person on Shareholders, Member access, Employee scheme, an award, preparing a
-transfer, accepting a company invitation on Team, and the Ledger and class pages. The block is
-silent, and a retry that stays unanswered (offline, or repeated server errors) keeps the page until
-it is answered or the app is closed. Not covered, because their held state also includes an open
-form or confirmation: decisions on Issue shares, Transfer shares and Corrections, and a
-shareholder's documents. Also not covered: Team's invite and revoke, Change particulars,
-Representative authority, Inspection copies, Company pack and preparing a correction. A member
-invitation's retry lives above the pages, so leaving never drops it. Closing or backgrounding the
-app cannot be blocked.
+each of them while no form or action is open. An unresolved request (in flight, or unanswered and waiting for its
+original retry) blocks leaving its page by the back gesture, the back arrow or the menu
+(`usePreventRemove`), so its retry is not dropped. The guard sits where the request's state lives
+and is true only for the request, not for an open form or confirmation. It covers the Ledger and
+class pages; adding a person on Shareholders; a shareholder's documents; Member access; Employee
+scheme and an award; preparing and deciding share issues, transfers and corrections; Change
+particulars; Team's invitation create, accept and revoke; a representative authority request and
+its withdraw, revoke and admit; Inspection copies; Company pack; and Edit company. The pages that
+leave by themselves after a save (preparing a transfer or a correction, Change particulars) do so
+only once the request has settled, so the guard does not cancel that step. The block is silent,
+and a retry that stays unanswered (offline, or repeated server errors) keeps the page until it is
+answered or the app is closed. Decisions on a copied opening in Corrections are not covered. A
+member invitation's retry lives above the pages, so leaving never drops it. Closing or
+backgrounding the app cannot be blocked.
 
 Company registry tasks keep an existing form mounted during a same-account access reread or failure:
 Team, shareholder records and member access, the employee scheme and awards, share classes, issues,
