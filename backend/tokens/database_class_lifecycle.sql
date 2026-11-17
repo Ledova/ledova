@@ -58,10 +58,11 @@ BEGIN
         IF reference.relation IN ('public.tokens_registerimport'::regclass, 'public.tokens_shareregister'::regclass) THEN
             CONTINUE;
         END IF;
-        IF reference.relation = to_regclass('public.tokens_classdetailsrevision') THEN CONTINUE; END IF;
+        IF reference.relation IN (to_regclass('public.tokens_classdetailsrevision'),
+            'public.tokens_classrightsrevision'::regclass) THEN CONTINUE; END IF;
         EXECUTE format('SELECT EXISTS (SELECT 1 FROM %s WHERE %I = $1)', reference.relation, reference.column_name)
             INTO referenced USING token_uuid;
-        IF referenced THEN RETURN 'This class has retained documents, rights or other records and cannot be deleted.'; END IF;
+        IF referenced THEN RETURN 'This class has other dependent records and cannot be deleted.'; END IF;
     END LOOP;
     RETURN NULL;
 END;
@@ -102,7 +103,8 @@ BEGIN
         WHERE constraint_record.contype = 'f' AND constraint_record.confrelid = 'public.tokens_sharetoken'::regclass
     LOOP
         IF reference.key_count <> 1 THEN RETURN false; END IF;
-        IF reference.relation = to_regclass('public.tokens_classdetailsrevision') THEN CONTINUE; END IF;
+        IF reference.relation IN (to_regclass('public.tokens_classdetailsrevision'),
+            'public.tokens_classrightsrevision'::regclass) THEN CONTINUE; END IF;
         predicate := '';
         IF reference.relation = 'public.tokens_registerimport'::regclass THEN
             predicate := ' AND status NOT IN (''rejected'', ''applied'')';

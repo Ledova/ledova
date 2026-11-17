@@ -2765,3 +2765,10 @@ are unchanged. Existing ownership activity, linked business records and deployme
 remain; a zero current balance after past ownership does not qualify. The owner clarified that
 history should be retained without a visible history section. Company packs include the audit;
 there is no separate history page or read API. No native UI change is included.
+
+On 17 November, under [#1675](https://github.com/Ledova/ledova/issues/1675), the owner approved
+editing or retiring an otherwise unused class after Class rights have been recorded. Rights
+revisions and their governing documents are retained evidence, not ownership activity; they stay
+intact with the class's attributed audit history and company pack. Actual ownership history,
+operational dependencies, chain records and company-authority safeguards remain protected. This
+source decision authorises no live deletion, migration or release.

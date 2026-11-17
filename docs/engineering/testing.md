@@ -133,13 +133,13 @@ record the member's dated changes, the company's edit is refused until the link 
 database refuses a member's change to another member's particulars. The tenant controls include
 foreign invitation and revoked association refusals. One
 output case covers real company certificate PDFs, a register reader who lists no member invitations
-or associations and whose access ends with their appointment, pack provenance and file integrity,
+or associations and whose access ends with their appointment, pack provenance, retained rights and governing documents after an unused class is retired, file integrity,
 and the purge of export records after the retention floor. Two mirror cases cover complete copied
 holdings and allotments, once-only opening corrections, retained earlier snapshots, stale and
 incomplete requests, and refusal after later ownership or member-access activity. They exercise
 the API and PostgreSQL guards; they establish no genuine legal register or source verification.
 The existing class journey also covers metadata editing and unused-class deletion, stale versions,
-invalid or duplicate codes, unexpected fields, and refusal once an opening or retained record
+invalid or duplicate codes, unexpected fields, and refusal once an opening or operational record
 prevents the change. Rejecting a setup permits an otherwise eligible edit or removal from active
 classes; an otherwise unused confirmed empty opening can also leave active use while its opening
 entry remains intact. Deletion retains audit history, rejects actual ownership activity even with
