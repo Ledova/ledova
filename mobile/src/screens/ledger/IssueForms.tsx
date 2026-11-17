@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import { usePreventRemove } from '@react-navigation/native';
 import { AccessibilityInfo, Keyboard, Text, TouchableOpacity, View, type KeyboardTypeOptions } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import {
@@ -254,6 +255,7 @@ export function AllotmentForm({
   const stepIndex = STEPS.findIndex((item) => item.id === step);
   const recipient = people.find((person) => person.member === form.member);
   const locked = form.busy || blocked || form.held;
+  usePreventRemove(form.busy || form.held, () => {});
   const change = (key: keyof Fields) => (value: string) => form.setFields((current) => ({ ...current, [key]: value }));
   const field = (key: FieldKey, label = LABELS[key], accessibilityLabel?: string) => {
     const date = key.endsWith('On');
@@ -429,6 +431,7 @@ export function GrantForm({
   const checks = useErrorSummary(model.problems);
   const [awardDetails, setAwardDetails] = useState(false);
   const locked = model.busy || blocked || model.held || !canPrepare;
+  usePreventRemove(model.busy || model.held, () => {});
   const detailsError = !!checks.field('termsOn').error || !!checks.field('terms').error;
   const detailsOpen = awardDetails || detailsError;
   const document = (kind: GrantDocumentKind) => (

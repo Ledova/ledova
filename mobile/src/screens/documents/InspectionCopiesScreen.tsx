@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { usePreventRemove } from '@react-navigation/native';
 import { Keyboard, RefreshControl, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -266,6 +267,7 @@ function InspectionForm({
     onBusyChange(!!busy);
     return () => onBusyChange(false);
   }, [busy, onBusyChange]);
+  usePreventRemove(!!busy, () => {});
   const checks = useErrorSummary(problems);
   if (!open)
     return (

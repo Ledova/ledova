@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { usePreventRemove } from '@react-navigation/native';
 import { Keyboard, RefreshControl, Text, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -186,6 +187,7 @@ function PackForm({
       files: SHARE_SHEET_FILES,
       session: orderSubmissionSession,
     });
+  usePreventRemove(busy, () => {});
   const checks = useErrorSummary(problems);
   if (!open)
     return (

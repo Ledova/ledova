@@ -55,6 +55,7 @@ function NotificationsButton({
           }}
         >
           <Text
+            maxFontSizeMultiplier={1.4}
             style={{
               fontSize: 10,
               fontWeight: 'bold',

@@ -158,6 +158,7 @@ export function CorrectionRecord({
         </View>
       )}
       <RegisterDecisions
+        guardLeaving
         approveLabel={COPY.DECISIONS.approve}
         family={REGISTER_CORRECTION_DECISIONS}
         copy={COPY}
