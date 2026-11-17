@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { usePreventRemove } from '@react-navigation/native';
 import { Keyboard, Text, View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import {
@@ -69,6 +70,7 @@ function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
     return () => onHeldChange(false);
   }, [editor, documents.busy, documents.held, onHeldChange]);
   const locked = documents.busy || documents.held || !documents.ready;
+  usePreventRemove(documents.busy || documents.held, () => {});
   const chosen = !!editor?.documents.some((row) => row.file || row.evidence);
   const change = (rows: (current: DocumentDraft[]) => DocumentDraft[]) =>
     documents.setEditor((current) => current && { ...current, documents: rows(current.documents) });

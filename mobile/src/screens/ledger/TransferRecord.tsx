@@ -206,6 +206,7 @@ export function TransferRecord({
         </View>
       )}
       <RegisterDecisions
+        guardLeaving
         approveLabel="Review and approve"
         family={family}
         copy={DECISION_COPY}

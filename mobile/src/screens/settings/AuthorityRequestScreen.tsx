@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { Linking, RefreshControl, Text, View } from 'react-native';
-import type { RouteProp } from '@react-navigation/native';
+import { usePreventRemove, type RouteProp } from '@react-navigation/native';
 import * as Sharing from 'expo-sharing';
 import {
   APPOINTMENT_STATUS_LABELS,
@@ -89,6 +89,7 @@ function OwnAuthorityRequest({
     session: orderSubmissionSession,
     save: shareEvidence,
   });
+  usePreventRemove(lifecycle.isPending, () => {});
   const [refreshing, setRefreshing] = useState(false);
   const request = history.data?.find((item) => item.uuid === uuid);
   let content: ReactNode;

@@ -1,6 +1,6 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, Text, View } from 'react-native';
-import { useNavigation, type RouteProp } from '@react-navigation/native';
+import { useNavigation, type RouteProp, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { randomUUID } from 'expo-crypto';
 import {
@@ -260,7 +260,18 @@ function CorrectionForm({
   ...options
 }: Omit<CorrectionPreparationOptions, 'newKey' | 'session'> & { onCancel: () => void }) {
   const look = useLedgerStyles();
-  const model = useCorrectionPreparation({ ...options, newKey: randomUUID, session: orderSubmissionSession });
+  const { onPrepared } = options;
+  const [prepared, setPrepared] = useState<string | null>(null);
+  const model = useCorrectionPreparation({
+    ...options,
+    onPrepared: setPrepared,
+    newKey: randomUUID,
+    session: orderSubmissionSession,
+  });
+  usePreventRemove(model.busy, () => {});
+  useEffect(() => {
+    if (prepared && !model.busy) onPrepared(prepared);
+  }, [prepared, model.busy, onPrepared]);
   const checks = useErrorSummary(model.problems);
   const { draft, busy, update } = model;
   return (

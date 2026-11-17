@@ -1,6 +1,6 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, Text, View } from 'react-native';
-import { useNavigation, type RouteProp } from '@react-navigation/native';
+import { useNavigation, type RouteProp, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { randomUUID } from 'expo-crypto';
 import {
@@ -249,11 +249,18 @@ function OwnParticulars({
 function ParticularsForm(props: Omit<Parameters<typeof useParticularsEdit>[0], 'newKey' | 'session'>) {
   const styles = useCompanyStyles();
   const look = useShareholderStyles();
+  const { onChanged } = props;
+  const [changed, setChanged] = useState<string | null>(null);
   const { draft, busy, error, conflict, update, reload, problems, submit } = useParticularsEdit({
     ...props,
+    onChanged: setChanged,
     newKey: randomUUID,
     session: orderSubmissionSession,
   });
+  usePreventRemove(busy, () => {});
+  useEffect(() => {
+    if (changed && !busy) onChanged(changed);
+  }, [changed, busy, onChanged]);
   const checks = useErrorSummary(problems);
   const blocked = useRef(props.blocked);
   useLayoutEffect(() => {
