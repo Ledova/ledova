@@ -310,8 +310,10 @@ a register reader of the selected company, read through `useCompanyRegisters.ts`
 classes card, a compact row per class with its name and issued shares, then its code, current
 shareholders, any authorised limit and a short note while its ledger is not opened or issues or
 transfers wait or cannot be checked (`classFacts`); each row opens the class's page, which keeps the full notes. A company
-without classes shows No share classes yet. Checkboxes and **Select all** select the visible classes,
-including protected records. **Delete selected**, beside **Add share class** below the card, uses the
+without classes shows No share classes yet. Selection controls appear only when at least one class
+is removable. Header and row checkboxes share a 44px column aligned to the class name, with 44px
+touch targets separate from the class links. Multiple-class lists have **Select all**, showing a mixed
+state for partial selection; it selects the visible classes, including protected records. **Delete selected**, beside **Add share class** below the card, uses the
 shared `useClassDeletion` to review removable classes and retained classes with their reasons,
 preserve partial results and recover uncertain requests before refreshing the remaining class set.
 **Add share class**, for someone whose appointment allows preparation, opens Set

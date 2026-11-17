@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { CheckIcon } from 'phosphor-react-native';
+import { Pressable, Text, View, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
+import { CheckIcon, MinusIcon } from 'phosphor-react-native';
 import type { UploadFile } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../contexts';
 import { useCompanyStyles } from '../hooks/useCompanyStyles';
@@ -57,15 +57,21 @@ export function Checkbox({
   label,
   accessibilityLabel = label,
   checked,
+  indeterminate = false,
   disabled,
   error,
+  style,
+  hitSlop = label ? 4 : 12,
   onChange,
 }: {
   label: string;
   accessibilityLabel?: string;
   checked: boolean;
+  indeterminate?: boolean;
   disabled: boolean;
   error: string | null;
+  style?: StyleProp<ViewStyle>;
+  hitSlop?: PressableProps['hitSlop'];
   onChange: (checked: boolean) => void;
 }) {
   const theme = useAppTheme();
@@ -101,15 +107,19 @@ export function Checkbox({
     <Pressable
       accessibilityRole="checkbox"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ checked, disabled }}
+      accessibilityState={{ checked: indeterminate ? 'mixed' : checked, disabled }}
       accessibilityHint={error ?? undefined}
       disabled={disabled}
-      hitSlop={label ? 4 : 12}
-      onPress={() => onChange(!checked)}
-      style={[look.choice, disabled && look.disabled]}
+      hitSlop={hitSlop}
+      onPress={() => onChange(indeterminate || !checked)}
+      style={[look.choice, disabled && look.disabled, style]}
     >
-      <View style={[look.box, checked && look.ticked]}>
-        {checked && <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.utility.white} weight="bold" />}
+      <View style={[look.box, (checked || indeterminate) && look.ticked]}>
+        {indeterminate ? (
+          <MinusIcon size={theme.icon.sizes.sm} color={theme.colors.utility.white} weight="bold" />
+        ) : checked ? (
+          <CheckIcon size={theme.icon.sizes.sm} color={theme.colors.utility.white} weight="bold" />
+        ) : null}
       </View>
       {!!label && <Text style={look.label}>{label}</Text>}
     </Pressable>

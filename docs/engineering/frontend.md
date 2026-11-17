@@ -717,8 +717,9 @@ the writer and each client's existing editor fields instead of a second rights c
 The shared `useNewClassRights` binds a new class's creation to that writer, with injected UUID and
 session policies.
 
-Both Share classes lists use checkboxes beside each class link; **Select all** selects every
-visible class in the current company, including protected records. Selection does not grant deletion
+Both Share classes lists show selection controls only when a class is removable, with a 44px
+checkbox column aligned to the class name. Multiple-class lists have **Select all**, with a mixed
+state for partial selection; it selects every visible class in the current company, including protected records. Selection does not grant deletion
 permission. The list API supplies eligibility, blocked reasons and versions. **Delete selected** is
 available only when the selection includes a removable class and shares the bottom action area with
 **Add share class**. Confirmation pins the removable targets and the selected classes that will be

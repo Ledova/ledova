@@ -647,7 +647,9 @@ The Ledger view shows:
 - **Add share class** below the card, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
-On web and mobile, checkboxes select classes individually; **Select all** selects every class shown.
+On web and mobile, selection controls appear when at least one class can be removed. Checkboxes
+select classes individually; for multiple classes, **Select all** selects every class shown, including
+protected classes. A single class needs only its own checkbox.
 **Delete selected** confirms which selected classes can be removed and which will be kept, with
 their reasons ([safe class deletion](issuing-shares.md#share-classes)).
 

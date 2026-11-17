@@ -78,7 +78,10 @@ Ledger lists its share classes in one **Share classes** card, a compact row each
 2026): the class name with its issued shares at the right, then one muted line with its code, current
 shareholders, any authorised limit other than the internal quantity guard, and a short note while its
 ledger is not opened or issues or transfers wait to be recorded or cannot be checked (`classFacts`). Each row opens the
-class's page, which keeps the full notes. For company readers, the register pages (Ledger, Shareholders,
+class's page, which keeps the full notes. Selection controls appear only when at least one class is removable;
+**Select all** is omitted for a single class. Align header and row checkboxes in the same 44px column
+and with the class name, rather than centring against a multiline note. Partial selection has a mixed
+checkbox state. Protected rows remain selectable in a mixed list and keep their reasons. For company readers, the register pages (Ledger, Shareholders,
 Employee share scheme, Certificates and the register tasks) list share classes in the order they were created, oldest first, in their
 cards, columns, class choices and default class (owner, 28 October 2026). Dashboard ranks its class
 list by issued shares. Ownership dashboards put their overview and charts before
