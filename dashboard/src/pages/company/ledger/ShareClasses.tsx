@@ -43,7 +43,7 @@ export function ShareClasses({
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const reasonId = useId();
   const listed = classes.filter((row) => row.companyUuid === company);
-  const hasControls = listed.some((row) => row.canDelete || row.deletionBlockedReason);
+  const hasControls = listed.some((row) => row.canDelete);
   const selectedCount = listed.filter(({ uuid }) => selected.has(uuid)).length;
   const deletableCount = listed.filter((row) => row.canDelete && selected.has(row.uuid)).length;
   const deletion = useClassDeletion({
@@ -64,16 +64,18 @@ export function ShareClasses({
     <div hidden={!visible || !available} className="space-y-4">
       <div hidden={!ready} className="space-y-4">
         <Section title="Share classes">
-          {hasControls && (
-            <CheckboxField
-              ref={(input) => {
-                if (input) input.indeterminate = selectedCount > 0 && selectedCount < listed.length;
-              }}
-              label="Select all"
-              checked={listed.length > 0 && selectedCount === listed.length}
-              disabled={locked || listed.length === 0}
-              onChange={(event) => setSelected(new Set(event.target.checked ? listed.map(({ uuid }) => uuid) : []))}
-            />
+          {hasControls && listed.length > 1 && (
+            <div className="[&_input]:mx-auto [&_input]:size-4 [&_label]:grid [&_label]:min-h-11 [&_label]:grid-cols-[2.75rem_1fr] [&_label]:gap-3">
+              <CheckboxField
+                ref={(input) => {
+                  if (input) input.indeterminate = selectedCount > 0 && selectedCount < listed.length;
+                }}
+                label="Select all"
+                checked={selectedCount === listed.length}
+                disabled={locked}
+                onChange={(event) => setSelected(new Set(event.target.checked ? listed.map(({ uuid }) => uuid) : []))}
+              />
+            </div>
           )}
           {registers.length === 0 ? (
             <p className="text-sm text-text-muted">No share classes yet.</p>
@@ -85,7 +87,7 @@ export function ShareClasses({
                 return (
                   <li key={register.token.uuid} className="flex items-start gap-3">
                     {hasControls && (
-                      <div className="shrink-0 py-3">
+                      <div className="w-11 shrink-0 [&_input]:size-4 [&_label]:min-h-11 [&_label]:justify-center">
                         <CheckboxField
                           label={<span className="sr-only">Select {register.token.name}</span>}
                           checked={selected.has(register.token.uuid)}

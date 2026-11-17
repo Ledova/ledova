@@ -41,12 +41,20 @@ export function ShareClasses({
 }) {
   const look = useLedgerStyles();
   const controls = useThemedStyles(() => ({
-    checkbox: { width: 44, minHeight: 44, alignItems: 'center' as const, justifyContent: 'center' as const },
+    row: { flexDirection: 'row' as const, alignItems: 'flex-start' as const, gap: 12 },
+    checkbox: {
+      width: 44,
+      minHeight: 44,
+      paddingVertical: 0,
+      alignItems: 'center' as const,
+      justifyContent: 'center' as const,
+    },
+    all: { minHeight: 44, alignItems: 'center' as const, paddingLeft: 12, gap: 24 },
   }));
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const listed = classes.filter((row) => row.companyUuid === company);
-  const hasControls = listed.some((row) => row.canDelete || row.deletionBlockedReason);
+  const hasControls = listed.some((row) => row.canDelete);
   const selectedCount = listed.filter(({ uuid }) => selected.has(uuid)).length;
   const deletableCount = listed.filter((row) => row.canDelete && selected.has(row.uuid)).length;
   const deletion = useClassDeletion({
@@ -67,12 +75,15 @@ export function ShareClasses({
     <>
       <View style={[look.stack, !ready && look.hidden]}>
         <Section title="Share classes">
-          {hasControls && (
+          {hasControls && listed.length > 1 && (
             <Checkbox
               label="Select all"
               checked={listed.length > 0 && selectedCount === listed.length}
+              indeterminate={selectedCount > 0 && selectedCount < listed.length}
               disabled={locked || listed.length === 0}
               error={null}
+              style={controls.all}
+              hitSlop={0}
               onChange={(checked) => setSelected(new Set(checked ? listed.map(({ uuid }) => uuid) : []))}
             />
           )}
@@ -86,30 +97,37 @@ export function ShareClasses({
                   register.issuedSupply === null ? 'Not recorded' : formatShareCount(register.issuedSupply);
                 const facts = classFacts(register);
                 return (
-                  <View key={register.token.uuid} style={look.line}>
+                  <View key={register.token.uuid} style={controls.row}>
                     {hasControls && (
-                      <View style={controls.checkbox}>
-                        <Checkbox
-                          label=""
-                          accessibilityLabel={`Select ${register.token.name}`}
-                          checked={selected.has(register.token.uuid)}
-                          disabled={locked}
-                          error={lifecycle?.deletionBlockedReason ?? null}
-                          onChange={(checked) =>
-                            setSelected((current) => {
-                              const next = new Set(current);
-                              if (checked) next.add(register.token.uuid);
-                              else next.delete(register.token.uuid);
-                              return next;
-                            })
-                          }
-                        />
-                      </View>
+                      <Checkbox
+                        label=""
+                        accessibilityLabel={`Select ${register.token.name}`}
+                        checked={selected.has(register.token.uuid)}
+                        disabled={locked}
+                        error={lifecycle?.deletionBlockedReason ?? null}
+                        style={controls.checkbox}
+                        hitSlop={0}
+                        onChange={(checked) =>
+                          setSelected((current) => {
+                            const next = new Set(current);
+                            if (checked) next.add(register.token.uuid);
+                            else next.delete(register.token.uuid);
+                            return next;
+                          })
+                        }
+                      />
                     )}
                     <View style={look.fill}>
                       <LinkRow
                         label={register.token.name}
-                        accessibilityLabel={`${register.token.name}, ${register.issuedSupply === null ? 'issued shares not recorded' : `${issued} issued shares`}, ${facts}`}
+                        accessibilityLabel={[
+                          register.token.name,
+                          register.issuedSupply === null ? 'issued shares not recorded' : `${issued} issued shares`,
+                          facts,
+                          lifecycle?.deletionBlockedReason,
+                        ]
+                          .filter(Boolean)
+                          .join(', ')}
                         figure={issued}
                         disabled={locked}
                         onPress={() => navigation.navigate('ShareClass', { company, token: register.token.uuid })}

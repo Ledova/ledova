@@ -2995,7 +2995,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await waitFor(() => expect(screen.queryByRole('link', { name: 'First unused (class details)' })).toBeNull());
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.getByRole('link', { name: 'Protected records (class details)' })).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Delete selected' }).matches(':disabled')).toBe(true);
+  expect(screen.queryByRole('button', { name: 'Delete selected' })).toBeNull();
+  expect(screen.queryByRole('checkbox')).toBeNull();
   cleanup();
   client.clear();
   api.delete.mockClear();
