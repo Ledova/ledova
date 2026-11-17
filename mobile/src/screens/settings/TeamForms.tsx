@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { usePreventRemove } from '@react-navigation/native';
 import { randomUUID } from 'expo-crypto';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
@@ -160,6 +161,7 @@ export function TeamInvitationForm({
     session: orderSubmissionSession,
     newKey: randomUUID,
   });
+  usePreventRemove(busy, () => {});
   const checks = useErrorSummary(problems);
   if (recorded)
     return (

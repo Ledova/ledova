@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { usePreventRemove } from '@react-navigation/native';
 import { randomUUID } from 'expo-crypto';
 import {
   COMPANY_AUTHORITY_CAPABILITIES,
@@ -56,6 +57,7 @@ export function AuthorityRequestForm({
     session: orderSubmissionSession,
     newKey: randomUUID,
   });
+  usePreventRemove(busy, () => {});
   const checks = useErrorSummary(problems);
   const actionsError = checks.field('actions').error;
   const unavailable = disabled || busy;

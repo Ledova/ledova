@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { usePreventRemove } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -30,7 +30,11 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 
 export function CompanyProfile() {
   const { company: selected } = useMemberRecordsState();
-  const [editing, setEditing] = useState<Company | null>(null);
+  const [draft, setEditing] = useState<Company | null>(null);
+  const editing = draft && draft.uuid === selected?.uuid ? draft : null;
+  useEffect(() => {
+    if (draft && draft.uuid !== selected?.uuid) setEditing(null);
+  }, [draft, selected?.uuid]);
   if (!selected?.canManage && !editing) return null;
   return <SelectedCompany selected={selected?.uuid ?? ''} editing={editing} setEditing={setEditing} />;
 }

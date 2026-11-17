@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   appointmentDates,
@@ -132,6 +132,7 @@ export function RevokeAppointmentModal({
 }) {
   const styles = useCompanyStyles();
   const { confirmation, revoking, close, disabled, canRevoke, ticket, revoke } = team;
+  usePreventRemove(revoking, () => {});
   return (
     <CustomModal
       visible={available && !!confirmation}
