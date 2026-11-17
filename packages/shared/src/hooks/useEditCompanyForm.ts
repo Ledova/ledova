@@ -1,10 +1,25 @@
-import { FIELD_LIMITS, createUserFriendlyError, updateCompany, type Company, type CompanyUpdate } from '@ledova/shared';
-import { type CompanyActionRead } from '@components/CompanyState';
-import apiClient from '@services/apiClient';
-import { useMutation } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
-import type { Problems } from '@hooks/useErrorSummary';
-export const EDIT_FIELDS = [
+import { useMutation } from '@tanstack/react-query';
+import { FIELD_LIMITS } from '../constants';
+import { updateCompany } from '../services/companies';
+import type { Company, CompanyUpdate } from '../types';
+import { createUserFriendlyError } from '../utils/errors';
+import { useApiClient } from './useApiClient';
+import type { useCompanySelection } from './useCompanySelection';
+
+export type CompanyActionRead = Pick<
+  ReturnType<typeof useCompanySelection>,
+  | 'assertCurrent'
+  | 'requestConfig'
+  | 'companyKey'
+  | 'scopeKey'
+  | 'canAdmin'
+  | 'ownerBusiness'
+  | 'error'
+  | 'isRefreshing'
+  | 'refetch'
+>;
+export const COMPANY_EDIT_FIELDS = [
   ['name', 'Company name', FIELD_LIMITS.COMPANY_NAME],
   ['tradingName', 'Trading name', FIELD_LIMITS.COMPANY_NAME],
   ['addressLine1', 'Address line 1', FIELD_LIMITS.ADDRESS_LINE],
@@ -14,8 +29,8 @@ export const EDIT_FIELDS = [
   ['postcode', 'Postcode', FIELD_LIMITS.POSTCODE],
   ['phone', 'Phone', FIELD_LIMITS.COMPANY_PHONE],
 ] as const;
-type Draft = Record<(typeof EDIT_FIELDS)[number][0], string> & { shareOwnershipWithMembers: boolean };
-export interface FormProps {
+type Draft = Record<(typeof COMPANY_EDIT_FIELDS)[number][0], string> & { shareOwnershipWithMembers: boolean };
+export interface EditCompanyFormProps {
   company: Company | null;
   target: Company;
   canShareOwnership: boolean;
@@ -23,13 +38,14 @@ export interface FormProps {
   onClose: () => void;
   onSuccess: () => Promise<unknown>;
 }
-function targetAvailable({ company, target, read }: FormProps) {
+function targetAvailable({ company, target, read }: EditCompanyFormProps) {
   return company?.uuid === target.uuid && !read.error && !read.isRefreshing;
 }
-export function useEditCompanyForm(props: FormProps) {
+export function useEditCompanyForm(props: EditCompanyFormProps) {
   const { company, target, read, onClose, onSuccess } = props;
+  const apiClient = useApiClient();
   const initial = {
-    ...Object.fromEntries(EDIT_FIELDS.map(([key]) => [key, target[key] ?? ''])),
+    ...Object.fromEntries(COMPANY_EDIT_FIELDS.map(([key]) => [key, target[key] ?? ''])),
     shareOwnershipWithMembers: target.shareOwnershipWithMembers,
   } as Draft;
   const [draft, setDraft] = useState(initial);
@@ -57,7 +73,9 @@ export function useEditCompanyForm(props: FormProps) {
     read.canAdmin &&
     changed &&
     (changes.shareOwnershipWithMembers === undefined || props.canShareOwnership);
-  const problems: Problems<keyof Draft> = { name: !draft.name.trim() && 'Give the company name.' };
+  const problems: Partial<Record<keyof Draft, string | false>> = {
+    name: !draft.name.trim() && 'Give the company name.',
+  };
   const save = useMutation({
     mutationFn: async () => {
       guard(target.uuid);
