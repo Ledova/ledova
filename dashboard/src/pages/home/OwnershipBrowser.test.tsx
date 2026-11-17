@@ -79,15 +79,16 @@ function overview(registers: TokenHoldersResponse[], sequences: Record<string, n
   };
 }
 
-function holderPage(row: TokenHoldersResponse, params: { page?: number }, sequence = 1) {
+function holderPage(row: TokenHoldersResponse, params: { page?: number; page_size?: number }, sequence = 1) {
   const page = params.page ?? 1;
+  const size = params.page_size ?? PAGE_SIZE;
   const results = row.holders
-    .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    .slice((page - 1) * size, page * size)
     .map((holder) => ({ member: holder.member, name: holder.name, balance: holder.balance, percentage: '0.00' }));
   return {
     data: {
       count: row.holders.length,
-      next: page * PAGE_SIZE < row.holders.length ? '?page=2' : null,
+      next: page * size < row.holders.length ? '?page=2' : null,
       previous: page > 1 ? '?page=1' : null,
       token: row.token.uuid,
       sequence,
