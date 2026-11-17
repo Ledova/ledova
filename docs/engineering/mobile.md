@@ -261,13 +261,17 @@ until confirmed, and each invitation's name and status, then its email and short
 any deadline beneath. **Invite a member** replaces them with the web's form, choosing the recipient from a
 searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
 access to the company, these pages read no private company records and point to Dashboard. Pulling down rereads
-each of them while no form or action is open. While a save or request on a page is unresolved (in
-flight, or unanswered and waiting for its original retry), the page blocks leaving by the back
-gesture, the back arrow or the menu (`usePreventRemove`), so its retry is not dropped. This covers
-Issue shares, Transfer shares and its preparation page, Corrections, Shareholders, a shareholder's
-documents, Member access, Employee scheme, an award, Team, the member invitation and Certificates,
-besides the Ledger and class pages. Inspection copies, Company pack and preparing a correction are
-not covered. Closing or backgrounding the app cannot be blocked.
+each of them while no form or action is open. On some pages an unresolved request (in flight, or unanswered and waiting for its original retry)
+blocks leaving by the back gesture, the back arrow or the menu (`usePreventRemove`), so its retry is
+not dropped: adding a person on Shareholders, Member access, Employee scheme, an award, preparing a
+transfer, accepting a company invitation on Team, and the Ledger and class pages. The block is
+silent, and a retry that stays unanswered (offline, or repeated server errors) keeps the page until
+it is answered or the app is closed. Not covered, because their held state also includes an open
+form or confirmation: decisions on Issue shares, Transfer shares and Corrections, and a
+shareholder's documents. Also not covered: Team's invite and revoke, Change particulars,
+Representative authority, Inspection copies, Company pack and preparing a correction. A member
+invitation's retry lives above the pages, so leaving never drops it. Closing or backgrounding the
+app cannot be blocked.
 
 Company registry tasks keep an existing form mounted during a same-account access reread or failure:
 Team, shareholder records and member access, the employee scheme and awards, share classes, issues,

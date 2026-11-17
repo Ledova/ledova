@@ -1529,7 +1529,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByText('Invitation accepted. Your company records are available.')).toBeNull();
   await fireEvent.press(acceptOther);
   await screen.findByRole('button', { name: 'Retry original member action' });
-  expect(jest.mocked(usePreventRemove)).toHaveBeenLastCalledWith(true, expect.any(Function));
   await view.rerender(
     <CertificatesScreen route={{ key: 'past', name: 'Certificates', params: { record: PAST_RECORD.uuid } }} />,
   );
@@ -1831,6 +1830,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     disabled: false,
   });
   const staleInvitationAction = retryInvitation.props.onAccessibilityTap;
+  expect(jest.mocked(usePreventRemove)).toHaveBeenLastCalledWith(true, expect.any(Function));
   const invitationPosts = () => api.post.mock.calls.filter(([url]) => url === URLS.MEMBER_INVITATION_SEND_EMAIL);
   expect(invitationPosts()).toHaveLength(1);
   directoryFailure = true;
