@@ -7,6 +7,8 @@ import {
   sharePercentage,
   type OwnershipClass,
   PAGE_SIZE,
+  pageOf,
+  pageWith,
 } from '@ledova/shared';
 import { ListSearch, Pager } from '@components/List';
 import { OwnershipRing } from './OwnershipRing';
@@ -38,10 +40,8 @@ export function OwnershipClasses({
   const highlighted = hovered ?? focused ?? selected;
   const ranked = rankOwnershipClasses(classes);
   const found = searchRows(ranked, (row) => `${row.name} ${row.symbol}`, selected ? '' : list.search);
-  const page = selected
-    ? Math.max(1, Math.floor(found.findIndex(({ uuid }) => uuid === selected) / PAGE_SIZE) + 1)
-    : Math.min(list.page, Math.max(1, Math.ceil(found.length / PAGE_SIZE)));
-  const shown = found.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const place = pageOf(found.length, selected ? pageWith(found.findIndex(({ uuid }) => uuid === selected)) : list.page);
+  const shown = found.slice(place.start, place.end);
   const hasRing = complete && total !== null && total !== '0';
   return (
     <>

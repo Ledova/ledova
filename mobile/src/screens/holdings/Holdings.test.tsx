@@ -9,6 +9,7 @@ import {
   COMPANY_SIGNUP_DECLARATION,
   COMPANY_SIGNUP_DECLARATION_VERSION,
   COMPANY_TOKEN_ENDPOINTS as URLS,
+  PAGE_SIZE,
   REGISTER_ALLOTMENT_COPY,
   REGISTER_AWARD_COPY,
   REGISTER_CORRECTION_COPY,
@@ -897,7 +898,7 @@ beforeEach(async () => {
     }
     if (url === URLS.OWNERSHIP_HOLDERS(FOUNDERS.uuid)) {
       const shown = (config?.params as { page: number }).page;
-      const results = HOLDERS.slice((shown - 1) * 25, shown * 25);
+      const results = HOLDERS.slice((shown - 1) * PAGE_SIZE, shown * PAGE_SIZE);
       return { data: { count: 26, token: FOUNDERS.uuid, sequence: 1, issuedSupply: '30', results } };
     }
     if (url === URLS.MEMBER_ASSOCIATIONS)
@@ -1674,9 +1675,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(
     await screen.findByRole('button', { name: 'Highlight Synthetic Holder 1’s holding, 5 shares, 16.67% of FND' }),
   ).toBeTruthy();
-  expect(screen.getByText('1–25 of 26 shareholders')).toBeTruthy();
+  expect(screen.getByText('1–10 of 26 shareholders')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Next (Class shareholders)' }));
-  expect(await screen.findByText('26–26 of 26 shareholders')).toBeTruthy();
+  expect(await screen.findByText('11–20 of 26 shareholders')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Class details (Founders)' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('ShareClass', founders);
   expect(

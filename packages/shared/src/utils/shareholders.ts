@@ -1,4 +1,4 @@
-import { PAGE_SIZE } from '../constants/api';
+import { pageOf } from './paging';
 import { HOLDER_TYPE_LABELS } from '../constants/business/register';
 import type { TokenHoldersResponse } from '../types';
 import { formatShortDate } from './date';
@@ -61,9 +61,7 @@ export function shareholderList(
         filter.search,
       );
   const count = found.length + withoutShares.length;
-  const page = Math.min(filter.page, Math.max(1, Math.ceil(count / PAGE_SIZE)));
-  const start = (page - 1) * PAGE_SIZE;
-  const end = page * PAGE_SIZE;
+  const { start, end } = pageOf(count, filter.page);
   return {
     shareholders,
     classFilter,

@@ -182,4 +182,5 @@ export {
 } from './people';
 export { searchEntries, searchMatches, searchRows, type SearchChoice } from './search';
 export { holdingFacts, needsIdentityReview, shareholderList } from './shareholders';
+export { pageOf, pageWith } from './paging';
 export { isRegisterPersonRegistrationReceipt } from './register-people';

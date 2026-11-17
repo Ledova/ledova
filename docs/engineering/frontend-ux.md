@@ -96,7 +96,7 @@ class code, its share of the company's issued shares and, for a member, **You:**
 Names wrap without displacing the count. Select a segment or class row to open an aligned class
 details card beneath the overview. A muted trailing chevron identifies class rows that open this
 detail; holder rows keep their highlight-only interaction. Show the relevant exact totals and own
-position, followed by the ranked holder list, 25 to a page, only for company-authorised readers. The
+position, followed by the ranked holder list, a [page](#lists-search-filters-and-paging) at a time, only for company-authorised readers. The
 card has no **Filters**: the class rows switch classes, the trail's **Company ownership** returns to
 the overview, also from a class the overview no longer lists, and shareholder search stays on
 Shareholders (owner, 3 November 2026). For company-authorised readers, a **Class details** row at the
@@ -931,7 +931,14 @@ server:
 - **Feeds:** `LoadMore` ends a feed with "Load more notifications" (or
   entries and so on), which names its work while it runs. When a later page fails, the shown
   rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
-- **Page size:** 25 rows. The API accepts `page_size` up to 100 on every paged list.
+- **Page size:** 10 rows at every width on web and app (owner, 18 November 2026), so a first page
+  fits about one phone screen. `PAGE_SIZE` in `packages/shared` is the single size, and `pageOf`
+  (`packages/shared/src/utils/paging.ts`) is the single page calculation: both pagers and every
+  list paged in the client use it. The API's own default stays 25 and accepts `page_size` up to 100.
+- **Which pattern:** numbered pages for a list people scan and return to, Load more for a
+  newest-first feed, and a short capped group with Show all only for a section within a page. A
+  list that grows with a company never shows everything at once. The pager sits under its list,
+  inside the card and above the page's main action.
 
 Shareholders searches and pages the register the page has already read in
 full, since its ownership totals need every holding: Search people and the class filter share the
@@ -940,7 +947,7 @@ popover, with the same search timing and pager. Search matches every word, ignor
 closes the panel.
 
 The feeds are the notification bell, a class's register entries and each class's former
-shareholders, shown 25 at a time from the register already read. A list bounded by one person
+shareholders, shown a page at a time from the register already read. A list bounded by one person
 reads every page. Other lists still read every page
 ([frontend](frontend.md#lists-figures-and-currency)).
 

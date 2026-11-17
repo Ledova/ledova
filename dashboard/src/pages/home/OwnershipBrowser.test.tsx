@@ -4,6 +4,7 @@ import {
   CACHE_TIMING,
   COMPANY_TOKEN_ENDPOINTS,
   DESTINATIONS,
+  PAGE_SIZE,
   REGISTER_IMPORT_COPY,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_ENDPOINTS,
@@ -81,12 +82,12 @@ function overview(registers: TokenHoldersResponse[], sequences: Record<string, n
 function holderPage(row: TokenHoldersResponse, params: { page?: number }, sequence = 1) {
   const page = params.page ?? 1;
   const results = row.holders
-    .slice((page - 1) * 25, page * 25)
+    .slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
     .map((holder) => ({ member: holder.member, name: holder.name, balance: holder.balance, percentage: '0.00' }));
   return {
     data: {
       count: row.holders.length,
-      next: page * 25 < row.holders.length ? '?page=2' : null,
+      next: page * PAGE_SIZE < row.holders.length ? '?page=2' : null,
       previous: page > 1 ? '?page=1' : null,
       token: row.token.uuid,
       sequence,
@@ -309,7 +310,9 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   });
   expect(await screen.findByRole('list', { name: 'ordinary shares shareholders' })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: /Next/ }));
-  expect(await screen.findByText('26–28 of 28 shareholders')).toBeTruthy();
+  expect(await screen.findByText('11–20 of 28 shareholders')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: /Next/ }));
+  expect(await screen.findByText('21–28 of 28 shareholders')).toBeTruthy();
   expect(
     within(screen.getByRole('heading', { name: 'ordinary shares' }).closest('section')!).queryByRole('button', {
       name: 'Filters',
@@ -347,7 +350,8 @@ it('explores exact bounded company ownership and withholds incomplete, failed an
   await screen.findByRole('searchbox', { name: 'Search share classes' });
   const classPager = screen.getByRole('navigation', { name: 'Share classes' });
   fireEvent.click(within(classPager).getByRole('button', { name: /Next/ }));
-  expect(await screen.findByText('26–28 of 28 share classes')).toBeTruthy();
+  fireEvent.click(within(classPager).getByRole('button', { name: /Next/ }));
+  expect(await screen.findByText('21–28 of 28 share classes')).toBeTruthy();
   const lastClass = await screen.findByRole('button', { name: 'Explore class-25 shares (CLASS-25)' });
   expect(api.get.mock.calls.some(([url]) => url === COMPANY_TOKEN_ENDPOINTS.OWNERSHIP_HOLDERS('class-25'))).toBe(false);
   fireEvent.click(lastClass);

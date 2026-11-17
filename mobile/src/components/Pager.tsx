@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { PAGE_SIZE, formatShareCount } from '@ledova/shared';
+import { formatShareCount, pageOf } from '@ledova/shared';
 import { useThemedStyles } from '../contexts';
 import { useCompanyStyles } from '../hooks/useCompanyStyles';
 import { Action } from './Ledger';
@@ -35,10 +35,7 @@ export function Pager({
     },
   }));
   if (count === 0) return null;
-  const pages = Math.ceil(count / PAGE_SIZE);
-  const shown = Math.min(page, pages);
-  const first = (shown - 1) * PAGE_SIZE + 1;
-  const last = Math.min(shown * PAGE_SIZE, count);
+  const { pages, page: shown, first, last } = pageOf(count, page);
   const total = `${formatShareCount(String(count))} ${count === 1 ? one : many}`;
   return (
     <View accessibilityLabel={label} style={look.pager}>

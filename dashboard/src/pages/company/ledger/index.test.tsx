@@ -293,7 +293,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(formerSection).getByRole('link', { name: 'Details (Departed Shareholder)' }).getAttribute('href')).toBe(
     '/company/ledger/members/former-member-private?company=harbour',
   );
-  expect(within(table).getAllByRole('row')).toHaveLength(26);
+  expect(within(table).getAllByRole('row')).toHaveLength(11);
   const namesakes = within(table).getAllByRole('row', { name: /Example Member/ });
   expect(namesakes).toHaveLength(2);
   expect(within(namesakes[0]).getAllByText('9,007,199,254,740,993')).toHaveLength(2);
@@ -302,7 +302,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(within(namesakes[1]).getByText('No PREFERENCE holding')).toBeTruthy();
   expect(within(namesakes[1]).getByText('Identity needs review')).toBeTruthy();
   expect(screen.getByText(/1 shareholder needs identity review/)).toBeTruthy();
-  expect(screen.getByText('1–25 of 26 people')).toBeTruthy();
+  expect(screen.getByText('1–10 of 26 people')).toBeTruthy();
   expect(within(table).queryByText('Zed Member24')).toBeNull();
   expect(screen.queryByText(`0x${'1'.repeat(40)} · Active`)).toBeNull();
 
@@ -321,9 +321,11 @@ it('reads every class page and groups exact holdings by member identity with sea
       .matches(':disabled'),
   ).toBe(true);
   fireEvent.click(within(pages).getByRole('button', { name: /^Next/ }));
+  expect(screen.getByText('11–20 of 26 people')).toBeTruthy();
+  fireEvent.click(within(pages).getByRole('button', { name: /^Next/ }));
   expect(within(table).getByText('Zed Member24')).toBeTruthy();
   expect(within(table).queryByText('Example Member')).toBeNull();
-  expect(screen.getByText('26–26 of 26 people')).toBeTruthy();
+  expect(screen.getByText('21–26 of 26 people')).toBeTruthy();
   expect(within(pages).getByRole('button', { name: /^Next/ }).matches(':disabled')).toBe(true);
 
   const openFilters = () => {
@@ -365,8 +367,8 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByRole('table', { name: 'Company shareholders' })).toBeNull();
   filterClass('');
   searchPeople('');
-  expect(await screen.findByText('1–25 of 26 people')).toBeTruthy();
-  expect(within(screen.getByRole('table', { name: 'Company shareholders' })).getAllByRole('row')).toHaveLength(26);
+  expect(await screen.findByText('1–10 of 26 people')).toBeTruthy();
+  expect(within(screen.getByRole('table', { name: 'Company shareholders' })).getAllByRole('row')).toHaveLength(11);
   expect(api.post).not.toHaveBeenCalled();
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('ordinary'));
   expect(readUrls()).toContain(COMPANY_TOKEN_ENDPOINTS.HOLDERS('preference'));

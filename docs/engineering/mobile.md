@@ -163,7 +163,7 @@ the person may read, Dashboard is the web's officer view, read through the share
 `useCompanyOwnership` with the class and holder page kept in the screen: Ownership overview with the
 person's role, issued shares, current shareholders and share classes (your shares first for a member)
 and the classes ranked by issued shares; choosing a class adds the trail and a class card with its
-current shareholders, largest first, 25 to a page with the web's pager, and the member's own position
+current shareholders, largest first, a [page](frontend-ux.md#lists-search-filters-and-paging) at a time with the web's pager, and the member's own position
 and awards where they hold shares. It has the web's loading, incomplete-total, unopened-class, no
 shareholder and failure states with Try again, and the trail returns from a class the overview no
 longer lists. The class card ends with the web's **Class details** row, which opens the class's page.
@@ -224,12 +224,12 @@ at phone width for a register reader of the selected company, read through the s
 `useRegisterClasses` and `useRegisters` with the app's session (`useCompanyRegisters.ts`) and listed by
 the shared `shareholderList`: Current shareholders, one row per person with each class they hold, such
 as "FND 5 · 62.50%", and Identity needs review where it applies, then People without shares, with the
-web's unopened-class, identity-review, empty and no-match lines and 25 to a page under the web's pager
+web's unopened-class, identity-review, empty and no-match lines and a page at a time under the web's pager
 (`mobile/src/components/Pager.tsx`, which Dashboard's class card also uses). Filters holds **Search
 people**, which searches 300 ms after typing stops, with **Clear** and the web's match count, above
 **Share class**, which applies at once and closes the panel; the search, class and page are kept on the
 screen. Former shareholders follows, with each class's former-member history behind its **Show**
-toggle, 25 at a time, and **Details** for a former member the register names. **Add person** opens the
+toggle, a page at a time, and **Details** for a former member the register names. **Add person** opens the
 web's form beneath them, through the shared `usePersonRegistration`, with its retry of an uncertain save
 and the added person's name in its outcome line; while a save is unfinished the rows don't open. A row
 opens the shareholder's page (`ShareholderScreen.tsx`, their name as its title) through the shared

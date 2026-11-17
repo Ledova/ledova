@@ -1,5 +1,5 @@
 import { useId, useRef, type ReactNode } from 'react';
-import { formatShareCount, PAGE_SIZE } from '@ledova/shared';
+import { formatShareCount, pageOf } from '@ledova/shared';
 import { FIELD_BASE, LABEL } from '@components/fieldClass';
 import { PageAction } from '@components/Page';
 import type { ListParams } from '@hooks/useListParams';
@@ -110,10 +110,7 @@ export function Pager({
   count: number;
 }) {
   if (count === 0) return null;
-  const pages = Math.ceil(count / PAGE_SIZE);
-  const page = Math.min(list.page, pages);
-  const first = (page - 1) * PAGE_SIZE + 1;
-  const last = Math.min(page * PAGE_SIZE, count);
+  const { pages, page, first, last } = pageOf(count, list.page);
   return (
     <nav aria-label={label} className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm tabular-nums text-text-muted">
