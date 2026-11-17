@@ -30,6 +30,7 @@ not authorise additional advisories in that category.
 | `image-size`      | `GHSA-5p2g-fcmc-qvqq` |
 | `image-size`      | `GHSA-w3rx-r6r6-pgpr` |
 | `minimatch`       | `GHSA-g3hv-75wg-m249` |
+| `picomatch`       | `GHSA-fc5q-39xc-vjpf` |
 | `postcss`         | `GHSA-6g55-p6wh-862q` |
 | `postcss`         | `GHSA-fxqj-rqcc-2cmp` |
 | `postcss`         | `GHSA-qx2v-qp2m-jg93` |
@@ -42,6 +43,15 @@ and native-build toolchain; malicious project or plugin configuration remains a
 risk. No patched upstream release is available. Reconsider this exception when a
 fixed release or Expo SDK upgrade is available, and before a store-distributed
 build. It does not apply to the web, backend or another advisory.
+
+The owner accepted the mobile-only `picomatch` / `GHSA-fc5q-39xc-vjpf` pair on
+18 November 2026. It covers file matching in the Expo, Metro and React Native
+build toolchain; a crafted glob pattern in project or plugin configuration could
+stall a build. Every release up to 4.0.7 is affected and no patched release is
+available. Reconsider this exception when a fixed release or Expo SDK upgrade is
+available, and before a store-distributed build. It does not apply to the root,
+`site/` or `contracts/` audits, where the dashboard's Vite plugin moved to its
+development dependencies so that the production audit stays clean.
 
 The owner separately accepted the mobile-only `minimatch` / `GHSA-g3hv-75wg-m249`
 pair on 31 October 2026. The vulnerable `minimatch` 3.1.5 comes with mobile's
