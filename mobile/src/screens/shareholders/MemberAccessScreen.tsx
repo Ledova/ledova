@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, RefreshControl, Text, View, type ScrollView } from 'react-native';
-import type { RouteProp } from '@react-navigation/native';
+import { usePreventRemove, type RouteProp } from '@react-navigation/native';
 import { randomUUID } from 'expo-crypto';
 import {
   FIELD_LIMITS,
@@ -232,6 +232,7 @@ function MemberAccess({
   const target = `${company}:${inviteMember}`;
   if (shown && invitationView.target !== target)
     setInvitationView({ open: true, target, receipt: access.invitationReceipt });
+  usePreventRemove(held, () => {});
   const busy = held || refreshing;
   useEffect(() => {
     onOpenChange(inviting || !!revokeMember || held);

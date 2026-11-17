@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { RefreshControl, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -102,6 +102,7 @@ function CompanyScheme({
   const [chosen, setChosen] = useState('');
   const [editing, setEditing] = useState(false);
   const [held, setHeld] = useState(false);
+  usePreventRemove(held, () => {});
   const [refreshing, setRefreshing] = useState(false);
   const refreshAwards = useRef<() => Promise<unknown>>(async () => undefined);
   const registers = source.registers ?? [];

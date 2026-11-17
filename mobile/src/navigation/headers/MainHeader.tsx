@@ -152,6 +152,7 @@ export function TopBar({
         <Text
           accessibilityRole="header"
           numberOfLines={1}
+          maxFontSizeMultiplier={1.6}
           style={{
             flex: 1,
             minWidth: 0,

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, Text, View } from 'react-native';
-import { useNavigation, type RouteProp } from '@react-navigation/native';
+import { useNavigation, type RouteProp, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { randomUUID } from 'expo-crypto';
 import {
@@ -132,6 +132,16 @@ function OwnTransfer({
   const look = useLedgerStyles();
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const [held, setHeld] = useState(false);
+  usePreventRemove(held, () => {});
+  const [prepared, setPrepared] = useState<string | null>(null);
+  useEffect(() => {
+    if (!prepared || held) return;
+    Keyboard.dismiss();
+    const params = { company, token, record: prepared, outcome: COPY.PREPARED };
+    if (navigation.getState()?.routes.some(({ name }) => name === 'TransferShares'))
+      navigation.popTo('TransferShares', params);
+    else navigation.replace('TransferShares', params);
+  }, [prepared, held, navigation, company, token]);
   const guard = useMemo(
     () => () => {
       if (currentOwner() !== owner) throw new Error('Your signed-in account changed. Reopen the register.');
@@ -261,7 +271,7 @@ function OwnTransfer({
               initialFrom={fromMember}
               onHeldChange={setHeld}
               onCancel={() => toTransfers({ company, token })}
-              onPrepared={(record) => toTransfers({ company, token, record, outcome: COPY.PREPARED })}
+              onPrepared={setPrepared}
             />
           </Section>
         </View>

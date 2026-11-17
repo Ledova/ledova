@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Keyboard, RefreshControl, Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { randomUUID } from 'expo-crypto';
 import {
@@ -120,6 +120,7 @@ function CompanyShareholders({
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const source = useCompanyRegisters(owner, currentOwner, company, 'Shareholders', available);
   const [held, setHeld] = useState(false);
+  usePreventRemove(held, () => {});
   const [refreshing, setRefreshing] = useState(false);
   const [typed, setTyped] = useState('');
   const [search, setSearch] = useState('');

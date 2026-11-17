@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { RefreshControl, Text } from 'react-native';
-import { useNavigation, type RouteProp } from '@react-navigation/native';
+import { useNavigation, type RouteProp, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -155,6 +155,7 @@ function OwnAward({
   const supported = !!register?.initialized && register.token.status === 'draft';
   const appointment = readable ? appointmentForRegisterStep(appointments.data, company, 'prepare') : undefined;
   const [held, setHeld] = useState(false);
+  usePreventRemove(held, () => {});
   const [editing, setEditing] = useState(false);
   const preferenceState = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
   const sourceReady =
