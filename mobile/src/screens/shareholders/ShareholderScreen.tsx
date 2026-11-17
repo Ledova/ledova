@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { RefreshControl, Text, View } from 'react-native';
-import { useNavigation, type RouteProp } from '@react-navigation/native';
+import { useNavigation, type RouteProp, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
@@ -116,6 +116,7 @@ function OwnShareholder({
   const client = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [documentsHeld, setDocumentsHeld] = useState(false);
+  usePreventRemove(documentsHeld, () => {});
   const [navigationError, setNavigationError] = useState(false);
   const guard = useMemo(
     () => () => {

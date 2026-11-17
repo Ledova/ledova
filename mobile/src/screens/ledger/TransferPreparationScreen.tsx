@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, Text, View } from 'react-native';
-import { useNavigation, type RouteProp } from '@react-navigation/native';
+import { useNavigation, type RouteProp, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { randomUUID } from 'expo-crypto';
 import {
@@ -132,6 +132,7 @@ function OwnTransfer({
   const look = useLedgerStyles();
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const [held, setHeld] = useState(false);
+  usePreventRemove(held, () => {});
   const guard = useMemo(
     () => () => {
       if (currentOwner() !== owner) throw new Error('Your signed-in account changed. Reopen the register.');

@@ -261,9 +261,13 @@ until confirmed, and each invitation's name and status, then its email and short
 any deadline beneath. **Invite a member** replaces them with the web's form, choosing the recipient from a
 searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
 access to the company, these pages read no private company records and point to Dashboard. Pulling down rereads
-each of them while no form or action is open. Unlike the web, which keeps a held save on its page,
-leaving an app page still drops that save's retry, so repeating an unresolved add, invitation,
-award, document save or register instruction can record it twice. Broader navigation protection remains planned under #1464; the class metadata editor already blocks leaving while its save or deletion is unresolved.
+each of them while no form or action is open. While a save or request on a page is unresolved (in
+flight, or unanswered and waiting for its original retry), the page blocks leaving by the back
+gesture, the back arrow or the menu (`usePreventRemove`), so its retry is not dropped. This covers
+Issue shares, Transfer shares and its preparation page, Corrections, Shareholders, a shareholder's
+documents, Member access, Employee scheme, an award, Team, the member invitation and Certificates,
+besides the Ledger and class pages. Inspection copies, Company pack and preparing a correction are
+not covered. Closing or backgrounding the app cannot be blocked.
 
 Company registry tasks keep an existing form mounted during a same-account access reread or failure:
 Team, shareholder records and member access, the employee scheme and awards, share classes, issues,

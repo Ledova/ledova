@@ -78,9 +78,9 @@ export function ShareClasses({
           {hasControls && listed.length > 1 && (
             <Checkbox
               label="Select all"
-              checked={listed.length > 0 && selectedCount === listed.length}
+              checked={selectedCount === listed.length}
               indeterminate={selectedCount > 0 && selectedCount < listed.length}
-              disabled={locked || listed.length === 0}
+              disabled={locked}
               error={null}
               style={controls.all}
               hitSlop={0}
@@ -104,7 +104,7 @@ export function ShareClasses({
                         accessibilityLabel={`Select ${register.token.name}`}
                         checked={selected.has(register.token.uuid)}
                         disabled={locked}
-                        error={lifecycle?.deletionBlockedReason ?? null}
+                        error={null}
                         style={controls.checkbox}
                         hitSlop={0}
                         onChange={(checked) =>

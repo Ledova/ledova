@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, RefreshControl, Text, View, type ScrollView } from 'react-native';
-import { useNavigation, type NavigationProp, type RouteProp } from '@react-navigation/native';
+import { useNavigation, type NavigationProp, type RouteProp, usePreventRemove } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   formatDate,
@@ -62,6 +62,7 @@ function OwnInvitationTask({
   const client = useQueryClient();
   const navigation = useNavigation<NavigationProp<SignedInStackParamList, 'Team'>>();
   const [busy, setBusy] = useState(false);
+  usePreventRemove(busy, () => {});
   const available = !preferences.isError && !preferences.isFetching;
   const guard = useCallback(() => {
     const current = client.getQueryState(USER_PREFERENCES_QUERY_KEY);

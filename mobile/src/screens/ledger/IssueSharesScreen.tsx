@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { Keyboard, RefreshControl, ScrollView, Text, View } from 'react-native';
-import { useNavigation, type RouteProp } from '@react-navigation/native';
+import { useNavigation, type RouteProp, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -304,6 +304,7 @@ function ClassIssues({
     onFocusRecord,
   });
   const held = allotmentHeld || grantHeld;
+  usePreventRemove(held, () => {});
   const formShown = kind === 'investor' ? investor.formShown : kind === 'nonpaid' && nonPaid.formShown;
   const open = preparing || !!reviewing;
   useEffect(() => {

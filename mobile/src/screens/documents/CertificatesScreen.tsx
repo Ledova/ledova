@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useNavigation, type NavigationProp, type RouteProp } from '@react-navigation/native';
+import { useNavigation, type NavigationProp, type RouteProp, usePreventRemove } from '@react-navigation/native';
 import { certificateFacts, shareChange, useSubmissionOwner, type OwnMemberRecord } from '@ledova/shared';
 import { SelectField } from '../../components/SelectField';
 import { FilterPopover } from '../../components/FilterPopover';
@@ -71,6 +71,7 @@ function MemberCertificates({
     if (focused && selected && item && !read.busy && !read.retry && selectedToken !== item.uuid) selectToken(item.uuid);
   }, [focused, selected, item, read.busy, read.retry, selectedToken, selectToken]);
   const held = read.busy || !!read.retry;
+  usePreventRemove(held, () => {});
   const unknownClass = !!selected && !!chosen && !item;
   const own = !!item && selectedToken === item.uuid && read.entriesReady;
   const listed = !!selected && !unknownClass && (classes.length === 0 || own);

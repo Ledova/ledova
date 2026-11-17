@@ -80,7 +80,8 @@ shareholders, any authorised limit other than the internal quantity guard, and a
 ledger is not opened or issues or transfers wait to be recorded or cannot be checked (`classFacts`). Each row opens the
 class's page, which keeps the full notes. A class whose ledger is not opened shows its setup only to
 someone who can open the setup form: a preparer, or an approver or confirmer with a saved review.
-Anyone else with register access sees the read page with Class details, Class rights and the Summary.
+Anyone else with register access sees the read page with Class rights and the Summary, which
+carries the class's code and type; the Class details card appears only for someone who may edit or delete.
 Selection controls appear only when at least one class is removable;
 **Select all** is omitted for a single class. Align header and row checkboxes in the same 44px column
 and with the class name, rather than centring against a multiline note. Partial selection has a mixed

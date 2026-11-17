@@ -1,3 +1,4 @@
+import { usePreventRemove } from '@react-navigation/native';
 import {
   ApiClientProvider,
   AUTH_QUERY_KEY,
@@ -1502,6 +1503,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByText('Invitation accepted. Your company records are available.')).toBeNull();
   await fireEvent.press(acceptOther);
   await screen.findByRole('button', { name: 'Retry original member action' });
+  expect(jest.mocked(usePreventRemove)).toHaveBeenLastCalledWith(true, expect.any(Function));
   await view.rerender(
     <CertificatesScreen route={{ key: 'past', name: 'Certificates', params: { record: PAST_RECORD.uuid } }} />,
   );
