@@ -462,7 +462,12 @@ cannot show the form still offers it. The top bar's arrow returns to Ledger.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`) and
 Team. Profile, the `Settings` route, is the web's Personal
 information card: the person's details on one-line rows, and **Edit details** opens their form
-in the card. Pulling down refreshes the profile. Account (`Account`) has the web's four cards. Security
+in the card. Above it, when the selected company's `canManage` is true, the web's Company details
+card shows the company's recorded details, and **Edit company** opens the same eight fields and the
+ownership-sharing choice (`CompanyProfile.tsx`). Both clients save through the shared
+`useEditCompanyForm`, which sends only changed fields under the current administration check.
+Without that authority the card is absent and the app reads no company details. Pulling down
+refreshes the profile. Account (`Account`) has the web's four cards. Security
 shows the identity check status from the profile (the app has no identity check flow, so there is no
 **Review**), **Change** for the password, whose form applies the web's rules and shows the server's reply in the
 form, and the app's biometric sign-in and App lock switches, with

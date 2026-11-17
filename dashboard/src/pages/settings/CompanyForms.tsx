@@ -1,14 +1,13 @@
 import { CheckboxField, Field, TextInput } from '@components/Field';
 import { useEffect, useRef } from 'react';
 import { FormActions, PageAction } from '@components/Page';
-import { readApiError } from '@ledova/shared';
+import { COMPANY_EDIT_FIELDS, readApiError, useEditCompanyForm, type EditCompanyFormProps } from '@ledova/shared';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { CompanyReadNotice } from '@components/CompanyState';
-import { EDIT_FIELDS, useEditCompanyForm, type FormProps } from './useCompanyForms';
 import { Failure } from '@components/Ledger';
 
-export function EditCompanyForm(props: FormProps) {
+export function EditCompanyForm(props: EditCompanyFormProps) {
   const { company, target, read, onClose, draft, setDraft, pendingRef, available, problems, save } =
     useEditCompanyForm(props);
   const checks = useErrorSummary(problems);
@@ -18,7 +17,7 @@ export function EditCompanyForm(props: FormProps) {
     ? readApiError(save.error, {
         fallback: 'Company changes could not be saved. Try again.',
         unanswered: 'The company changes could not be confirmed. Refresh before retrying.',
-        displayedFields: [...EDIT_FIELDS.map(([key]) => key), 'shareOwnershipWithMembers'],
+        displayedFields: [...COMPANY_EDIT_FIELDS.map(([key]) => key), 'shareOwnershipWithMembers'],
       })
     : null;
   return (
@@ -46,7 +45,7 @@ export function EditCompanyForm(props: FormProps) {
           <Failure>{reading.generalError ?? 'The company changes were not saved. Check the fields below.'}</Failure>
         )}
         <div className="grid gap-4 sm:grid-cols-2">
-          {EDIT_FIELDS.map(([key, label, maxLength]) => (
+          {COMPANY_EDIT_FIELDS.map(([key, label, maxLength]) => (
             <Field
               key={key}
               id={checks.field(key).id}

@@ -4,6 +4,7 @@ import { Page } from '../../components/Page';
 import { useAppTheme } from '../../contexts';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import { AccountData, AccountSettings } from './AccountSettings';
+import { CompanyProfile } from './CompanyProfile';
 import { PersonalProfile } from './PersonalProfile';
 
 export function SettingsScreen() {
@@ -27,6 +28,7 @@ export function SettingsScreen() {
         />
       }
     >
+      <CompanyProfile />
       <PersonalProfile profile={profile} />
     </Page>
   );

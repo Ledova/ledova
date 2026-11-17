@@ -1,3 +1,4 @@
+import { SettingsScreen } from '../settings';
 import { usePreventRemove } from '@react-navigation/native';
 import {
   ApiClientProvider,
@@ -243,6 +244,24 @@ const ADMINISTERED = {
   isOwner: true,
   status: 'active',
   administrativeAccess: { capabilities: ['admin'], draftSetup: false },
+};
+const COMPANY_DETAILS = {
+  ...ADMINISTERED,
+  statusDisplay: 'Active',
+  tradingName: '',
+  companyType: 'pty',
+  companyTypeDisplay: 'Proprietary limited',
+  acn: '992000021',
+  abn: '',
+  email: 'company@example.test',
+  phone: '',
+  addressLine1: '1 Synthetic Street',
+  addressLine2: '',
+  city: 'Sydney',
+  state: 'NSW',
+  postcode: '2000',
+  country: 'Australia',
+  shareOwnershipWithMembers: false,
 };
 const FOUNDERS = { uuid: '27272727-2727-4727-8727-272727272727', name: 'Founders', symbol: 'FND' };
 const ELSEWHERE = { uuid: '41414141-4141-4141-8141-414141414141', name: 'Elsewhere', symbol: 'ELS' };
@@ -543,6 +562,7 @@ const preferences = { userProfile: 'profile-one', userAccount: { uuid: 'account-
 const owner = { userUuid: 'profile-one', ownerAccountUuid: 'account-one' };
 let ownRecord: OwnMemberRecord;
 let associated: boolean;
+let companyDetails: typeof COMPANY_DETAILS;
 let refused: boolean;
 let administered: boolean;
 let appointed: boolean;
@@ -637,6 +657,7 @@ const copied = { sourceReference: 'Company-provided share records', sourceConfir
 beforeEach(async () => {
   ownRecord = OWNED_RECORD;
   associated = false;
+  companyDetails = COMPANY_DETAILS;
   refused = false;
   administered = false;
   appointed = false;
@@ -684,6 +705,7 @@ beforeEach(async () => {
       if (directoryFailure) throw new Error('Synthetic directory refusal');
       return page(administered ? [ADMINISTERED] : []);
     }
+    if (url === COMPANY_ENDPOINTS.DETAIL(ADMINISTERED.uuid)) return { data: companyDetails };
     if (url === APPOINTMENTS) {
       if (appointmentsWait) await appointmentsWait;
       return page(appointed ? [own] : []);
@@ -1361,6 +1383,10 @@ beforeEach(async () => {
     throw new Error(`Unexpected POST ${url}`);
   });
   api.patch.mockReset().mockImplementation(async (url, changes) => {
+    if (url === COMPANY_ENDPOINTS.DETAIL(ADMINISTERED.uuid)) {
+      companyDetails = { ...companyDetails, ...(changes as object) };
+      return { data: companyDetails };
+    }
     if (url !== URLS.DETAIL(PREFERENCE.uuid)) throw new Error(`Unexpected PATCH ${url}`);
     preferenceName = (changes as { name: string }).name;
     preferenceUpdatedAt = '2026-11-15T01:00:00Z';
@@ -1537,6 +1563,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(certificatesPage);
   await act(async () => screen.getByTestId('certificates-scroll').props.refreshControl.props.onRefresh());
   expect(await screen.findByText(/^Transfer · ORD/)).toBeTruthy();
+  await view.rerender(<SettingsScreen />);
+  expect(await screen.findByText('Personal information')).toBeTruthy();
+  expect(screen.queryByText('Company details')).toBeNull();
+  expect(api.get.mock.calls.filter(([url]) => url === COMPANY_ENDPOINTS.DETAIL(ADMINISTERED.uuid))).toHaveLength(0);
   const registerReads = () =>
     api.get.mock.calls.filter(
       ([url]) =>
@@ -2419,7 +2449,21 @@ it('records an accepted officer invitation without changing the chosen company, 
   appointed = true;
   own = ADMINISTRATION;
   await AsyncStorage.setItem(companyChoiceKey, ADMINISTERED.uuid);
-  const view = await render(<></>, { wrapper });
+  const view = await render(<SettingsScreen />, { wrapper });
+  await fireEvent.press(await screen.findByRole('button', { name: 'Edit company' }));
+  await fireEvent.changeText(screen.getByLabelText('Company name'), ' ');
+  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  expect(screen.getByText('Give the company name.')).toBeTruthy();
+  expect(api.patch).not.toHaveBeenCalled();
+  await fireEvent.changeText(screen.getByLabelText('Company name'), ADMINISTERED.name);
+  await fireEvent.changeText(screen.getByLabelText('Trading name'), 'Synthetic trading name');
+  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  expect(await screen.findByText('Company details were saved.')).toBeTruthy();
+  expect(api.patch.mock.calls).toEqual([
+    [COMPANY_ENDPOINTS.DETAIL(ADMINISTERED.uuid), { tradingName: 'Synthetic trading name' }, expect.anything()],
+  ]);
+  api.patch.mockClear();
+  await view.rerender(<></>);
   const savedTerms = 'Preference dividends follow the company constitution.';
   rights = [
     {

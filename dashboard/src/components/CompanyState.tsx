@@ -1,12 +1,5 @@
-import { COMPANY_STATUS_TONES, type CompanyStatus, type useCompanySelection } from '@ledova/shared';
+import { COMPANY_STATUS_TONES, type CompanyStatus } from '@ledova/shared';
 import { Status, LoadError } from '@components/Ledger';
-
-type CompanyRead = Pick<ReturnType<typeof useCompanySelection>, 'error' | 'isRefreshing' | 'refetch'>;
-export type CompanyActionRead = CompanyRead &
-  Pick<
-    ReturnType<typeof useCompanySelection>,
-    'assertCurrent' | 'requestConfig' | 'companyKey' | 'scopeKey' | 'canAdmin' | 'ownerBusiness'
-  >;
 
 export function CompanyStatusMark({ status, label }: { status: CompanyStatus; label: string }) {
   const tone = COMPANY_STATUS_TONES.get(status) ?? 'closed';
