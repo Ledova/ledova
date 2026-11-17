@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useNavigation, usePreventRemove } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -51,7 +51,6 @@ export function InvitationScreen() {
   const shown = read.owner && valid && preview.isSuccess ? preview.data : null;
   const accepted = shown?.status === 'accepted' && !read.retry;
   const held = read.busy || !!read.retry;
-  usePreventRemove(held, () => {});
   return (
     <Page testID="invitation-scroll" title="Member invitation">
       <MemberNotice read={read} />

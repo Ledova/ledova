@@ -9,7 +9,7 @@ import {
   type RefObject,
 } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
-import { useNavigation, type RouteProp, usePreventRemove } from '@react-navigation/native';
+import { useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -367,7 +367,6 @@ function ClassCorrections({
     });
   }, []);
   const held = heldRecords.size > 0;
-  usePreventRemove(held, () => {});
   const open = !!reviewing || !!openingReview;
   useEffect(() => {
     onBusyChange(open || held);
