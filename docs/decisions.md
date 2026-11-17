@@ -2744,8 +2744,9 @@ Class editing must not rewrite recorded ownership or retained decisions. Deletio
 genuinely unused classes; a class with no current shares can still have retained history. The owner
 subsequently approved deleting an unopened class with abandoned setup drafts: remove it from active
 use, retain its original identity, deletion actor/time, drafts, decisions and evidence, and allow its
-code to be reused. Outstanding reviews and confirmed ownership records remain protected, and the
-web explains why deletion is blocked. The owner then extended this to a confirmed empty opening:
+code to be reused. Confirmed ownership records remain protected, and the
+web explains why deletion is blocked. Outstanding reviews were protected too until 16 November
+(see the #1657 paragraph below). The owner then extended this to a confirmed empty opening:
 it may leave active use while its opening and audit records stay intact, provided the class has
 never recorded actual ownership activity. A zero current balance after ownership activity does not
 qualify. The owner also confirmed one web navigation entry: Dashboard's Set up your ledger and
@@ -2767,6 +2768,14 @@ are unchanged. Existing ownership activity, linked business records and deployme
 remain; a zero current balance after past ownership does not qualify. The owner clarified that
 history should be retained without a visible history section. Company packs include the audit;
 there is no separate history page or read API. No native UI change is included.
+
+Since [#1657](https://github.com/Ledova/ledova/pull/1657) (16 November), deleting an unused class
+also retires its saved setup reviews in the same transaction. That includes a review an approver
+has approved but nobody has confirmed, and the person deleting needs preparation authority, not
+approval authority. The reviews, their decisions, documents and audit history are kept, attributed
+to the deletion. This entry records the delivered behaviour under
+[#1670](https://github.com/Ledova/ledova/issues/1670); the owner has not ruled
+separately on the approved-but-unconfirmed case.
 
 On 17 November, under [#1675](https://github.com/Ledova/ledova/issues/1675), the owner approved
 editing or retiring an otherwise unused class after Class rights have been recorded. Rights
