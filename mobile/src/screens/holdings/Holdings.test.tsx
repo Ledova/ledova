@@ -2456,6 +2456,18 @@ it('records an accepted officer invitation without changing the chosen company, 
     });
   });
   const unopened = { company: ADMINISTERED.uuid, token: PREFERENCE.uuid };
+  own = { ...ADMINISTRATION, capabilities: ['approve'] };
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+  });
+  await view.rerender(<ShareClassScreen route={{ key: 'approver-class', name: 'ShareClass', params: unopened }} />);
+  expect(await screen.findByText(savedTerms)).toBeTruthy();
+  expect(screen.queryByRole('header', { name: 'Ledger setup' })).toBeNull();
+  await view.rerender(<></>);
+  own = ADMINISTRATION;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+  });
   await view.rerender(<ShareClassScreen route={{ key: 'unopened-class', name: 'ShareClass', params: unopened }} />);
   expect(await screen.findByRole('header', { name: 'Ledger setup' })).toBeTruthy();
   expect(screen.queryByRole('header', { name: 'Class details' })).toBeNull();

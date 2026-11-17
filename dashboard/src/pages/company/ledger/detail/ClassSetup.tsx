@@ -53,6 +53,7 @@ export function ClassSetup({
   classReview,
   classContentHeld = false,
   onRecordsChanged,
+  onCannotOpen,
 }: {
   uuid: string;
   owner: OrderSubmissionOwner;
@@ -67,6 +68,7 @@ export function ClassSetup({
   classReview?: ReactNode;
   classContentHeld?: boolean;
   onRecordsChanged?: () => void;
+  onCannotOpen?: () => void;
 }) {
   const client = useQueryClient();
   const [search] = useSearchParams();
@@ -114,6 +116,10 @@ export function ClassSetup({
     (!register.data?.initialized || !imports.data?.some((proposal) => proposal.status === 'applied') || !!correction);
   const canPrepare = !!steps?.prepare && correctable;
   const canOpen = saved ? saved.status !== 'rejected' || canPrepare : canPrepare;
+  const cannotOpen = !keeping && fresh && !record && !!mirrorAllowed && !!correctable && !canOpen;
+  useEffect(() => {
+    if (cannotOpen) onCannotOpen?.();
+  }, [cannotOpen, onCannotOpen]);
   const showForm =
     available &&
     companyMatches &&

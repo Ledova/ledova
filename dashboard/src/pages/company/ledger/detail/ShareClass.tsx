@@ -96,6 +96,7 @@ function ShareClassWorkspace({
     appointments.isSuccess &&
     appointments.fetchStatus === 'idle';
   if (setup === null && ready) setSetup(canSetUp && (requested || !data.register.data?.initialized));
+  const showRecorded = useCallback(() => setSetup(false), []);
   const heldSetup = useCallback(
     (held: boolean) => {
       setSetupHeld(held);
@@ -174,6 +175,7 @@ function ShareClassWorkspace({
               externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
               classHeld={details.held}
               onHeldChange={heldSetup}
+              onCannotOpen={requested ? undefined : showRecorded}
               classActions={
                 data.token.data && (
                   <>

@@ -78,7 +78,10 @@ Ledger lists its share classes in one **Share classes** card, a compact row each
 2026): the class name with its issued shares at the right, then one muted line with its code, current
 shareholders, any authorised limit other than the internal quantity guard, and a short note while its
 ledger is not opened or issues or transfers wait to be recorded or cannot be checked (`classFacts`). Each row opens the
-class's page, which keeps the full notes. Selection controls appear only when at least one class is removable;
+class's page, which keeps the full notes. A class whose ledger is not opened shows its setup only to
+someone who can open the setup form: a preparer, or an approver or confirmer with a saved review.
+Anyone else with register access sees the read page with Class details, Class rights and the Summary.
+Selection controls appear only when at least one class is removable;
 **Select all** is omitted for a single class. Align header and row checkboxes in the same 44px column
 and with the class name, rather than centring against a multiline note. Partial selection has a mixed
 checkbox state. Protected rows remain selectable in a mixed list and keep their reasons. For company readers, the register pages (Ledger, Shareholders,

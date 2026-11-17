@@ -2432,6 +2432,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     if (url === IMPORTS) return dataPage(proposal ? [proposal] : []);
     return dataPage([]);
   });
+  appointment = { ...appointment, capabilities: ['approve'] };
+  showJourney(classPath);
+  expect(await screen.findByRole('heading', { name: 'Summary' })).toBeTruthy();
+  expect(screen.queryByRole('list', { name: 'Ledger setup steps' })).toBeNull();
+  cleanup();
+  client.clear();
+  appointment = { ...appointment, capabilities: ['prepare'] };
   showJourney(DESTINATIONS.companyRegisterSetup.path);
   const shareClass = await screen.findByRole('group', { name: 'Start with' });
   const pick = (name: string) => fireEvent.click(within(shareClass).getByRole('radio', { name }));

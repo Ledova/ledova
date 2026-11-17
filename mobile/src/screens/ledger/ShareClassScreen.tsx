@@ -202,6 +202,7 @@ function ClassPage({
   const steps = data.token.data && appointments.data ? registerSteps(appointments.data, company) : null;
   const canSetUp = !!(steps?.prepare || steps?.approve || steps?.apply);
   if (setup === null && ready) setSetup(canSetUp && (requested || !data.register.data?.initialized));
+  const showRecorded = useCallback(() => setSetup(false), []);
   const heldSetup = useCallback(
     (held: boolean) => {
       setSetupHeld(held);
@@ -333,6 +334,7 @@ function ClassPage({
             company={company}
             token={token}
             record={record}
+            onCannotOpen={requested ? undefined : showRecorded}
             externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
             classHeld={details.held}
             classContent={<ClassRights rights={rights} embedded blocked={setupHeld || detailsHeld} />}

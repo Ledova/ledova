@@ -435,6 +435,7 @@ export function ClassSetup({
   classContent,
   classReview,
   classContentHeld,
+  onCannotOpen,
   ...flow
 }: Flow & {
   owner: OrderSubmissionOwner;
@@ -453,6 +454,7 @@ export function ClassSetup({
   classContent: ReactNode;
   classReview: ReactNode;
   classContentHeld: boolean;
+  onCannotOpen?: () => void;
 }) {
   const look = useLedgerStyles();
   const link = useLinkStyle();
@@ -503,6 +505,10 @@ export function ClassSetup({
     (!register.data?.initialized || !imports.data?.some((proposal) => proposal.status === 'applied') || !!correction);
   const canPrepare = !!steps?.prepare && correctable;
   const canOpen = saved ? saved.status !== 'rejected' || canPrepare : canPrepare;
+  const cannotOpen = !retaining && fresh && !record && !!mirrorAllowed && !!correctable && !canOpen;
+  useEffect(() => {
+    if (cannotOpen) onCannotOpen?.();
+  }, [cannotOpen, onCannotOpen]);
   const showForm =
     available &&
     companyMatches &&
