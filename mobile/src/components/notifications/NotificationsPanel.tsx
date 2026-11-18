@@ -8,7 +8,7 @@ import { formatDateTime, useNotifications } from '@ledova/shared';
 import type { Notification } from '@ledova/shared';
 import { useAppTheme, useThemedStyles } from '../../contexts';
 import { AnchoredPanel, type Anchor } from '../AnchoredPanel';
-import { Action, Actions } from '../Ledger';
+import { Action, Actions, LoadMore } from '../Ledger';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 
@@ -243,20 +243,18 @@ export function NotificationsPanel({ anchor, onClose }: { anchor: Anchor | null;
                 onFollow={follow}
               />
             ))}
-            {more &&
-              (moreNotificationsFailed ? (
-                <Failure retry={loadMoreNotifications} busy={isLoadingNotifications}>
-                  More notifications could not be loaded. The list is incomplete.
-                </Failure>
-              ) : (
-                <View style={styles.more}>
-                  <Action
-                    label={isLoadingMoreNotifications ? 'Loading notifications…' : 'Load more notifications'}
-                    disabled={isLoadingNotifications || isLoadingMoreNotifications}
-                    onPress={() => void loadMoreNotifications()}
-                  />
-                </View>
-              ))}
+            {more && (
+              <View style={styles.more}>
+                <LoadMore
+                  noun="notifications"
+                  hasMore
+                  failed={moreNotificationsFailed}
+                  loading={isLoadingMoreNotifications}
+                  disabled={isLoadingNotifications}
+                  onLoad={loadMoreNotifications}
+                />
+              </View>
+            )}
           </>
         )}
       </ScrollView>

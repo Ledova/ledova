@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  RECORD_GROUP_CAP,
   REGISTER_AWARD_COPY as COPY,
   REGISTER_GRANT_COPY as GRANT_COPY,
   STAGE_TONES,
@@ -13,6 +14,7 @@ import {
   formatDate,
   formatDateTime,
   formatShortDate,
+  moreLabel,
   remainingRegisterAwardVesting,
   shareCount,
   useAwardRecordDownload,
@@ -46,8 +48,6 @@ import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { AwardAdjustmentForm, AwardVestingForm } from './AwardForms';
 import { useShareholderStyles } from './useShareholderStyles';
-
-const LATEST_VESTINGS = 3;
 
 export function AwardRecord({
   owner,
@@ -295,7 +295,7 @@ export function AwardRecord({
             vestings.length > 0 && (
               <Section title="Vesting history">
                 <Rows>
-                  {(allVestings ? vestings : vestings.slice(0, LATEST_VESTINGS)).map((event, index) => {
+                  {(allVestings ? vestings : vestings.slice(0, RECORD_GROUP_CAP)).map((event, index) => {
                     const remaining = remainingRegisterAwardVesting(event, reversals.data ?? []);
                     const correctable =
                       appointment && BigInt(award.availableShares) > 0n && remaining !== null && BigInt(remaining) > 0n;
@@ -335,9 +335,9 @@ export function AwardRecord({
                     );
                   })}
                 </Rows>
-                {vestings.length > LATEST_VESTINGS && (
+                {vestings.length > RECORD_GROUP_CAP && (
                   <MoreToggle open={allVestings} onToggle={() => setAllVestings((value) => !value)}>
-                    {allVestings ? 'Show the latest vesting events' : `Show all ${vestings.length} vesting events`}
+                    {moreLabel(allVestings, vestings.length, 'vesting events')}
                   </MoreToggle>
                 )}
                 {download.isError && download.variables?.kind === 'vesting' && downloadFailure}
