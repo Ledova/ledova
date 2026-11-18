@@ -32,10 +32,10 @@ import {
   FormActions,
   LinkRow,
   LoadError,
+  LoadMore,
   Loading,
   Outcome,
   Rows,
-  LoadMore,
   Section,
   ShowMore,
 } from '../../components/Ledger';

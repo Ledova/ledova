@@ -57,7 +57,7 @@ export const TRANSFER_GROUPS = decisionGroups('Transferred', 'transfers');
 export const CORRECTION_GROUPS = decisionGroups('Corrected', 'corrections');
 
 export const PARTICULARS_GROUPS: RecordGrouping = [
-  { key: 'all', more: { show: (count) => `Show all ${count} changes`, hide: 'Show fewer changes' } },
+  { key: 'all', more: { show: (count) => moreLabel(false, count, 'changes'), hide: moreLabel(true, 0, 'changes') } },
 ];
 
 export function recordGroup(grouping: RecordGrouping, stage: string): RecordGroupKey {

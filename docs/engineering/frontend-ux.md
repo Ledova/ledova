@@ -940,7 +940,7 @@ server:
 - **Capped groups:** a short section within a page shows its first `RECORD_GROUP_CAP` (5) rows,
   then **Show all N …** and **Show fewer …** from `moreLabel` in
   `packages/shared/src/utils/record-groups.ts`: the record groups on Issue shares, Transfer shares
-  and Corrections, and an award's vesting events. An entry's share changes are lines within one
+  and Corrections, a shareholder's particulars changes, and an award's vesting events. An entry's share changes are lines within one
   row, so they show `ENTRY_CHANGES_CAP` (2) with the same wording.
 - **Page size:** 10 rows at every width on web and app (owner, 18 November 2026), so a first page
   fits about one phone screen. `PAGE_SIZE` in `packages/shared` is the single size, and `pageOf`
