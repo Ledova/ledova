@@ -221,6 +221,7 @@ export function useClassDeletion({
     busy,
     error,
     outcome,
+    dismiss: () => setOutcome(''),
     execute,
     recover,
     close,

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { RefreshControl } from 'react-native';
-import { usePreventRemove, type RouteProp } from '@react-navigation/native';
+import { useNavigation, usePreventRemove, type RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   DESTINATIONS,
   appointmentForRegisterStep,
@@ -10,7 +11,7 @@ import {
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
-import { LoadError, Loading, Outcome } from '../../components/Ledger';
+import { LoadError, Loading } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
@@ -69,6 +70,8 @@ function CompanyLedger({
   const [refreshing, setRefreshing] = useState(false);
   const [held, setHeld] = useState(false);
   usePreventRemove(held, () => {});
+  const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList, 'Ledger'>>();
+  const clearNotice = useCallback(() => navigation.setParams({ outcome: undefined }), [navigation]);
   const registers = source.ownershipReady ? (source.registers ?? []) : [];
   const canAddClass =
     source.sourceReady &&
@@ -94,7 +97,6 @@ function CompanyLedger({
         />
       }
     >
-      {!!outcome && <Outcome>{outcome}</Outcome>}
       {source.accountError ? (
         <LoadError retry={source.retryAccount} busy={source.isRefreshing}>
           Your account could not be loaded.
@@ -115,6 +117,8 @@ function CompanyLedger({
         available={source.sourceReady}
         ready={source.ownershipReady && !source.accountError && !source.hasError && !source.invalid}
         canAdd={canAddClass}
+        notice={outcome}
+        onNoticeClear={clearNotice}
         onHeldChange={setHeld}
       />
     </Page>

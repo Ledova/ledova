@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   classFacts,
@@ -27,6 +27,8 @@ export function ShareClasses({
   available,
   ready,
   canAdd,
+  notice,
+  onNoticeClear,
   onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
@@ -37,6 +39,8 @@ export function ShareClasses({
   available: boolean;
   ready: boolean;
   canAdd: boolean;
+  notice?: string;
+  onNoticeClear: () => void;
   onHeldChange: (held: boolean) => void;
 }) {
   const look = useLedgerStyles();
@@ -67,6 +71,17 @@ export function ShareClasses({
     session: orderSubmissionSession,
   });
   const operation = deletion.removal;
+  const { dismiss } = deletion;
+  const focused = useIsFocused();
+  const wasFocused = useRef(focused);
+  useEffect(() => {
+    if (wasFocused.current && !focused) {
+      dismiss();
+      onNoticeClear();
+    }
+    wasFocused.current = focused;
+  }, [focused, dismiss, onNoticeClear]);
+  const outcome = deletion.outcome || notice;
   const locked = !!operation || !available || !ready;
   const close = async () => {
     if (await deletion.close()) setSelected(new Set());
@@ -75,6 +90,7 @@ export function ShareClasses({
     <>
       <View style={[look.stack, !ready && look.hidden]}>
         <Section title="Share classes">
+          {!!outcome && <Outcome>{outcome}</Outcome>}
           {hasControls && listed.length > 1 && (
             <Checkbox
               label="Select all"
@@ -150,7 +166,10 @@ export function ShareClasses({
               <Action
                 label="Delete selected"
                 disabled={locked || deletableCount === 0}
-                onPress={() => deletion.open(selected)}
+                onPress={() => {
+                  onNoticeClear();
+                  deletion.open(selected);
+                }}
               />
             )}
             {canAdd && (
@@ -164,7 +183,6 @@ export function ShareClasses({
           </Actions>
         )}
       </View>
-      {!!deletion.outcome && <Outcome>{deletion.outcome}</Outcome>}
       {!operation && !!deletion.error && (
         <Text accessibilityRole="alert" style={look.smallError}>
           {deletion.error}

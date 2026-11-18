@@ -26,6 +26,8 @@ export function ShareClasses({
   visible,
   blocked,
   canAdd,
+  notice,
+  onNoticeClear,
   onHeldChange,
 }: {
   owner: OrderSubmissionOwner;
@@ -38,6 +40,8 @@ export function ShareClasses({
   visible: boolean;
   blocked: boolean;
   canAdd: boolean;
+  notice?: string;
+  onNoticeClear: () => void;
   onHeldChange: (held: boolean) => void;
 }) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
@@ -64,6 +68,7 @@ export function ShareClasses({
     <div hidden={!visible || !available} className="space-y-4">
       <div hidden={!ready} className="space-y-4">
         <Section title="Share classes">
+          <Outcome>{deletion.outcome || notice}</Outcome>
           {hasControls && listed.length > 1 && (
             <div className="[&_input]:mx-auto [&_input]:size-4 [&_label]:grid [&_label]:min-h-11 [&_label]:grid-cols-[2.75rem_1fr] [&_label]:gap-3">
               <CheckboxField
@@ -145,7 +150,10 @@ export function ShareClasses({
               label="Delete selected"
               destructive
               disabled={locked || deletableCount === 0}
-              onClick={() => deletion.open(selected)}
+              onClick={() => {
+                onNoticeClear();
+                deletion.open(selected);
+              }}
             />
           )}
           {canAdd && (
@@ -157,7 +165,6 @@ export function ShareClasses({
           )}
         </Actions>
       </div>
-      <Outcome>{deletion.outcome}</Outcome>
       {!operation && <Failure>{deletion.error}</Failure>}
       {operation && (
         <Modal

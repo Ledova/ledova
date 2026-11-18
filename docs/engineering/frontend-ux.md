@@ -462,7 +462,9 @@ for confirmation naming that class. Explain that saved setup reviews are retired
 automatically and their records and audit history are kept. When records prevent deletion, retain a disabled **Delete share class** action for authorised
 preparers with the API's plain reason visibly beside it and linked as its accessible description.
 A lost reply holds the original action for checking. Recorded ownership, rights revisions and
-documents are never erased by this control.
+documents are never erased by this control. After a deletion, from the class page or **Delete
+selected**, the `Outcome` line ("Share class deleted.") sits at the top of Ledger's Share classes
+card, on web and app, and clears when another deletion starts or the app leaves Ledger.
 A shareholder's page owns their **Documents** section; do not duplicate it on the web class page.
 Use **Add documents**, not Edit: uploads append linked attachments rather than overwrite stored
 files. Keep the action visible to current preparers when no holding exists, disabled with
@@ -703,6 +705,7 @@ rather than its identifier. It reports:
 - the downloaded unsigned certificate, inspection copy and company pack;
 - a recorded team invitation, an accepted invitation and a representative authority request;
 - member access's recorded invitation;
+- deleted share classes, at the top of Ledger's Share classes card;
 - a prepared correction or non-paid transfer, or a made particulars change, on the record you land
   on in Ledger.
 
