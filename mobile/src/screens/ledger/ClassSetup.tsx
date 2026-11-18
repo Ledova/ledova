@@ -9,7 +9,6 @@ import {
   FIELD_LIMITS,
   REGISTER_CLASS_TYPES,
   REGISTER_IMPORT_COPY as COPY,
-  REGISTER_SETUP_CHOICES,
   USER_PREFERENCES_QUERY_KEY,
   appointmentForRegisterStep,
   canOpenEmptyRegister,
@@ -364,7 +363,7 @@ function FreshClass({
           )}
           <Choices
             legend="Start with"
-            options={REGISTER_SETUP_CHOICES}
+            options={fresh.choices}
             value={fresh.choice}
             disabled={fresh.classLocked || !ready}
             onChange={fresh.choose}
@@ -378,24 +377,24 @@ function FreshClass({
               to bring in shareholder particulars.
             </Text>
           )}
-          <>
-            <Field
-              label="Class name"
-              value={fresh.name}
-              maxLength={FIELD_LIMITS.CLASS_NAME}
-              editable={!fresh.classLocked && ready}
-              onChange={fresh.setName}
-            />
-            <Field
-              label="Class code"
-              value={fresh.symbol}
-              maxLength={FIELD_LIMITS.CLASS_CODE}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              editable={!fresh.classLocked && ready}
-              onChange={(symbol) => fresh.setSymbol(symbol.toUpperCase())}
-            />
-            {fresh.choice === 'custom' && (
+          {fresh.choice === 'custom' && (
+            <>
+              <Field
+                label="Class name"
+                value={fresh.name}
+                maxLength={FIELD_LIMITS.CLASS_NAME}
+                editable={!fresh.classLocked && ready}
+                onChange={fresh.setName}
+              />
+              <Field
+                label="Class code"
+                value={fresh.symbol}
+                maxLength={FIELD_LIMITS.CLASS_CODE}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                editable={!fresh.classLocked && ready}
+                onChange={(symbol) => fresh.setSymbol(symbol.toUpperCase())}
+              />
               <Choices
                 legend="Class type"
                 options={REGISTER_CLASS_TYPES}
@@ -403,8 +402,8 @@ function FreshClass({
                 disabled={fresh.classLocked || !ready}
                 onChange={fresh.setTokenType}
               />
-            )}
-          </>
+            </>
+          )}
         </View>
       }
     />

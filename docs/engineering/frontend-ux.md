@@ -36,8 +36,8 @@ A stepped preparation (register setup, an investor issue, a transfer) is one car
 the task, `FormSteps` sits at its top, each step has a small heading unless it would repeat the step's name, as in
 register setup, and one primary action ends the step.
 Web and native register setup use one **Ledger setup** card, with **Share class**, **Class rights**,
-**Shareholders** and **Review** steps. The class name stays in the page header. The first step groups name, code, any type asked for
-and record date, reusing the inline metadata editor rather than a separate Class details card or nested card.
+**Shareholders** and **Review** steps. The class name stays in the page header. The first step groups any name, code and type asked for
+and the record date, reusing the inline metadata editor rather than a separate Class details card or nested card.
 In its read view, name/code and type/date share a two-column grid on wide screens, with labels
 above values, stacking on phones. **Edit** and **Delete share class** appear only on the Share class step, alongside
 Cancel/Import/Continue in one bottom-right workflow footer. Later steps show only their own
@@ -46,9 +46,10 @@ continuing without rights creates no assumed terms or revision. Shareholders gro
 **Continue** in that footer; an open shareholder editor keeps its own Cancel/Add or Save controls.
 Do not add a second class-action row or controls beside the setup heading.
 New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
-New-class presets use one **Start with** radio group, one preset per line. Name/code and type/date then share
-the existing two-column form grid, stacking on phones. A common class sets its own type, so
-Class type is asked only for **Another class**. The Class rights step groups its heading, status and Add action together;
+New-class presets use one **Start with** radio group, one preset per line, leaving out a common class whose code
+the company already uses. A common class sets its own name, code and type, so Class name, Class code and Class type
+are asked only for **Another class**. Name/code and type/date then share the existing two-column form grid, stacking
+on phones. The Class rights step groups its heading, status and Add action together;
 the governing-document note appears with its editor or recorded terms.
 While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
 Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and

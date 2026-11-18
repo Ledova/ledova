@@ -419,6 +419,11 @@ The redeemable preset uses ASIC's code for redeemable preference shares, REDP;
 ASIC's RED means redeemable shares. Classes already recorded keep their codes and
 types, and an existing class's details stay editable.
 
+On 19 November 2026 the owner approved locking a common class's name and code as
+well ([#1695](https://github.com/Ledova/ledova/issues/1695)): Ordinary (ORD),
+Preference (PRF) and Redeemable preference (REDP) set the class name, code and
+type, and only **Another class** asks for them.
+
 Use one cohesive workspace with a single page heading, compact progress,
 focused forms and a clear ownership summary. Use a compact list and one
 shareholder editor at a time. Draft edits do not overwrite confirmed history or
