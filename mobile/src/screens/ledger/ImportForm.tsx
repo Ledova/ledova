@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Keyboard, Text, View } from 'react-native';
+import { usePreventRemove } from '@react-navigation/native';
 import { randomUUID } from 'expo-crypto';
 import {
   FIELD_LIMITS,
@@ -53,7 +54,14 @@ export function ImportForm({
   const styles = useCompanyStyles();
   const { steps, blocked, correction, emptyOpeningAllowed = false, visible = true } = options;
   const setupSteps = classContent ? REGISTER_SETUP_STEPS_WITH_RIGHTS : REGISTER_SETUP_STEPS;
-  const model = useImportPreparation({ ...options, newKey: randomUUID, session: orderSubmissionSession });
+  const [after, setAfter] = useState<{ run: () => void } | null>(null);
+  const model = useImportPreparation({
+    ...options,
+    onPrepared: (token, uuid) => setAfter({ run: () => options.onPrepared(token, uuid) }),
+    onFinished: () => setAfter({ run: options.onFinished }),
+    newKey: randomUUID,
+    session: orderSubmissionSession,
+  });
   const [running, setRunning] = useState<string | null>(null);
   const track = (key: string, work: Promise<unknown>) => {
     setRunning(key);
@@ -61,6 +69,13 @@ export function ImportForm({
   };
   const { draft, proposal, phase, mutable, canPrepare, busy, uncertain, recovery, deciding, autoApply, kind } = model;
   const locked = busy || uncertain || blocked;
+  const leaving = busy || deciding || (visible && (uncertain || !!recovery));
+  usePreventRemove(leaving, () => {});
+  useEffect(() => {
+    if (!after || leaving) return;
+    setAfter(null);
+    after.run();
+  }, [after, leaving]);
   const editable = visible && mutable && canPrepare;
   const reviewing = visible && !mutable && proposal?.status === 'submitted';
   const recorded = visible && !mutable && proposal?.status === 'applied';

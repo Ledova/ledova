@@ -127,7 +127,6 @@ export function GrantRecord({
         </View>
       )}
       <RegisterDecisions
-        guardLeaving
         approveLabel="Review and approve"
         family={REGISTER_GRANT_DECISIONS}
         copy={DECISION_COPY}

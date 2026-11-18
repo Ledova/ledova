@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePreventRemove } from '@react-navigation/native';
 import { Keyboard, Text, View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
@@ -65,6 +65,7 @@ function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
     session: orderSubmissionSession,
   });
   const { editor } = documents;
+  const [downloading, setDownloading] = useState<string | null>(null);
   useEffect(() => {
     onHeldChange(!!editor || documents.busy || documents.held);
     return () => onHeldChange(false);
@@ -108,10 +109,13 @@ function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
                       </Text>
                     </View>
                     <Action
-                      label="Download"
+                      label={downloading === document.uuid ? 'Downloading…' : 'Download'}
                       accessibilityLabel={`Download (${document.snapshot.name})`}
                       disabled={documents.busy}
-                      onPress={() => void documents.download(document)}
+                      onPress={() => {
+                        setDownloading(document.uuid);
+                        void documents.download(document).finally(() => setDownloading(null));
+                      }}
                     />
                   </View>
                 );
