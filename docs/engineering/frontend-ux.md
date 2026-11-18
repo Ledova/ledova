@@ -841,8 +841,8 @@ company-change safeguards are checked in review and the existing dashboard journ
 
 A question with a few fixed answers shows them all as radio buttons, so nothing has to be opened to
 see the choices. `Choices` (`dashboard/src/components/Choices.tsx`) is a fieldset whose legend is the
-question, with one native radio button per answer and one answer per line, 44px tall below `sm` and
-36px on wider screens, so long answers and large text keep the buttons in one aligned column; the
+question, with one native radio button per answer and one answer per line, at least 44px tall below
+`sm` and 36px on wider screens, so long answers and large text keep the buttons in one aligned column; the
 arrow keys move between answers. The app's `Choices` (`mobile/src/components/Field.tsx`) lays its
 answers out the same way, each row at least 44px tall. Both ask for:
 

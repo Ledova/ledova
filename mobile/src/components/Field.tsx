@@ -29,7 +29,7 @@ const DATE_INPUT = {
 
 function dateDigits(text: string, before: string) {
   let digits = text.replace(/\D/g, '');
-  if (text.length < before.length && digits === before.replace(/\D/g, '')) {
+  if (text.length === before.length - 1 && digits === before.replace(/\D/g, '')) {
     let at = 0;
     while (at < text.length && text[at] === before[at]) at += 1;
     const kept = before.slice(0, at).replace(/\D/g, '').length;

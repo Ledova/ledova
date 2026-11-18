@@ -151,7 +151,7 @@ export function AwardForm({
           date
           editable={!locked}
           error={checks.field('termsOn').error}
-          onChange={(termsOn) => award.setTermsOn(termsOn.trim())}
+          onChange={award.setTermsOn}
         />
         <FileField
           label="Document"
@@ -278,7 +278,7 @@ export function AwardVestingForm({
         date
         editable={!locked}
         error={checks.field('vestedOn').error}
-        onChange={(vestedOn) => vesting.setVestedOn(vestedOn.trim())}
+        onChange={vesting.setVestedOn}
       />
       <FileField
         label="Document"
@@ -371,7 +371,7 @@ export function AwardAdjustmentForm(
         date
         editable={!locked}
         error={checks.field('companyEventOn').error}
-        onChange={(companyEventOn) => change.setCompanyEventOn(companyEventOn.trim())}
+        onChange={change.setCompanyEventOn}
       />
       <Field
         label={COPY.REASON}

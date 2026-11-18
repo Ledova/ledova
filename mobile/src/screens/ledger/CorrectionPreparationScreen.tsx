@@ -308,7 +308,7 @@ function CorrectionForm({
         editable={!busy}
         date
         error={checks.field('effectiveOn').error}
-        onChange={(effectiveOn) => update({ effectiveOn: effectiveOn.trim() })}
+        onChange={(effectiveOn) => update({ effectiveOn })}
       />
       <FileField
         label={COPY.AUTHORITY_DOCUMENT}

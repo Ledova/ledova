@@ -315,7 +315,7 @@ function TransferForm({
         multiline={key === 'terms'}
         rows={3}
         error={checks.field(key).error}
-        onChange={(value) => model.change(key, date || key === 'shares' ? value.trim() : value)}
+        onChange={(value) => model.change(key, key === 'shares' ? value.trim() : value)}
       />
     );
   };

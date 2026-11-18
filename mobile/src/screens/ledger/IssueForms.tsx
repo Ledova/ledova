@@ -264,7 +264,7 @@ export function AllotmentForm({
         multiline={key === 'terms'}
         rows={3}
         error={checks.field(key).error}
-        onChange={(value) => change(key)(date ? value.trim() : value)}
+        onChange={change(key)}
       />
     );
   };
@@ -491,7 +491,7 @@ export function GrantForm({
           date
           editable={!locked}
           error={checks.field('companyEventOn').error}
-          onChange={(date) => model.setCompanyEventOn(date.trim())}
+          onChange={model.setCompanyEventOn}
         />
         {award ? (
           <>
@@ -531,7 +531,7 @@ export function GrantForm({
               date
               editable={!locked}
               error={checks.field('termsOn').error}
-              onChange={(date) => model.setTermsOn(date.trim())}
+              onChange={model.setTermsOn}
             />
             <Field
               label={GRANT_COPY.TERMS}

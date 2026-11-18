@@ -459,7 +459,7 @@ function PersonFields({
         value={row.enteredOn}
         date
         editable={!locked}
-        onChange={(enteredOn) => update({ enteredOn: enteredOn.trim() })}
+        onChange={(enteredOn) => update({ enteredOn })}
       />
       <Field
         label="Current shares held"
@@ -588,7 +588,7 @@ function AllotmentFields({
                 value={allotment.allottedOn}
                 date
                 editable={!locked}
-                onChange={(allottedOn) => set({ allottedOn: allottedOn.trim() })}
+                onChange={(allottedOn) => set({ allottedOn })}
               />
               <Field
                 label="Shares"
