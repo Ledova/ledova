@@ -9,7 +9,6 @@ import {
   DESTINATIONS,
   REGISTER_CLASS_TYPES,
   REGISTER_IMPORT_COPY,
-  REGISTER_SETUP_CHOICES,
   AUTH_QUERY_KEY,
   USER_PREFERENCES_QUERY_KEY,
   createUserFriendlyError,
@@ -199,6 +198,7 @@ function FreshClass({
   );
   const {
     choice,
+    choices,
     choose,
     name,
     setName,
@@ -282,13 +282,7 @@ function FreshClass({
             </p>
           )}
           <div className="md:col-span-2">
-            <Choices
-              legend="Start with"
-              options={REGISTER_SETUP_CHOICES}
-              value={choice}
-              disabled={classLocked}
-              onChange={choose}
-            />
+            <Choices legend="Start with" options={choices} value={choice} disabled={classLocked} onChange={choose} />
           </div>
           {classes.some((token) => token.status !== 'draft') && (
             <p className="text-sm text-text-muted md:col-span-2">
@@ -303,30 +297,32 @@ function FreshClass({
               to bring in shareholder particulars.
             </p>
           )}
-          <Field label="Class name">
-            <TextInput
-              maxLength={FIELD_LIMITS.CLASS_NAME}
-              disabled={classLocked}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </Field>
-          <Field label="Class code">
-            <TextInput
-              maxLength={FIELD_LIMITS.CLASS_CODE}
-              disabled={classLocked}
-              value={symbol}
-              onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-            />
-          </Field>
           {choice === 'custom' && (
-            <Choices
-              legend="Class type"
-              options={REGISTER_CLASS_TYPES}
-              value={tokenType}
-              disabled={classLocked}
-              onChange={setTokenType}
-            />
+            <>
+              <Field label="Class name">
+                <TextInput
+                  maxLength={FIELD_LIMITS.CLASS_NAME}
+                  disabled={classLocked}
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </Field>
+              <Field label="Class code">
+                <TextInput
+                  maxLength={FIELD_LIMITS.CLASS_CODE}
+                  disabled={classLocked}
+                  value={symbol}
+                  onChange={(event) => setSymbol(event.target.value.toUpperCase())}
+                />
+              </Field>
+              <Choices
+                legend="Class type"
+                options={REGISTER_CLASS_TYPES}
+                value={tokenType}
+                disabled={classLocked}
+                onChange={setTokenType}
+              />
+            </>
           )}
         </>
       }

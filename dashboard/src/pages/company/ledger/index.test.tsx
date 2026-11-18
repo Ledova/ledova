@@ -2448,10 +2448,12 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     within(shareClass)
       .getAllByRole('radio')
       .map((radio) => (radio as HTMLInputElement).value),
-  ).toEqual(['ordinary', 'preference', 'redeemable', 'custom']);
-  expect(within(shareClass).getByRole('radio', { checked: true }).getAttribute('value')).toBe('ordinary');
-  expect((screen.getByLabelText('Class code') as HTMLInputElement).value).toBe('ORD');
+  ).toEqual(['preference', 'redeemable', 'custom']);
+  expect(within(shareClass).getByRole('radio', { checked: true }).getAttribute('value')).toBe('preference');
   expect(screen.queryByRole('button', { name: 'Add class rights' })).toBeNull();
+  pick('Redeemable preference (REDP)');
+  expect(within(shareClass).getByRole('radio', { name: 'Redeemable preference (REDP)', checked: true })).toBeTruthy();
+  expect(screen.queryByLabelText('Class code')).toBeNull();
   expect(screen.queryByRole('group', { name: 'Class type' })).toBeNull();
   pick('Another class');
   expect(screen.getByRole('group', { name: 'Class type' })).toBeTruthy();
@@ -2459,14 +2461,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getByLabelText('Class code'), { target: { value: 'A' } });
   expect((screen.getByLabelText('Class name') as HTMLInputElement).value).toBe('Company A shares');
   expect((screen.getByLabelText('Class code') as HTMLInputElement).maxLength).toBe(5);
-  pick('Preference (PRF)');
-  expect(within(shareClass).getByRole('radio', { name: 'Preference (PRF)', checked: true })).toBeTruthy();
-  expect((screen.getByLabelText('Class name') as HTMLInputElement).value).toBe('Preference shares');
-  expect((screen.getByLabelText('Class code') as HTMLInputElement).value).toBe('PRF');
-  expect(screen.queryByRole('group', { name: 'Class type' })).toBeNull();
-  pick('Redeemable preference (REDP)');
-  expect(within(shareClass).getByRole('radio', { name: 'Redeemable preference (REDP)', checked: true })).toBeTruthy();
-  expect((screen.getByLabelText('Class code') as HTMLInputElement).value).toBe('REDP');
   expect(api.post).not.toHaveBeenCalled();
   expect(screen.getByRole('link', { name: 'open Ledger' }).getAttribute('href')).toBe(
     `/company/ledger?company=${company.uuid}`,
@@ -3230,13 +3224,14 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     throw Object.assign(new Error('Class creation refused'), { response: { status: creationRefusal } });
   });
   const refusedClass = createHook();
+  act(() => refusedClass.result.current.setSymbol('EMP'));
   for (const status of [400, 409]) {
     creationRefusal = status;
     await act(async () => {
       await expect(refusedClass.result.current.resolveRegister()).rejects.toThrow('Class creation refused');
     });
     expect(refusedClass.result.current.classLocked).toBe(false);
-    act(() => refusedClass.result.current.setSymbol('EMP'));
+    act(() => refusedClass.result.current.choose('custom'));
   }
   expect(api.post).toHaveBeenCalledTimes(2);
   expect(api.post.mock.calls.map(([, request]) => request.symbol)).toEqual(['ORD', 'EMP']);

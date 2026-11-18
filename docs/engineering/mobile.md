@@ -435,8 +435,8 @@ corrections, opening records and particulars changes while none is.
 Class setup (`ClassSetup.tsx`, rendered by `ShareClassScreen.tsx`) is the web's register setup at phone width, through the
 shared `useImportPreparation`, `useNewShareClass`, `useImportRegister` and `useStartedClasses`
 (`ImportForm.tsx`, `ImportShareholders.tsx`). Opened from **Add share class**, it is the web's four
-steps for a new class: Share class (Ordinary, Preference, Redeemable or Another class with its name,
-code and type, any class already started as links, and the record date), Class rights (the company's
+steps for a new class: Share class (Ordinary, Preference or Redeemable preference, which set their own name,
+code and type, or Another class with its name, code and type; any class already started, as links; and the record date), Class rights (the company's
 structured terms and governing documents, using the existing editor and the shared `useNewClassRights`
 for a new class, with its own explicit save and recovery), Shareholders (each opening
 shareholder chosen from the company's people or New person, with their name, address, first date and

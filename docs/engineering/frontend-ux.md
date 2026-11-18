@@ -46,9 +46,10 @@ continuing without rights creates no assumed terms or revision. Shareholders gro
 **Continue** in that footer; an open shareholder editor keeps its own Cancel/Add or Save controls.
 Do not add a second class-action row or controls beside the setup heading.
 New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
-New-class presets use one **Start with** radio group, one preset per line. Name/code and type/date then share
-the existing two-column form grid, stacking on phones. A common class sets its own type, so
-Class type is asked only for **Another class**. The Class rights step groups its heading, status and Add action together;
+New-class presets use one **Start with** radio group, one preset per line, leaving out a common class whose code
+the company already uses. A common class sets its own name, code and type, so Class name, Class code and Class type
+are asked only for **Another class**. Name/code and type/date then share the existing two-column form grid, stacking
+on phones. The Class rights step groups its heading, status and Add action together;
 the governing-document note appears with its editor or recorded terms.
 While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
 Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and

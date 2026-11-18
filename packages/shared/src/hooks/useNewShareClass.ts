@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { TECHNICAL_SHARE_LIMIT } from '../constants/business/register';
-import { REGISTER_SETUP_CLASSES } from '../constants/business/register-imports';
+import { REGISTER_SETUP_CHOICES, REGISTER_SETUP_CLASSES } from '../constants/business/register-imports';
 import { createCompanyToken, getCompanyToken, getRegisterClasses } from '../services/company-tokens';
 import type { Company, CompanyShareToken, TokenCreate, TokenType } from '../types';
 import { createUserFriendlyError, failureStatus } from '../utils/errors';
@@ -31,11 +31,20 @@ export function useNewShareClass({
   session,
 }: NewShareClassOptions) {
   const apiClient = useApiClient();
-  const [choice, setChoice] = useState('ordinary');
-  const [name, setName] = useState('Ordinary shares');
-  const [symbol, setSymbol] = useState('ORD');
-  const [tokenType, setTokenType] = useState<TokenType>('ordinary');
+  const [picked, setPicked] = useState<string>();
+  const [customName, setName] = useState('');
+  const [customSymbol, setSymbol] = useState('');
+  const [customType, setTokenType] = useState<TokenType>('ordinary');
   const [classLocked, setClassLocked] = useState(false);
+  const used = (code: string) => classes.some((token) => token.symbol === code);
+  const choice = picked ?? REGISTER_SETUP_CLASSES.find((item) => !used(item.symbol))?.type ?? 'custom';
+  const preset = REGISTER_SETUP_CLASSES.find((item) => item.type === choice);
+  const name = preset?.name ?? customName;
+  const symbol = preset?.symbol ?? customSymbol;
+  const tokenType = preset?.type ?? customType;
+  const choices = REGISTER_SETUP_CHOICES.filter(
+    ([value]) => value === choice || !REGISTER_SETUP_CLASSES.some((item) => item.type === value && used(item.symbol)),
+  );
   const creation = useRef<{ request: TokenCreate; dispatched: boolean; token?: CompanyShareToken } | null>(null);
   const check = () => {
     guard();
@@ -43,16 +52,11 @@ export function useNewShareClass({
     if (!ready) throw createUserFriendlyError('Refresh current company authority and records before continuing.');
   };
   const config = () => ({ ...session?.requestConfig(), ledovaSubmissionGuard: check });
-  const choose = (selected: string) => {
-    const common = REGISTER_SETUP_CLASSES.find((item) => item.type === selected);
-    setChoice(selected);
-    setName(common?.name ?? '');
-    setSymbol(common?.symbol ?? '');
-    setTokenType(common?.type ?? 'ordinary');
-  };
+  const choose = (selected: string) => setPicked(selected);
   const resolveRegister = async () => {
     check();
     if (!creation.current) {
+      setPicked(choice);
       setClassLocked(true);
       creation.current = {
         request: {
@@ -140,10 +144,13 @@ export function useNewShareClass({
     problems.push(
       started.some(({ uuid }) => uuid === existingCode.uuid)
         ? 'This class code already exists. Continue it from “Continue a class you started”.'
-        : 'This class code already exists. Use a distinct code for a new class.',
+        : preset
+          ? 'This class code already exists. Start with another class.'
+          : 'This class code already exists. Use a distinct code for a new class.',
     );
   return {
     choice,
+    choices,
     choose,
     name,
     setName,

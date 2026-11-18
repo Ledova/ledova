@@ -2768,6 +2768,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   await fireEvent.press(await screen.findByRole('radio', { name: 'Preference (PRF)' }));
   await settled();
   expect(screen.queryByRole('radio', { name: 'Redeemable' })).toBeNull();
+  expect(screen.queryByLabelText('Class name')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
   expect(screen.getByLabelText('2. Class rights, current step')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
