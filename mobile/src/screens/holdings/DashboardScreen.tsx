@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp, type RouteProp } from '@react-navigation/native';
 import { BuildingsIcon, CaretRightIcon } from 'phosphor-react-native';
@@ -328,6 +328,7 @@ function CompanyRegister({
     company.canReadRegister && (ownership.classes.isError || ownership.overview.isError || ownership.scopeError);
   const selected = view?.classes.find(({ uuid }) => uuid === chosen?.token);
   const { holders } = ownership;
+  const holdersTop = useRef<View>(null);
   return (
     <>
       {chosen && !awaitingLedger && <Trail symbol={selected?.symbol} onBack={() => onChoose(null)} />}
@@ -374,15 +375,16 @@ function CompanyRegister({
                       ) : (
                         <>
                           <View
+                            ref={holdersTop}
                             style={look.holdersArea}
-                            accessibilityState={{ busy: holders.isPending || holders.isFetching }}
+                            accessibilityState={{ busy: holders.isFetching }}
                           >
-                            {holders.isPending || holders.isFetching ? (
-                              <Text style={look.loading}>Loading shareholders…</Text>
-                            ) : holders.isError ? (
+                            {holders.isError && !holders.isFetching ? (
                               <LoadError retry={() => holders.refetch()}>
                                 The class’s shareholders could not be confirmed.
                               </LoadError>
+                            ) : !holders.data || holders.isFetching ? (
+                              <Text style={look.loading}>Loading shareholders…</Text>
                             ) : holders.data.count === 0 ? (
                               <Text style={styles.muted}>No current shareholders yet.</Text>
                             ) : (
@@ -394,13 +396,14 @@ function CompanyRegister({
                               />
                             )}
                           </View>
-                          {holders.isSuccess && !holders.isFetching && (
+                          {!!holders.data && !(holders.isError && !holders.isFetching) && (
                             <Pager
                               label="Class shareholders"
                               page={chosen.page}
                               count={holders.data.count}
                               noun={['shareholder', 'shareholders']}
                               onPage={onPage}
+                              top={holdersTop}
                             />
                           )}
                         </>

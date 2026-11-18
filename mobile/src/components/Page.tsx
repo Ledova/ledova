@@ -1,8 +1,10 @@
-import { useContext, useLayoutEffect, type ReactNode, type Ref } from 'react';
+import { createContext, useCallback, useContext, useLayoutEffect, useRef, type ReactNode, type Ref } from 'react';
 import { ScrollView, Text, View, type ScrollViewProps } from 'react-native';
 import { useNavigation, type NavigationProp, type NavigationState, type ParamListBase } from '@react-navigation/native';
 import { useThemedStyles } from '../contexts';
 import { InSignedInFrame, type FrameOptions } from './InSignedInFrame';
+
+export const PageScroll = createContext<(node: View | null) => void>(() => {});
 
 type PageProps = Pick<
   ScrollViewProps,
@@ -29,6 +31,7 @@ export function Page({
   available = true,
   unavailable,
   children,
+  innerViewRef,
   ...scroll
 }: PageProps) {
   const inFrame = useContext(InSignedInFrame);
@@ -65,46 +68,70 @@ export function Page({
     lede: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 20, color: theme.colors.text.muted },
   }));
   const ledeText = !!lede && <Text style={styles.lede}>{lede}</Text>;
+  const view = useRef<ScrollView | null>(null);
+  const ownInner = useRef<View>(null!);
+  const inner = innerViewRef ?? ownInner;
+  const offset = useRef(0);
+  const reveal = useCallback(
+    (node: View | null) => {
+      if (!node || !inner.current) return;
+      node.measureLayout(inner.current, (_x, y) => {
+        if (y < offset.current) view.current?.scrollTo({ y: Math.max(0, y - 8), animated: false });
+      });
+    },
+    [inner],
+  );
   return (
     <ScrollView
-      ref={ref}
+      ref={(node) => {
+        view.current = node;
+        if (typeof ref === 'function') ref(node);
+        else if (ref) ref.current = node;
+      }}
+      onScroll={(event) => {
+        offset.current = event.nativeEvent.contentOffset.y;
+      }}
+      scrollEventThrottle={64}
+      innerViewRef={inner}
       style={styles.page}
       contentContainerStyle={[styles.content, inFrame && styles.framed]}
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
       {...scroll}
     >
-      {inFrame ? (
-        <>
-          {links}
-          {ledeText}
-        </>
-      ) : (
-        <View>
-          <View style={styles.titleRow}>
-            <Text accessibilityRole="header" style={styles.title}>
-              {title}
-            </Text>
-            {titleAction}
+      <PageScroll.Provider value={reveal}>
+        {inFrame ? (
+          <>
+            {links}
+            {ledeText}
+          </>
+        ) : (
+          <View>
+            <View style={styles.titleRow}>
+              <Text accessibilityRole="header" style={styles.title}>
+                {title}
+              </Text>
+              {titleAction}
+            </View>
+            {links}
+            {ledeText}
           </View>
-          {links}
-          {ledeText}
-        </View>
-      )}
-      {unavailable === undefined ? (
-        children
-      ) : (
-        <>
-          {!available && unavailable}
-          <View
-            style={[styles.stack, !available && styles.hidden]}
-            accessibilityElementsHidden={!available}
-            importantForAccessibility={available ? 'auto' : 'no-hide-descendants'}
-          >
-            {children}
-          </View>
-        </>
-      )}
+        )}
+        {unavailable === undefined ? (
+          children
+        ) : (
+          <>
+            {!available && unavailable}
+            <View
+              style={[styles.stack, !available && styles.hidden]}
+              accessibilityElementsHidden={!available}
+              importantForAccessibility={available ? 'auto' : 'no-hide-descendants'}
+            >
+              {children}
+            </View>
+          </>
+        )}
+      </PageScroll.Provider>
     </ScrollView>
   );
 }

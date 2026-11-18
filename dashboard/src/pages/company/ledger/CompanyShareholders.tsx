@@ -195,7 +195,13 @@ export function CompanyShareholders({
               </ul>
             </div>
           )}
-          <Pager label="Shareholder pages" list={list} noun={['person', 'people']} count={count} />
+          <Pager
+            label="Shareholder pages"
+            page={list.page}
+            onPage={list.setPage}
+            noun={['person', 'people']}
+            count={count}
+          />
         </>
       )}
     </Section>

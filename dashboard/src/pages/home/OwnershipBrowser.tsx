@@ -319,16 +319,13 @@ function SignedInOwnership({
                                   </p>
                                 ) : (
                                   <>
-                                    <div
-                                      className="min-h-48"
-                                      aria-busy={ownership.holders.isPending || ownership.holders.isFetching}
-                                    >
-                                      {ownership.holders.isPending || ownership.holders.isFetching ? (
-                                        <Loading>Loading shareholders…</Loading>
-                                      ) : ownership.holders.isError ? (
+                                    <div className="min-h-48" aria-busy={ownership.holders.isFetching}>
+                                      {ownership.holders.isError && !ownership.holders.isFetching ? (
                                         <LoadError retry={() => ownership.holders.refetch()}>
                                           The class’s shareholders could not be confirmed.
                                         </LoadError>
+                                      ) : !ownership.holders.data || ownership.holders.isFetching ? (
+                                        <Loading>Loading shareholders…</Loading>
                                       ) : ownership.holders.data.count === 0 ? (
                                         <p className="text-sm text-text-muted">No current shareholders yet.</p>
                                       ) : (
@@ -340,14 +337,16 @@ function SignedInOwnership({
                                         />
                                       )}
                                     </div>
-                                    {ownership.holders.isSuccess && !ownership.holders.isFetching && (
-                                      <Pager
-                                        label="Class shareholders"
-                                        list={list}
-                                        noun={['shareholder', 'shareholders']}
-                                        count={ownership.holders.data.count}
-                                      />
-                                    )}
+                                    {!!ownership.holders.data &&
+                                      !(ownership.holders.isError && !ownership.holders.isFetching) && (
+                                        <Pager
+                                          label="Class shareholders"
+                                          page={list.page}
+                                          onPage={list.setPage}
+                                          noun={['shareholder', 'shareholders']}
+                                          count={ownership.holders.data.count}
+                                        />
+                                      )}
                                   </>
                                 )}
                                 <LinkRow
