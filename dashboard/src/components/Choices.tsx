@@ -17,9 +17,9 @@ export function Choices<T extends string>({
   return (
     <fieldset disabled={disabled} className="min-w-0 text-sm text-text-primary">
       <legend>{legend}</legend>
-      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2">
+      <div className="mt-1 flex flex-col">
         {options.map(([option, label]) => (
-          <label key={option} className="flex items-center gap-2">
+          <label key={option} className="flex min-h-11 items-center gap-2">
             <input
               type="radio"
               name={name}

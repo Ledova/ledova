@@ -33,7 +33,7 @@ import { useMemberRecordsState } from '../../contexts';
 import { useRetainedScope } from '../../hooks/useRetainedScope';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { DATE, FormNote, FormSteps } from './IssueForms';
+import { FormNote, FormSteps } from './IssueForms';
 import { useLedgerStyles } from './useLedgerStyles';
 
 const TITLE = DESTINATIONS.companyRegister.tasks.transfer;
@@ -310,10 +310,8 @@ function TransferForm({
         value={model.draft[key]}
         editable={!locked}
         maxLength={LIMITS[key]}
-        keyboardType={date ? DATE.keyboardType : key === 'shares' ? 'number-pad' : undefined}
-        placeholder={date ? DATE.placeholder : undefined}
-        autoCapitalize={date ? DATE.autoCapitalize : undefined}
-        autoCorrect={date ? DATE.autoCorrect : undefined}
+        date={date}
+        keyboardType={!date && key === 'shares' ? 'number-pad' : undefined}
         multiline={key === 'terms'}
         rows={3}
         error={checks.field(key).error}

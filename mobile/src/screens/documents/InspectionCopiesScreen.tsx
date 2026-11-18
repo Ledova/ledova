@@ -309,10 +309,7 @@ function InspectionForm({
           <Field
             label="Date of request (Sydney)"
             value={draft.requestedOn}
-            placeholder="YYYY-MM-DD"
-            keyboardType="numbers-and-punctuation"
-            autoCapitalize="none"
-            autoCorrect={false}
+            date
             editable={!blocked}
             error={checks.field('requestedOn').error}
             onChange={(requestedOn) => setDraft({ ...draft, requestedOn: requestedOn.trim() })}

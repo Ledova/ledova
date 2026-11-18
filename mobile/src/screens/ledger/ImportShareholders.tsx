@@ -27,7 +27,6 @@ import { PersonSelect } from '../../components/PersonSelect';
 import { Field, FileField } from '../../components/Field';
 import { SelectField } from '../../components/SelectField';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { DATE } from './IssueForms';
 import { MemberRow } from './ImportRecord';
 import { useLedgerStyles } from './useLedgerStyles';
 
@@ -458,7 +457,7 @@ function PersonFields({
       <Field
         label="Date first added to register"
         value={row.enteredOn}
-        {...DATE}
+        date
         editable={!locked}
         onChange={(enteredOn) => update({ enteredOn: enteredOn.trim() })}
       />
@@ -587,7 +586,7 @@ function AllotmentFields({
                 label="Date"
                 accessibilityLabel="Allocation date"
                 value={allotment.allottedOn}
-                {...DATE}
+                date
                 editable={!locked}
                 onChange={(allottedOn) => set({ allottedOn: allottedOn.trim() })}
               />

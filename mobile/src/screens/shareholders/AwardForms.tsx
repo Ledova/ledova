@@ -20,13 +20,6 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { PersonSelect } from '../../components/PersonSelect';
 import { useShareholderStyles } from './useShareholderStyles';
 
-const DATE = {
-  placeholder: 'YYYY-MM-DD',
-  keyboardType: 'numbers-and-punctuation',
-  autoCapitalize: 'none',
-  autoCorrect: false,
-} as const;
-
 function useFormStyles() {
   return useThemedStyles((theme) => {
     const ruled = { paddingTop: theme.spacing.md, borderTopWidth: 1, borderTopColor: theme.colors.border.subtle };
@@ -155,7 +148,7 @@ export function AwardForm({
         <Field
           label="Date"
           value={award.termsOn}
-          {...DATE}
+          date
           editable={!locked}
           error={checks.field('termsOn').error}
           onChange={(termsOn) => award.setTermsOn(termsOn.trim())}
@@ -282,7 +275,7 @@ export function AwardVestingForm({
       <Field
         label="Vesting date"
         value={vesting.vestedOn}
-        {...DATE}
+        date
         editable={!locked}
         error={checks.field('vestedOn').error}
         onChange={(vestedOn) => vesting.setVestedOn(vestedOn.trim())}
@@ -375,7 +368,7 @@ export function AwardAdjustmentForm(
       <Field
         label={COPY.COMPANY_EVENT_ON}
         value={change.companyEventOn}
-        {...DATE}
+        date
         editable={!locked}
         error={checks.field('companyEventOn').error}
         onChange={(companyEventOn) => change.setCompanyEventOn(companyEventOn.trim())}

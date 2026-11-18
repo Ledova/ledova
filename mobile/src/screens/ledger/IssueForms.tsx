@@ -26,13 +26,6 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useLedgerStyles } from './useLedgerStyles';
 
-export const DATE = {
-  placeholder: 'YYYY-MM-DD',
-  keyboardType: 'numbers-and-punctuation',
-  autoCapitalize: 'none',
-  autoCorrect: false,
-} as const;
-
 const STEPS = [
   {
     id: 'person',
@@ -266,10 +259,8 @@ export function AllotmentForm({
         value={form.fields[key]}
         editable={!locked}
         maxLength={LIMITS[key]}
-        keyboardType={date ? DATE.keyboardType : KEYBOARDS[key]}
-        placeholder={date ? DATE.placeholder : undefined}
-        autoCapitalize={date ? DATE.autoCapitalize : undefined}
-        autoCorrect={date ? DATE.autoCorrect : undefined}
+        date={date}
+        keyboardType={date ? undefined : KEYBOARDS[key]}
         multiline={key === 'terms'}
         rows={3}
         error={checks.field(key).error}
@@ -497,7 +488,7 @@ export function GrantForm({
         <Field
           label={GRANT_COPY.COMPANY_EVENT_ON}
           value={model.companyEventOn}
-          {...DATE}
+          date
           editable={!locked}
           error={checks.field('companyEventOn').error}
           onChange={(date) => model.setCompanyEventOn(date.trim())}
@@ -537,7 +528,7 @@ export function GrantForm({
             <Field
               label={GRANT_COPY.TERMS_ON}
               value={model.retainedDate}
-              {...DATE}
+              date
               editable={!locked}
               error={checks.field('termsOn').error}
               onChange={(date) => model.setTermsOn(date.trim())}
