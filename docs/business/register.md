@@ -221,7 +221,7 @@ web and, at phone width, in the app:
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
    limit instead of authorised capital. Repeat for each class.
-   The starting name, code and type can be customised. **Continue** opens a separate
+   The starting name and code can be customised; a different type needs **Another class**. **Continue** opens a separate
    **Class rights** step, where a company administrator can optionally record
    [Class rights](issuing-shares.md#class-rights) with a separate explicit save. Its **Continue**
    moves to Shareholders; **Back** returns to Share class. Rights come from the company's governing
