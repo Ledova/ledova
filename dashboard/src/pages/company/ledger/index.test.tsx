@@ -3197,14 +3197,21 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   });
   const createHook = () =>
     renderHook(
-      () =>
-        useNewShareClass({ guard: () => {}, checkCurrent: () => {}, company, classes: [], started: [], ready: true }),
-      { wrapper: ({ children }) => <ApiClientProvider client={apiClient}>{children}</ApiClientProvider> },
+      ({ classes }) =>
+        useNewShareClass({ guard: () => {}, checkCurrent: () => {}, company, classes, started: [], ready: true }),
+      {
+        initialProps: { classes: [] as Parameters<typeof useNewShareClass>[0]['classes'] },
+        wrapper: ({ children }) => <ApiClientProvider client={apiClient}>{children}</ApiClientProvider>,
+      },
     );
   const uncertainClass = createHook();
   await act(async () => {
     await expect(uncertainClass.result.current.resolveRegister()).rejects.toThrow('Class result lost');
   });
+  uncertainClass.rerender({
+    classes: [{ uuid: 'created-class', name: 'Ordinary shares', symbol: 'ORD', status: 'draft' }],
+  });
+  expect(uncertainClass.result.current.symbol).toBe('ORD');
   for (const status of [400, 409]) {
     readRefusal = status;
     await act(async () => {
@@ -3224,7 +3231,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     throw Object.assign(new Error('Class creation refused'), { response: { status: creationRefusal } });
   });
   const refusedClass = createHook();
-  act(() => refusedClass.result.current.setSymbol('EMP'));
+  act(() => {
+    refusedClass.result.current.setName('Employee shares');
+    refusedClass.result.current.setSymbol('EMP');
+  });
   for (const status of [400, 409]) {
     creationRefusal = status;
     await act(async () => {
@@ -3234,7 +3244,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     act(() => refusedClass.result.current.choose('custom'));
   }
   expect(api.post).toHaveBeenCalledTimes(2);
-  expect(api.post.mock.calls.map(([, request]) => request.symbol)).toEqual(['ORD', 'EMP']);
+  expect(api.post.mock.calls.map(([, request]) => [request.name, request.symbol])).toEqual([
+    ['Ordinary shares', 'ORD'],
+    ['Employee shares', 'EMP'],
+  ]);
   refusedClass.unmount();
   for (const response of [
     null,

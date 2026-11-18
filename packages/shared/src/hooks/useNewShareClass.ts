@@ -90,7 +90,9 @@ export function useNewShareClass({
             setClassLocked(false);
           }
           throw createUserFriendlyError(
-            'This class code already exists. Choose that share class or use its actual distinct code.',
+            preset
+              ? 'This class code already exists. Start with another class.'
+              : 'This class code already exists. Choose that share class or use its actual distinct code.',
           );
         }
         const { data } = await getCompanyToken(apiClient, existing.uuid, config());

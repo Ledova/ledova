@@ -444,8 +444,8 @@ current shares, the optional **Allocation history** and **Documents**, and **Sho
 and the confirmation together and returns to Dashboard. Class creation and resumed records use the same class workspace; the `RegisterSetup` stack route remains an entry for new classes and saved/correction links, not another implementation. The first step keeps the web's disabled **Import** action. Opened
 for an unfinished class, or from Corrections, it brings records into its unopened register,
 or replaces the latest applied opening's shareholder rows in full with a reason, and resumes a saved
-draft for review. One **Ledger setup** card owns the steps: the first groups name, code, any type asked
-for and record date as stacked fields, with the existing inline metadata editor and safe deletion where
+draft for review. One **Ledger setup** card owns the steps: the first groups any name, code and type asked
+for and the record date as stacked fields, with the existing inline metadata editor and safe deletion where
 permitted. Edit/Delete join the workflow actions in the bottom footer only on Share class;
 Shareholders groups Back, Add a shareholder and Continue in the same footer, while an open
 shareholder editor keeps its own Cancel/Add or Save controls. Review keeps its decision controls. It replaces
