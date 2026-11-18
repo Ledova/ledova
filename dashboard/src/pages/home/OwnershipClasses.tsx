@@ -39,8 +39,16 @@ export function OwnershipClasses({
   const [focused, setFocused] = useState<string | null>(null);
   const highlighted = hovered ?? focused ?? selected;
   const ranked = rankOwnershipClasses(classes);
-  const found = searchRows(ranked, (row) => `${row.name} ${row.symbol}`, selected ? '' : list.search);
-  const place = pageOf(found.length, selected ? pageWith(found.findIndex(({ uuid }) => uuid === selected)) : list.page);
+  const found = searchRows(ranked, (row) => `${row.name} ${row.symbol}`, list.search);
+  const [browsed, setBrowsed] = useState<{ scope: string; page: number } | null>(null);
+  const scope = `${selected}/${list.search}`;
+  const requested = !selected
+    ? list.page
+    : browsed?.scope === scope
+      ? browsed.page
+      : pageWith(found.findIndex(({ uuid }) => uuid === selected));
+  const place = pageOf(found.length, requested);
+  const turn = (page: number) => (selected ? setBrowsed({ scope, page }) : list.setPage(page));
   const shown = found.slice(place.start, place.end);
   const hasRing = complete && total !== null && total !== '0';
   return (
@@ -65,7 +73,7 @@ export function OwnershipClasses({
           />
         )}
         <div className="flex min-w-0 flex-col gap-3">
-          {classes.length > 10 && !selected && (
+          {classes.length > PAGE_SIZE && (
             <ListSearch
               label="Search share classes"
               list={list}
@@ -132,8 +140,14 @@ export function OwnershipClasses({
               {classes.length === 0 ? 'No share classes yet.' : 'No share classes match your search.'}
             </p>
           )}
-          {classes.length > PAGE_SIZE && !selected && (
-            <Pager label="Share classes" list={list} noun={['share class', 'share classes']} count={found.length} />
+          {classes.length > PAGE_SIZE && (
+            <Pager
+              label="Share classes"
+              page={place.page}
+              onPage={turn}
+              noun={['share class', 'share classes']}
+              count={found.length}
+            />
           )}
         </div>
       </div>

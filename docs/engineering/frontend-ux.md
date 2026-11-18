@@ -931,7 +931,13 @@ server:
   Keep their list semantics and editor lifetimes;
   focused editors remain unboxed. `Pager` under a paged table gives the rows shown, such as
   "1–10 of 1,240 requests", and Previous, the page number and Next when there is more than one
-  page. While new results load, the shown rows stay, dimmed and marked busy.
+  page. While new results load, the shown rows stay, dimmed and marked busy, and the pager stays
+  in place; the Dashboard's class holders instead show their loading line, since ownership figures
+  are withheld while they reread, but keep the pager. After a page change, a list whose top has scrolled out of view scrolls back to it,
+  on web and app (the app's `Page` provides `PageScroll` for that).
+- **Keeping your place:** the web keeps the page in the address, and on the app a record opens over
+  its list, which stays mounted with its page, so returning comes back to the same page. A change
+  to search or filters returns to the first page.
 - **Feeds:** `LoadMore` ends a feed with "Load more notifications" (or
   entries and so on), which names its work while it runs. When a later page fails, the shown
   rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Keyboard, RefreshControl, Text, View } from 'react-native';
 import { useNavigation, usePreventRemove } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -126,6 +126,7 @@ function CompanyShareholders({
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [page, setPage] = useState(1);
+  const listTop = useRef<View>(null);
   useEffect(() => {
     const text = typed.trim();
     if (text === search) return;
@@ -255,85 +256,94 @@ function CompanyShareholders({
         <Loading>Loading the register…</Loading>
       ) : (
         <>
-          <Section title="Current shareholders">
-            {registers.some(({ initialized }) => !initialized) && (
-              <Text style={look.muted}>
-                Unopened classes have no recorded holdings. This list includes only the opened registers.
-              </Text>
-            )}
-            {shareholders.length === 0 && people.length === 0 ? (
-              <Text style={look.muted}>No current shareholders yet.</Text>
-            ) : (
-              <>
-                {count === 0 && (!!search || filtered) && (
-                  <Text accessibilityLiveRegion="polite" style={look.muted}>
-                    No people match these filters.
-                  </Text>
-                )}
-                {unresolved > 0 && (
-                  <Text style={look.muted}>
-                    {unresolved} {unresolved === 1 ? 'shareholder needs' : 'shareholders need'} identity review. Open
-                    their details before relying on these records.
-                  </Text>
-                )}
-                {shownShareholders.length > 0 && (
-                  <View accessibilityLabel="Company shareholders">
-                    <Rows>
-                      {shownShareholders.map((member) => {
-                        const details = (
-                          <>
-                            {visibleClasses.map((register) => {
-                              const holding =
-                                register.initialized &&
-                                member.holdings.find(({ register: kept }) => kept.token.uuid === register.token.uuid);
-                              return (
-                                holding && (
-                                  <Text key={register.token.uuid} style={look.muted}>
-                                    {register.token.symbol} {formatShareCount(holding.holder.balance)} ·{' '}
-                                    {sharePercentage(holding.holder.balance, register.issuedSupply)}
-                                  </Text>
-                                )
-                              );
-                            })}
-                            {member.holdings.some(needsIdentityReview) && (
-                              <Text style={look.small}>Identity needs review</Text>
-                            )}
-                          </>
-                        );
-                        return held ? (
-                          <View key={member.member} style={look.row}>
-                            <Text style={look.title}>{member.name}</Text>
-                            {details}
-                          </View>
-                        ) : (
-                          <LinkRow key={member.member} label={member.name} onPress={() => open(member.member)}>
-                            {details}
-                          </LinkRow>
-                        );
-                      })}
-                    </Rows>
-                  </View>
-                )}
-                {shareholders.length === 0 && <Text style={look.muted}>No current shareholders yet.</Text>}
-                {shownPeople.length > 0 && (
-                  <View style={look.stack}>
-                    <Text accessibilityRole="header" style={look.heading}>
-                      People without shares
+          <View ref={listTop}>
+            <Section title="Current shareholders">
+              {registers.some(({ initialized }) => !initialized) && (
+                <Text style={look.muted}>
+                  Unopened classes have no recorded holdings. This list includes only the opened registers.
+                </Text>
+              )}
+              {shareholders.length === 0 && people.length === 0 ? (
+                <Text style={look.muted}>No current shareholders yet.</Text>
+              ) : (
+                <>
+                  {count === 0 && (!!search || filtered) && (
+                    <Text accessibilityLiveRegion="polite" style={look.muted}>
+                      No people match these filters.
                     </Text>
-                    <Rows>
-                      {shownPeople.map((row) => (
-                        <View key={row.member} style={look.row}>
-                          <Text style={look.text}>{row.name}</Text>
-                          <Text style={look.muted}>{row.residentialAddress}</Text>
-                        </View>
-                      ))}
-                    </Rows>
-                  </View>
-                )}
-                <Pager label="Shareholder pages" page={page} count={count} noun={NOUN} onPage={setPage} />
-              </>
-            )}
-          </Section>
+                  )}
+                  {unresolved > 0 && (
+                    <Text style={look.muted}>
+                      {unresolved} {unresolved === 1 ? 'shareholder needs' : 'shareholders need'} identity review. Open
+                      their details before relying on these records.
+                    </Text>
+                  )}
+                  {shownShareholders.length > 0 && (
+                    <View accessibilityLabel="Company shareholders">
+                      <Rows>
+                        {shownShareholders.map((member) => {
+                          const details = (
+                            <>
+                              {visibleClasses.map((register) => {
+                                const holding =
+                                  register.initialized &&
+                                  member.holdings.find(({ register: kept }) => kept.token.uuid === register.token.uuid);
+                                return (
+                                  holding && (
+                                    <Text key={register.token.uuid} style={look.muted}>
+                                      {register.token.symbol} {formatShareCount(holding.holder.balance)} ·{' '}
+                                      {sharePercentage(holding.holder.balance, register.issuedSupply)}
+                                    </Text>
+                                  )
+                                );
+                              })}
+                              {member.holdings.some(needsIdentityReview) && (
+                                <Text style={look.small}>Identity needs review</Text>
+                              )}
+                            </>
+                          );
+                          return held ? (
+                            <View key={member.member} style={look.row}>
+                              <Text style={look.title}>{member.name}</Text>
+                              {details}
+                            </View>
+                          ) : (
+                            <LinkRow key={member.member} label={member.name} onPress={() => open(member.member)}>
+                              {details}
+                            </LinkRow>
+                          );
+                        })}
+                      </Rows>
+                    </View>
+                  )}
+                  {shareholders.length === 0 && <Text style={look.muted}>No current shareholders yet.</Text>}
+                  {shownPeople.length > 0 && (
+                    <View style={look.stack}>
+                      <Text accessibilityRole="header" style={look.heading}>
+                        People without shares
+                      </Text>
+                      <Rows>
+                        {shownPeople.map((row) => (
+                          <View key={row.member} style={look.row}>
+                            <Text style={look.text}>{row.name}</Text>
+                            <Text style={look.muted}>{row.residentialAddress}</Text>
+                          </View>
+                        ))}
+                      </Rows>
+                    </View>
+                  )}
+                  <Pager
+                    label="Shareholder pages"
+                    page={page}
+                    count={count}
+                    noun={NOUN}
+                    onPage={setPage}
+                    top={listTop}
+                  />
+                </>
+              )}
+            </Section>
+          </View>
           <FormerShareholders registers={registers} blocked={held} onOpen={open} />
           {person.readable && person.query.isError ? (
             <LoadError retry={() => person.query.refetch()} busy={person.query.isFetching}>

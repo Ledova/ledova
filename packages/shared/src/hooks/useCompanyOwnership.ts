@@ -141,6 +141,12 @@ export function useCompanyOwnership(
       guard();
       return checkHolders(data, selected!, place.page);
     },
+    placeholderData: (previous, query) => {
+      const [from, token, sequence] = query?.queryKey.slice(-4, -1) ?? [];
+      return from === company?.uuid && token === selected?.uuid && sequence === selected?.sequence
+        ? previous
+        : undefined;
+    },
     ...READ_TIMING,
     retry: false,
   });

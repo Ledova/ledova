@@ -100,29 +100,39 @@ export function ListSearch({
 
 export function Pager({
   label,
-  list,
+  page: requested,
+  onPage,
   noun,
   count,
 }: {
   label: string;
-  list: ListParams<string>;
+  page: number;
+  onPage: (page: number) => void;
   noun: Noun;
   count: number;
 }) {
+  const nav = useRef<HTMLElement>(null);
   if (count === 0) return null;
-  const { pages, page, first, last } = pageOf(count, list.page);
+  const { pages, page, first, last } = pageOf(count, requested);
+  const go = (next: number) => {
+    onPage(next);
+    requestAnimationFrame(() => {
+      const top = (nav.current?.closest('section') ?? nav.current?.parentElement)?.getBoundingClientRect().top;
+      if (top !== undefined && top < 0) window.scrollBy({ top: top - 72 });
+    });
+  };
   return (
-    <nav aria-label={label} className="flex flex-wrap items-center justify-between gap-3">
+    <nav ref={nav} aria-label={label} className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-sm tabular-nums text-text-muted">
         {`${formatShareCount(String(first))}–${formatShareCount(String(last))} of ${counted(count, noun)}`}
       </p>
       {pages > 1 && (
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <PageAction label="Previous" context={label} disabled={page === 1} onClick={() => list.setPage(page - 1)} />
+          <PageAction label="Previous" context={label} disabled={page === 1} onClick={() => go(page - 1)} />
           <span className="text-sm tabular-nums text-text-muted">
             Page {formatShareCount(String(page))} of {formatShareCount(String(pages))}
           </span>
-          <PageAction label="Next" context={label} disabled={page === pages} onClick={() => list.setPage(page + 1)} />
+          <PageAction label="Next" context={label} disabled={page === pages} onClick={() => go(page + 1)} />
         </div>
       )}
     </nav>

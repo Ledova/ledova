@@ -1,8 +1,10 @@
+import { useContext, type RefObject } from 'react';
 import { Text, View } from 'react-native';
 import { formatShareCount, pageOf } from '@ledova/shared';
 import { useThemedStyles } from '../contexts';
 import { useCompanyStyles } from '../hooks/useCompanyStyles';
 import { Action } from './Ledger';
+import { PageScroll } from './Page';
 
 export function Pager({
   label,
@@ -10,13 +12,16 @@ export function Pager({
   count,
   noun: [one, many],
   onPage,
+  top,
 }: {
   label: string;
   page: number;
   count: number;
   noun: readonly [string, string];
   onPage: (page: number) => void;
+  top?: RefObject<View | null>;
 }) {
+  const reveal = useContext(PageScroll);
   const styles = useCompanyStyles();
   const look = useThemedStyles((theme) => ({
     pager: {
@@ -37,6 +42,10 @@ export function Pager({
   if (count === 0) return null;
   const { pages, page: shown, first, last } = pageOf(count, page);
   const total = `${formatShareCount(String(count))} ${count === 1 ? one : many}`;
+  const go = (next: number) => {
+    onPage(next);
+    requestAnimationFrame(() => reveal(top?.current ?? null));
+  };
   return (
     <View accessibilityLabel={label} style={look.pager}>
       <Text style={styles.muted}>
@@ -48,7 +57,7 @@ export function Pager({
             label="Previous"
             accessibilityLabel={`Previous (${label})`}
             disabled={shown === 1}
-            onPress={() => onPage(shown - 1)}
+            onPress={() => go(shown - 1)}
           />
           <Text style={styles.muted}>
             Page {formatShareCount(String(shown))} of {formatShareCount(String(pages))}
@@ -57,7 +66,7 @@ export function Pager({
             label="Next"
             accessibilityLabel={`Next (${label})`}
             disabled={shown === pages}
-            onPress={() => onPage(shown + 1)}
+            onPress={() => go(shown + 1)}
           />
         </View>
       )}
