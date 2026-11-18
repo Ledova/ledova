@@ -2452,7 +2452,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(shareClass).getByRole('radio', { checked: true }).getAttribute('value')).toBe('ordinary');
   expect((screen.getByLabelText('Class code') as HTMLInputElement).value).toBe('ORD');
   expect(screen.queryByRole('button', { name: 'Add class rights' })).toBeNull();
+  expect(screen.queryByRole('group', { name: 'Class type' })).toBeNull();
   pick('Another class');
+  expect(screen.getByRole('group', { name: 'Class type' })).toBeTruthy();
   fireEvent.change(screen.getByLabelText('Class name'), { target: { value: 'Company A shares' } });
   fireEvent.change(screen.getByLabelText('Class code'), { target: { value: 'A' } });
   expect((screen.getByLabelText('Class name') as HTMLInputElement).value).toBe('Company A shares');
@@ -2461,9 +2463,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(shareClass).getByRole('radio', { name: 'Preference (PRF)', checked: true })).toBeTruthy();
   expect((screen.getByLabelText('Class name') as HTMLInputElement).value).toBe('Preference shares');
   expect((screen.getByLabelText('Class code') as HTMLInputElement).value).toBe('PRF');
-  expect(screen.getByRole('group', { name: 'Class type' })).toBeTruthy();
-  pick('Redeemable preference (RED)');
-  expect(within(shareClass).getByRole('radio', { name: 'Redeemable preference (RED)', checked: true })).toBeTruthy();
+  expect(screen.queryByRole('group', { name: 'Class type' })).toBeNull();
+  pick('Redeemable preference (REDP)');
+  expect(within(shareClass).getByRole('radio', { name: 'Redeemable preference (REDP)', checked: true })).toBeTruthy();
+  expect((screen.getByLabelText('Class code') as HTMLInputElement).value).toBe('REDP');
   expect(api.post).not.toHaveBeenCalled();
   expect(screen.getByRole('link', { name: 'open Ledger' }).getAttribute('href')).toBe(
     `/company/ledger?company=${company.uuid}`,

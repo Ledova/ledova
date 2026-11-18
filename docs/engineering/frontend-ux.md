@@ -47,8 +47,8 @@ continuing without rights creates no assumed terms or revision. Shareholders gro
 Do not add a second class-action row or controls beside the setup heading.
 New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
 New-class presets use one **Start with** radio group, one preset per line. Name/code and type/date then share
-the existing two-column form grid, stacking on phones. Keep Class type editable independently of
-the preset. The Class rights step groups its heading, status and Add action together;
+the existing two-column form grid, stacking on phones. A common class sets its own type, so
+Class type is asked only for **Another class**. The Class rights step groups its heading, status and Add action together;
 the governing-document note appears with its editor or recorded terms.
 While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
 Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and
@@ -848,7 +848,7 @@ answers out the same way, each row at least 44px tall. Both ask for:
 
 - the authority for a correction;
 - a new share class's **Start with** preset;
-- a new share class's type (the app also uses it when a class's details are edited; the web uses a select there);
+- the type of a new share class set up as **Another class** (the app also uses it when a class's details are edited; the web uses a select there);
 - the kind of issue on Ledger's Issue shares task, which opens that kind's form in place.
 
 A question with no answer yet shows no button chosen. The answer takes effect with the form or
