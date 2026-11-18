@@ -105,7 +105,7 @@ export function ImportForm({
         value={draft.asAt}
         date
         editable={!locked}
-        onChange={(asAt) => model.update((current) => ({ ...current, asAt: asAt.trim() }))}
+        onChange={(asAt) => model.update((current) => ({ ...current, asAt }))}
       />
       {!!correction && (
         <>

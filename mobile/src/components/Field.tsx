@@ -27,8 +27,15 @@ const DATE_INPUT = {
   maxLength: 10,
 } as const;
 
-function dateDigits(text: string) {
-  const digits = text.replace(/\D/g, '').slice(0, 8);
+function dateDigits(text: string, before: string) {
+  let digits = text.replace(/\D/g, '');
+  if (text.length < before.length && digits === before.replace(/\D/g, '')) {
+    let at = 0;
+    while (at < text.length && text[at] === before[at]) at += 1;
+    const kept = before.slice(0, at).replace(/\D/g, '').length;
+    digits = digits.slice(0, Math.max(0, kept - 1)) + digits.slice(kept);
+  }
+  digits = digits.slice(0, 8);
   return [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6)].filter(Boolean).join('-');
 }
 
@@ -60,7 +67,7 @@ export function Field({
         clearButtonMode={clearable ? 'while-editing' : input.clearButtonMode}
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityHint={error ?? input.accessibilityHint}
-        onChangeText={date ? (text) => onChange(dateDigits(text)) : onChange}
+        onChangeText={date ? (text) => onChange(dateDigits(text, String(input.value ?? ''))) : onChange}
       />
       {!filled && note}
       {below}

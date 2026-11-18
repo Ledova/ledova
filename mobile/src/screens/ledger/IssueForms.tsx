@@ -260,7 +260,7 @@ export function AllotmentForm({
         editable={!locked}
         maxLength={LIMITS[key]}
         date={date}
-        keyboardType={date ? undefined : KEYBOARDS[key]}
+        keyboardType={KEYBOARDS[key]}
         multiline={key === 'terms'}
         rows={3}
         error={checks.field(key).error}

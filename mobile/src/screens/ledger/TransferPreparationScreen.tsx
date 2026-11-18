@@ -311,7 +311,7 @@ function TransferForm({
         editable={!locked}
         maxLength={LIMITS[key]}
         date={date}
-        keyboardType={!date && key === 'shares' ? 'number-pad' : undefined}
+        keyboardType={key === 'shares' ? 'number-pad' : undefined}
         multiline={key === 'terms'}
         rows={3}
         error={checks.field(key).error}

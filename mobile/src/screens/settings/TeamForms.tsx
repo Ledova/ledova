@@ -246,7 +246,7 @@ export function TeamInvitationForm({
           date
           editable={!disabled && !busy}
           error={checks.field(key).error}
-          onChange={(text) => change(() => set(text.trim()))}
+          onChange={(text) => change(() => set(text))}
         />
       ))}
       <Text style={styles.muted}>

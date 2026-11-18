@@ -264,7 +264,7 @@ export function RightsEditor({
         date
         editable={!locked}
         error={checks.field('effectiveDate').error}
-        onChange={(effectiveDate) => update((current) => ({ ...current, effectiveDate: effectiveDate.trim() }))}
+        onChange={(effectiveDate) => update((current) => ({ ...current, effectiveDate }))}
       />
       <View style={look.group}>
         <View style={look.line}>

@@ -312,7 +312,7 @@ function InspectionForm({
             date
             editable={!blocked}
             error={checks.field('requestedOn').error}
-            onChange={(requestedOn) => setDraft({ ...draft, requestedOn: requestedOn.trim() })}
+            onChange={(requestedOn) => setDraft({ ...draft, requestedOn })}
           />
         </>
       )}

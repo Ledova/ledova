@@ -19,7 +19,7 @@ export function Choices<T extends string>({
       <legend>{legend}</legend>
       <div className="mt-1 flex flex-col">
         {options.map(([option, label]) => (
-          <label key={option} className="flex min-h-11 items-center gap-2">
+          <label key={option} className="flex min-h-11 items-center gap-2 sm:min-h-9">
             <input
               type="radio"
               name={name}

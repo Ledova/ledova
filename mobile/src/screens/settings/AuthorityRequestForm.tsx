@@ -102,7 +102,7 @@ export function AuthorityRequestForm({
         date
         editable={!unavailable}
         error={checks.field('expiry').error}
-        onChange={(text) => change(() => setExpiry(text.trim()))}
+        onChange={(text) => change(() => setExpiry(text))}
       />
       <FileField
         label="Supporting document"

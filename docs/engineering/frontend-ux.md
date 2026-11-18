@@ -841,13 +841,14 @@ company-change safeguards are checked in review and the existing dashboard journ
 
 A question with a few fixed answers shows them all as radio buttons, so nothing has to be opened to
 see the choices. `Choices` (`dashboard/src/components/Choices.tsx`) is a fieldset whose legend is the
-question, with one native radio button per answer, one answer per line and each at least 44px tall,
-so long answers and large text keep the buttons in one aligned column; the arrow keys move between
-answers. The app's `Choices` (`mobile/src/components/Field.tsx`) lays its answers out the same way. It asks for:
+question, with one native radio button per answer and one answer per line, 44px tall below `sm` and
+36px on wider screens, so long answers and large text keep the buttons in one aligned column; the
+arrow keys move between answers. The app's `Choices` (`mobile/src/components/Field.tsx`) lays its
+answers out the same way, each row at least 44px tall. Both ask for:
 
 - the authority for a correction;
-- whether a mirrored allotment is held for someone else;
-- a new share class's type;
+- a new share class's **Start with** preset;
+- a new share class's type (the app also uses it when a class's details are edited; the web uses a select there);
 - the kind of issue on Ledger's Issue shares task, which opens that kind's form in place.
 
 A question with no answer yet shows no button chosen. The answer takes effect with the form or
