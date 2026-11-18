@@ -412,6 +412,13 @@ Select an already recorded company class, or choose Ordinary (ORD), Preference
 manual name/code/type entry for the company's own classes. These choices must
 match its existing records; the selector defines no legal share rights.
 
+On 18 November 2026, after the app let a Preference (PRF) class carry an
+Ordinary type, the owner approved that a common class sets its own type and the
+Class type question appears only for **Another class**, on the web and in the app.
+The redeemable preset uses ASIC's code for redeemable preference shares, REDP;
+ASIC's RED means redeemable shares. Classes already recorded keep their codes and
+types, and an existing class's details stay editable.
+
 Use one cohesive workspace with a single page heading, compact progress,
 focused forms and a clear ownership summary. Use a compact list and one
 shareholder editor at a time. Draft edits do not overwrite confirmed history or

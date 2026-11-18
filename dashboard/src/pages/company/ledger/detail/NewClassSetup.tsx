@@ -319,13 +319,15 @@ function FreshClass({
               onChange={(event) => setSymbol(event.target.value.toUpperCase())}
             />
           </Field>
-          <Choices
-            legend="Class type"
-            options={REGISTER_CLASS_TYPES}
-            value={tokenType}
-            disabled={classLocked}
-            onChange={setTokenType}
-          />
+          {choice === 'custom' && (
+            <Choices
+              legend="Class type"
+              options={REGISTER_CLASS_TYPES}
+              value={tokenType}
+              disabled={classLocked}
+              onChange={setTokenType}
+            />
+          )}
         </>
       }
     />

@@ -395,13 +395,15 @@ function FreshClass({
               editable={!fresh.classLocked && ready}
               onChange={(symbol) => fresh.setSymbol(symbol.toUpperCase())}
             />
-            <Choices
-              legend="Class type"
-              options={REGISTER_CLASS_TYPES}
-              value={fresh.tokenType}
-              disabled={fresh.classLocked || !ready}
-              onChange={fresh.setTokenType}
-            />
+            {fresh.choice === 'custom' && (
+              <Choices
+                legend="Class type"
+                options={REGISTER_CLASS_TYPES}
+                value={fresh.tokenType}
+                disabled={fresh.classLocked || !ready}
+                onChange={fresh.setTokenType}
+              />
+            )}
           </>
         </View>
       }

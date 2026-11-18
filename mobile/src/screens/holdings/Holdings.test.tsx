@@ -2767,6 +2767,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   await view.rerender(<ShareClassScreen route={{ key: 'new-class', name: 'RegisterSetup', params: setup }} />);
   await fireEvent.press(await screen.findByRole('radio', { name: 'Preference (PRF)' }));
   await settled();
+  expect(screen.queryByRole('radio', { name: 'Redeemable' })).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
   expect(screen.getByLabelText('2. Class rights, current step')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));

@@ -212,8 +212,8 @@ web and, at phone width, in the app:
    under Opening records. Issue shares and Transfer shares also offer **Set up your ledger** for a
    class not yet set up. Share classes are created only through register setup, in Ledger.
 2. **Share class**: continue the selected unfinished class, or choose a common class (Ordinary
-   ORD, Preference PRF or Redeemable preference RED) or Another class with the company's own name, code and
-   type. Name, code, type and record date sit together in the first step of one **Ledger setup**
+   ORD, Preference PRF or Redeemable preference REDP, ASIC's codes), which also sets the class type, or Another
+   class with the company's own name, code and type. Name, code, any type asked for and record date sit together in the first step of one **Ledger setup**
    card. **Edit** and **Delete share class** join Cancel/Continue in its bottom footer only on the Share class step.
    Existing class details use the inline editor where permitted. A current preparer sees disabled
    Edit with the server's reason when they are locked; saving those details is
@@ -221,7 +221,7 @@ web and, at phone width, in the app:
    without granting access to private company Settings
    ([share classes](issuing-shares.md#share-classes)). A class set up here carries a technical share
    limit instead of authorised capital. Repeat for each class.
-   The starting name, code and type can be customised. **Continue** opens a separate
+   The starting name and code can be customised; a different type needs **Another class**. **Continue** opens a separate
    **Class rights** step, where a company administrator can optionally record
    [Class rights](issuing-shares.md#class-rights) with a separate explicit save. Its **Continue**
    moves to Shareholders; **Back** returns to Share class. Rights come from the company's governing
