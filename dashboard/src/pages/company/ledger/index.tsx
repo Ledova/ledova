@@ -15,7 +15,7 @@ import {
   type TokenHoldersResponse,
   useOwnAppointments,
 } from '@ledova/shared';
-import { LoadError, Loading, Outcome, Section } from '@components/Ledger';
+import { LoadError, Loading, Section } from '@components/Ledger';
 import { PageTitle } from '@components/PageTitle';
 import { documentView, ledgerTask, pageTitle, type DocumentView, type LedgerTask } from '@utils/destinations';
 import type { Landed } from '@pages/company/ledger/shared/registerPlace';
@@ -270,6 +270,11 @@ function OwnRegister({
   const registerTask = ledgerTask(hashTask) ?? ledgerTask(location.state?.registerTask);
   const registerOutcome =
     typeof location.state?.registerOutcome === 'string' ? location.state.registerOutcome : undefined;
+  const [clearedNotice, setClearedNotice] = useState<string | null>(null);
+  const classNotice =
+    typeof location.state?.classNotice === 'string' && clearedNotice !== location.key
+      ? location.state.classNotice
+      : undefined;
   const inviteMember = typeof location.state?.inviteMember === 'string' ? location.state.inviteMember : undefined;
   const issueMember = typeof location.state?.issueMember === 'string' ? location.state.issueMember : undefined;
   const issueAward = typeof location.state?.issueAward === 'string' ? location.state.issueAward : undefined;
@@ -548,12 +553,11 @@ function OwnRegister({
           />
         </div>
       )}
-      {view === 'register' && typeof location.state?.classNotice === 'string' && (
-        <Outcome>{location.state.classNotice}</Outcome>
-      )}
       {classScope && (
         <ShareClasses
           key={classScope.company.uuid}
+          notice={classNotice}
+          onNoticeClear={() => setClearedNotice(location.key)}
           owner={owner}
           company={classScope.company.uuid}
           classes={classes.data ?? []}

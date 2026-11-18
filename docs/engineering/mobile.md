@@ -331,7 +331,7 @@ is removable. Header and row checkboxes share a 44px column aligned to the class
 touch targets separate from the class links. Multiple-class lists have **Select all**, showing a mixed
 state for partial selection; it selects the visible classes, including protected records. **Delete selected**, beside **Add share class** below the card, uses the
 shared `useClassDeletion` to review removable classes and retained classes with their reasons,
-preserve partial results and recover uncertain requests before refreshing the remaining class set.
+preserve partial results and recover uncertain requests before refreshing the remaining class set. The result line sits at the top of the card ([feedback](frontend-ux.md#feedback)).
 **Add share class**, for someone whose appointment allows preparation, opens Set
 up your ledger. A class's page (`ShareClassScreen.tsx`, the class's name as its title) is one workspace for details and setup, read
 through the shared `useShareClass`: an unfinished class with preparation, approval or application access opens the existing clickable setup; an opened class or a read-only appointee sees Class details,

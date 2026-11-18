@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { deleteCompanyToken, getCompanyToken } from '../services/company-tokens';
 import type { CompanyShareTokenListItem } from '../types';
@@ -216,11 +216,13 @@ export function useClassDeletion({
       if (owned()) setBusy(false);
     }
   };
+  const dismiss = useCallback(() => setOutcome(''), []);
   return {
     removal,
     busy,
     error,
     outcome,
+    dismiss,
     execute,
     recover,
     close,
