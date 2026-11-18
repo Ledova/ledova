@@ -27,7 +27,7 @@ export function CompanyContextNotice() {
       <Text accessibilityRole="link" style={look.link} onPress={choose}>
         Choose company on Dashboard
       </Text>
-      .{stayed && ' A request on this page has not finished yet. Try again when it has.'}
+      .{stayed && ' A request on this page or an earlier one has not finished yet. Try again when it has.'}
     </Text>
   );
 }

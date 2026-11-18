@@ -272,11 +272,12 @@ particulars; Team's invitation create, accept and revoke; a representative autho
 its withdraw, revoke and admit; Inspection copies; Company pack; and Edit company. The pages that
 leave by themselves after a save (preparing a transfer or a correction, Change particulars, saving
 or applying opening records) do so only once the request has settled, so the guard does not cancel
-that step. A decision or opening-records retry blocks only while its record is on screen; one set
-aside by closing its review or hidden by a company switch blocks only while a request is in flight.
-The block is otherwise silent, except that **Choose company on Dashboard** says a request on the
-page has not finished, and a retry that stays unanswered (offline, or repeated server errors) keeps
-the page until it is answered or the app is closed. A member invitation's retry lives above the
+that step. A decision or opening-records retry blocks only while its record is on screen; once its
+review is closed, or the form is hidden (a company switch, a failed reread, lost authority), only a
+request in flight blocks, and leaving then drops that retry. The block is silent, except that
+**Choose company on Dashboard** says when a request on this page or an earlier one stops it. A retry
+that stays unanswered (offline, or repeated server errors) keeps the page until it is answered or
+the app is closed. A member invitation's retry lives above the
 pages, so leaving never drops it. Closing or
 backgrounding the app cannot be blocked.
 
