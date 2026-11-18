@@ -933,7 +933,9 @@ server:
   "1–10 of 1,240 requests", and Previous, the page number and Next when there is more than one
   page. While new results load, the shown rows stay, dimmed and marked busy, and the pager stays
   in place; the Dashboard's class holders instead show their loading line, since ownership figures
-  are withheld while they reread, but keep the pager. After a page change, a list whose top has scrolled out of view scrolls back to it,
+  are withheld while they reread, but keep the pager. With a class selected, the Dashboard's class
+  list keeps its own page and search; the address's page is the holders', so a class search returns
+  the holders to their first page. After a page change, a list whose top has scrolled out of view scrolls back to it,
   on web and app (the app's `Page` provides `PageScroll` for that).
 - **Keeping your place:** the web keeps the page in the address, and on the app a record opens over
   its list, which stays mounted with its page, so returning comes back to the same page. A change

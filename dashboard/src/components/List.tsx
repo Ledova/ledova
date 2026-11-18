@@ -118,7 +118,7 @@ export function Pager({
     onPage(next);
     requestAnimationFrame(() => {
       const top = (nav.current?.closest('section') ?? nav.current?.parentElement)?.getBoundingClientRect().top;
-      if (top !== undefined && top < 0) window.scrollBy({ top: top - 72 });
+      if (top !== undefined && top < 72) window.scrollBy({ top: top - 72 });
     });
   };
   return (

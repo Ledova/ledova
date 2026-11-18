@@ -31,6 +31,7 @@ export function Page({
   available = true,
   unavailable,
   children,
+  innerViewRef,
   ...scroll
 }: PageProps) {
   const inFrame = useContext(InSignedInFrame);
@@ -68,14 +69,18 @@ export function Page({
   }));
   const ledeText = !!lede && <Text style={styles.lede}>{lede}</Text>;
   const view = useRef<ScrollView | null>(null);
+  const ownInner = useRef<View>(null!);
+  const inner = innerViewRef ?? ownInner;
   const offset = useRef(0);
-  const reveal = useCallback((node: View | null) => {
-    const inner = view.current?.getInnerViewNode();
-    if (!node || !inner) return;
-    node.measureLayout?.(inner, (_x, y) => {
-      if (y < offset.current) view.current?.scrollTo({ y: Math.max(0, y - 8), animated: false });
-    });
-  }, []);
+  const reveal = useCallback(
+    (node: View | null) => {
+      if (!node || !inner.current) return;
+      node.measureLayout(inner.current, (_x, y) => {
+        if (y < offset.current) view.current?.scrollTo({ y: Math.max(0, y - 8), animated: false });
+      });
+    },
+    [inner],
+  );
   return (
     <ScrollView
       ref={(node) => {
@@ -87,6 +92,7 @@ export function Page({
         offset.current = event.nativeEvent.contentOffset.y;
       }}
       scrollEventThrottle={64}
+      innerViewRef={inner}
       style={styles.page}
       contentContainerStyle={[styles.content, inFrame && styles.framed]}
       keyboardShouldPersistTaps="handled"
