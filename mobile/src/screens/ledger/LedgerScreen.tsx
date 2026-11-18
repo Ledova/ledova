@@ -71,7 +71,9 @@ function CompanyLedger({
   const [held, setHeld] = useState(false);
   usePreventRemove(held, () => {});
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList, 'Ledger'>>();
-  const clearNotice = useCallback(() => navigation.setParams({ outcome: undefined }), [navigation]);
+  const clearNotice = useCallback(() => {
+    if (outcome) navigation.setParams({ outcome: undefined });
+  }, [navigation, outcome]);
   const registers = source.ownershipReady ? (source.registers ?? []) : [];
   const canAddClass =
     source.sourceReady &&

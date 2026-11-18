@@ -712,7 +712,8 @@ rather than its identifier. It reports:
 Identity verification shows its result in its own dialog, and sign-in and sign-up keep their boxed
 outcomes.
 Ledger's other forms don't use `Outcome`. Mobile reports saved personal details, Documents'
-downloads, an added person and member access's recorded invitation with `Outcome` as the web does, a
+downloads, an added person, member access's recorded invitation and deleted share classes with
+`Outcome` as the web does, a
 made particulars change on the shareholder's page it returns to, and a changed password, some failures
 and a few warnings in native alerts.
 
