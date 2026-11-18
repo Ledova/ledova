@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from 'react';
 import {
+  ENTRY_CHANGES_CAP,
   REGISTER_CORRECTION_COPY,
   entryDate,
   entryLabel,
@@ -7,6 +8,7 @@ import {
   formatDate,
   formatShortDate,
   hasCurrentRegisterReadAuthority,
+  moreLabel,
   type OrderSubmissionOwner,
   type RegisterEntry,
   type TokenHoldersResponse,
@@ -153,11 +155,11 @@ function Movements({ entry }: { entry: RegisterEntry }) {
   return (
     <>
       <span id={id} className="block">
-        <RegisterChanges changes={all ? changes : changes.slice(0, 2)} />
+        <RegisterChanges changes={all ? changes : changes.slice(0, ENTRY_CHANGES_CAP)} />
       </span>
-      {changes.length > 2 && (
+      {changes.length > ENTRY_CHANGES_CAP && (
         <MoreToggle open={all} controls={id} onToggle={() => setAll((value) => !value)}>
-          {all ? 'Show fewer share changes' : `Show all ${changes.length} share changes`}
+          {moreLabel(all, changes.length, 'share changes')}
           <span className="sr-only"> ({entryLabel(entry)})</span>
         </MoreToggle>
       )}

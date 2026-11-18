@@ -304,7 +304,7 @@ recipient with the shares promised at the right, then the agreement date and the
 issued beneath (wide screens give Promised, Vested and Issued their own columns). Each row opens the award's own page, with
 a back arrow to the previous page and **Recipient details** at the top. Its **Entitlement** card holds the
 chart and the award's actions, followed by **Agreement** (its date and download, with the terms and
-vesting schedule one step away), **Vesting history** (the latest three events, with Show all), and
+vesting schedule one step away), **Vesting history** (the latest five events, with Show all), and
 **Entitlement changes** and **Non-paid issues from this award**, each shown only when it has records.
 Choose **Share class**, then the single **Record an employee award** action below its card to open preparation; Cancel or a successful save returns to
 the records. Preparation groups recipient and promised shares above Agreement and Vesting, side by side

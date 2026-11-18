@@ -3,9 +3,11 @@ import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DESTINATIONS,
+  RECORD_GROUP_CAP,
   REGISTER_AWARD_COPY as COPY,
   REGISTER_GRANT_COPY as GRANT_COPY,
   formatDateTime,
+  moreLabel,
   remainingRegisterAwardVesting,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
@@ -29,8 +31,6 @@ import { AwardStatus } from '@components/AwardStatus';
 import { AwardVestingForm } from './AwardVestingForm';
 import { AwardAdjustmentForm } from './AwardAdjustmentForm';
 import { BROWSER_FILES } from '@utils/saveFile';
-
-const LATEST_VESTINGS = 3;
 
 export function AwardRecord({
   owner,
@@ -266,7 +266,7 @@ export function AwardRecord({
             vestings.length > 0 && (
               <Section title="Vesting history">
                 <div id={vestingsId} className="divide-y divide-border-subtle">
-                  {(allVestings ? vestings : vestings.slice(0, LATEST_VESTINGS)).map((event) => {
+                  {(allVestings ? vestings : vestings.slice(0, RECORD_GROUP_CAP)).map((event) => {
                     const remaining = remainingRegisterAwardVesting(event, reversals.data ?? []);
                     const correctable =
                       appointment && BigInt(award.availableShares) > 0n && remaining !== null && BigInt(remaining) > 0n;
@@ -313,13 +313,13 @@ export function AwardRecord({
                     );
                   })}
                 </div>
-                {vestings.length > LATEST_VESTINGS && (
+                {vestings.length > RECORD_GROUP_CAP && (
                   <MoreToggle
                     open={allVestings}
                     controls={vestingsId}
                     onToggle={() => setAllVestings((value) => !value)}
                   >
-                    {allVestings ? 'Show the latest vesting events' : `Show all ${vestings.length} vesting events`}
+                    {moreLabel(allVestings, vestings.length, 'vesting events')}
                   </MoreToggle>
                 )}
                 {download.isError && download.variables?.kind === 'vesting' && downloadFailure}

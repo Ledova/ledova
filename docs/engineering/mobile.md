@@ -310,7 +310,7 @@ schedule), with its retry of an uncertain recording. A row opens the award's pag
 **Recipient details** above it), read through the shared `useRegisterAward`, `useRegisterGrants` and the
 award's events, as on the web: Entitlement (the web's chart with **Record vesting** and **End unissued
 rights**), Agreement (its date with **Download agreement**, and the terms, schedule and recorded line
-behind **Show terms and vesting schedule**), Vesting history (the latest three, with **Show all**, each a
+behind **Show terms and vesting schedule**), Vesting history (the latest five, with **Show all**, each a
 compact row with **Download evidence** and, only while the event can be corrected, **Correct**),
 Entitlement changes with their downloads, and the non-paid issues still in progress with their stage.
 Recording vesting, ending rights and correcting a

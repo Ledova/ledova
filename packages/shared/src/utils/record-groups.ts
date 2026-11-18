@@ -23,6 +23,11 @@ type RecordGroup<Entry extends RecordEntry> = {
 };
 
 export const RECORD_GROUP_CAP = 5;
+export const ENTRY_CHANGES_CAP = 2;
+
+export function moreLabel(open: boolean, count: number, noun: string) {
+  return open ? `Show fewer ${noun}` : `Show all ${count} ${noun}`;
+}
 
 function decisionGroups(done: string, records: string): RecordGrouping {
   return [
@@ -31,13 +36,16 @@ function decisionGroups(done: string, records: string): RecordGrouping {
       key: 'done',
       title: done,
       stages: ['applied'],
-      more: { show: (count) => `Show all ${count} ${records}`, hide: `Show fewer ${records}` },
+      more: { show: (count) => moreLabel(false, count, records), hide: moreLabel(true, 0, records) },
     },
     {
       key: 'rejected',
       title: 'Rejected',
       stages: ['rejected'],
-      more: { show: (count) => `Show all ${count} rejected ${records}`, hide: `Show fewer rejected ${records}` },
+      more: {
+        show: (count) => moreLabel(false, count, `rejected ${records}`),
+        hide: moreLabel(true, 0, `rejected ${records}`),
+      },
     },
   ];
 }
@@ -49,7 +57,7 @@ export const TRANSFER_GROUPS = decisionGroups('Transferred', 'transfers');
 export const CORRECTION_GROUPS = decisionGroups('Corrected', 'corrections');
 
 export const PARTICULARS_GROUPS: RecordGrouping = [
-  { key: 'all', more: { show: (count) => `Show all ${count} changes`, hide: 'Show fewer changes' } },
+  { key: 'all', more: { show: (count) => moreLabel(false, count, 'changes'), hide: moreLabel(true, 0, 'changes') } },
 ];
 
 export function recordGroup(grouping: RecordGrouping, stage: string): RecordGroupKey {
