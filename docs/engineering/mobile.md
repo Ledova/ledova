@@ -265,15 +265,19 @@ each of them while no form or action is open. An unresolved request (in flight, 
 original retry) blocks leaving its page by the back gesture, the back arrow or the menu
 (`usePreventRemove`), so its retry is not dropped. The guard sits where the request's state lives
 and is true only for the request, not for an open form or confirmation. It covers the Ledger and
-class pages; adding a person on Shareholders; a shareholder's documents; Member access; Employee
+class pages; a class's opening records and their decisions, including a copied opening in
+Corrections; adding a person on Shareholders; a shareholder's documents; Member access; Employee
 scheme and an award; preparing and deciding share issues, transfers and corrections; Change
 particulars; Team's invitation create, accept and revoke; a representative authority request and
 its withdraw, revoke and admit; Inspection copies; Company pack; and Edit company. The pages that
-leave by themselves after a save (preparing a transfer or a correction, Change particulars) do so
-only once the request has settled, so the guard does not cancel that step. The block is silent,
-and a retry that stays unanswered (offline, or repeated server errors) keeps the page until it is
-answered or the app is closed. Decisions on a copied opening in Corrections are not covered. A
-member invitation's retry lives above the pages, so leaving never drops it. Closing or
+leave by themselves after a save (preparing a transfer or a correction, Change particulars, saving
+or applying opening records) do so only once the request has settled, so the guard does not cancel
+that step. A decision or opening-records retry blocks only while its record is on screen; one set
+aside by closing its review or hidden by a company switch blocks only while a request is in flight.
+The block is otherwise silent, except that **Choose company on Dashboard** says a request on the
+page has not finished, and a retry that stays unanswered (offline, or repeated server errors) keeps
+the page until it is answered or the app is closed. A member invitation's retry lives above the
+pages, so leaving never drops it. Closing or
 backgrounding the app cannot be blocked.
 
 Company registry tasks keep an existing form mounted during a same-account access reread or failure:

@@ -35,7 +35,6 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   context,
   onDecided,
   onRefused,
-  guardLeaving = false,
   children,
   visible,
   onHeldChange,
@@ -52,7 +51,6 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   context: string;
   onDecided: (proposal: Shown) => Promise<unknown>;
   onRefused: () => Promise<unknown>;
-  guardLeaving?: boolean;
   children: (preview: Previewed, kind: RegisterDecisionKind) => ReactNode;
   visible: boolean;
   onHeldChange?: (uuid: string, held: boolean) => void;
@@ -106,9 +104,8 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   const decisions = { approve, apply, reject };
   const decision = active ? decisions[active] : null;
   const busy = approve.busy || apply.busy || reject.busy;
-  const unresolved = busy || !!approve.recovery || !!apply.recovery || !!reject.recovery;
-  usePreventRemove(guardLeaving && unresolved, () => {});
-  const held = unresolved || !!active;
+  usePreventRemove(busy || (visible && !!decision?.recovery), () => {});
+  const held = busy || !!approve.recovery || !!apply.recovery || !!reject.recovery || !!active;
   useEffect(() => {
     onHeldChange?.(proposal.uuid, held);
     return () => onHeldChange?.(proposal.uuid, false);

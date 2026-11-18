@@ -31,12 +31,13 @@ import { orderSubmissionSession } from '../../services/orderSubmissions';
 export function CompanyProfile() {
   const { company: selected } = useMemberRecordsState();
   const [draft, setEditing] = useState<Company | null>(null);
-  const editing = draft && draft.uuid === selected?.uuid ? draft : null;
+  const switched = !!draft && !!selected && draft.uuid !== selected.uuid;
+  const editing = switched ? null : draft;
   useEffect(() => {
-    if (draft && draft.uuid !== selected?.uuid) setEditing(null);
-  }, [draft, selected?.uuid]);
+    if (switched) setEditing(null);
+  }, [switched]);
   if (!selected?.canManage && !editing) return null;
-  return <SelectedCompany selected={selected?.uuid ?? ''} editing={editing} setEditing={setEditing} />;
+  return <SelectedCompany selected={editing?.uuid ?? selected?.uuid ?? ''} editing={editing} setEditing={setEditing} />;
 }
 
 function SelectedCompany({
