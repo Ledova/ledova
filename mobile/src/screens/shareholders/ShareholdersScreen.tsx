@@ -35,6 +35,7 @@ import {
   Loading,
   Outcome,
   Rows,
+  LoadMore,
   Section,
   ShowMore,
 } from '../../components/Ledger';
@@ -501,9 +502,13 @@ function FormerMembers({
             );
           })}
         </Rows>
-        {formers.length > shown && (
-          <Action label="Load more former shareholders" onPress={() => setShown(shown + PAGE_SIZE)} />
-        )}
+        <LoadMore
+          noun="former shareholders"
+          hasMore={formers.length > shown}
+          failed={false}
+          loading={false}
+          onLoad={() => setShown(shown + PAGE_SIZE)}
+        />
       </ShowMore>
     </View>
   );

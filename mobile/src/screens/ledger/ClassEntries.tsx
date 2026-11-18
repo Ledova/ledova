@@ -1,12 +1,14 @@
 import { useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import {
+  ENTRY_CHANGES_CAP,
   REGISTER_CORRECTION_COPY as COPY,
   entryDate,
   entryName,
   formatDate,
   formatRegisterChanges,
   formatShortDate,
+  moreLabel,
   type RegisterEntry,
 } from '@ledova/shared';
 import { MoreToggle, Status } from '../../components/Ledger';
@@ -16,7 +18,7 @@ function Movements({ entry }: { entry: RegisterEntry }) {
   const look = useLedgerStyles();
   const [all, setAll] = useState(false);
   const { changes } = entry;
-  const lines = formatRegisterChanges(all ? changes : changes.slice(0, 2));
+  const lines = formatRegisterChanges(all ? changes : changes.slice(0, ENTRY_CHANGES_CAP));
   return (
     <View style={look.terms}>
       <View accessible accessibilityLabel={`Share movements: ${lines.join(', ')}`}>
@@ -26,9 +28,9 @@ function Movements({ entry }: { entry: RegisterEntry }) {
           </Text>
         ))}
       </View>
-      {changes.length > 2 && (
+      {changes.length > ENTRY_CHANGES_CAP && (
         <MoreToggle open={all} onToggle={() => setAll((value) => !value)}>
-          {all ? 'Show fewer share changes' : `Show all ${changes.length} share changes`}
+          {moreLabel(all, changes.length, 'share changes')}
         </MoreToggle>
       )}
     </View>

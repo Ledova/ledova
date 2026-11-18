@@ -280,7 +280,7 @@ shareholder's page: the recipient as its title, the class as its lede, the back 
 **Recipient details**, then headed cards without chevrons: **Entitlement** (the chart, whose legend keys
 each colour and lists only non-zero parts, one line each at phone width, and the award's actions),
 **Agreement** (its date with **Download agreement** on one line, and the typed terms, schedule and
-recorded line behind **Show terms and vesting schedule**), **Vesting history** (the latest three events,
+recorded line behind **Show terms and vesting schedule**), **Vesting history** (the latest five events,
 with **Show all**, each a compact row: the shares vested with the date at the right, then **Download
 evidence** and, only while the event can be corrected, **Correct**), **Entitlement changes** (the shares
 ended or reversed with the date at the right, the reason beneath and **Download evidence**) and
@@ -934,7 +934,14 @@ server:
   page. While new results load, the shown rows stay, dimmed and marked busy.
 - **Feeds:** `LoadMore` ends a feed with "Load more notifications" (or
   entries and so on), which names its work while it runs. When a later page fails, the shown
-  rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete.
+  rows stay and a [load error](#loading-empty-and-error-states) says the list is incomplete. Each
+  platform has one `LoadMore` (`dashboard/src/components/List.tsx`, `mobile/src/components/Ledger.tsx`),
+  and every feed uses it.
+- **Capped groups:** a short section within a page shows its first `RECORD_GROUP_CAP` (5) rows,
+  then **Show all N …** and **Show fewer …** from `moreLabel` in
+  `packages/shared/src/utils/record-groups.ts`: the record groups on Issue shares, Transfer shares
+  and Corrections, and an award's vesting events. An entry's share changes are lines within one
+  row, so they show `ENTRY_CHANGES_CAP` (2) with the same wording.
 - **Page size:** 10 rows at every width on web and app (owner, 18 November 2026), so a first page
   fits about one phone screen. `PAGE_SIZE` in `packages/shared` is the single size, and `pageOf`
   (`packages/shared/src/utils/paging.ts`) is the single page calculation: both pagers and every

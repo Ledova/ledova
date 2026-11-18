@@ -26,6 +26,7 @@ import {
   Fact,
   FormActions,
   LoadError,
+  LoadMore,
   Loading,
   Outcome,
   Rows,
@@ -414,17 +415,14 @@ export function ClassRights({
                     </View>
                   ))}
               </Rows>
-              {query.isFetchNextPageError ? (
-                <LoadError retry={() => query.fetchNextPage()} busy={query.isFetching}>
-                  More versions could not be loaded. The list is incomplete.
-                </LoadError>
-              ) : query.hasNextPage ? (
-                <Action
-                  label={query.isFetchingNextPage ? 'Loading versions…' : 'Load more versions'}
-                  disabled={query.isFetching}
-                  onPress={() => void query.fetchNextPage()}
-                />
-              ) : null}
+              <LoadMore
+                noun="versions"
+                hasMore={!!query.hasNextPage}
+                failed={query.isFetchNextPageError}
+                loading={query.isFetchingNextPage}
+                disabled={query.isFetching}
+                onLoad={() => query.fetchNextPage()}
+              />
             </ShowMore>
           )}
         </>
