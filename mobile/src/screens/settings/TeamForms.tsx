@@ -243,13 +243,10 @@ export function TeamInvitationForm({
           key={key}
           label={label}
           value={value}
-          placeholder="YYYY-MM-DD"
-          keyboardType="numbers-and-punctuation"
-          autoCapitalize="none"
-          autoCorrect={false}
+          date
           editable={!disabled && !busy}
           error={checks.field(key).error}
-          onChange={(text) => change(() => set(text.trim()))}
+          onChange={(text) => change(() => set(text))}
         />
       ))}
       <Text style={styles.muted}>

@@ -99,13 +99,10 @@ export function AuthorityRequestForm({
       <Field
         label="Expiry date (UTC)"
         value={expiry}
-        placeholder="YYYY-MM-DD"
-        keyboardType="numbers-and-punctuation"
-        autoCapitalize="none"
-        autoCorrect={false}
+        date
         editable={!unavailable}
         error={checks.field('expiry').error}
-        onChange={(text) => change(() => setExpiry(text.trim()))}
+        onChange={(text) => change(() => setExpiry(text))}
       />
       <FileField
         label="Supporting document"

@@ -50,7 +50,9 @@ country picker) and a trailing slot (`PasswordToggle`), multi-line rows, and the
 height, never a fixed one: iOS confines the text being edited to the input's own box, so a fixed
 height with vertical padding cuts off letters such as "g" while the keyboard is up. `Field`
 (`components/Field.tsx`) adds the label, hint and error and passes input props through, and
-`useControlFrame()` gives selects and the date field the same frame.
+`useControlFrame()` gives selects and the date field the same frame. A `Field` with `date` takes
+digits only, on a number pad, and adds the dashes itself (`YYYY-MM-DD`, ten characters at most), so
+a typed date can't hold letters or symbols; the web uses the browser's date control.
 
 The signed-in member records state is a context (`mobile/src/contexts/MemberRecordsContext.tsx`),
 with its notices and pull to refresh in `mobile/src/components/MemberRecords.tsx`, and the account

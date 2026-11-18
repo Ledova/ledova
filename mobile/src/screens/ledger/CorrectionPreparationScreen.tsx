@@ -30,7 +30,7 @@ import { useRetainedScope } from '../../hooks/useRetainedScope';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { RegisterChanges } from './CorrectionRecord';
-import { DATE, FormNote } from './IssueForms';
+import { FormNote } from './IssueForms';
 import { useLedgerStyles } from './useLedgerStyles';
 
 const TITLE = DESTINATIONS.companyRegisterCorrection.title;
@@ -306,12 +306,9 @@ function CorrectionForm({
         hint={COPY.EFFECTIVE_ON_NOTE}
         value={draft.effectiveOn}
         editable={!busy}
-        keyboardType={DATE.keyboardType}
-        placeholder={DATE.placeholder}
-        autoCapitalize={DATE.autoCapitalize}
-        autoCorrect={DATE.autoCorrect}
+        date
         error={checks.field('effectiveOn').error}
-        onChange={(effectiveOn) => update({ effectiveOn: effectiveOn.trim() })}
+        onChange={(effectiveOn) => update({ effectiveOn })}
       />
       <FileField
         label={COPY.AUTHORITY_DOCUMENT}

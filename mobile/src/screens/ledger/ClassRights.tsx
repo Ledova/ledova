@@ -261,13 +261,10 @@ export function RightsEditor({
         label="Effective date"
         hint="Leave blank if unknown."
         value={editor.effectiveDate}
-        placeholder="YYYY-MM-DD"
-        keyboardType="numbers-and-punctuation"
-        autoCapitalize="none"
-        autoCorrect={false}
+        date
         editable={!locked}
         error={checks.field('effectiveDate').error}
-        onChange={(effectiveDate) => update((current) => ({ ...current, effectiveDate: effectiveDate.trim() }))}
+        onChange={(effectiveDate) => update((current) => ({ ...current, effectiveDate }))}
       />
       <View style={look.group}>
         <View style={look.line}>

@@ -23,7 +23,7 @@ import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ImportShareholders, Problems } from './ImportShareholders';
 import { MemberRecords, MemberRow } from './ImportRecord';
-import { DATE, FormSteps } from './IssueForms';
+import { FormSteps } from './IssueForms';
 import { useLedgerStyles } from './useLedgerStyles';
 
 type ImportFormProps = Omit<ImportPreparationOptions, 'newKey' | 'session'> & {
@@ -103,9 +103,9 @@ export function ImportForm({
       <Field
         label="Record date"
         value={draft.asAt}
-        {...DATE}
+        date
         editable={!locked}
-        onChange={(asAt) => model.update((current) => ({ ...current, asAt: asAt.trim() }))}
+        onChange={(asAt) => model.update((current) => ({ ...current, asAt }))}
       />
       {!!correction && (
         <>

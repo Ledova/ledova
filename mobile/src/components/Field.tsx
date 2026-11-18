@@ -10,6 +10,7 @@ import type { PickedDocument } from '../services/documentCopies';
 
 type FieldProps = Omit<InputProps, 'onChange' | 'onChangeText' | 'invalid' | 'leading' | 'style'> & {
   label: string;
+  date?: boolean;
   hint?: string;
   error?: string | null;
   clearable?: boolean;
@@ -18,8 +19,29 @@ type FieldProps = Omit<InputProps, 'onChange' | 'onChangeText' | 'invalid' | 'le
   onChange: (value: string) => void;
 };
 
+const DATE_INPUT = {
+  placeholder: 'YYYY-MM-DD',
+  keyboardType: 'number-pad',
+  autoCapitalize: 'none',
+  autoCorrect: false,
+  maxLength: 10,
+} as const;
+
+function dateDigits(text: string, before: string) {
+  let digits = text.replace(/\D/g, '');
+  if (text.length === before.length - 1 && digits === before.replace(/\D/g, '')) {
+    let at = 0;
+    while (at < text.length && text[at] === before[at]) at += 1;
+    const kept = before.slice(0, at).replace(/\D/g, '').length;
+    digits = digits.slice(0, Math.max(0, kept - 1)) + digits.slice(kept);
+  }
+  digits = digits.slice(0, 8);
+  return [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6)].filter(Boolean).join('-');
+}
+
 export function Field({
   label,
+  date = false,
   hint,
   error,
   clearable,
@@ -38,13 +60,14 @@ export function Field({
       {filled && note}
       <Input
         {...input}
+        {...(date ? DATE_INPUT : {})}
         filled={filled}
         invalid={!!error}
         leading={icon}
         clearButtonMode={clearable ? 'while-editing' : input.clearButtonMode}
         accessibilityLabel={accessibilityLabel ?? label}
         accessibilityHint={error ?? input.accessibilityHint}
-        onChangeText={onChange}
+        onChangeText={date ? (text) => onChange(dateDigits(text, String(input.value ?? ''))) : onChange}
       />
       {!filled && note}
       {below}
@@ -208,17 +231,11 @@ export function Choices<T extends string>({
 }) {
   const styles = useCompanyStyles();
   const look = useThemedStyles((theme) => ({
-    options: {
-      flexDirection: 'row' as const,
-      flexWrap: 'wrap' as const,
-      columnGap: 20,
-      rowGap: theme.spacing.sm,
-    },
     choice: {
       flexDirection: 'row' as const,
       alignItems: 'center' as const,
       gap: theme.spacing.sm,
-      paddingVertical: theme.spacing.xs,
+      minHeight: 44,
     },
     mark: {
       width: 18,
@@ -232,13 +249,19 @@ export function Choices<T extends string>({
     },
     marked: { borderColor: theme.colors.brand.default },
     dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: theme.colors.brand.default },
-    label: { fontFamily: theme.fontFamily.regular, fontSize: 14, lineHeight: 22, color: theme.colors.text.primary },
+    label: {
+      flexShrink: 1,
+      fontFamily: theme.fontFamily.regular,
+      fontSize: 14,
+      lineHeight: 22,
+      color: theme.colors.text.primary,
+    },
     disabled: { opacity: 0.5 },
   }));
   return (
     <View style={styles.group}>
       <Text style={styles.text}>{legend}</Text>
-      <View accessibilityRole="radiogroup" accessibilityLabel={legend} style={look.options}>
+      <View accessibilityRole="radiogroup" accessibilityLabel={legend}>
         {options.map(([option, label]) => {
           const checked = value === option;
           return (
@@ -247,7 +270,6 @@ export function Choices<T extends string>({
               accessibilityRole="radio"
               accessibilityState={{ checked, disabled }}
               disabled={disabled}
-              hitSlop={4}
               onPress={() => onChange(option)}
               style={[look.choice, disabled && look.disabled]}
             >

@@ -46,7 +46,7 @@ continuing without rights creates no assumed terms or revision. Shareholders gro
 **Continue** in that footer; an open shareholder editor keeps its own Cancel/Add or Save controls.
 Do not add a second class-action row or controls beside the setup heading.
 New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
-New-class presets use one full-width **Start with** radio row. Name/code and type/date then share
+New-class presets use one **Start with** radio group, one preset per line. Name/code and type/date then share
 the existing two-column form grid, stacking on phones. Keep Class type editable independently of
 the preset. The Class rights step groups its heading, status and Add action together;
 the governing-document note appears with its editor or recorded terms.
@@ -841,12 +841,14 @@ company-change safeguards are checked in review and the existing dashboard journ
 
 A question with a few fixed answers shows them all as radio buttons, so nothing has to be opened to
 see the choices. `Choices` (`dashboard/src/components/Choices.tsx`) is a fieldset whose legend is the
-question, with one native radio button per answer on a wrapping row; the arrow keys move between
-answers. It asks for:
+question, with one native radio button per answer and one answer per line, at least 44px tall below
+`sm` and 36px on wider screens, so long answers and large text keep the buttons in one aligned column; the
+arrow keys move between answers. The app's `Choices` (`mobile/src/components/Field.tsx`) lays its
+answers out the same way, each row at least 44px tall. Both ask for:
 
 - the authority for a correction;
-- whether a mirrored allotment is held for someone else;
-- a new share class's type;
+- a new share class's **Start with** preset;
+- a new share class's type (the app also uses it when a class's details are edited; the web uses a select there);
 - the kind of issue on Ledger's Issue shares task, which opens that kind's form in place.
 
 A question with no answer yet shows no button chosen. The answer takes effect with the form or
