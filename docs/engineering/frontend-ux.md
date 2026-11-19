@@ -662,10 +662,13 @@ class)". Keep the object in the label where the verb alone would be unclear: two
 in one form (**Add allocation**, **Add document**), actions on different objects in one card (an
 award's **Record vesting** and **Issue vested shares**), or an action with no heading naming what it
 acts on. These also keep their wording: recovery actions that retry the original request (**Retry
-original save**), links named after the page they open (**Open Employee share scheme**, **Change
-particulars**), the app Dashboard's **Accept invitation**, whose card doesn't name an invitation, the
-register forms' review-step submits (**Prepare allotment**, **Prepare transfer** and the like), and **Permanently revoke appointment**, **Confirm and download inspection copy** and
-**Prepare a non-paid transfer**, whose extra words mark an irreversible, audited or unpaid step.
+original save**); links named after the page they open (**Open Employee share scheme**, **Change
+particulars**); the app Dashboard's **Accept invitation**, whose card doesn't name an invitation; a
+feed's **Load more …** ([Feeds](#lists-search-filters-and-paging)); the register forms' submits that
+name what they prepare or record (**Prepare allotment**, **Prepare transfer**, **Prepare grant**,
+**Prepare issue**, **Prepare correction**, **Record award**, **Record vesting**); and **Permanently
+revoke appointment**, **Confirm and download inspection copy** and **Prepare a non-paid transfer**,
+whose extra words mark an irreversible, audited or unpaid step.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
 "Saving…". Every page form's submit button uses them, and so does every action that starts a

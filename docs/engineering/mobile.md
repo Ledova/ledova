@@ -406,8 +406,8 @@ corrects, and its first two signed share movements with **Show all** for the res
 register entries** for later pages. Its Corrections follow under the web's groups (Needs a decision,
 Corrected and Rejected, from `CORRECTION_GROUPS`), each (`CorrectionRecord.tsx`) the web's summary
 of the entry it reverses, a button that shows or hides the stage, preparation, effective date, the
-entry and its compensating changes, the authority, reason, evidence, decision trail and **Download
-the authority document**, which goes to the share sheet; an unfinished correction adds its status
+entry and its compensating changes, the authority, reason, evidence, decision trail and **Download**,
+which goes to the share sheet; an unfinished correction adds its status
 and **Reject**, **Approve** and **Apply** for the steps the person's appointments hold. A decision
 replaces the records with the web's dialog content in place (Approve correction, Apply correction
 with the web's compensation note, or Reject correction with its reason), keeping its retry of an

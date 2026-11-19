@@ -252,7 +252,7 @@ export function AccountSettings() {
         confirmLabel="Save"
         formId="change-password"
         busy={passwordMutation.isPending}
-        busyLabel="Changing password…"
+        busyLabel="Saving…"
       >
         {modal === 'password' && (
           <form
@@ -368,7 +368,7 @@ export function AccountData() {
         destructive
         onConfirm={() => deleteMutation.mutate()}
         busy={deleteMutation.isPending}
-        busyLabel="Deleting account…"
+        busyLabel="Deleting…"
       >
         <p className="mb-3 text-sm font-medium">This action cannot be undone.</p>
         <p className="text-sm text-text-muted">
