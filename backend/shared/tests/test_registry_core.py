@@ -101,7 +101,7 @@ def unfinished_signup(label, acn):
         )
         profile, account, _, _ = ensure_defaults(user)
         profile.full_name = f"Synthetic {label}"
-        profile.phone_number = "400000002"
+        profile.phone_number = "491570158"
         profile.save(update_fields=["full_name", "phone_number"])
         account.role = "company"
         account.save(update_fields=["role"])
@@ -839,7 +839,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
                 "name": "Synthetic New Pty Ltd",
                 "acn": "987654320",
                 "companyType": "pty",
-                "primaryContact": {"firstName": "Ada", "lastName": "Example", "phone": "+61 0400000000"},
+                "primaryContact": {"firstName": "Ada", "lastName": "Example", "phone": "+61 0491570159"},
             },
             format="json",
         )

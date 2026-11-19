@@ -79,7 +79,7 @@ jest.mock('@ledova/shared', () => {
         dateOfBirth: '1990-01-01',
         residentialAddress: mockResidentialAddress,
         phoneCountryCode: '+61',
-        phoneNumber: '416004021',
+        phoneNumber: '491570156',
       });
       return {
         form,
