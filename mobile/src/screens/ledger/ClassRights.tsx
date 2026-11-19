@@ -225,6 +225,7 @@ export function RightsEditor({
   const look = useLedgerStyles();
   const styles = useCompanyStyles();
   const editor = rights.editor!;
+  const saveLabel = rights.busy ? 'Saving…' : rights.pending ? 'Retry original save' : 'Save';
   const checks = useErrorSummary<string>({
     ...rightsAttributeProblems(editor.attributes),
     summary:
@@ -333,7 +334,8 @@ export function RightsEditor({
         />
         <Action
           primary
-          label={rights.busy ? 'Saving…' : rights.pending ? 'Retry original save' : 'Save'}
+          label={saveLabel}
+          accessibilityLabel={`${saveLabel} (Class rights)`}
           disabled={rights.busy || (rights.stale && !rights.pending) || saveDisabled}
           onPress={() => {
             if (!checks.check()) return;

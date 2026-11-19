@@ -2831,7 +2831,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   await fireEvent.changeText(screen.getByLabelText('Additional terms'), ' Synthetic class terms ');
   const rightsPosts = () => api.post.mock.calls.filter(([url]) => url.endsWith('/class-rights/'));
   expect(rightsPosts()).toHaveLength(0);
-  await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Save (Class rights)' }));
   expect(await screen.findByText('Class rights saved.')).toBeTruthy();
   expect(rightsPosts()).toEqual([
     [

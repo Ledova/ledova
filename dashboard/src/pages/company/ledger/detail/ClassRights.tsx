@@ -213,6 +213,7 @@ export function RightsEditor({
         <PageAction
           type="submit"
           label={rights.pending ? 'Retry original save' : 'Save'}
+          context="Class rights"
           primary
           busy={rights.busy}
           busyLabel="Saving…"

@@ -611,7 +611,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   const dividendFields = within(rightsForm.getByRole('group', { name: 'Dividends rights' }));
   fireEvent.change(dividendFields.getByLabelText('Preference measure'), { target: { value: 'rate' } });
   fireEvent.change(dividendFields.getByLabelText('Calculation basis'), { target: { value: 'Paid-up capital' } });
-  fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Save (Class rights)' }));
   await dividendFields.findByText('Enter a value for the selected preference measure.');
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.change(rightsForm.getByLabelText('Dividends'), { target: { value: 'participating' } });
@@ -693,8 +693,8 @@ it('reads every class page and groups exact holdings by member identity with sea
     if (rights.length === 1) throw new Error('Synthetic interrupted class rights response');
     return { data: revision };
   });
-  fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
-  await rightsForm.findByRole('button', { name: 'Retry original save' });
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Save (Class rights)' }));
+  await rightsForm.findByRole('button', { name: 'Retry original save (Class rights)' });
   expect((rightsForm.getByLabelText('Additional terms') as HTMLTextAreaElement).disabled).toBe(true);
   expect((rightsForm.getByLabelText('Voting') as HTMLSelectElement).disabled).toBe(true);
   expect((rightsForm.getByRole('button', { name: 'Add document' }) as HTMLButtonElement).disabled).toBe(true);
@@ -716,14 +716,14 @@ it('reads every class page and groups exact holdings by member identity with sea
   rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   const originalAttributes = rights[0].attributes;
   rights[0] = { ...rights[0], attributes: { voting: { type: 'general', votesPerShare: '2' } } };
-  fireEvent.click(rightsForm.getByRole('button', { name: 'Retry original save' }));
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Retry original save (Class rights)' }));
   await rightsForm.findByText('The original class rights receipt did not match. Retry the original save.');
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS('ordinary'))).toHaveLength(
     1,
   );
   rights[0] = { ...rights[0], attributes: originalAttributes };
   rightsAppointment = null;
-  fireEvent.click(rightsForm.getByRole('button', { name: 'Retry original save' }));
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Retry original save (Class rights)' }));
   await screen.findByText('Class rights saved.');
   await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE)).toHaveLength(1);
@@ -801,7 +801,7 @@ it('reads every class page and groups exact holdings by member identity with sea
     await client.refetchQueries({ queryKey: ['class-rights'] });
   });
   rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
-  expect((rightsForm.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
+  expect((rightsForm.getByRole('button', { name: 'Save (Class rights)' }) as HTMLButtonElement).disabled).toBe(true);
   await rightsForm.findByText(/The class rights or your administrator access changed/);
   fireEvent.click(rightsForm.getByRole('button', { name: 'Cancel' }));
   await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
@@ -813,7 +813,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(rightsForm.queryAllByLabelText('Conditions')).toHaveLength(0);
   const editedTerms = `${combinedTerms}\n\nReviewed for the demo.`;
   fireEvent.change(rightsForm.getByLabelText('Additional terms'), { target: { value: editedTerms } });
-  fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Save (Class rights)' }));
   await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
   expect(rights[0].documents).toEqual([rightsDocument]);
   expect(rights[0].summary).toBe(editedTerms);
@@ -829,7 +829,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect((rightsForm.getByLabelText('Additional terms') as HTMLTextAreaElement).value).toBe(editedTerms);
   fireEvent.change(rightsForm.getByLabelText('Additional terms'), { target: { value: '' } });
   fireEvent.click(rightsForm.getByRole('button', { name: 'Remove (document 1)' }));
-  fireEvent.click(rightsForm.getByRole('button', { name: 'Save' }));
+  fireEvent.click(rightsForm.getByRole('button', { name: 'Save (Class rights)' }));
   await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit class rights' })).toBeNull());
   expect(rights[0].summary).toBe('');
   expect(rights[0].documentReference).toBe('');
@@ -3151,7 +3151,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Add (Class rights)' }));
   let setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save' }));
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save (Class rights)' }));
   expect(
     await setupRightsForm.findByText('The class rights changed. Close this form and reopen the current details.'),
   ).toBeTruthy();
@@ -3181,8 +3181,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   });
   fireEvent.change(setupRightsForm.getByLabelText('Effective date'), { target: { value: '2020-01-01' } });
   fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save' }));
-  const originalRightsSave = await setupRightsForm.findByRole('button', { name: 'Retry original save' });
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save (Class rights)' }));
+  const originalRightsSave = await setupRightsForm.findByRole('button', { name: 'Retry original save (Class rights)' });
   expect(setupRightsForm.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(true);
   fireEvent.click(originalRightsSave);
   expect(await screen.findByText('Class rights saved.')).toBeTruthy();
