@@ -279,7 +279,7 @@ function OwnShareholder({
                           to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: register.token.uuid })}
                           state={{ fromMember: member }}
                           label="Transfer"
-                          context={register.token.name}
+                          context={`shares, ${register.token.name}`}
                         />
                       </div>
                     )}
@@ -302,6 +302,7 @@ function OwnShareholder({
                   to={`${DESTINATIONS.companyRegister.path}?company=${company}#issue`}
                   state={{ registerCompany: company, registerToken: issueClass, issueMember: member }}
                   label="Issue shares"
+                  context="to this shareholder"
                 />
               </div>
             )}

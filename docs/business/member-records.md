@@ -428,8 +428,8 @@ it, without which it cannot be checked.
 
 A company administrator produces the pack in **Documents** → **Company pack**, at company scope.
 On the web and in the app, the prepared packs come first; choose **Prepare** below them
-to open the form, enter the company's written instruction and the recipient, then choose **Prepare
-and download company pack**; the app hands the ZIP to the phone's share sheet. The appointment is
+to open the form, enter the company's written instruction and the recipient, then choose
+**Download**; the app hands the ZIP to the phone's share sheet. The appointment is
 checked again before the pack is recorded.
 
 This route produces only a complete core pack: every share class is an opened imported register

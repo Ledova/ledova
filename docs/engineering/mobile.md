@@ -191,8 +191,8 @@ person may read (`canReadRegister`) it is the web's company view (`CompanyCertif
 through the shared `useCompanyCertificates` with the app's session and no member record: Certificate
 records for one share class, each issue or transfer newest first in the web's two-line rows: its
 shareholders and changes, then the kind, class and short date (and ledger date), with
-**Certificate:** None due, the entry was reversed on a reversed entry and a compact **Prepare
-certificate** beneath one that can be prepared. Filters holds the web's drafts, Share class
+**Certificate:** None due, the entry was reversed on a reversed entry and a compact **Prepare**
+beneath one that can be prepared. Filters holds the web's drafts, Share class
 when there is more than one, Shareholder and Certificate status, with **Clear**, which keeps the class,
 and **Apply**; the server filters the whole history before paging, and **Load more register entries**
 reads the next page, a failed one leaving the list marked incomplete. **Prepare** opens the
@@ -209,8 +209,8 @@ Inspection copies (`InspectionCopiesScreen.tsx`) is the web's page for a registe
 selected company: the selected class's name, with **Share class** in Filters when there is more than
 one, then the Prepared copies card read through the shared `useClassRegister`,
 `useInspectionCopies` and `useClassInspectionCopy`: each recipient, then one muted line with the
-short request date, any late delivery and who prepared it when, then the instruction. **Prepare
-inspection copy** beneath the card opens the web's New inspection copy card. Its request date is typed as `YYYY-MM-DD` (Sydney), starting
+short request date, any late delivery and who prepared it when, then the instruction. **Prepare**
+beneath the card opens the web's New inspection copy card. Its request date is typed as `YYYY-MM-DD` (Sydney), starting
 at today; **Preview** shows the request's rows and **Confirm and download inspection
 copy** shares the CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack page, through
 the shared `useCompanyPackAuthority`, `useCompanyPacks` and `useCompanyPack`: for a current
@@ -236,8 +236,8 @@ web's Add person form beneath them, through the shared `usePersonRegistration`, 
 and the added person's name in its outcome line; while a save is unfinished the rows don't open. A row
 opens the shareholder's page (`ShareholderScreen.tsx`, their name as its title) through the shared
 `useShareholder`: Particulars with **Change particulars** or the profile note, Holdings with any
-former holding, History, Employee awards, and Access to their own records with **Invite to their
-records**, which opens Member access with them chosen, each with the web's loading, failure and private
+former holding, History, Employee awards, and Access to their own records with **Invite**,
+which opens Member access with them chosen, each with the web's loading, failure and private
 states. **Change particulars** opens the web's Particulars change page (`ParticularsScreen.tsx`, the
 shareholder as its title, through the shared `useParticularsMember` and `useParticularsEdit`): the
 one-step form, which starts with their
@@ -247,7 +247,7 @@ note instead of the form. The change is listed under Corrections' Particulars ch
 **Open Employee share scheme** opens the scheme. **Issue shares**, under Holdings for someone
 who can prepare the register when the person holds no linked wallet and their particulars are
 retained, opens Issue shares for an opened draft class they hold, or else the company's first, with
-them chosen in an investor issue, as on the web. **Transfer shares**, on a holding without a linked
+them chosen in an investor issue, as on the web. **Transfer**, on a holding without a linked
 wallet in an opened draft class for someone who can prepare the register, opens the transfer's
 preparation with them as transferor, as on the web. **Documents** lists that person's retained
 supporting files across classes, with category, class and **Download**. **Add**, for someone

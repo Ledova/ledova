@@ -25,9 +25,9 @@ export const REGISTER_PARTICULARS_COPY = {
   RESIDENTIAL_ADDRESS: 'Residential address',
   AS_AT: 'As at',
   REASON: 'Reason',
-  SUBMIT: 'Save change',
+  SUBMIT: 'Save',
   RELOAD: 'Load current particulars',
-  DOWNLOAD: 'Download the supporting document',
+  DOWNLOAD: 'Download',
   RECEIPT_FAILED:
     'The change could not be confirmed. Check the particulars changes under Corrections before changing them again.',
 };

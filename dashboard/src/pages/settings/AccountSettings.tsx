@@ -249,7 +249,7 @@ export function AccountSettings() {
         }}
         title="Change password"
         showFooter
-        confirmLabel="Change password"
+        confirmLabel="Save"
         formId="change-password"
         busy={passwordMutation.isPending}
         busyLabel="Changing password…"
@@ -364,7 +364,7 @@ export function AccountData() {
         onClose={() => setModal(null)}
         title="Delete account"
         showFooter
-        confirmLabel="Delete account"
+        confirmLabel="Delete"
         destructive
         onConfirm={() => deleteMutation.mutate()}
         busy={deleteMutation.isPending}

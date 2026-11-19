@@ -2325,7 +2325,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByRole('button', { name: allotmentSummary })).toBeTruthy();
   expect(screen.getByRole('button', { name: grantSummary })).toBeTruthy();
   expect(
-    screen.queryByRole('button', { name: /^(Prepare \(issue\)|Prepare issue|Review and approve|Record issue|Reject)/ }),
+    screen.queryByRole('button', {
+      name: /^(Prepare \(issue\)|Prepare issue|Prepare$|Review and approve|Record issue|Reject)/,
+    }),
   ).toBeNull();
   expect(issuePosts()).toHaveLength(8);
   const pending = { ...transfers[0], uuid: '48484848-4848-4848-8848-484848484848', status: 'submitted' as const };

@@ -450,7 +450,7 @@ has no contract, when neither has a linked wallet anywhere in the company. It cr
 account, payment, application or chain transaction.
 
 1. On the web or in the app, in Ledger choose Transfer shares, the class, then Prepare a non-paid
-   transfer, or open **Transfer shares** on a holding on the shareholder page, which chooses the
+   transfer, or open **Transfer** on a holding on the shareholder page, which chooses the
    transferor. For a class that uses the chain, the task says its transfers aren’t available in the
    web app or in the app.
 2. In **People and shares**, choose the transferor, recipient and shares
@@ -653,8 +653,8 @@ protected classes. A single class needs only its own checkbox.
 **Delete** confirms which selected classes can be removed and which will be kept, with
 their reasons ([safe class deletion](issuing-shares.md#share-classes)).
 
-The mobile app's Ledger shows the same rows to a register reader of the selected company, and **Add
-share class** to someone who can prepare the register. Dashboard Set up your ledger and the menu's Share classes open that same overview. Selecting an unfinished class continues the clickable setup in its class workspace; an opened class shows its current ownership, rights and documents. Both clients expose the same safe details editing and deletion eligibility, including the reason when deletion is blocked. The menu lists Issue
+The mobile app's Ledger shows the same rows to a register reader of the selected company, and **Add**
+to someone who can prepare the register. Dashboard Set up your ledger and the menu's Share classes open that same overview. Selecting an unfinished class continues the clickable setup in its class workspace; an opened class shows its current ownership, rights and documents. Both clients expose the same safe details editing and deletion eligibility, including the reason when deletion is blocked. The menu lists Issue
 shares, Transfer shares and Corrections beneath it ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
 [non-paid transfers](#non-paid-transfers-between-members),
 [compensating corrections](#compensating-corrections)).

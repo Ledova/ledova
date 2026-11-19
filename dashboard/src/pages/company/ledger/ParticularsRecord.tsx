@@ -104,7 +104,7 @@ export function ParticularsRecord({
             <div className="flex flex-wrap gap-2">
               <PageAction
                 label={COPY.DOWNLOAD}
-                context={`change for ${member} prepared ${formatDateTime(change.createdAt)}`}
+                context={`supporting document, change for ${member} prepared ${formatDateTime(change.createdAt)}`}
                 busy={download.isPending}
                 busyLabel="Downloading…"
                 onClick={() => download.mutate()}

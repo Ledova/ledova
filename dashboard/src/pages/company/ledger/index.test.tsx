@@ -2134,7 +2134,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(retainedCorrection).getByText(`Correction · ${formatShortDate('2026-10-22')}`)).toBeTruthy();
   expect(screen.getByText('Retained correction reason')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
-  expect(screen.getByRole('button', { name: /^Download the supporting document/, hidden: true })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /^Download \(supporting document/, hidden: true })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
   appointment = decisionAppointment;
   await act(async () => {
@@ -2159,7 +2159,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   ).toHaveLength(1);
   expect(within(retained).getByText('2 Example Street, Sydney NSW 2000')).toBeTruthy();
   fireEvent.click(retainedSummary);
-  expect(within(retained).getByRole('button', { name: /^Download the supporting document/ })).toBeTruthy();
+  expect(within(retained).getByRole('button', { name: /^Download \(supporting document/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Approve|Apply|Reject) \(change for/ })).toBeNull();
   const correctionEntry = (
     await within(await screen.findByRole('list', { name: 'Ledger changes' })).findByText('Ledger date', {

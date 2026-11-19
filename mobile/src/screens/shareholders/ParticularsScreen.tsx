@@ -304,7 +304,8 @@ function ParticularsForm(props: Omit<Parameters<typeof useParticularsEdit>[0], '
         {conflict && <Action label={COPY.RELOAD} onPress={reload} />}
         <Action
           primary
-          label={busy ? 'Saving change…' : COPY.SUBMIT}
+          label={busy ? 'Saving…' : COPY.SUBMIT}
+          accessibilityLabel={`${busy ? 'Saving…' : COPY.SUBMIT} (particulars change)`}
           disabled={busy || props.blocked || conflict}
           onPress={() => {
             if (blocked.current || !checks.check()) return;

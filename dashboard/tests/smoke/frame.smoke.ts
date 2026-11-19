@@ -404,7 +404,7 @@ async function openTheSidebar(page: Page, role: Role) {
     await expect(page.getByRole('textbox', { name: 'Trading name', exact: true })).toHaveValue('Unsent company draft');
     aside = await visibleSidebar(page);
     await aside.getByRole('link', { name: 'Dashboard', exact: true }).click();
-    await leave.getByRole('button', { name: 'Leave page', exact: true }).click();
+    await leave.getByRole('button', { name: 'Leave', exact: true }).click();
     await expect(page).toHaveURL(/\/home\?company=company$/);
   }
   await page.goto('/settings?company=company#profile');

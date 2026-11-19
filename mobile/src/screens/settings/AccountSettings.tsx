@@ -358,7 +358,7 @@ export function AccountData() {
         onClose={close}
         actions={
           <Action
-            label={settings.isDeleting ? 'Deleting…' : 'Confirm deletion'}
+            label={settings.isDeleting ? 'Deleting…' : 'Delete'}
             destructive
             disabled={busy}
             onPress={() => void deleteAccount()}

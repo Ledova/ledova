@@ -223,7 +223,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   **Revoke** are compact text actions, placed like the others.
   A shareholder's Holdings and History rows don't expand either: the class, or the
   entry's kind, with the shares at the right, then the facts in muted text, with a holding's compact
-  **Transfer shares** beneath them at the right edge. Register setup's shareholders and a copied opening's are
+  **Transfer** beneath them at the right edge. Register setup's shareholders and a copied opening's are
   compact rows at every width (`MemberRow`): the name with the shares at the right, the address, then the facts, with
   **Edit** and **Remove**, or **Allotments**, as compact text actions at the right edge. **Change particulars**, **Issue
   shares**, **Open Employee share scheme** and **Invite** sit at the same edge as
@@ -283,8 +283,8 @@ shareholder's page: the recipient as its title, the class as its lede, the back 
 each colour and lists only non-zero parts, one line each at phone width, and the award's actions),
 **Agreement** (its date with **Download** on one line, and the typed terms, schedule and
 recorded line behind **Show terms and vesting schedule**), **Vesting history** (the latest five events,
-with **Show all**, each a compact row: the shares vested with the date at the right, then **Download
-evidence** and, only while the event can be corrected, **Correct**), **Entitlement changes** (the shares
+with **Show all**, each a compact row: the shares vested with the date at the right, then **Download**
+and, only while the event can be corrected, **Correct**), **Entitlement changes** (the shares
 ended or reversed with the date at the right, the reason beneath and **Download**) and
 **Non-paid issues from this award**, which lists only issues still in progress; each of these last three
 shows only when it has records. The page shows what someone acts on and leaves the rest where it
@@ -463,8 +463,8 @@ for confirmation naming that class. Explain that saved setup reviews are retired
 automatically and their records and audit history are kept. When records prevent deletion, retain a disabled **Delete** action for authorised
 preparers with the API's plain reason visibly beside it and linked as its accessible description.
 A lost reply holds the original action for checking. Recorded ownership, rights revisions and
-documents are never erased by this control. After a deletion, from the class page or **Delete
-selected**, the `Outcome` line ("Share class deleted.") sits at the top of Ledger's Share classes
+documents are never erased by this control. After a deletion, from the class page or the Ledger's
+**Delete**, the `Outcome` line ("Share class deleted.") sits at the top of Ledger's Share classes
 card, on web and app, and clears when another deletion starts or the app leaves Ledger.
 A shareholder's page owns their **Documents** section; do not duplicate it on the web class page.
 Use **Add**, not Edit: uploads append linked attachments rather than overwrite stored
@@ -663,8 +663,8 @@ in one form (**Add allocation**, **Add document**), actions on different objects
 award's **Record vesting** and **Issue vested shares**), or an action with no heading naming what it
 acts on. These also keep their wording: recovery actions that retry the original request (**Retry
 original save**), links named after the page they open (**Open Employee share scheme**, **Change
-particulars**), the register forms' review-step submits (**Prepare allotment**, **Prepare transfer**
-and the like), and **Permanently revoke appointment**, **Confirm and download inspection copy** and
+particulars**), the app Dashboard's **Accept invitation**, whose card doesn't name an invitation, the
+register forms' review-step submits (**Prepare allotment**, **Prepare transfer** and the like), and **Permanently revoke appointment**, **Confirm and download inspection copy** and
 **Prepare a non-paid transfer**, whose extra words mark an irreversible, audited or unpaid step.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or

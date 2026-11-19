@@ -144,7 +144,7 @@ export function CorrectionRecord({
             <View style={look.wrap}>
               <Action
                 label={downloadLabel}
-                accessibilityLabel={`${downloadLabel} (${context})`}
+                accessibilityLabel={`${downloadLabel} (authority document, ${context})`}
                 disabled={download.isPending}
                 onPress={() => download.mutate()}
               />

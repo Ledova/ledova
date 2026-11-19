@@ -74,7 +74,7 @@ export const REGISTER_CORRECTION_COPY = {
   REASON: 'Reason',
   SUBMIT: 'Prepare correction',
   PREPARED: 'Correction prepared.',
-  DOWNLOAD: 'Download the authority document',
+  DOWNLOAD: 'Download',
   CHANGES_UNREADABLE: 'The register correction changes could not be read.',
   UPLOAD_RECEIPT_FAILED: 'The uploaded authority document could not be confirmed. Upload it again.',
   PREPARATION_RECEIPT_FAILED:

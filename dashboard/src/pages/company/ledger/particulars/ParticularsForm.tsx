@@ -85,8 +85,9 @@ export function ParticularsForm(props: ParticularsFormProps) {
           type="submit"
           primary
           label={COPY.SUBMIT}
+          context="particulars change"
           busy={busy}
-          busyLabel="Saving change…"
+          busyLabel="Saving…"
           disabled={props.blocked || conflict}
         />
       </FormActions>

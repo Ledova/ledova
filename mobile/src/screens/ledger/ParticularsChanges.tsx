@@ -121,7 +121,7 @@ function ParticularsRecord({
             <View style={look.wrap}>
               <Action
                 label={downloadLabel}
-                accessibilityLabel={`${downloadLabel} (change for ${member} prepared ${formatDateTime(change.createdAt)})`}
+                accessibilityLabel={`${downloadLabel} (supporting document, change for ${member} prepared ${formatDateTime(change.createdAt)})`}
                 disabled={download.isPending}
                 onPress={() => download.mutate()}
               />
