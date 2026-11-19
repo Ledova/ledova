@@ -1,6 +1,6 @@
 import { useRecordCompany } from '@pages/company/ledger/shared/useRecordCompany';
 import { PreparationNotice } from '@pages/company/ledger/shared/PreparationShell';
-import { useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { matchPath, useLocation } from 'react-router-dom';
 import {
@@ -20,7 +20,7 @@ import { Actions, Page } from '@components/Page';
 import { PageTitle } from '@components/PageTitle';
 import { LoadError, Loading, Row, Rows, Section, Status } from '@components/Ledger';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
-import { ClassRights, RightsSummary } from './ClassRights';
+import { ClassRights, ClassRightsEditAction, RightsSummary } from './ClassRights';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { AccountCheck } from '@components/AccountCheck';
 import { ClassSetup } from './ClassSetup';
@@ -133,6 +133,7 @@ function ShareClassWorkspace({
     () => crypto.randomUUID(),
   );
   const rightsHeld = !!rights.editor || rights.pending || rights.busy;
+  const rightsEditAction = useRef<HTMLButtonElement>(null);
   const navigationHeld = details.busy || details.pending || rightsHeld;
   useLayoutEffect(() => {
     setLedgerNavigation({ company, token: uuid, blocked: navigationHeld, held: navigationHeld });
@@ -191,7 +192,22 @@ function ShareClassWorkspace({
                   </ClassDetailsContent>
                 )
               }
-              classContent={<ClassRights rights={rights} embedded blocked={setupHeld || detailsHeld} />}
+              classContent={
+                <ClassRights
+                  rights={rights}
+                  embedded
+                  blocked={setupHeld || detailsHeld}
+                  editActionRef={rightsEditAction}
+                />
+              }
+              rightsActions={
+                <ClassRightsEditAction
+                  ref={rightsEditAction}
+                  rights={rights}
+                  embedded
+                  blocked={setupHeld || detailsHeld}
+                />
+              }
               classContentHeld={rightsHeld}
               classReview={
                 <div className="space-y-3">

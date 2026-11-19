@@ -260,7 +260,7 @@ function AuthorityRequestRecord({
               actions={
                 <Action
                   label={action === 'withdraw' ? 'Withdrawing…' : 'Withdraw request'}
-                  primary
+                  destructive
                   disabled={blocked}
                   onPress={() =>
                     void onWithdraw()
@@ -324,7 +324,7 @@ function AuthorityRequestRecord({
             actions={
               <Action
                 label={action === 'revoke' ? 'Revoking…' : 'Permanently revoke appointment'}
-                primary
+                destructive
                 disabled={!confirmingRevocation || blocked || appointment.status === 'revoked'}
                 onPress={() => {
                   if (

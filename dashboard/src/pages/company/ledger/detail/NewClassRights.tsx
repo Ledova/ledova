@@ -1,3 +1,4 @@
+import { useEffect, useRef, type Ref, type RefObject } from 'react';
 import {
   classRightsTerms,
   rightsDetailsRecorded,
@@ -8,45 +9,64 @@ import { Failure, Outcome } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { RightsEditor, RightsSummary } from './ClassRights';
 
-export function NewClassRights({
+export function NewClassRightsAction({
+  ref,
   rights,
   administrator,
-  problems,
-  classLocked,
   blocked,
 }: {
+  ref?: Ref<HTMLButtonElement>;
   rights: ReturnType<typeof useNewClassRights>;
   administrator?: string;
-  problems: string[];
-  classLocked: boolean;
   blocked: boolean;
 }) {
   const revision = rights.saved;
-  const open = () => {
-    if (!administrator || blocked) return;
-    rights.open({
-      appointment: administrator,
-      previousRevision: revision?.revision ?? 0,
-      attributes: rightsWithoutConditions(revision?.attributes ?? {}),
-      summary: classRightsTerms(revision?.attributes ?? {}, revision?.summary ?? ''),
-      effectiveDate: revision?.effectiveDate ?? '',
-      documents: (revision?.documents ?? []).map((snapshot) => ({ id: snapshot.evidence, file: null, snapshot })),
-    });
-  };
+  if (rights.editor || !administrator) return null;
+  return (
+    <PageAction
+      ref={ref}
+      label={revision ? 'Edit class rights' : 'Add class rights'}
+      disabled={rights.busy || blocked}
+      onClick={() => {
+        if (blocked) return;
+        rights.open({
+          appointment: administrator,
+          previousRevision: revision?.revision ?? 0,
+          attributes: rightsWithoutConditions(revision?.attributes ?? {}),
+          summary: classRightsTerms(revision?.attributes ?? {}, revision?.summary ?? ''),
+          effectiveDate: revision?.effectiveDate ?? '',
+          documents: (revision?.documents ?? []).map((snapshot) => ({ id: snapshot.evidence, file: null, snapshot })),
+        });
+      }}
+    />
+  );
+}
+
+export function NewClassRights({
+  rights,
+  problems,
+  classLocked,
+  editActionRef,
+}: {
+  rights: ReturnType<typeof useNewClassRights>;
+  problems: string[];
+  classLocked: boolean;
+  editActionRef: RefObject<HTMLButtonElement | null>;
+}) {
+  const revision = rights.saved;
+  const wasEditing = useRef(false);
+  useEffect(() => {
+    if (rights.editor) wasEditing.current = true;
+    else if (wasEditing.current && !rights.busy && !rights.pending && editActionRef.current) {
+      wasEditing.current = false;
+      editActionRef.current.focus();
+    }
+  }, [rights.editor, rights.busy, rights.pending, editActionRef]);
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h3 className="text-sm font-medium text-text-primary">Class rights</h3>
-          {!rights.editor && !revision && <p className="text-sm text-text-muted">No rights recorded.</p>}
-        </div>
-        {!rights.editor && administrator && (
-          <PageAction
-            label={revision ? 'Edit class rights' : 'Add class rights'}
-            onClick={open}
-            disabled={rights.busy || blocked}
-          />
-        )}
+      <div className="space-y-1">
+        <h3 className="text-sm font-medium text-text-primary">Class rights</h3>
+        {!rights.editor && !revision && <p className="text-sm text-text-muted">No rights recorded.</p>}
       </div>
       {(rights.editor || revision) && (
         <p className="text-sm text-text-muted">Company-recorded terms. The governing documents determine the rights.</p>

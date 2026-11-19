@@ -38,6 +38,7 @@ type ImportFormProps = Omit<ImportPreparationOptions, 'onFinished' | 'newKey' | 
   classDetails?: (recordFields: ReactNode) => ReactNode;
   classActions?: ReactNode;
   classContent: ReactNode;
+  rightsActions?: ReactNode;
   classReview: ReactNode;
   classContentHeld?: boolean;
   classHeld?: boolean;
@@ -60,6 +61,7 @@ export function ImportForm({
   classDetails,
   classActions,
   classContent,
+  rightsActions,
   classReview,
   classContentHeld = false,
   classHeld = false,
@@ -503,12 +505,15 @@ export function ImportForm({
                 </span>
               </>
             ) : (
-              <PageAction
-                label="Back"
-                context="share class"
-                disabled={busy || blocked}
-                onClick={() => goTo('details')}
-              />
+              <>
+                <PageAction
+                  label="Back"
+                  context="share class"
+                  disabled={busy || blocked}
+                  onClick={() => goTo('details')}
+                />
+                {rightsActions}
+              </>
             )}
             {continueAction}
           </FormActions>

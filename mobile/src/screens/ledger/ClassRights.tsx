@@ -348,6 +348,33 @@ export function RightsEditor({
   );
 }
 
+export function ClassRightsEditAction({
+  rights,
+  embedded = false,
+  blocked = false,
+}: {
+  rights: Rights;
+  embedded?: boolean;
+  blocked?: boolean;
+}) {
+  if (!rights.tokenReady || rights.hasError || !rights.ready || rights.editor) return null;
+  if (!rights.appointment && !rights.pending) return null;
+  return (
+    <Action
+      label={embedded ? (rights.current ? 'Edit class rights' : 'Add class rights') : 'Edit'}
+      accessibilityLabel={embedded ? undefined : 'Edit (Class rights)'}
+      disabled={rights.busy || blocked}
+      onPress={() => {
+        try {
+          rights.open();
+        } catch {
+          return;
+        }
+      }}
+    />
+  );
+}
+
 export function ClassRights({
   rights,
   embedded = false,
@@ -383,20 +410,9 @@ export function ClassRights({
           ) : (
             <Text style={look.muted}>No rights recorded.</Text>
           )}
-          {(rights.appointment || rights.pending) && !rights.editor && (
+          {!embedded && (rights.appointment || rights.pending) && !rights.editor && (
             <FormActions>
-              <Action
-                label="Edit"
-                accessibilityLabel="Edit (Class rights)"
-                disabled={rights.busy || blocked}
-                onPress={() => {
-                  try {
-                    rights.open();
-                  } catch {
-                    return;
-                  }
-                }}
-              />
+              <ClassRightsEditAction rights={rights} blocked={blocked} />
             </FormActions>
           )}
           {!!rights.outcome && <Outcome>{rights.outcome}</Outcome>}

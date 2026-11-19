@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react';
+import { useEffect, useId, useRef, type Ref, type RefObject } from 'react';
 import {
   FIELD_LIMITS,
   classRightsTerms,
@@ -226,25 +226,51 @@ export function RightsEditor({
   );
 }
 
-export function ClassRights({
+export function ClassRightsEditAction({
+  ref,
   rights,
   embedded = false,
   blocked = false,
 }: {
+  ref?: Ref<HTMLButtonElement>;
   rights: ReturnType<typeof useClassRights>;
   embedded?: boolean;
   blocked?: boolean;
 }) {
-  const editAction = useRef<HTMLButtonElement>(null);
+  if (!rights.tokenReady || rights.hasError || !rights.ready || rights.editor) return null;
+  if (!rights.appointment && !rights.pending) return null;
+  return (
+    <PageAction
+      ref={ref}
+      label={embedded ? (rights.current ? 'Edit class rights' : 'Add class rights') : 'Edit'}
+      context={embedded ? undefined : 'Class rights'}
+      disabled={rights.busy || blocked}
+      onClick={rights.open}
+    />
+  );
+}
+
+export function ClassRights({
+  rights,
+  embedded = false,
+  blocked = false,
+  editActionRef,
+}: {
+  rights: ReturnType<typeof useClassRights>;
+  embedded?: boolean;
+  blocked?: boolean;
+  editActionRef?: RefObject<HTMLButtonElement | null>;
+}) {
+  const ownEditAction = useRef<HTMLButtonElement>(null);
+  const editAction = editActionRef ?? ownEditAction;
   const wasEditing = useRef(false);
   useEffect(() => {
-    if (rights.editor) {
-      wasEditing.current = true;
-    } else if (rights.ready) {
-      if (wasEditing.current) editAction.current?.focus();
+    if (rights.editor) wasEditing.current = true;
+    else if (wasEditing.current && rights.ready && !rights.busy && !rights.pending && editAction.current) {
       wasEditing.current = false;
+      editAction.current.focus();
     }
-  }, [rights.editor, rights.ready]);
+  }, [rights.editor, rights.ready, rights.busy, rights.pending, editAction]);
   if (!rights.tokenReady) return null;
   const content = (
     <>
@@ -270,15 +296,9 @@ export function ClassRights({
           ) : (
             <p className="text-sm text-text-muted">No rights recorded.</p>
           )}
-          {(rights.appointment || rights.pending) && !rights.editor && (
+          {!embedded && (rights.appointment || rights.pending) && !rights.editor && (
             <FormActions>
-              <PageAction
-                ref={editAction}
-                label={embedded ? 'Edit class rights' : 'Edit'}
-                context={embedded ? undefined : 'Class rights'}
-                disabled={rights.busy || blocked}
-                onClick={rights.open}
-              />
+              <ClassRightsEditAction ref={editAction} rights={rights} blocked={blocked} />
             </FormActions>
           )}
           <Outcome>{rights.outcome}</Outcome>

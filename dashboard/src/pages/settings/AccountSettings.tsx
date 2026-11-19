@@ -327,6 +327,7 @@ export function AccountData() {
             action={
               <PageAction
                 compact
+                destructive
                 label="Delete"
                 context="account"
                 onClick={() => {

@@ -114,6 +114,7 @@ export function ClassDeleteAction({ token, details, available }: ClassDetailsPro
   return (
     <>
       <Action
+        destructive
         label="Delete share class"
         disabled={!available || details.held || !token.canDelete}
         onPress={() => details.open('delete')}
@@ -191,6 +192,7 @@ export function ClassDetailsContent({
                     : 'Check original deletion'
                   : 'Delete class'
             }
+            destructive
             disabled={!available || details.busy || (!details.pending && !currentDelete)}
             onPress={() => void (details.pending ? details.recover() : details.remove())}
           />

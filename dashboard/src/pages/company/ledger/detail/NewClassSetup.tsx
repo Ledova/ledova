@@ -34,7 +34,7 @@ import { useCompanyContext } from '@hooks/useCompanyContext';
 import { ownerGuard } from '@pages/company/shared/ownerGuard';
 import { ImportForm } from './ImportForm';
 import { LoadError, Loading } from '@components/Ledger';
-import { NewClassRights } from './NewClassRights';
+import { NewClassRights, NewClassRightsAction } from './NewClassRights';
 import { RightsSummary } from './ClassRights';
 
 const NO_MEMBERS: RegisterTransferMembers = { members: [], awardRecipients: [] };
@@ -225,6 +225,7 @@ function FreshClass({
     newKey: () => crypto.randomUUID(),
   });
   const rightsHeld = !!rights.editor || rights.pending || rights.busy;
+  const rightsAction = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     onHeldChange(openingHeld || rightsHeld);
     return () => onHeldChange(false);
@@ -248,13 +249,10 @@ function FreshClass({
       emptyOpeningAllowed
       classProblems={problems}
       classContent={
-        <NewClassRights
-          rights={rights}
-          administrator={administrator}
-          problems={problems}
-          classLocked={classLocked}
-          blocked={openingHeld}
-        />
+        <NewClassRights rights={rights} problems={problems} classLocked={classLocked} editActionRef={rightsAction} />
+      }
+      rightsActions={
+        <NewClassRightsAction ref={rightsAction} rights={rights} administrator={administrator} blocked={openingHeld} />
       }
       classContentHeld={rightsHeld}
       classReview={

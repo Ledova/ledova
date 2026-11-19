@@ -50,6 +50,7 @@ export function ClassSetup({
   classDetails,
   classActions,
   classContent,
+  rightsActions,
   classReview,
   classContentHeld = false,
   onRecordsChanged,
@@ -65,6 +66,7 @@ export function ClassSetup({
   classDetails: (recordFields: ReactNode) => ReactNode;
   classActions: ReactNode;
   classContent: ReactNode;
+  rightsActions: ReactNode;
   classReview: ReactNode;
   classContentHeld?: boolean;
   onRecordsChanged?: () => void;
@@ -248,6 +250,7 @@ export function ClassSetup({
             classDetails={classDetails}
             classActions={classActions}
             classContent={classContent}
+            rightsActions={rightsActions}
             classReview={classReview}
             classContentHeld={classContentHeld}
             classHeld={classHeld}

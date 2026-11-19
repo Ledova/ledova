@@ -142,7 +142,7 @@ export function RevokeAppointmentModal({
       actions={
         <Action
           label={revoking ? 'Revoking…' : 'Permanently revoke appointment'}
-          primary
+          destructive
           disabled={!available || !confirmation || disabled || !canRevoke(confirmation.appointment)}
           onPress={() => {
             if (

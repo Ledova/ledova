@@ -302,6 +302,7 @@ export function Action({
   onPress,
   disabled = false,
   primary = false,
+  destructive = false,
   compact = false,
   accessibilityLabel,
 }: {
@@ -309,6 +310,7 @@ export function Action({
   onPress: () => void;
   disabled?: boolean;
   primary?: boolean;
+  destructive?: boolean;
   compact?: boolean;
   accessibilityLabel?: string;
 }) {
@@ -317,27 +319,30 @@ export function Action({
       onPress();
     }
   };
-  const styles = useThemedStyles((theme) => ({
-    button: compact
-      ? { alignSelf: 'flex-start' as const, opacity: disabled ? 0.5 : 1 }
-      : {
-          alignSelf: 'flex-start' as const,
-          borderWidth: 1,
-          borderColor: primary ? theme.colors.brand.default : theme.colors.border.default,
-          borderRadius: 6,
-          paddingHorizontal: 14,
-          paddingVertical: 11,
-          backgroundColor: primary ? theme.colors.brand.default : theme.colors.utility.transparent,
-          opacity: disabled ? 0.5 : 1,
-        },
-    label: {
-      fontFamily: theme.fontFamily.medium,
-      fontSize: 14,
-      ...(compact
-        ? { lineHeight: 20, color: theme.colors.brand.light }
-        : { color: primary ? theme.colors.utility.white : theme.colors.text.primary }),
-    },
-  }));
+  const styles = useThemedStyles((theme) => {
+    const fill = destructive ? theme.colors.error.default : primary ? theme.colors.brand.default : undefined;
+    return {
+      button: compact
+        ? { alignSelf: 'flex-start' as const, opacity: disabled ? 0.5 : 1 }
+        : {
+            alignSelf: 'flex-start' as const,
+            borderWidth: 1,
+            borderColor: fill ?? theme.colors.border.default,
+            borderRadius: 6,
+            paddingHorizontal: 14,
+            paddingVertical: 11,
+            backgroundColor: fill ?? theme.colors.utility.transparent,
+            opacity: disabled ? 0.5 : 1,
+          },
+      label: {
+        fontFamily: theme.fontFamily.medium,
+        fontSize: 14,
+        ...(compact
+          ? { lineHeight: 20, color: destructive ? theme.colors.error.light : theme.colors.brand.light }
+          : { color: fill ? theme.colors.utility.white : theme.colors.text.primary }),
+      },
+    };
+  });
   return (
     <Pressable
       accessibilityRole="button"
