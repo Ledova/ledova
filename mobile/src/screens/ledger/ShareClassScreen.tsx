@@ -30,7 +30,7 @@ import { useRetainedScope } from '../../hooks/useRetainedScope';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
-import { ClassRights, RightsSummary } from './ClassRights';
+import { ClassRights, ClassRightsEditAction, RightsSummary } from './ClassRights';
 import { ClassDeleteAction, ClassDetails, ClassDetailsActions, ClassDetailsContent } from './ClassDetails';
 import { ClassSetup, NewClassSetup } from './ClassSetup';
 import { useLedgerStyles } from './useLedgerStyles';
@@ -327,6 +327,7 @@ function ClassPage({
             externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
             classHeld={details.held}
             classContent={<ClassRights rights={rights} embedded blocked={setupHeld || detailsHeld} />}
+            rightsActions={<ClassRightsEditAction rights={rights} embedded blocked={setupHeld || detailsHeld} />}
             classContentHeld={rightsHeld}
             classReview={
               <View style={look.summary}>

@@ -45,7 +45,7 @@ import { Choices, Field } from '../../components/Field';
 import { useThemedStyles } from '../../contexts';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ImportForm } from './ImportForm';
-import { NewClassRights } from './NewClassRights';
+import { NewClassRights, NewClassRightsAction } from './NewClassRights';
 import { RightsSummary } from './ClassRights';
 import { useLedgerStyles } from './useLedgerStyles';
 
@@ -326,15 +326,8 @@ function FreshClass({
       resolveRegister={fresh.resolveRegister}
       emptyOpeningAllowed
       classProblems={fresh.problems}
-      classContent={
-        <NewClassRights
-          rights={rights}
-          administrator={administrator}
-          problems={fresh.problems}
-          classLocked={fresh.classLocked}
-          blocked={openingHeld}
-        />
-      }
+      classContent={<NewClassRights rights={rights} problems={fresh.problems} classLocked={fresh.classLocked} />}
+      rightsActions={<NewClassRightsAction rights={rights} administrator={administrator} blocked={openingHeld} />}
       classContentHeld={rightsHeld}
       classReview={
         <View style={look.summary}>
@@ -438,6 +431,7 @@ export function ClassSetup({
   classActions,
   classHeld,
   classContent,
+  rightsActions,
   classReview,
   classContentHeld,
   onCannotOpen,
@@ -456,6 +450,7 @@ export function ClassSetup({
   classActions: ReactNode;
   classHeld: boolean;
   classContent: ReactNode;
+  rightsActions: ReactNode;
   classReview: ReactNode;
   classContentHeld: boolean;
   onCannotOpen?: () => void;
@@ -640,6 +635,7 @@ export function ClassSetup({
             classActions={classActions}
             classHeld={classHeld}
             classContent={classContent}
+            rightsActions={rightsActions}
             classReview={classReview}
             classContentHeld={classContentHeld}
             appointment={canPrepare ? steps?.prepare : undefined}

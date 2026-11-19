@@ -129,6 +129,7 @@ export function ClassDeleteAction({ token, details, available }: ClassDetailsPro
   return (
     <>
       <PageAction
+        destructive
         label="Delete share class"
         describedBy={token.deletionBlockedReason ? reasonId : undefined}
         disabled={!available || details.held || !token.canDelete}

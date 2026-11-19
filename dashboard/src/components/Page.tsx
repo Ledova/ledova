@@ -164,8 +164,11 @@ const ACTION_LOOKS = {
 const actionClass = (look: string) =>
   `relative inline-flex min-h-11 w-fit items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 ${look}`;
 
-const COMPACT_ACTION =
-  'relative inline-flex w-fit items-center gap-2 whitespace-nowrap text-sm font-medium text-brand-light after:absolute after:inset-x-0 after:-inset-y-3 hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline';
+const compactClass = (color: string) =>
+  `relative inline-flex w-fit items-center gap-2 whitespace-nowrap text-sm font-medium ${color} after:absolute after:inset-x-0 after:-inset-y-3 hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline`;
+
+const COMPACT_ACTION = compactClass('text-brand-light');
+const COMPACT_DESTRUCTIVE = compactClass('text-error-light');
 
 function ActionText({ label, context }: Omit<ActionContent, 'primary' | 'compact'>) {
   return (
@@ -205,7 +208,7 @@ export function PageAction({
       onClick={onClick}
       disabled={disabled || busy}
       aria-describedby={describedBy}
-      className={compact ? COMPACT_ACTION : actionClass(look)}
+      className={compact ? (destructive ? COMPACT_DESTRUCTIVE : COMPACT_ACTION) : actionClass(look)}
     >
       <ActionText label={busy && busyLabel ? busyLabel : label} context={context} />
     </button>

@@ -164,6 +164,7 @@ export function ShareClasses({
           <Actions>
             {hasControls && (
               <Action
+                destructive
                 label="Delete selected"
                 disabled={locked || deletableCount === 0}
                 onPress={() => {
@@ -208,6 +209,7 @@ export function ShareClasses({
                       : 'Check original deletion'
                     : 'Delete selected'
               }
+              destructive
               disabled={!available || deletion.busy}
               onPress={() => void (operation.pending ? deletion.recover() : deletion.execute())}
             />

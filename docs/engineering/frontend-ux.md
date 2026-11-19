@@ -41,8 +41,9 @@ and the record date, reusing the inline metadata editor rather than a separate C
 In its read view, name/code and type/date share a two-column grid on wide screens, with labels
 above values, stacking on phones. **Edit** and **Delete share class** appear only on the Share class step, alongside
 Cancel/Import/Continue in one bottom-right workflow footer. Later steps show only their own
-navigation and decision controls. Class rights has **Back** and **Continue** when its explicit editor is closed;
-continuing without rights creates no assumed terms or revision. Shareholders groups **Back**, **Add a shareholder** and
+navigation and decision controls. Class rights groups **Back**, **Add class rights** or **Edit class rights**, and
+**Continue** in that footer when its explicit editor is closed (owner, 19 November 2026); continuing without rights
+creates no assumed terms or revision. On the web, closing the rights editor returns focus to that action. Shareholders groups **Back**, **Add a shareholder** and
 **Continue** in that footer; an open shareholder editor keeps its own Cancel/Add or Save controls.
 Do not add a second class-action row or controls beside the setup heading.
 New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
@@ -634,8 +635,10 @@ fields and action buttons, keep their own focus rings.
 ## Actions
 
 `PageAction` (`dashboard/src/components/Page.tsx`) is the standard action on a signed-in page. It
-looks plain, primary (the one main action of its card or form) or destructive (the confirm action of a
-confirmation), and comes in three forms:
+looks plain, primary (the one main action of its card or form) or destructive (red: every action that
+deletes something, such as **Delete selected**, **Delete share class** or the account's **Delete**,
+and the confirm action of a confirmation; a compact text action shows it as red text), and comes in
+three forms:
 
 - **A button** runs its action on click.
 - **A submit button** (`type="submit"`) ends every page form, inside `FormActions`: a rule, then one
@@ -676,7 +679,8 @@ way:
 A load error's Try again and recovery actions keep their label while they run; a form's submit
 button that also recovers an earlier attempt keeps its busy label. Icon buttons and register setup's
 Import placeholder keep their own controls, and dialog footers use the
-same order as `FormActions`. Mobile's `Action` has no busy or destructive form.
+same order as `FormActions`. Mobile's `Action` has no busy form; its destructive form matches the web's
+(owner, 19 November 2026).
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
 consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw

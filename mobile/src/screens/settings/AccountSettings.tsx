@@ -314,7 +314,13 @@ export function AccountData() {
               </Text>
             }
             action={
-              <Action compact label="Delete" accessibilityLabel="Delete account" onPress={() => open('delete')} />
+              <Action
+                compact
+                destructive
+                label="Delete"
+                accessibilityLabel="Delete account"
+                onPress={() => open('delete')}
+              />
             }
           />
         </Rows>
@@ -351,7 +357,7 @@ export function AccountData() {
         actions={
           <Action
             label={settings.isDeleting ? 'Deleting…' : 'Confirm deletion'}
-            primary
+            destructive
             disabled={busy}
             onPress={() => void deleteAccount()}
           />

@@ -33,6 +33,7 @@ type ImportFormProps = Omit<ImportPreparationOptions, 'newKey' | 'session'> & {
   classActions?: ReactNode;
   classHeld?: boolean;
   classContent: ReactNode;
+  rightsActions?: ReactNode;
   classReview: ReactNode;
   classContentHeld?: boolean;
   onCancel: () => void;
@@ -44,6 +45,7 @@ export function ImportForm({
   classActions,
   classHeld = false,
   classContent,
+  rightsActions,
   classReview,
   classContentHeld = false,
   onCancel,
@@ -166,6 +168,7 @@ export function ImportForm({
               }}
             />
           )}
+          {editable && !uncertain && phase === 'rights' && rightsActions}
           {addAction}
           {reviewing && !model.currentTarget && !recovery && (
             <Action
