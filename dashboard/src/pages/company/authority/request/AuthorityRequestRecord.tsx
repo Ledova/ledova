@@ -214,7 +214,7 @@ export function AuthorityRequestRecord({
           {request.fileUrl && (
             <PageAction
               label="Download"
-              context={request.originalFilename || request.companyIdentityRaw.name}
+              context={`evidence, ${request.originalFilename || request.companyIdentityRaw.name}`}
               disabled={opening || blocked}
               busy={opening}
               busyLabel="Downloading…"
@@ -225,14 +225,14 @@ export function AuthorityRequestRecord({
             <>
               <PageAction
                 label="Withdraw"
-                context={request.companyIdentityRaw.name}
+                context={`authority request for ${request.companyIdentityRaw.name}`}
                 disabled={blocked}
                 onClick={() => setConfirmingWithdrawal(true)}
               />
               {request.requestedCapabilities.includes('admin') && (
                 <PageAction
                   label="Establish"
-                  context={request.companyIdentityRaw.name}
+                  context={`appointment for ${request.companyIdentityRaw.name}`}
                   busy={action === 'admit'}
                   busyLabel="Establishing…"
                   primary
@@ -247,7 +247,7 @@ export function AuthorityRequestRecord({
           {appointment && appointment.status !== 'revoked' && (
             <PageAction
               label="Revoke"
-              context={request.companyIdentityRaw.name}
+              context={`appointment for ${request.companyIdentityRaw.name}`}
               disabled={blocked}
               onClick={() => {
                 if (blocked || revocationConfirmation.current) return;

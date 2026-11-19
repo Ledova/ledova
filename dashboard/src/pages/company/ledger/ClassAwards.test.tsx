@@ -1128,7 +1128,7 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   api.get.mockImplementation(async (url, config) =>
     url === URLS.REGISTER_AWARD_FILE(awards[0].uuid) ? download : get(url, config),
   );
-  fireEvent.click(screen.getByRole('button', { name: /^Download \(award for/ }));
+  fireEvent.click(screen.getByRole('button', { name: /^Download \(agreement, award for/ }));
   await waitFor(() =>
     expect(api.get.mock.calls.some(([url]) => url === URLS.REGISTER_AWARD_FILE(awards[0].uuid))).toBe(true),
   );
@@ -1150,7 +1150,7 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   await waitFor(() => expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull());
   expect(screen.queryByText(AWARD_REQUEST.residentialAddress!)).toBeNull();
   expect(screen.queryByLabelText('Shares in this event')).toBeNull();
-  expect(screen.queryByRole('button', { name: /^Download \(award for/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Download \(agreement, award for/ })).toBeNull();
   expect(screen.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
   expect(document.body.textContent).not.toContain(AWARD_REQUEST.name!);
   expect(screen.queryByRole('button', { name: new RegExp(AWARD_REQUEST.name!) })).toBeNull();

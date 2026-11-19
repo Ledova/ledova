@@ -62,7 +62,7 @@ export function AppointmentRecord({
               <PageAction
                 compact
                 label="Revoke"
-                context={`${title} · ${scopeLabels(appointment.capabilities)} · appointed ${formatDate(appointment.createdAt)}`}
+                context={`appointment for ${title} · ${scopeLabels(appointment.capabilities)} · appointed ${formatDate(appointment.createdAt)}`}
                 disabled={disabled}
                 onClick={onRevoke}
               />

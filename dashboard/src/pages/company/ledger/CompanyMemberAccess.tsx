@@ -171,7 +171,7 @@ export function CompanyMemberAccess({
                         <PageAction
                           compact
                           label="Revoke"
-                          context={`${memberName(association.member)}, ${association.acceptedEmail}`}
+                          context={`access for ${memberName(association.member)}, ${association.acceptedEmail}`}
                           disabled={held}
                           onClick={() => {
                             checks.reset();
