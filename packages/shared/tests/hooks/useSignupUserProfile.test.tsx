@@ -26,7 +26,7 @@ it('saves only web signup fields without erasing retained details and preserves 
     dateOfBirth: '1990-01-01',
     residentialAddress: 'PO Box 123, Sydney NSW 2000',
     phoneCountryCode: '+61',
-    phoneNumber: '0412345678',
+    phoneNumber: '0491570156',
   };
   const get = jest.spyOn(api, 'get').mockResolvedValue({ data: { count: 1, results: [profile] } });
   const patch = jest.spyOn(api, 'patch').mockResolvedValue({ data: profile });

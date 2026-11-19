@@ -15,7 +15,9 @@ before opening your first pull request.
 - **Testnet and synthetic data only.** Never contribute code, configuration,
   tests or docs that assume real funds, real securities, real personal data or a
   mainnet deployment target. The chain guards that fail closed on unsupported
-  chain ids are intentional; do not weaken them.
+  chain ids are intentional; do not weaken them. Example phone numbers are ones
+  that [ACMA reserves for creative works](https://www.acma.gov.au/phone-numbers-use-tv-shows-films-and-creative-works),
+  such as 0491 570 156.
 - **No secrets, ever.** No `.env` files, private keys, seed phrases, API tokens,
   real personal data or internal infrastructure identifiers. Only `.env.example`
   templates with blank values belong in the repository.

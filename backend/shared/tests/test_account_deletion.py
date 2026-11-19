@@ -67,7 +67,7 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             profile.residential_address = "1 Example Street, Sydney NSW 2000"
             profile.date_of_birth = date(1990, 1, 1)
             profile.phone_country_code = "+61"
-            profile.phone_number = "400000001"
+            profile.phone_number = "491570157"
             profile.citizenship_country = country
             profile.residence_country = country
             profile.kycaid_applicant_id = "synthetic-retained-verification"
