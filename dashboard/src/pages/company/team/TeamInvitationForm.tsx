@@ -84,7 +84,8 @@ export function TeamInvitationForm({
           <FormActions>
             <PageAction label="Done" disabled={disabled} onClick={onCancel} />
             <PageAction
-              label="Create another invitation"
+              label="Create another"
+              context="invitation"
               disabled={disabled}
               onClick={() => {
                 keyRef.current = null;
@@ -182,9 +183,10 @@ export function TeamInvitationForm({
           <PageAction label="Cancel" disabled={busy} onClick={onCancel} />
           <PageAction
             type="submit"
-            label="Create invitation"
+            label="Create"
+            context="invitation"
             busy={busy}
-            busyLabel="Creating invitation…"
+            busyLabel="Creating…"
             primary
             disabled={disabled}
           />

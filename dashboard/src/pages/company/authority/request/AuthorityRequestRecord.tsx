@@ -114,7 +114,7 @@ export function AuthorityRequestRecord({
               <Confirmation
                 isOpen
                 title="Withdraw this authority request?"
-                confirmLabel="Withdraw request"
+                confirmLabel="Withdraw"
                 confirmDisabled={blocked}
                 busy={action === 'withdraw'}
                 busyLabel="Withdrawing…"
@@ -213,8 +213,8 @@ export function AuthorityRequestRecord({
         <FormActions>
           {request.fileUrl && (
             <PageAction
-              label="Download evidence"
-              context={request.originalFilename || request.companyIdentityRaw.name}
+              label="Download"
+              context={`evidence, ${request.originalFilename || request.companyIdentityRaw.name}`}
               disabled={opening || blocked}
               busy={opening}
               busyLabel="Downloading…"
@@ -224,17 +224,17 @@ export function AuthorityRequestRecord({
           {request.status === 'pending' && (
             <>
               <PageAction
-                label="Withdraw request"
-                context={request.companyIdentityRaw.name}
+                label="Withdraw"
+                context={`authority request for ${request.companyIdentityRaw.name}`}
                 disabled={blocked}
                 onClick={() => setConfirmingWithdrawal(true)}
               />
               {request.requestedCapabilities.includes('admin') && (
                 <PageAction
-                  label="Establish appointment"
-                  context={request.companyIdentityRaw.name}
+                  label="Establish"
+                  context={`appointment for ${request.companyIdentityRaw.name}`}
                   busy={action === 'admit'}
-                  busyLabel="Establishing appointment…"
+                  busyLabel="Establishing…"
                   primary
                   disabled={blocked}
                   onClick={() => {
@@ -246,8 +246,8 @@ export function AuthorityRequestRecord({
           )}
           {appointment && appointment.status !== 'revoked' && (
             <PageAction
-              label="Revoke appointment"
-              context={request.companyIdentityRaw.name}
+              label="Revoke"
+              context={`appointment for ${request.companyIdentityRaw.name}`}
               disabled={blocked}
               onClick={() => {
                 if (blocked || revocationConfirmation.current) return;

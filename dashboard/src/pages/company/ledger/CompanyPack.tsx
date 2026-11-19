@@ -93,7 +93,8 @@ function PackForm({
         <PageAction
           ref={opener}
           primary
-          label="Prepare company pack"
+          label="Prepare"
+          context="company pack"
           disabled={busy || !sourceReady}
           onClick={() => setOpen(true)}
         />
@@ -146,9 +147,10 @@ function PackForm({
         />
         <PageAction
           primary
-          label="Prepare and download company pack"
+          label="Download"
+          context="company pack"
           busy={busy}
-          busyLabel="Preparing company pack…"
+          busyLabel="Preparing…"
           disabled={!sourceReady}
           onClick={() => {
             if (checks.check()) void download();

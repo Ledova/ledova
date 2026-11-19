@@ -43,9 +43,10 @@ function PersonForm({ person }: { person: ReturnType<typeof usePersonRegistratio
           <PageAction
             type="submit"
             primary
-            label={person.held ? 'Retry original save' : 'Add person'}
+            label={person.held ? 'Retry original save' : 'Add'}
+            context="person"
             busy={person.busy}
-            busyLabel="Adding person…"
+            busyLabel="Adding…"
             disabled={!person.held && (!person.canPrepare || !person.peopleReady)}
           />
         </FormActions>
@@ -120,7 +121,8 @@ export function CompanyPeople({
           <PageAction
             ref={add}
             primary
-            label="Add person"
+            label="Add"
+            context="person"
             disabled={blocked || !person.peopleReady}
             onClick={person.open}
           />

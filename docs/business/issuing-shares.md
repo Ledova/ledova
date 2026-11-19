@@ -32,7 +32,7 @@ The class-creation API requires a current personal company administrator or prep
 rechecked under the company lock. Ownership or platform staff status alone supplies no authority.
 [Register setup](register.md#bringing-in-existing-records) on the web lists companies from those
 appointments, including a preparer who is not the owner. Classes are created only through that
-setup: **Ledger**, **Add share class**, on the web or in the app.
+setup: **Ledger**, **Add**, on the web or in the app.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
@@ -61,7 +61,7 @@ reason beside a disabled **Delete** action. On a completed class page, this acti
 below the ownership, rights and document cards, while Edit stays with Class details. Deletion retirement records its actor, time and reason
 without granting ordinary review approval authority. If retirement or deletion fails, both roll back. These
 controls are also available in the native app. On the web, Share classes supports selecting classes
-individually or every visible class with **Select all**, including protected classes. **Delete selected**
+individually or every visible class with **Select all**, including protected classes. **Delete**
 is available when at least one selected class is removable. Its confirmation names those classes and
 shows which selected classes will be kept and why. Each removal is checked
 separately, so a refusal or uncertain result stops the sequence and leaves unsent classes untouched.
@@ -85,8 +85,8 @@ never starts or broadcasts a new transaction.
 ### Class rights
 
 Choose the class on Ledger. **Class rights** records the company's description of existing terms.
-On the web, it is available in setup's **Class rights** step and in the completed class view; the
-mobile app keeps its editor below the class summary. Choose **Add**, or **Edit** once rights are recorded, to record:
+On the web and in the app, it is available in setup's **Class rights** step and on the completed
+class page. Choose **Add**, or **Edit** once rights are recorded, to record:
 
 - **Voting:** general or conditional voting, including a recorded weight on a poll.
 - **Dividends:** participation or a preference, with its basis and conditions.
@@ -197,13 +197,13 @@ A grant on a class with no contract is a register entry only; a chain grant mint
 register records the issue once the mint is final.
 
 On the web and in the mobile app, the first three paths start from Ledger's **Issue shares** task.
-Choose the class to read its issues in the **Share issues** card, with **Prepare issue** beneath it.
+Choose the class to read its issues in the **Share issues** card, with **Prepare** beneath it.
 Investor and non-paid issues are listed together in groups, newest company issue date first
 and undated issues last: **Needs a decision** holds each prepared or approved issue with its stage
 and next action, then **Issued** and **Rejected** show five issues each, with **Show all** for the
 rest. Each issue is a compact row: the recipient and shares, then the kind and company issue date,
 with the AUD amount for an investor issue. Selecting the row shows or hides its details and
-documents. **Prepare issue** asks **What kind of issue?**:
+documents. **Prepare** asks **What kind of issue?**:
 
 - **Investor issue** opens the external allotment form.
 - **Non-paid issue** opens the non-paid grant form, in place.
@@ -258,7 +258,7 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
 A non-paid grant records a company-authorised issue as an Issue entry, with no application, payment,
 wallet or chain transaction.
 
-1. On the web or in the app, in Ledger choose Issue shares and the class, then Prepare issue and
+1. On the web or in the app, in Ledger choose Issue shares and the class, then Prepare and
    Non-paid issue; or choose Issue vested shares on an award in Employee share scheme.
 2. Choose who receives the shares ([choosing a person](register.md#choosing-a-person)), or New person
    with their name and residential address; names never link an account.
@@ -373,7 +373,7 @@ award fulfilment.
 A company records an investment it arranged outside Ledova and the fully paid allotment it approves.
 No deployment, application, payment or chain receipt is involved.
 
-1. On the web or in the app, in Ledger choose Issue shares and the class, then Prepare issue and
+1. On the web or in the app, in Ledger choose Issue shares and the class, then Prepare and
    Investor issue.
 2. Person and shares: choose who receives the shares, or New person with their particulars
    ([choosing a person](register.md#choosing-a-person)), then give the shares

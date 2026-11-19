@@ -213,10 +213,10 @@ it('invites and associates a walletless member, recovers one exact request and r
   );
   const company = render(companyView, { wrapper });
   expect(screen.queryByRole('button', { name: 'Refresh member access' })).toBeNull();
-  fireEvent.click(await screen.findByRole('button', { name: 'Invite a member' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Invite (member)' }));
   await choose('Member or award recipient', 'Company Recorded Member', 'recorded member');
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'member@example.test' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send (invitation)' }));
   await screen.findByRole('button', { name: 'Retry original company member action' });
   expect(memberHeld).toHaveBeenLastCalledWith(true);
   company.rerender(companyView);
@@ -234,7 +234,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   });
   await waitFor(() => expect(screen.queryAllByText(/member@example.test/)).toHaveLength(0));
   expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Send invitation' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Send (invitation)' })).toBeNull();
   preferencesRefused = false;
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
   company.unmount();
@@ -253,7 +253,7 @@ it('invites and associates a walletless member, recovers one exact request and r
     release!();
   });
   expect(screen.queryByText(MEMBER_RECORD.name)).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Accept invitation' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Accept (invitation)' })).toBeNull();
   expect(
     JSON.stringify(
       client
@@ -267,7 +267,7 @@ it('invites and associates a walletless member, recovers one exact request and r
   expect(window.location.hash).toBe('');
   expect(screen.queryByRole('textbox')).toBeNull();
   expect(associated).toBe(false);
-  fireEvent.click(screen.getByRole('button', { name: 'Accept invitation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Accept (invitation)' }));
   await waitFor(() => expect(associated).toBe(true));
   await screen.findByText(/Invitation accepted/);
   expect(screen.getByRole('link', { name: 'View my shares' }).getAttribute('href')).toBe(
@@ -630,7 +630,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   expect(screen.queryByRole('combobox', { name: 'Member or award recipient' })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Company action reason' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Refresh member access' })).toBeNull();
-  fireEvent.click(await screen.findByRole('button', { name: 'Invite a member' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Invite (member)' }));
   const recipient = await screen.findByRole('combobox', { name: 'Member or award recipient' });
   await waitFor(() => expect((recipient as HTMLInputElement).disabled).toBe(false));
   fireEvent.change(recipient, { target: { value: ' ' } });
@@ -643,7 +643,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   expect(screen.queryByRole('option', { name: /Company Recorded Member/ })).toBeNull();
   fireEvent.mouseDown(awardOnly);
   fireEvent.change(screen.getByLabelText('Intended recipient email'), { target: { value: 'employee@example.test' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send (invitation)' }));
   await screen.findByText(/The invitation email was accepted for sending/);
   expect(screen.queryByLabelText('One-time member invitation code')).toBeNull();
   expect(api.post).toHaveBeenCalledWith(
@@ -654,7 +654,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   expect(onHeldChange).toHaveBeenCalledWith(true);
   expect(api.post).toHaveBeenCalledTimes(1);
   expect(screen.queryByRole('combobox', { name: 'Member or award recipient' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Invite a member' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Invite (member)' }));
 
   awards = [];
   await act(async () =>
@@ -667,7 +667,7 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
     expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).value).toBe(''),
   );
   expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
-  fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Send (invitation)' }));
   expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
   expect(screen.getByRole('combobox', { name: 'Member or award recipient' }).getAttribute('aria-invalid')).toBe('true');
   expect(api.post).toHaveBeenCalledTimes(1);
@@ -677,12 +677,12 @@ it('invites an exact award-only recipient, deduplicates members and clears unava
   awards = [{ ...award, name: 'Foreign Private Award Recipient' }];
   invitation = undefined;
   view.rerender(companyView(otherCompany, [{ ...REGISTER, token: { ...REGISTER.token, uuid: otherClass } }]));
-  fireEvent.click(await screen.findByRole('button', { name: 'Invite a member' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Invite (member)' }));
   await screen.findByText('The award recipients belong to another company.');
   expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).value).toBe('');
   expect((screen.getByRole('combobox', { name: 'Member or award recipient' }) as HTMLInputElement).disabled).toBe(true);
   expect((screen.getByLabelText('Intended recipient email') as HTMLInputElement).value).toBe('');
-  expect(screen.getByRole('button', { name: 'Send invitation' }).matches(':disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: 'Send (invitation)' }).matches(':disabled')).toBe(true);
   expect(api.post).toHaveBeenCalledTimes(1);
   view.rerender(companyView(otherCompany, [], false));
   await waitFor(() => expect(screen.queryByRole('combobox', { name: 'Member or award recipient' })).toBeNull());

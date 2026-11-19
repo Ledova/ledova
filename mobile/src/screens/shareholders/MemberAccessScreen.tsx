@@ -315,7 +315,7 @@ function MemberAccess({
                         <Actions>
                           <Action
                             compact
-                            label="Revoke access"
+                            label="Revoke"
                             accessibilityLabel={`Revoke access (${name}, ${association.acceptedEmail})`}
                             disabled={busy}
                             onPress={() => {
@@ -349,7 +349,7 @@ function MemberAccess({
                               }}
                             />
                             <Action
-                              label="Revoke access"
+                              label="Revoke"
                               accessibilityLabel={`Revoke access for ${name}`}
                               disabled={held}
                               onPress={() => {
@@ -396,7 +396,8 @@ function MemberAccess({
         {access.admin && (
           <Actions>
             <Action
-              label="Invite a member"
+              label="Invite"
+              accessibilityLabel="Invite (member)"
               primary
               disabled={busy}
               onPress={() => {
@@ -466,7 +467,8 @@ function MemberAccess({
           <FormActions>
             <Action label="Cancel" disabled={held} onPress={closeInvitation} />
             <Action
-              label={access.busy ? 'Sending invitation…' : 'Send invitation'}
+              label={access.busy ? 'Sending…' : 'Send'}
+              accessibilityLabel={`${access.busy ? 'Sending…' : 'Send'} (invitation)`}
               primary
               disabled={held || !recipientsReady}
               onPress={() => {
@@ -485,7 +487,7 @@ function MemberAccess({
         onClose={() => setRevoking(null)}
         actions={
           <Action
-            label={access.busy ? 'Revoking…' : 'Revoke access'}
+            label={access.busy ? 'Revoking…' : 'Revoke'}
             destructive
             disabled={held || !reason.trim() || !access.admin}
             onPress={() => {

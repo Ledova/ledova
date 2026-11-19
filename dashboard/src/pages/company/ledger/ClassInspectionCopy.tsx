@@ -81,7 +81,8 @@ function InspectionForm({
         <PageAction
           ref={opener}
           primary
-          label="Prepare inspection copy"
+          label="Prepare"
+          context="inspection copy"
           disabled={blocked}
           onClick={() => setOpen(true)}
         />
@@ -148,7 +149,7 @@ function InspectionForm({
               requestAnimationFrame(() => opener.current?.focus());
             }}
           />
-          {target && <PageAction label="Edit request" disabled={blocked} onClick={() => setTarget(null)} />}
+          {target && <PageAction label="Edit" context="request" disabled={blocked} onClick={() => setTarget(null)} />}
           {target ? (
             <PageAction
               key="download"
@@ -164,7 +165,8 @@ function InspectionForm({
               key="preview"
               type="submit"
               primary
-              label="Preview inspection copy"
+              label="Preview"
+              context="inspection copy"
               busy={busy === 'preview'}
               busyLabel="Preparing preview…"
               disabled={blocked}

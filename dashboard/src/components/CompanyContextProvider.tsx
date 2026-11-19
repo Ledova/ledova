@@ -208,7 +208,7 @@ export function CompanyContextProvider({ children }: { children: ReactNode }) {
           blocker.state === 'blocked' && !held && blockedAt?.owner === owner && blockedAt.location === location.key
         }
         title="Leave this page?"
-        confirmLabel="Leave page"
+        confirmLabel="Leave"
         confirmDisabled={held || blockedAt?.owner !== owner || blockedAt?.location !== location.key}
         onClose={() => {
           if (blocker.state === 'blocked') blocker.reset();

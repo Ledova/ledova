@@ -37,7 +37,12 @@ export function RegisterSetup({ owner, guard }: { owner: OrderSubmissionOwner; g
         <p className="text-sm text-text-muted">No share classes yet.</p>
       </Section>
       <Actions>
-        <PageLink primary to={`${DESTINATIONS.companyRegisterSetup.path}?company=${company}`} label="Add share class" />
+        <PageLink
+          primary
+          to={`${DESTINATIONS.companyRegisterSetup.path}?company=${company}`}
+          label="Add"
+          context="share class"
+        />
       </Actions>
     </>
   );

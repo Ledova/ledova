@@ -171,7 +171,8 @@ function OwnAuthorityRequests({
       {!preparing && (
         <Actions>
           <Action
-            label="Request authority"
+            label="Request"
+            accessibilityLabel="Request (authority)"
             primary
             onPress={() => {
               setRecorded(null);

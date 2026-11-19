@@ -720,9 +720,9 @@ session policies.
 Both Share classes lists show selection controls only when a class is removable, with a 44px
 checkbox column aligned to the class name. Multiple-class lists have **Select all**, with a mixed
 state for partial selection; it selects every visible class in the current company, including protected records. Selection does not grant deletion
-permission. The list API supplies eligibility, blocked reasons and versions. **Delete selected** is
+permission. The list API supplies eligibility, blocked reasons and versions. **Delete** is
 available only when the selection includes a removable class and shares the bottom action area with
-**Add share class**. Confirmation pins the removable targets and the selected classes that will be
+**Add**. Confirmation pins the removable targets and the selected classes that will be
 kept, with their reasons; only reviewed removable targets receive delete commands. Earlier successes
 are retained if a later command is refused or uncertain; an uncertain original must be checked or
 explicitly retried before continuing.
@@ -734,7 +734,7 @@ marked stale without refetching the old class set; the refreshed list selects th
 Refresh the exact current holder set too, including when no class was removed. If a refresh fails,
 retain the result for another close attempt without resending deletions.
 An empty company's initial load also refreshes older appointments once after its class-list read,
-so the same current-authority check can reveal the empty list and Add share class. This is a
+so the same current-authority check can reveal the empty list and Add. This is a
 bounded source check, not polling.
 
 On the web, setup's shareholder editor and the shareholder's page share
@@ -891,7 +891,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   class-selected list. Company rows and preparation require confirmed register access; member-only access
   never reads the full company register, and a register reader's view uses no member record.
   `CertificateRecords.tsx` renders aligned rows with the shareholder or change, shares, kind and
-  short date, and for a register reader a compact **Prepare certificate**, or **None due, the
+  short date, and for a register reader a compact **Prepare**, or **None due, the
   entry was reversed**, at the row's end. Below `md` each row
   takes two lines, using the shared `certificateFacts` as the app does, and a reversed entry's
   status is labelled **Certificate:**; rows don't expand. Each record keeps its class visible;
@@ -918,7 +918,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Ledger lists its share classes in one Share classes `Section`, a compact `LinkRow` per class with
   its issued shares as the figure and `classFacts` (code, current shareholders, any finite authorised
   limit, and a note while the ledger is not opened or issues or transfers wait or cannot be checked) beneath; each row opens
-  the class's page. Add share class sits in a right-aligned row below the card, including the empty
+  the class's page. **Add** sits in a right-aligned row below the card, including the empty
   card. The default internal quantity ceiling is omitted from these rows; finite class limits remain
   visible. Task views show their selected workflow rather than the
   ownership overview or header task switches. It keeps every class's controllers for register

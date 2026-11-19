@@ -170,8 +170,8 @@ export function CompanyMemberAccess({
                       <div className="col-span-2 flex items-start justify-end md:col-span-3 xl:col-span-1">
                         <PageAction
                           compact
-                          label="Revoke access"
-                          context={`${memberName(association.member)}, ${association.acceptedEmail}`}
+                          label="Revoke"
+                          context={`access for ${memberName(association.member)}, ${association.acceptedEmail}`}
                           disabled={held}
                           onClick={() => {
                             checks.reset();
@@ -208,7 +208,7 @@ export function CompanyMemberAccess({
                               setRevokeMember('');
                             }}
                           />
-                          <PageAction label="Revoke access" type="submit" disabled={held} />
+                          <PageAction label="Revoke" context="access" type="submit" disabled={held} />
                         </FormActions>
                       </form>
                     )}
@@ -343,11 +343,12 @@ export function CompanyMemberAccess({
                     }}
                   />
                   <PageAction
-                    label="Send invitation"
+                    label="Send"
+                    context="invitation"
                     type="submit"
                     primary
                     busy={running === 'invite'}
-                    busyLabel="Sending invitation…"
+                    busyLabel="Sending…"
                     disabled={held || !recipientsReady}
                   />
                 </FormActions>
@@ -359,7 +360,8 @@ export function CompanyMemberAccess({
           <Actions>
             <PageAction
               ref={inviteAction}
-              label="Invite a member"
+              label="Invite"
+              context="member"
               primary
               disabled={held}
               onClick={() => {
@@ -374,7 +376,7 @@ export function CompanyMemberAccess({
         <Confirmation
           isOpen
           title={`Revoke access for ${revoking.name}?`}
-          confirmLabel="Revoke access"
+          confirmLabel="Revoke"
           confirmDisabled={held || !reason.trim() || !access.admin}
           busy={access.busy}
           busyLabel="Revoking…"

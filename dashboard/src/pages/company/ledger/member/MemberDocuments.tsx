@@ -78,7 +78,8 @@ function OwnMemberDocuments(props: Parameters<typeof MemberDocuments>[0]) {
           {!editor && documents.appointment && (
             <FormActions>
               <PageAction
-                label="Add documents"
+                label="Add"
+                context="documents"
                 onClick={documents.open}
                 disabled={documents.busy || !props.holdings.length}
                 describedBy={!props.holdings.length ? targetReasonId : undefined}
@@ -133,10 +134,11 @@ function OwnMemberDocuments(props: Parameters<typeof MemberDocuments>[0]) {
             <PageAction label="Cancel" disabled={documents.busy || documents.held} onClick={documents.close} />
             <PageAction
               type="submit"
-              label={documents.held ? 'Recover original save' : 'Save documents'}
+              label={documents.held ? 'Recover original save' : 'Save'}
+              context="documents"
               primary
               busy={documents.busy}
-              busyLabel="Saving documents…"
+              busyLabel="Saving…"
               disabled={!documents.ready}
             />
           </FormActions>

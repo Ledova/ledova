@@ -93,7 +93,7 @@ export function CorrectionRecord({
           <div className="flex flex-wrap gap-2">
             <PageAction
               label={COPY.DOWNLOAD}
-              context={context}
+              context={`authority document, ${context}`}
               busy={download.isPending}
               busyLabel="Downloading…"
               onClick={() => download.mutate()}

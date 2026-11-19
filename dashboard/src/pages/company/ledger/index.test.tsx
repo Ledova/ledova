@@ -440,11 +440,11 @@ it('reads every class page and groups exact holdings by member identity with sea
     'Shareholders',
     { entry: '/#shareholders' },
   );
-  const addPerson = await screen.findByRole('button', { name: 'Add person' });
+  const addPerson = await screen.findByRole('button', { name: 'Add (person)' });
   await waitFor(() => expect(addPerson.matches(':disabled')).toBe(false));
   fireEvent.click(addPerson);
   const personForm = () => within(screen.getByRole('form', { name: 'Add person' }));
-  fireEvent.click(personForm().getByRole('button', { name: 'Add person' }));
+  fireEvent.click(personForm().getByRole('button', { name: 'Add (person)' }));
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.change(personForm().getByLabelText('Name'), { target: { value: 'Taylor Demo' } });
   fireEvent.change(personForm().getByLabelText('Residential address'), {
@@ -476,15 +476,15 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect((personForm().getByLabelText('Residential address') as HTMLTextAreaElement).value).toBe(
     '3 Fictional Lane, Sydney NSW 2000',
   );
-  fireEvent.click(personForm().getByRole('button', { name: 'Add person' }));
+  fireEvent.click(personForm().getByRole('button', { name: 'Add (person)' }));
   await personForm().findByRole('alert');
   expect(personForm().getByLabelText('Name').matches(':disabled')).toBe(true);
   expect(personForm().getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(true);
   fireEvent.click(screen.getByRole('link', { name: 'Open ESS during recovery' }));
   expect(screen.queryByRole('form', { name: 'Add person' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Return to people recovery' }));
-  expect(await screen.findByRole('button', { name: 'Retry original save' })).toBeTruthy();
-  fireEvent.click(personForm().getByRole('button', { name: 'Retry original save' }));
+  expect(await screen.findByRole('button', { name: 'Retry original save (person)' })).toBeTruthy();
+  fireEvent.click(personForm().getByRole('button', { name: 'Retry original save (person)' }));
   expect(await screen.findByText('Taylor Demo added.')).toBeTruthy();
   const personRequests = api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_PEOPLE);
   expect(personRequests).toHaveLength(2);
@@ -1193,7 +1193,7 @@ it('reads every class page and groups exact holdings by member identity with sea
     />,
     'Shareholder',
   );
-  fireEvent.click(await screen.findByRole('button', { name: 'Add documents' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Add (documents)' }));
   expect(api.get).toHaveBeenCalledWith(
     COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS,
     expect.objectContaining({
@@ -1211,14 +1211,14 @@ it('reads every class page and groups exact holdings by member identity with sea
   fireEvent.change(within(screen.getByRole('group', { name: 'Document 1' })).getByLabelText('File'), {
     target: { files: [pdf] },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Save documents' }));
-  const recoverDocument = await screen.findByRole('button', { name: 'Recover original save' });
+  fireEvent.click(screen.getByRole('button', { name: 'Save (documents)' }));
+  const recoverDocument = await screen.findByRole('button', { name: 'Recover original save (documents)' });
   expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(true);
   documentAppointment = { ...documentAppointment, capabilities: ['read_register'] };
   await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
   fireEvent.click(recoverDocument);
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Recover original save' })).toBeNull());
-  expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Recover original save (documents)' })).toBeNull());
+  expect(screen.queryByRole('button', { name: 'Add (documents)' })).toBeNull();
   expect(screen.getByText('subscription.pdf')).toBeTruthy();
   expect(screen.getByText(/Subscription agreement/)).toBeTruthy();
   expect(api.post.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.REGISTER_EVIDENCE)).toHaveLength(1);
@@ -1257,17 +1257,17 @@ it('reads every class page and groups exact holdings by member identity with sea
       return Promise.reject({ response: { status: 400, data: { detail: 'Choose another document.' } } });
     return previousPost(url, body, config);
   });
-  fireEvent.click(await screen.findByRole('button', { name: 'Add documents' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Add (documents)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Add document' }));
   fireEvent.change(within(screen.getByRole('group', { name: 'Document 1' })).getByLabelText('File'), {
     target: { files: [pdf] },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Save documents' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save (documents)' }));
   await screen.findByText('Choose another document.');
   await waitFor(() =>
     expect((screen.getByRole('button', { name: 'Cancel' }) as HTMLButtonElement).disabled).toBe(false),
   );
-  expect(screen.queryByRole('button', { name: 'Recover original save' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Recover original save (documents)' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   expect(documentRows).toHaveLength(1);
 });
@@ -1730,7 +1730,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     showJourney(path);
   };
   showJourney();
-  fireEvent.click(await screen.findByRole('link', { name: 'Add share class' }));
+  fireEvent.click(await screen.findByRole('link', { name: 'Add (share class)' }));
   expect(await screen.findByRole('heading', { name: 'Ledger setup' })).toBeTruthy();
   expect(screen.queryByLabelText('Authorised shares')).toBeNull();
   expect(screen.queryByLabelText('Reason')).toBeNull();
@@ -2124,7 +2124,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(transferEntry).getByText('Ledger date', { exact: false }).textContent).toBe(
     `Ledger date ${formatShortDate('2026-10-21')}`,
   );
-  expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Prepare \(certificate for/ })).toBeNull();
   expect(screen.queryByRole('link', { name: /^Correct \(/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Acknowledge/ })).toBeNull();
@@ -2134,7 +2134,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(within(retainedCorrection).getByText(`Correction · ${formatShortDate('2026-10-22')}`)).toBeTruthy();
   expect(screen.getByText('Retained correction reason')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
-  expect(screen.getByRole('button', { name: /^Download the supporting document/, hidden: true })).toBeTruthy();
+  expect(screen.getByRole('button', { name: /^Download \(supporting document/, hidden: true })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
   appointment = decisionAppointment;
   await act(async () => {
@@ -2159,7 +2159,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   ).toHaveLength(1);
   expect(within(retained).getByText('2 Example Street, Sydney NSW 2000')).toBeTruthy();
   fireEvent.click(retainedSummary);
-  expect(within(retained).getByRole('button', { name: /^Download the supporting document/ })).toBeTruthy();
+  expect(within(retained).getByRole('button', { name: /^Download \(supporting document/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Approve|Apply|Reject) \(change for/ })).toBeNull();
   const correctionEntry = (
     await within(await screen.findByRole('list', { name: 'Ledger changes' })).findByText('Ledger date', {
@@ -2171,7 +2171,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       name: `Correct (transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
     }),
   ).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Prepare \(certificate for/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   const approveCorrection = screen.getByRole('button', {
     name: `Approve (correction of the transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
@@ -2982,13 +2982,13 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   showJourney(`/?company=${company.uuid}`);
   fireEvent.click(await screen.findByRole('checkbox', { name: 'Select all' }));
   expect((screen.getByRole('checkbox', { name: 'Select Protected records' }) as HTMLInputElement).checked).toBe(true);
-  fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Delete (selected share classes)' }));
   let bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
   expect(bulkDialog.getByText(/their saved setup reviews are retired automatically/)).toBeTruthy();
   expect(bulkDialog.getByText('Will be kept')).toBeTruthy();
   expect(bulkDialog.getByText(/Protected records/)).toBeTruthy();
   expect(bulkDialog.getByText('This class has ownership history.')).toBeTruthy();
-  fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete selected' }));
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete' }));
   await bulkDialog.findByRole('button', { name: 'Check original deletion' });
   expect(api.delete.mock.calls.map(([url]) => url)).toEqual([
     COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-0'),
@@ -3015,7 +3015,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await waitFor(() => expect(screen.queryByRole('link', { name: 'First unused (class details)' })).toBeNull());
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.getByRole('link', { name: 'Protected records (class details)' })).toBeTruthy();
-  expect(screen.queryByRole('button', { name: 'Delete selected' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Delete (selected share classes)' })).toBeNull();
   expect(screen.queryByRole('checkbox')).toBeNull();
   cleanup();
   client.clear();
@@ -3024,9 +3024,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   removedClasses.clear();
   showJourney(`/?company=${company.uuid}`);
   fireEvent.click(await screen.findByRole('checkbox', { name: 'Select all' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Delete selected' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Delete (selected share classes)' }));
   bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
-  fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete selected' }));
+  fireEvent.click(bulkDialog.getByRole('button', { name: 'Delete' }));
   await bulkDialog.findByText('1 deleted · 2 not confirmed');
   expect(api.delete.mock.calls.map(([url]) => url)).toEqual([
     COMPANY_TOKEN_ENDPOINTS.DETAIL('selected-0'),
@@ -3064,7 +3064,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     </QueryClientProvider>,
   );
   expect(await screen.findByText('No share classes yet.')).toBeTruthy();
-  expect((await screen.findByRole('link', { name: 'Add share class' })).getAttribute('href')).toBe(
+  expect((await screen.findByRole('link', { name: 'Add (share class)' })).getAttribute('href')).toBe(
     `${DESTINATIONS.companyRegisterSetup.path}?company=${company.uuid}`,
   );
   await waitFor(() => expect(client.isFetching()).toBe(0));

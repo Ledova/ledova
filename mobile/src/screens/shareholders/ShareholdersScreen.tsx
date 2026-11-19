@@ -363,7 +363,13 @@ function CompanyShareholders({
             <PersonForm person={person} />
           ) : person.canPrepare ? (
             <Actions>
-              <Action primary label="Add person" disabled={held || !person.peopleReady} onPress={person.open} />
+              <Action
+                primary
+                label="Add"
+                accessibilityLabel="Add (person)"
+                disabled={held || !person.peopleReady}
+                onPress={person.open}
+              />
             </Actions>
           ) : null}
         </>
@@ -412,7 +418,8 @@ function PersonForm({ person }: { person: ReturnType<typeof usePersonRegistratio
         />
         <Action
           primary
-          label={person.busy ? 'Adding person…' : person.held ? 'Retry original save' : 'Add person'}
+          label={person.busy ? 'Adding…' : person.held ? 'Retry original save' : 'Add'}
+          accessibilityLabel={`${person.busy ? 'Adding…' : person.held ? 'Retry original save' : 'Add'} (person)`}
           disabled={person.busy || (!person.held && (!person.canPrepare || !person.peopleReady))}
           onPress={() => {
             if (!person.held && !checks.check()) return;

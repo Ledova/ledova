@@ -243,7 +243,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
       'Unfinished draft',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Leave page' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave' }));
     expect(await screen.findByText('Unified overview')).toBeTruthy();
     fireEvent.change(screen.getByRole('textbox', { name: 'Dashboard draft' }), {
       target: { value: 'Unfinished dashboard draft' },
@@ -256,7 +256,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
       'Unfinished dashboard draft',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Browser Forward' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Leave page' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave' }));
     await screen.findByRole('heading', { name: 'Ledger task' });
     fireEvent.change(screen.getByRole('textbox', { name: 'Draft reference' }), {
       target: { value: 'Unfinished draft' },
@@ -269,7 +269,7 @@ it('uses one dashboard and company-scoped tasks, protects drafts and holds, and 
       'Unfinished draft',
     );
     fireEvent.click(screen.getByRole('link', { name: 'Choose company on Dashboard' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Leave page' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Leave' }));
     expect(await screen.findByText('Unified overview')).toBeTruthy();
     await openLedger();
     fireEvent.click(screen.getByRole('button', { name: 'Hold action' }));

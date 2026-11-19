@@ -359,7 +359,13 @@ function ClassIssues({
       </View>
       {investor.prepare && browsing && (
         <Actions>
-          <Action primary label="Prepare issue" disabled={held || !sourceReady} onPress={() => setPreparing(true)} />
+          <Action
+            primary
+            label="Prepare"
+            accessibilityLabel="Prepare (issue)"
+            disabled={held || !sourceReady}
+            onPress={() => setPreparing(true)}
+          />
         </Actions>
       )}
       <View style={!preparing && look.hidden}>

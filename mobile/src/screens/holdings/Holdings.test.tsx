@@ -1511,7 +1511,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     ` https://ledova.example/member-invitation#${MEMBER_CODE} `,
   );
   expect(await screen.findByText(MEMBER_RECORD.company.name)).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Accept (invitation)' }));
   expect(await screen.findByText('Invitation accepted. Your company records are available.')).toBeTruthy();
   await view.rerender(dashboard);
   expect(await screen.findByLabelText('Your issued shares: 0')).toBeTruthy();
@@ -1525,7 +1525,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByText('ORD · 100.00% · You: 10')).toBeTruthy();
   await view.rerender(<InvitationScreen />);
   await fireEvent.changeText(screen.getByLabelText('Link or code from the email'), OTHER_CODE);
-  const acceptOther = await screen.findByRole('button', { name: 'Accept invitation' });
+  const acceptOther = await screen.findByRole('button', { name: 'Accept (invitation)' });
   expect(screen.queryByText('Invitation accepted. Your company records are available.')).toBeNull();
   await fireEvent.press(acceptOther);
   await screen.findByRole('button', { name: 'Retry original member action' });
@@ -1767,14 +1767,14 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByRole('checkbox', { name: `Select ${PREFERENCE.name}` }).props.accessibilityState.checked).toBe(
     true,
   );
-  await fireEvent.press(screen.getByRole('button', { name: 'Delete selected', disabled: false }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Delete (selected share classes)', disabled: false }));
   expect(screen.getByText('Will be kept')).toBeTruthy();
   expect(screen.getAllByText('Issued shares keep this class in the register.').length).toBeGreaterThan(0);
   await fireEvent.press(screen.getByRole('button', { name: 'Cancel' }));
   expect(api.delete).not.toHaveBeenCalled();
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Select all' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Delete selected', disabled: false }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Delete selected', disabled: false }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Delete (selected share classes)', disabled: false }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Delete', disabled: false }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Close', disabled: false }));
   expect(api.delete).toHaveBeenCalledWith(
     URLS.DETAIL(PREFERENCE.uuid),
@@ -1783,7 +1783,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByText('1 share class deleted.')).toBeTruthy();
   expect(screen.queryByRole('checkbox', { name: `Select ${PREFERENCE.name}` })).toBeNull();
   expect(screen.queryByRole('checkbox', { name: `Select ${FOUNDERS.name}` })).toBeNull();
-  await fireEvent.press(await screen.findByRole('button', { name: 'Add share class' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Add (share class)' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('RegisterSetup', setup);
   await view.rerender(<ShareholdersScreen />);
   expect(await screen.findByText('FND 5 · 62.50%')).toBeTruthy();
@@ -1800,7 +1800,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const accessPosts = () => api.post.mock.calls.filter(([url]) => /\/member-associations\/|send-email\/$/.test(url));
   expect(screen.getByText('They lose access to their own records. Relinking needs a new invitation.')).toBeTruthy();
   expect(accessPosts()).toHaveLength(0);
-  await fireEvent.press(screen.getByRole('button', { name: 'Revoke access' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Revoke' }));
   await waitFor(() =>
     expect(accessPosts()).toEqual([
       [
@@ -1826,7 +1826,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   await view.rerender(memberInvitationPage(HOLDER_A.member));
   await fireEvent.changeText(await screen.findByLabelText('Intended recipient email'), 'holder-a@example.test');
-  await fireEvent.press(screen.getByRole('button', { name: 'Send invitation', disabled: false }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Send (invitation)', disabled: false }));
   const retryInvitation = await screen.findByRole('button', {
     name: 'Retry original company member action',
     disabled: false,
@@ -1967,7 +1967,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await fireEvent.press(screen.getByRole('button', { name: 'Authority document. Choose file' }));
   await screen.findByRole('button', { name: 'Authority document, synthetic.pdf. Choose file' });
   expect(issuePosts()).toHaveLength(0);
-  await fireEvent.press(screen.getByRole('button', { name: 'Prepare vested share issue' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Prepare issue' }));
   const grantSummary = 'Synthetic Holder B, 10 shares. Show details and documents';
   expect(await screen.findByRole('button', { name: grantSummary })).toBeTruthy();
   await settled();
@@ -2027,7 +2027,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
     [URLS.REGISTER_GRANT_DECIDE(grant.uuid), decided('apply'), expect.anything()],
   ]);
   await view.rerender(<ShareholderScreen route={{ key: 'holder-a', name: 'Shareholder', params: shareholder }} />);
-  await fireEvent.press(await screen.findByRole('button', { name: 'Issue shares to them' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Issue shares' }));
   const investorIssue = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, member: HOLDER_A.member };
   expect(mockNavigate).toHaveBeenLastCalledWith('IssueShares', investorIssue);
   await view.rerender(<IssueSharesScreen route={{ key: 'investor', name: 'IssueShares', params: investorIssue }} />);
@@ -2324,7 +2324,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(await screen.findByText('Issued · 2')).toBeTruthy();
   expect(screen.getByRole('button', { name: allotmentSummary })).toBeTruthy();
   expect(screen.getByRole('button', { name: grantSummary })).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Prepare issue|Review and approve|Record issue|Reject)/ })).toBeNull();
+  expect(
+    screen.queryByRole('button', {
+      name: /^(Prepare \(issue\)|Prepare issue|Prepare$|Review and approve|Record issue|Reject)/,
+    }),
+  ).toBeNull();
   expect(issuePosts()).toHaveLength(8);
   const pending = { ...transfers[0], uuid: '48484848-4848-4848-8848-484848484848', status: 'submitted' as const };
   transfers = [{ ...pending, stage: 'submitted', registerEntry: null, reviewedAt: null, decisions: [] }, ...transfers];
@@ -2338,8 +2342,8 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByRole('button', { name: /^(Prepare a non-paid transfer|Review and approve|Reject)/ })).toBeNull();
   await view.rerender(<ShareholderScreen route={{ key: 'read-only', name: 'Shareholder', params: shareholder }} />);
   expect(await screen.findByText('Founders · FND')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Transfer shares|Issue shares to them)/ })).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^(Transfer shares \(|Issue shares$)/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add (documents)' })).toBeNull();
   expect(transferPosts()).toHaveLength(3);
   const pendingCorrection = {
     ...correction,
@@ -2365,7 +2369,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await view.rerender(<LedgerScreen route={{ key: 'ledger', name: 'Ledger' }} />);
   expect(await screen.findByRole('button', { name: /^Founders, / })).toBeTruthy();
   await settled();
-  expect(screen.queryByRole('button', { name: 'Add share class' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add (share class)' })).toBeNull();
   await view.rerender(<ShareClassScreen route={{ key: 'read-only-setup', name: 'RegisterSetup', params: bringing }} />);
   expect(await screen.findByText(REGISTER_IMPORT_COPY.READ_ONLY_NOTE)).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Continue|Confirm)$/ })).toBeNull();
@@ -2398,7 +2402,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   await officer.rerender(acceptOfficerPage);
   await fireEvent.changeText(await screen.findByLabelText('Invitation code'), MEMBER_CODE);
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation', disabled: false }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Accept (invitation)', disabled: false }));
   const officerReceipt = `Appointment recorded for ${ADMINISTERED.name}.`;
   await screen.findByText(officerReceipt);
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -2423,7 +2427,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   await fireEvent.changeText(await screen.findByLabelText('Invitation code'), OTHER_CODE);
   expect(screen.queryByRole('button', { name: /^Revoke appointment \(/ })).toBeNull();
   await fireEvent.press(screen.getByRole('checkbox', { name: 'Accept company authorisation declaration' }));
-  await fireEvent.press(screen.getByRole('button', { name: 'Accept invitation', disabled: false }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Accept (invitation)', disabled: false }));
   await screen.findByText(officerReceipt);
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.getByText(officerReceipt)).toBeTruthy();
@@ -2450,14 +2454,14 @@ it('records an accepted officer invitation without changing the chosen company, 
   own = ADMINISTRATION;
   await AsyncStorage.setItem(companyChoiceKey, ADMINISTERED.uuid);
   const view = await render(<SettingsScreen />, { wrapper });
-  await fireEvent.press(await screen.findByRole('button', { name: 'Edit company' }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Edit (company)' }));
   await fireEvent.changeText(screen.getByLabelText('Company name'), ' ');
-  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Save (company)' }));
   expect(screen.getByText('Give the company name.')).toBeTruthy();
   expect(api.patch).not.toHaveBeenCalled();
   await fireEvent.changeText(screen.getByLabelText('Company name'), ADMINISTERED.name);
   await fireEvent.changeText(screen.getByLabelText('Trading name'), 'Synthetic trading name');
-  await fireEvent.press(screen.getByRole('button', { name: 'Save changes' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Save (company)' }));
   expect(await screen.findByText('Company details were saved.')).toBeTruthy();
   expect(api.patch.mock.calls).toEqual([
     [COMPANY_ENDPOINTS.DETAIL(ADMINISTERED.uuid), { tradingName: 'Synthetic trading name' }, expect.anything()],
@@ -2849,7 +2853,7 @@ it('records an accepted officer invitation without changing the chosen company, 
     ],
   ]);
   expect(screen.queryByText('Shareholder documents')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add (documents)' })).toBeNull();
   expect(api.get.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS)).toHaveLength(
     documentReadsBeforeClass,
   );
@@ -2865,12 +2869,12 @@ it('records an accepted officer invitation without changing the chosen company, 
   await waitFor(() =>
     expect(client.getQueryState([...memberDocumentsKey(owner, ADMINISTERED.uuid), HOLDER_B.member])?.error).toBeNull(),
   );
-  await fireEvent.press(await screen.findByRole('button', { name: 'Add documents', disabled: false }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Add (documents)', disabled: false }));
   await fireEvent.press(screen.getByRole('button', { name: 'Add document' }));
   await fireEvent.press(screen.getByRole('button', { name: 'File. Choose file' }));
   await screen.findByRole('button', { name: 'File, synthetic.pdf. Choose file' });
-  await fireEvent.press(screen.getByRole('button', { name: 'Save documents' }));
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Save documents' })).toBeNull());
+  await fireEvent.press(screen.getByRole('button', { name: 'Save (documents)' }));
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Save (documents)' })).toBeNull());
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS)).toEqual([
     [
       URLS.REGISTER_MEMBER_DOCUMENTS,
@@ -2892,7 +2896,7 @@ it('records an accepted officer invitation without changing the chosen company, 
     }),
   );
   const certificate = {
-    name: 'Download PDF (unsigned certificate for Synthetic Holder 1, 26 Oct 2026)',
+    name: 'Download (unsigned certificate for Synthetic Holder 1, 26 Oct 2026)',
     disabled: false,
   };
   const preview = { name: 'Preview (unsigned certificate for Synthetic Holder 1, 26 Oct 2026)' };
@@ -2908,21 +2912,21 @@ it('records an accepted officer invitation without changing the chosen company, 
   expect(await screen.findByText('The unsigned certificate was downloaded.')).toBeTruthy();
   expect(screen.queryByText(refusal)).toBeNull();
   await view.rerender(<InspectionCopiesScreen />);
-  await fireEvent.press(await screen.findByRole('button', { name: 'Prepare inspection copy', disabled: false }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Prepare (inspection copy)', disabled: false }));
   await fireEvent.changeText(screen.getByLabelText('Written instruction reference'), 'Synthetic instruction');
   await fireEvent.changeText(screen.getByLabelText('Recipient'), 'Synthetic recipient');
   const restoreInspection = await pauseAccountRead();
   await waitFor(() => expect(screen.queryByLabelText('Written instruction reference')).toBeNull());
-  expect(screen.queryByRole('button', { name: 'Preview inspection copy' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Preview (inspection copy)' })).toBeNull();
   await restoreInspection();
   expect((await screen.findByLabelText('Written instruction reference')).props.value).toBe('Synthetic instruction');
   expect(screen.getByLabelText('Recipient').props.value).toBe('Synthetic recipient');
-  await fireEvent.press(screen.getByRole('button', { name: 'Preview inspection copy' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Preview (inspection copy)' }));
   const copy = { name: 'Confirm and download inspection copy', disabled: false };
   await fireEvent.press(await screen.findByRole('button', copy));
   expect(await screen.findByText('The inspection copy was downloaded.')).toBeTruthy();
   await view.rerender(<CompanyPackScreen />);
-  await fireEvent.press(await screen.findByRole('button', { name: 'Prepare company pack', disabled: false }));
+  await fireEvent.press(await screen.findByRole('button', { name: 'Prepare (company pack)', disabled: false }));
   await fireEvent.changeText(screen.getByLabelText('Pack instruction reference'), 'Synthetic pack instruction');
   await fireEvent.changeText(screen.getByLabelText('Pack recipient'), 'Synthetic pack recipient');
   expect(await screen.findByText('For Synthetic protected recipient')).toBeTruthy();
@@ -2931,8 +2935,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   expect(screen.queryByText('For Synthetic protected recipient')).toBeNull();
   await restorePack();
   expect((await screen.findByLabelText('Pack instruction reference')).props.value).toBe('Synthetic pack instruction');
-  const stalePackAction = screen.getByRole('button', { name: 'Prepare and download company pack' }).props
-    .onAccessibilityTap;
+  const stalePackAction = screen.getByRole('button', { name: 'Download (company pack)' }).props.onAccessibilityTap;
   const beforePack = outputPosts().length;
   own = { ...ADMINISTRATION, capabilities: ['read_register'] };
   await act(async () => {
@@ -2950,7 +2953,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   });
   expect((await screen.findByLabelText('Pack recipient')).props.value).toBe('Synthetic pack recipient');
   expect(screen.getByLabelText('Pack instruction reference').props.value).toBe('Synthetic pack instruction');
-  await fireEvent.press(screen.getByRole('button', { name: 'Prepare and download company pack' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Download (company pack)' }));
   expect(await screen.findByText('The company pack was downloaded.')).toBeTruthy();
   const bytes = expect.objectContaining({ responseType: 'arraybuffer' });
   const issued = [
@@ -3017,15 +3020,15 @@ it('records an accepted officer invitation without changing the chosen company, 
     rereadAppointments.catch(() => undefined);
   });
   await waitFor(() => expect(client.getQueryState(ownAppointmentsKey(owner))?.fetchStatus).toBe('fetching'));
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Add (documents)' })).toBeNull());
   await act(async () => {
     appointmentsWait = null;
     finishAppointments();
     await rereadAppointments;
   });
   expect(client.getQueryState(ownAppointmentsKey(owner))?.status).toBe('success');
-  await screen.findByRole('button', { name: 'Add documents', disabled: false });
-  await fireEvent.press(screen.getByRole('button', { name: 'Add documents', disabled: false }));
+  await screen.findByRole('button', { name: 'Add (documents)', disabled: false });
+  await fireEvent.press(screen.getByRole('button', { name: 'Add (documents)', disabled: false }));
   await settled();
   const sourceReads = () => api.get.mock.calls.filter(([url]) => /\/(holders|register-member-documents)\//.test(url));
   const beforeRefresh = sourceReads().length;
@@ -3039,7 +3042,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   await fireEvent.press(screen.getByRole('button', { name: 'File. Choose file' }));
   await screen.findByRole('button', { name: 'File, synthetic.pdf. Choose file' });
   expect(screen.getByRole('button', { name: 'Share class: Preference shares · PRF' })).toBeDisabled();
-  await fireEvent.press(screen.getByRole('button', { name: 'Save documents' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Save (documents)' }));
   expect(await screen.findByText('Shareholder agreement · Preference shares · PRF')).toBeTruthy();
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS)).toHaveLength(2);
   expect(api.post.mock.calls.filter(([url]) => url === URLS.REGISTER_MEMBER_DOCUMENTS)[1]).toEqual([
@@ -3064,7 +3067,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   });
   expect(await screen.findByText('Documents are private to current company register appointees.')).toBeTruthy();
   expect(screen.queryByText('synthetic.pdf')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Add documents' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add (documents)' })).toBeNull();
   await view.rerender(certificatesPage);
   expect(await screen.findByText(/^Transfer · ORD/)).toBeTruthy();
   refused = true;

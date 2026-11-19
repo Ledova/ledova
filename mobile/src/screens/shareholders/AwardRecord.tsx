@@ -267,7 +267,7 @@ export function AwardRecord({
             <Text style={[look.muted, look.fill]}>Dated {formatShortDate(award.termsOn)}</Text>
             <Action
               compact
-              label={busy() ? 'Downloading…' : 'Download agreement'}
+              label={busy() ? 'Downloading…' : 'Download'}
               accessibilityLabel={`${busy() ? 'Downloading…' : 'Download agreement'} (award for ${award.recipientName})`}
               disabled={blocked || download.isPending}
               onPress={() => download.mutate(undefined)}
@@ -309,7 +309,7 @@ export function AwardRecord({
                         <Actions compact>
                           <Action
                             compact
-                            label={busy('vesting', event.uuid) ? 'Downloading…' : 'Download evidence'}
+                            label={busy('vesting', event.uuid) ? 'Downloading…' : 'Download'}
                             accessibilityLabel={`${busy('vesting', event.uuid) ? 'Downloading…' : 'Download evidence'} (${name})`}
                             disabled={blocked || download.isPending || !eventReady}
                             onPress={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
@@ -366,7 +366,7 @@ export function AwardRecord({
                       <Actions>
                         <Action
                           compact
-                          label={busy('end', event.uuid) ? 'Downloading…' : 'Download evidence'}
+                          label={busy('end', event.uuid) ? 'Downloading…' : 'Download'}
                           accessibilityLabel={`${busy('end', event.uuid) ? 'Downloading…' : 'Download evidence'} (rights ended ${formatDate(event.companyEventOn)})`}
                           disabled={blocked || download.isPending || !eventReady}
                           onPress={() => download.mutate({ kind: 'end', uuid: event.uuid })}
@@ -388,7 +388,7 @@ export function AwardRecord({
                       <Actions>
                         <Action
                           compact
-                          label={busy('reversal', event.uuid) ? 'Downloading…' : 'Download evidence'}
+                          label={busy('reversal', event.uuid) ? 'Downloading…' : 'Download'}
                           accessibilityLabel={`${busy('reversal', event.uuid) ? 'Downloading…' : 'Download evidence'} (correction ${formatDate(event.companyEventOn)})`}
                           disabled={blocked || download.isPending || !eventReady}
                           onPress={() => download.mutate({ kind: 'reversal', uuid: event.uuid })}

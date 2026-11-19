@@ -175,7 +175,8 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
               onChange={setReason}
             />
             <Action
-              label="Preview the rejection"
+              label="Preview"
+              accessibilityLabel="Preview (rejection)"
               disabled={decision.busy || !!decision.recovery || target?.request.reason === reason.trim()}
               onPress={() => {
                 if (!checks.check()) return;

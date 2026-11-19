@@ -2236,7 +2236,9 @@ titles on the buttons only use extra unnecessary space". So the inactive **Impor
 gone, and an action's label is as short as its card, step, form or dialog allows, with the object
 kept in its accessible name for screen readers
 ([#1702](https://github.com/Ledova/ledova/issues/1702)): Ledger setup and the share class first, then
-the rest of the app.
+the rest of the app. The second step kept the wording that marks an irreversible, audited or unpaid
+step (**Permanently revoke appointment**, **Confirm and download inspection copy**, **Prepare a
+non-paid transfer**) until the owner decides on it.
 
 ## Mobile app for shareholders
 

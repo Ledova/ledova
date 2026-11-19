@@ -55,8 +55,8 @@ function CertificateRequest({ onEditingChange, ...source }: ClassCertificateSour
     <PageAction
       ref={opener}
       compact
-      label="Prepare certificate"
-      context={certificateContext(source.entry)}
+      label="Prepare"
+      context={`certificate for ${certificateContext(source.entry)}`}
       disabled={!source.sourceReady || !source.register.initialized}
       onClick={() => setOpen(true)}
     />
@@ -112,7 +112,7 @@ function CertificateForm({
           <PageAction
             key="download"
             primary
-            label="Download PDF"
+            label="Download"
             context={context}
             busy={busy === 'download'}
             busyLabel="Downloading…"

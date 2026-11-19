@@ -236,10 +236,10 @@ export function AwardRecord({
             <p className="text-sm text-text-muted">Dated {formatShortDate(award.termsOn)}</p>
             <PageAction
               compact
-              label="Download agreement"
+              label="Download"
               busy={download.isPending && !download.variables}
               busyLabel="Downloading…"
-              context={`award for ${award.recipientName}`}
+              context={`agreement, award for ${award.recipientName}`}
               disabled={blocked || download.isPending}
               onClick={() => download.mutate(undefined)}
             />
@@ -281,14 +281,14 @@ export function AwardRecord({
                         <div className="flex flex-wrap justify-end gap-x-4 gap-y-6">
                           <PageAction
                             compact
-                            label="Download evidence"
+                            label="Download"
                             busy={
                               download.isPending &&
                               download.variables?.kind === 'vesting' &&
                               download.variables.uuid === event.uuid
                             }
                             busyLabel="Downloading…"
-                            context={vestingName(event)}
+                            context={`evidence, ${vestingName(event)}`}
                             disabled={blocked || download.isPending || !eventReady}
                             onClick={() => download.mutate({ kind: 'vesting', uuid: event.uuid })}
                           />
@@ -348,14 +348,14 @@ export function AwardRecord({
                       <div className="flex justify-end">
                         <PageAction
                           compact
-                          label="Download evidence"
+                          label="Download"
                           busy={
                             download.isPending &&
                             download.variables?.kind === 'end' &&
                             download.variables.uuid === event.uuid
                           }
                           busyLabel="Downloading…"
-                          context={`rights ended ${formatDate(event.companyEventOn)}`}
+                          context={`evidence, rights ended ${formatDate(event.companyEventOn)}`}
                           disabled={blocked || download.isPending || !eventReady}
                           onClick={() => download.mutate({ kind: 'end', uuid: event.uuid })}
                         />
@@ -376,14 +376,14 @@ export function AwardRecord({
                       <div className="flex justify-end">
                         <PageAction
                           compact
-                          label="Download evidence"
+                          label="Download"
                           busy={
                             download.isPending &&
                             download.variables?.kind === 'reversal' &&
                             download.variables.uuid === event.uuid
                           }
                           busyLabel="Downloading…"
-                          context={`correction ${formatDate(event.companyEventOn)}`}
+                          context={`evidence, correction ${formatDate(event.companyEventOn)}`}
                           disabled={blocked || download.isPending || !eventReady}
                           onClick={() => download.mutate({ kind: 'reversal', uuid: event.uuid })}
                         />

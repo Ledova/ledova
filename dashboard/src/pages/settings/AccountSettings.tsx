@@ -175,7 +175,8 @@ export function AccountSettings() {
                 {profile.userProfile.termsAcceptance?.version !== TERMS_VERSION && (
                   <PageAction
                     compact
-                    label="Accept Terms"
+                    label="Accept"
+                    context="Terms of Service"
                     disabled={profile.isFetching || profile.isUpdating}
                     onClick={() => {
                       profile.resetUpdate();
@@ -248,10 +249,10 @@ export function AccountSettings() {
         }}
         title="Change password"
         showFooter
-        confirmLabel="Change password"
+        confirmLabel="Save"
         formId="change-password"
         busy={passwordMutation.isPending}
-        busyLabel="Changing password…"
+        busyLabel="Saving…"
       >
         {modal === 'password' && (
           <form
@@ -363,11 +364,11 @@ export function AccountData() {
         onClose={() => setModal(null)}
         title="Delete account"
         showFooter
-        confirmLabel="Delete account"
+        confirmLabel="Delete"
         destructive
         onConfirm={() => deleteMutation.mutate()}
         busy={deleteMutation.isPending}
-        busyLabel="Deleting account…"
+        busyLabel="Deleting…"
       >
         <p className="mb-3 text-sm font-medium">This action cannot be undone.</p>
         <p className="text-sm text-text-muted">

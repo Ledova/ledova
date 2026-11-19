@@ -106,7 +106,13 @@ export function InvitationScreen() {
           <FormActions>
             <Action label="Not now" disabled={read.busy} onPress={() => navigation.goBack()} />
             {shown?.status === 'pending' && (
-              <Action label="Accept invitation" primary disabled={held} onPress={() => void read.accept(code)} />
+              <Action
+                label="Accept"
+                accessibilityLabel="Accept (invitation)"
+                primary
+                disabled={held}
+                onPress={() => void read.accept(code)}
+              />
             )}
           </FormActions>
         )}

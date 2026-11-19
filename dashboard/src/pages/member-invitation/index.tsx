@@ -152,7 +152,8 @@ export default function MemberInvitationPage() {
         )}
         {shown?.status === 'pending' && !accepted && (
           <PageAction
-            label="Accept invitation"
+            label="Accept"
+            context="invitation"
             primary
             busy={busy}
             busyLabel="Accepting…"

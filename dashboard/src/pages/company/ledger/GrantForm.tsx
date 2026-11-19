@@ -261,7 +261,7 @@ export function GrantForm({
         <PageAction
           type="submit"
           primary
-          label={held ? 'Recover original grant preparation' : award ? 'Prepare vested share issue' : COPY.SUBMIT}
+          label={held ? 'Recover original grant preparation' : award ? 'Prepare issue' : COPY.SUBMIT}
           busy={busy}
           busyLabel="Preparing grant…"
           disabled={blocked || (!held && !canPrepare)}

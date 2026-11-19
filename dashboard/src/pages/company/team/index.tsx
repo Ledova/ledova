@@ -156,7 +156,8 @@ function OwnTeam({
         <Actions>
           <PageAction
             ref={inviteOpener}
-            label="Invite a company user"
+            label="Invite"
+            context="company user"
             primary
             disabled={disabled || own.isFetching || own.isError || !company || sources.length === 0}
             onClick={() => {

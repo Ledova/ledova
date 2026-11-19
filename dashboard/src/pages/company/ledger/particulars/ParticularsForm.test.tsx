@@ -75,12 +75,14 @@ it("keeps an edit's baseline after a conflict until the editor loads the current
   fireEvent.change(name, { target: { value: 'My New Name' } });
   view.rerender(tree(theirs));
   api.post.mockRejectedValueOnce({ response: { status: 409, data: { detail: 'This member changed.' } } });
-  fireEvent.click(screen.getByRole('button', { name: REGISTER_PARTICULARS_COPY.SUBMIT }));
+  fireEvent.click(screen.getByRole('button', { name: `${REGISTER_PARTICULARS_COPY.SUBMIT} (particulars change)` }));
   const reload = await screen.findByRole('button', { name: REGISTER_PARTICULARS_COPY.RELOAD });
   expect(onConflict).toHaveBeenCalledTimes(1);
   await waitFor(() => expect(document.activeElement).toBe(reload));
   expect(api.post.mock.calls[0][1].expected).toEqual({ name: 'Old Name', residentialAddress: '1 Old Street' });
-  const save = screen.getByRole('button', { name: REGISTER_PARTICULARS_COPY.SUBMIT }) as HTMLButtonElement;
+  const save = screen.getByRole('button', {
+    name: `${REGISTER_PARTICULARS_COPY.SUBMIT} (particulars change)`,
+  }) as HTMLButtonElement;
   expect(save.disabled).toBe(true);
   view.rerender(tree(theirs));
   fireEvent.submit(save.closest('form')!);
@@ -105,7 +107,7 @@ it("keeps an edit's baseline after a conflict until the editor loads the current
       providedBy: 'company',
     },
   }));
-  fireEvent.click(screen.getByRole('button', { name: REGISTER_PARTICULARS_COPY.SUBMIT }));
+  fireEvent.click(screen.getByRole('button', { name: `${REGISTER_PARTICULARS_COPY.SUBMIT} (particulars change)` }));
   const landed = JSON.parse((await screen.findByTestId('landed')).textContent!);
   const second = api.post.mock.calls[1][1];
   expect(second.expected).toEqual({ name: 'Old Name', residentialAddress: '2 Their Street' });

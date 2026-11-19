@@ -188,7 +188,8 @@ export function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificat
           <PageAction label="Close" onClick={onClose} />
           {canStart && (
             <PageAction
-              label="Start verification"
+              label="Start"
+              context="verification"
               primary
               busy={isLaunching}
               busyLabel="Preparing…"

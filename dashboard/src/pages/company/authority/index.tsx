@@ -138,7 +138,8 @@ function OwnAuthorityRequests({
         <Actions>
           <PageAction
             ref={opener}
-            label="Request authority"
+            label="Request"
+            context="authority"
             primary
             onClick={() => {
               setRecorded(null);

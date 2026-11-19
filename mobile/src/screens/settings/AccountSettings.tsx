@@ -226,7 +226,8 @@ export function AccountSettings() {
         onClose={close}
         actions={
           <Action
-            label={settings.isChangingPassword ? 'Saving…' : 'Save password'}
+            label={settings.isChangingPassword ? 'Saving…' : 'Save'}
+            accessibilityLabel={`${settings.isChangingPassword ? 'Saving…' : 'Save'} (password)`}
             primary
             disabled={busy}
             onPress={() => void savePassword()}
@@ -252,7 +253,8 @@ export function AccountSettings() {
           />
         ))}
         <Action
-          label={showPasswords ? 'Hide passwords' : 'Show passwords'}
+          label={showPasswords ? 'Hide' : 'Show'}
+          accessibilityLabel={`${showPasswords ? 'Hide' : 'Show'} (passwords)`}
           disabled={busy}
           onPress={() => setShowPasswords(!showPasswords)}
         />
@@ -356,7 +358,7 @@ export function AccountData() {
         onClose={close}
         actions={
           <Action
-            label={settings.isDeleting ? 'Deleting…' : 'Confirm deletion'}
+            label={settings.isDeleting ? 'Deleting…' : 'Delete'}
             destructive
             disabled={busy}
             onPress={() => void deleteAccount()}
