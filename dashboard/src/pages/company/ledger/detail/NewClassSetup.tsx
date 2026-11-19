@@ -48,6 +48,7 @@ type FreshClassProps = {
   companyMembers: RegisterTransferMember[];
   steps: ReturnType<typeof registerSteps>;
   ready: boolean;
+  visible: boolean;
   onHeldChange: (held: boolean) => void;
   onConflict: () => void;
   administrator?: string;
@@ -137,15 +138,17 @@ export function NewClassSetup({
     )
       throw createUserFriendlyError('Your company or authority changed. Reopen this action.');
   };
-  if ((!held || !context) && (classes.isError || appointments.isError || members.isError))
-    return (
-      <LoadError retry={retry} busy={classes.isFetching || appointments.isFetching || members.isFetching}>
-        The register or your appointments could not be loaded.
-      </LoadError>
-    );
+  const stale = classes.isError || appointments.isError || members.isError;
+  const loadError = (
+    <LoadError retry={retry} busy={classes.isFetching || appointments.isFetching || members.isFetching}>
+      The register or your appointments could not be loaded.
+    </LoadError>
+  );
+  if ((!held || !context) && stale) return loadError;
   if (!context && (!classes.data || !appointments.data)) return <Loading>Loading the register…</Loading>;
   return (
     <div className="space-y-5">
+      {stale && loadError}
       {!context ? (
         <CompanyContextNotice />
       ) : !context.steps.prepare ? (
@@ -161,6 +164,7 @@ export function NewClassSetup({
           companyMembers={(anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS).members}
           steps={steps ?? context.steps}
           ready={ready && company?.uuid === context.company.uuid}
+          visible={!stale && !!steps?.prepare && company?.uuid === context.company.uuid && (held || ready)}
           onHeldChange={setHeld}
           onConflict={retry}
           administrator={
@@ -185,6 +189,7 @@ function FreshClass({
   companyMembers,
   steps,
   ready,
+  visible,
   onHeldChange,
   onConflict,
   administrator,
@@ -236,7 +241,7 @@ function FreshClass({
       appointment={steps.prepare!}
       steps={steps}
       blocked={!ready || rightsHeld}
-      visible={ready}
+      visible={visible}
       onConflict={onConflict}
       onHeldChange={setOpeningHeld}
       resolveRegister={resolveRegister}

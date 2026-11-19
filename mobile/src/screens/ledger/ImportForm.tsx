@@ -57,7 +57,6 @@ export function ImportForm({
   const [after, setAfter] = useState<{ run: () => void } | null>(null);
   const model = useImportPreparation({
     ...options,
-    onPrepared: (token, uuid) => setAfter({ run: () => options.onPrepared(token, uuid) }),
     onFinished: () => setAfter({ run: options.onFinished }),
     newKey: randomUUID,
     session: orderSubmissionSession,

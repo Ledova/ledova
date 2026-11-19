@@ -127,7 +127,7 @@ function ShareClassWorkspace({
   );
   const rights = useClassRights(
     uuid,
-    data.token.isSuccess && data.token.fetchStatus === 'idle' && !detailsHeld,
+    data.token.isSuccess && !detailsHeld,
     data.token.data?.companyUuid,
     BROWSER_FILES,
     () => crypto.randomUUID(),

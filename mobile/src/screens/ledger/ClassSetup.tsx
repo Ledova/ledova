@@ -57,7 +57,6 @@ type Opener = 'Ledger' | 'IssueShares' | 'TransferShares' | 'Corrections';
 type Flow = {
   onCancel: () => void;
   onOpen: (place: Opener) => void;
-  onPrepared: (token: string, record: string) => void;
   onFinished: () => void;
 };
 
@@ -100,6 +99,7 @@ export function NewClassSetup({
   const look = useLedgerStyles();
   const client = useQueryClient();
   const [held, setHeld] = useState(false);
+  const [rightsHeld, setRightsHeld] = useState(false);
   const [retained, setRetained] = useState<{ company: Pick<Company, 'uuid' | 'name'>; steps: RegisterSteps } | null>(
     null,
   );
@@ -196,7 +196,7 @@ export function NewClassSetup({
     <Page
       testID="register-setup-scroll"
       title={TITLE}
-      held={held}
+      held={rightsHeld}
       available={showForm}
       unavailable={
         !available ? <RegisterAccess owner={owner} /> : (content ?? <Loading>Loading the register…</Loading>)
@@ -215,6 +215,7 @@ export function NewClassSetup({
           ready={ready && chosen?.uuid === context!.company.uuid}
           visible={showForm}
           onHeldChange={setHeld}
+          onRightsHeldChange={setRightsHeld}
           onConflict={retry}
           onContinue={onContinue}
           administrator={
@@ -243,11 +244,11 @@ function FreshClass({
   ready,
   visible,
   onHeldChange,
+  onRightsHeldChange,
   onConflict,
   onContinue,
   onCancel,
   onOpen,
-  onPrepared,
   onFinished,
   administrator,
 }: Flow & {
@@ -261,6 +262,7 @@ function FreshClass({
   ready: boolean;
   visible: boolean;
   onHeldChange: (held: boolean) => void;
+  onRightsHeldChange: (held: boolean) => void;
   onConflict: () => void;
   onContinue: (token: string) => void;
   administrator?: string;
@@ -297,8 +299,12 @@ function FreshClass({
   usePreventRemove(rights.busy || rights.pending, () => {});
   useEffect(() => {
     onHeldChange(openingHeld || rightsHeld);
-    return () => onHeldChange(false);
-  }, [openingHeld, rightsHeld, onHeldChange]);
+    onRightsHeldChange(rightsHeld);
+    return () => {
+      onHeldChange(false);
+      onRightsHeldChange(false);
+    };
+  }, [openingHeld, rightsHeld, onHeldChange, onRightsHeldChange]);
   return (
     <ImportForm
       owner={owner}
@@ -343,7 +349,6 @@ function FreshClass({
         </View>
       }
       onCancel={onCancel}
-      onPrepared={onPrepared}
       onFinished={onFinished}
       classFields={
         <View style={look.fields}>
@@ -462,7 +467,6 @@ export function ClassSetup({
   const client = useQueryClient();
   const [held, setHeld] = useState(false);
   const [retained, setRetained] = useState<Retained | null>(null);
-  const [preparedHere, setPreparedHere] = useState<string | null>(null);
   const retaining = held || classHeld || classContentHeld;
   useEffect(() => {
     onHeldChange(held);
@@ -486,15 +490,14 @@ export function ClassSetup({
   const members = usePeople(owner, token, guard, readable, orderSubmissionSession);
   const register = useImportRegister(owner, token, readable, guard, orderSubmissionSession);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
-  const resumed = record ?? retained?.saved?.uuid;
+  const resumed = record ?? (retained ? (retained.saved?.uuid ?? null) : undefined);
   const saved = imports.data?.find((proposal) =>
-    resumed
+    resumed !== undefined
       ? proposal.uuid === resumed
       : proposal.status === 'submitted' &&
         proposal.sourceConfirmed &&
         proposal.correctionOf === (correction?.uuid ?? null),
   );
-  const savedSource = saved?.uuid === preparedHere ? retained?.saved : saved;
   const fetching =
     classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching || members.isFetching;
   const stale = classes.isError || appointments.isError || register.isError || imports.isError || members.isError;
@@ -527,7 +530,7 @@ export function ClassSetup({
     (retained?.listed !== listed ||
       retained?.register !== register.data ||
       retained?.correction !== correction ||
-      retained?.saved !== savedSource ||
+      retained?.saved !== saved ||
       retained?.members !== members.data ||
       retained?.steps.prepare?.uuid !== steps?.prepare?.uuid ||
       retained?.steps.approve?.uuid !== steps?.approve?.uuid ||
@@ -539,7 +542,7 @@ export function ClassSetup({
       register: register.data!,
       steps: steps!,
       correction,
-      saved: savedSource,
+      saved,
       members: members.data!,
     });
   const retry = () => {
@@ -662,10 +665,6 @@ export function ClassSetup({
             onConflict={retry}
             onHeldChange={setHeld}
             onCancel={flow.onCancel}
-            onPrepared={(prepared, saved) => {
-              setPreparedHere(saved);
-              flow.onPrepared(prepared, saved);
-            }}
             onFinished={flow.onFinished}
           />
         )}

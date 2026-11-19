@@ -464,8 +464,8 @@ after reopening. Older records without that choice remain ambiguous rather than 
 new people. Shareholders are
 compact rows (`MemberRow` in `ImportRecord.tsx`), with **Edit** and **Remove** in the draft and **Show
 allotments** on Review, whose record date, shares held and shareholders are one line each. **Continue**
-moves to the next step, saving the draft on the way to Review. Saving keeps the class page and
-retained form mounted while required reads refresh; the read-only Class details rows keep their
+moves to the next step, saving the draft on the way to Review. Saving keeps the same page, for a new
+class as for a started one, and its retained form mounted while required reads refresh; the read-only Class details rows keep their
 layout, and Review stays visible, with actions blocked
 until current records and authority are ready. Read failures show Retry, and account or company
 changes still hide the previous scope. A valid jump from Share class to Review stays on the

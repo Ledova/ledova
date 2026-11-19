@@ -109,10 +109,6 @@ function useClassFlow(company: string, token?: string, from?: 'IssueShares' | 'T
     onCancel: () => open(from ?? 'Ledger'),
     onOpen: open,
     onContinue: (started: string) => navigation.replace('ShareClass', { company, token: started }),
-    onPrepared: (prepared: string, saved: string) => {
-      if (token) navigation.setParams({ token: prepared, record: saved });
-      else navigation.replace('ShareClass', { company, token: prepared, record: saved });
-    },
     onFinished: () => navigation.popTo('Dashboard'),
   };
 }
@@ -243,7 +239,7 @@ function ClassPage({
   const listed = data.token.data;
   const rights = useClassRights(
     token,
-    available && data.token.isSuccess && data.token.fetchStatus === 'idle' && !detailsHeld,
+    available && data.token.isSuccess && !detailsHeld,
     listed?.companyUuid,
     SHARE_SHEET_FILES,
     randomUUID,
