@@ -1077,6 +1077,10 @@ Some messages keep their own form:
   Omitting a repeated optional marker does not make the field required. A sentence about one field is that field's hint. Choices, the searchable pickers, the list search
   and checkboxes that need no check keep their own controls, and sign-in and sign-up keep their own
   look on the same Headless parts.
+- **Example values.** Placeholders, test fixtures and screenshots use invented details. An example
+  phone number is one that
+  [ACMA reserves for creative works](https://www.acma.gov.au/phone-numbers-use-tv-shows-films-and-creative-works),
+  such as 0491 570 156, which the app's sign-up shows as 491 570 156 after +61.
 - **Limits.** A text field's `maxLength` comes from `FIELD_LIMITS`
   (`packages/shared/src/constants/business/field-limits.ts`): one constant per kind of backend field,
   equal to its serializer or model limit, such as `NAME` (255), `REASON` (1000), `REGISTER_SHARES`

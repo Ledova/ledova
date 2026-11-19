@@ -261,7 +261,7 @@ export function UserProfileScreen() {
                       />
                     </>
                   }
-                  placeholder="416 004 021"
+                  placeholder="491 570 156"
                   value={form.phoneNumber}
                   onChange={(text) => setFieldValue('phoneNumber', text)}
                   keyboardType="phone-pad"
