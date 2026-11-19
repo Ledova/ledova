@@ -50,7 +50,7 @@ New classes show their editable fields; existing classes keep the server's edit/
 New-class presets use one **Start with** radio group, one preset per line, leaving out a common class whose code
 the company already uses. A common class sets its own name, code and type, so Class name, Class code and Class type
 are asked only for **Another class**. Name/code and type/date then share the existing two-column form grid, stacking
-on phones. The Class rights step groups its heading, status and Add action together;
+on phones. The Class rights step shows its heading and status, with its Add or Edit action in the footer;
 the governing-document note appears with its editor or recorded terms.
 While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
 Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and
@@ -472,7 +472,7 @@ Use **Add documents**, not Edit: uploads append linked attachments rather than o
 files. Keep the action visible to current preparers when no holding exists, disabled with
 **Record a shareholding before adding documents.** Class-wide governing documents stay with
 Class rights.
-Class rights follows this pattern: Edit replaces its read view and previous versions with six
+Class rights follows this pattern: **Add**, or **Edit** once rights are recorded, replaces its read view and previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured
 details beside their choice; combine conditions, exceptions and custom rights in Additional terms

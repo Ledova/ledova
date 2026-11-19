@@ -99,7 +99,7 @@ export function ClassDetailsEditAction({ token, details, available }: ClassDetai
     <>
       <Action
         label="Edit"
-        accessibilityLabel="Edit Class details"
+        accessibilityLabel="Edit (Class details)"
         disabled={!available || details.held || !token.canEditDetails}
         onPress={() => details.open('edit')}
       />

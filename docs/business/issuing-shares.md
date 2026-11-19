@@ -86,7 +86,7 @@ never starts or broadcasts a new transaction.
 
 Choose the class on Ledger. **Class rights** records the company's description of existing terms.
 On the web, it is available in setup's **Class rights** step and in the completed class view; the
-mobile app keeps its editor below the class summary. Choose **Edit** to record:
+mobile app keeps its editor below the class summary. Choose **Add**, or **Edit** once rights are recorded, to record:
 
 - **Voting:** general or conditional voting, including a recorded weight on a poll.
 - **Dividends:** participation or a preference, with its basis and conditions.

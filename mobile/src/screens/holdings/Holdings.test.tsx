@@ -2521,7 +2521,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   const openingDate = '2026-11-14';
   const recordDate = screen.getByLabelText('Record date');
   await fireEvent.changeText(recordDate, openingDate);
-  await fireEvent.press(screen.getByRole('button', { name: 'Edit Class details', disabled: false }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit (Class details)', disabled: false }));
   expect(screen.getByLabelText('Class name').props.value).toBe(PREFERENCE.name);
   expect(screen.queryByLabelText('Record date')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
@@ -2531,7 +2531,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   expect((await screen.findByLabelText('Record date')).props.value).toBe(openingDate);
   expect(screen.getByLabelText('Record date')).toBe(recordDate);
   expect(screen.getByLabelText(`Class name: ${PREFERENCE.name}`)).toBeTruthy();
-  await fireEvent.press(screen.getByRole('button', { name: 'Edit Class details', disabled: false }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Edit (Class details)', disabled: false }));
   await fireEvent.changeText(screen.getByLabelText('Class name'), 'Updated preference shares');
   const metadataEditor = screen.getByLabelText('Edit class details');
   await fireEvent.press(screen.getByRole('button', { name: 'Save', disabled: false }));
@@ -2600,7 +2600,7 @@ it('records an accepted officer invitation without changing the chosen company, 
     expect(screen.queryByText('Loading the register…')).toBeNull();
     expect(screen.queryByText('Checking current class access…')).toBeNull();
     expect(screen.getByLabelText('Class code: PRF')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Edit Class details' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Edit (Class details)' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Confirm', disabled: true })).toBeTruthy();
     expect(screen.getByRole('button', { name: '1. Share class', disabled: true })).toBeTruthy();
   } finally {

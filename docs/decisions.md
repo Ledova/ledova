@@ -22,7 +22,7 @@ stay here as history and are marked where they appear.
 | [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)                  | 19 October 2026                                | Current; #1146                                                                                                                     |
 | [ABR company lookup at activation](#abr-company-lookup-at-activation)                                              | 19 October 2026                                | Superseded 2 November 2026; the ABR check was removed (#1491)                                                                      |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                            | 14 October 2026                                | Current; setup amended by #1029                                                                                                    |
-| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)             | 14 October 2026                                | Current; #1029, CSV entry removed under #1036, Import placeholder removed 19 November (#1702)                                       |
+| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)             | 14 October 2026                                | Current; #1029, CSV entry removed under #1036, Import placeholder removed 19 November (#1702)                                      |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                            | September to 6 October 2026                    | Eligibility superseded 2 November (#1491); offering parts removed under #1421                                                      |
 | [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Current; #1491; supersedes classification, eligibility, payslips, the ABR check and company documents                              |
 | [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; activation itself removed 14 November (#1567)                                                                                             |
@@ -2081,6 +2081,7 @@ heading is used. The owner then chose descriptive text buttons throughout this f
 icon controls and their tooltip helper. **Edit** and **Remove** sit together beside collapsed
 summaries; **Remove** sits below full-width open entry fields. Buttons share typography and spacing,
 and the main footer keeps Cancel and the emphasised **Add shareholder** or **Save changes** action.
+_Those labels became **Add** and **Save** on 19 November 2026 ([short action labels](#frontend-ux-standards))._
 This changes presentation, not whether history or documents are required.
 
 On 24 October 2026 the owner resumed mobile for the web pages that are finished, asking to "only

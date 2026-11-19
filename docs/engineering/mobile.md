@@ -342,8 +342,8 @@ Current shareholders and any authorised shares one line each, **Ledger not opene
 applies, the non-transferable note and the waiting notes; Class rights (`ClassRights.tsx`, through the
 shared `useClassRights`) with the structured rights one line each, Additional terms, the effective
 date on one line, the documents with **Download**, the recorded
-line and **Show previous versions**, and **Edit** when the server names a current administration
-appointment, which opens the web's form in the card: the six rights groups with the fields their
+line and **Show previous versions**, and **Add**, or **Edit** once rights are recorded, when the server names a current
+administration appointment, which opens the web's form in the card: the six rights groups with the fields their
 choice needs, Additional terms, the effective date typed as `YYYY-MM-DD` (UTC) and the documents, with
 the web's retry of an uncertain save. Shareholder attachments stay on each shareholder's page;
 the class page keeps only its class-wide governing documents in Class rights. Without register access to the company, both
