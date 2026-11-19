@@ -1,3 +1,4 @@
+import { useEffect, useRef, type Ref, type RefObject } from 'react';
 import {
   classRightsTerms,
   rightsDetailsRecorded,
@@ -9,10 +10,12 @@ import { PageAction } from '@components/Page';
 import { RightsEditor, RightsSummary } from './ClassRights';
 
 export function NewClassRightsAction({
+  ref,
   rights,
   administrator,
   blocked,
 }: {
+  ref?: Ref<HTMLButtonElement>;
   rights: ReturnType<typeof useNewClassRights>;
   administrator?: string;
   blocked: boolean;
@@ -21,6 +24,7 @@ export function NewClassRightsAction({
   if (rights.editor || !administrator) return null;
   return (
     <PageAction
+      ref={ref}
       label={revision ? 'Edit class rights' : 'Add class rights'}
       disabled={rights.busy || blocked}
       onClick={() => {
@@ -42,12 +46,22 @@ export function NewClassRights({
   rights,
   problems,
   classLocked,
+  editActionRef,
 }: {
   rights: ReturnType<typeof useNewClassRights>;
   problems: string[];
   classLocked: boolean;
+  editActionRef: RefObject<HTMLButtonElement | null>;
 }) {
   const revision = rights.saved;
+  const wasEditing = useRef(false);
+  useEffect(() => {
+    if (rights.editor) wasEditing.current = true;
+    else if (wasEditing.current && !rights.busy && !rights.pending && editActionRef.current) {
+      wasEditing.current = false;
+      editActionRef.current.focus();
+    }
+  }, [rights.editor, rights.busy, rights.pending, editActionRef]);
   return (
     <div className="space-y-4">
       <div className="space-y-1">

@@ -225,6 +225,7 @@ function FreshClass({
     newKey: () => crypto.randomUUID(),
   });
   const rightsHeld = !!rights.editor || rights.pending || rights.busy;
+  const rightsAction = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     onHeldChange(openingHeld || rightsHeld);
     return () => onHeldChange(false);
@@ -247,8 +248,12 @@ function FreshClass({
       resolveRegister={resolveRegister}
       emptyOpeningAllowed
       classProblems={problems}
-      classContent={<NewClassRights rights={rights} problems={problems} classLocked={classLocked} />}
-      rightsActions={<NewClassRightsAction rights={rights} administrator={administrator} blocked={openingHeld} />}
+      classContent={
+        <NewClassRights rights={rights} problems={problems} classLocked={classLocked} editActionRef={rightsAction} />
+      }
+      rightsActions={
+        <NewClassRightsAction ref={rightsAction} rights={rights} administrator={administrator} blocked={openingHeld} />
+      }
       classContentHeld={rightsHeld}
       classReview={
         <div className="space-y-3">

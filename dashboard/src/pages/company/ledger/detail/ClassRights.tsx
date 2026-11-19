@@ -265,13 +265,12 @@ export function ClassRights({
   const editAction = editActionRef ?? ownEditAction;
   const wasEditing = useRef(false);
   useEffect(() => {
-    if (rights.editor) {
-      wasEditing.current = true;
-    } else if (rights.ready) {
-      if (wasEditing.current) editAction.current?.focus();
+    if (rights.editor) wasEditing.current = true;
+    else if (wasEditing.current && rights.ready && !rights.busy && !rights.pending && editAction.current) {
       wasEditing.current = false;
+      editAction.current.focus();
     }
-  }, [rights.editor, rights.ready]);
+  }, [rights.editor, rights.ready, rights.busy, rights.pending, editAction]);
   if (!rights.tokenReady) return null;
   const content = (
     <>

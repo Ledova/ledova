@@ -3192,6 +3192,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(setupRightsForm.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(true);
   fireEvent.click(originalRightsSave);
   expect(await screen.findByText('Class rights saved.')).toBeTruthy();
+  await waitFor(() =>
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Edit class rights' })),
+  );
   expect(api.post.mock.calls.map(([url]) => url)).toEqual([
     COMPANY_TOKEN_ENDPOINTS.BASE,
     COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid),
