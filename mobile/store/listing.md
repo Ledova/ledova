@@ -3,27 +3,27 @@
 [Mobile releases](../../docs/engineering/mobile-releases.md#app-store-listing) · [Documentation](../../docs/README.md)
 
 What Ledova's iOS App Store page shows. This file and the screenshots beside it are the reviewed copy. App Store
-Connect holds the live one, so a merged change here is then copied there by hand. App Review's sign-in, contact
-details and notes stay in the private infrastructure repository.
+Connect holds the live one, so a merged change here is then copied there by hand, on the owner's direction. App
+Review's sign-in, contact details and notes, and the App Store Connect identifiers, stay out of this repository.
 
 **Status:** entered in App Store Connect on 20 November 2026 for version 1.0.4 with build 91. It has not been submitted
 to App Review; [#1586](https://github.com/Ledova/ledova/issues/1586) sets the launch order.
 
 ## Product page
 
-| Field | Value |
-| --- | --- |
-| Name | Ledova |
-| Subtitle | Company ownership records |
-| Icon | From the build: `mobile/assets/icon.png` |
-| Primary category | Finance |
-| Secondary category | Business |
-| Support URL | https://ledova.io/contact |
-| Marketing URL | https://ledova.io |
-| Privacy policy URL | https://ledova.io/privacy-policy |
-| Copyright | 2026 Blueberry Money Pty Ltd |
-| Age rating | 4+ |
-| Availability | Australia only |
+| Field              | Value                                    |
+| ------------------ | ---------------------------------------- |
+| Name               | Ledova                                   |
+| Subtitle           | Company ownership records                |
+| Icon               | From the build: `mobile/assets/icon.png` |
+| Primary category   | Finance                                  |
+| Secondary category | Business                                 |
+| Support URL        | https://ledova.io/contact                |
+| Marketing URL      | https://ledova.io                        |
+| Privacy policy URL | https://ledova.io/privacy-policy         |
+| Copyright          | 2026 Blueberry Money Pty Ltd             |
+| Age rating         | 4+                                       |
+| Availability       | Australia only                           |
 
 ### Promotional text
 
@@ -69,22 +69,23 @@ share register,cap table,shareholders,equity,employee share scheme,ESS,vesting,s
 
 Each data type is linked to the user's account, used only to run the app and not used for tracking.
 
-| Data type | What it covers |
-| --- | --- |
-| Name | The account holder's name and the names a company records |
-| Email Address | Sign-in, invitations and the addresses a company records |
-| Phone Number | The phone number the app's sign-up asks for |
-| Physical Address | The residential address the app's sign-up asks for, and recorded addresses |
-| Other Financial Info | Shares, awards and the records behind them |
-| Other User Content | Documents people upload |
-| User ID | The account |
-| Other Data Types | The date of birth the app's sign-up asks for |
+| Data type            | What it covers                                                             |
+| -------------------- | -------------------------------------------------------------------------- |
+| Name                 | The account holder's name and the names a company records                  |
+| Email Address        | Sign-in, invitations and the addresses a company records                   |
+| Phone Number         | The phone number the app's sign-up asks for                                |
+| Physical Address     | The residential address the app's sign-up asks for, and recorded addresses |
+| Other Financial Info | Shares, awards and the records behind them                                 |
+| Other User Content   | Documents people upload                                                    |
+| User ID              | The account                                                                |
+| Other Data Types     | The date of birth the app's sign-up asks for                               |
 
 ## Screenshots
 
-App Store Connect requires iPhone screenshots for its "iPhone with Dynamic Island (medium display)" slot, at
-1206 × 2622 without transparency, and scales them down for smaller iPhones. These five show the local demo company,
-whose names are fictional, in this order:
+App Store Connect requires iPhone screenshots for its "iPhone with Dynamic Island (medium display)" slot, which
+accepts 1206 × 2622 among other sizes, without transparency. App Store Connect says it scales them down for smaller
+devices. These five are 1206 × 2622. They were captured on 20 November 2026 from main `ad1eef80f` and show the local
+demo company, whose names are fictional. In order:
 
 1. [Dashboard](screenshots/1-dashboard.jpg): the ownership overview.
 2. [Share class](screenshots/2-share-class.jpg): Ordinary shares, with class details and rights.
