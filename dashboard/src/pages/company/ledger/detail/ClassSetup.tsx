@@ -96,9 +96,9 @@ export function ClassSetup({
   const register = useImportRegister(owner, uuid, readable, guard);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
   const record = search.get('record');
-  const resumed = record ?? retained?.saved?.uuid;
+  const resumed = record ?? (retained ? (retained.saved?.uuid ?? null) : undefined);
   const saved = imports.data?.find((proposal) =>
-    resumed
+    resumed !== undefined
       ? proposal.uuid === resumed
       : proposal.status === 'submitted' &&
         proposal.sourceConfirmed &&

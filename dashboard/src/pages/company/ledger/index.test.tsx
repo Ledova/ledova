@@ -1850,6 +1850,25 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   const savedReview = await screen.findByRole('region', { name: 'Review ledger' });
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.getByRole('region', { name: 'Review ledger' })).toBe(savedReview);
+  appointment = { ...appointment, status: 'revoked', isEffective: false, revokedAt: '2026-10-14T00:00:00Z' };
+  await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'Review ledger' })).toBeNull());
+  expect(screen.queryByText('1 Example Street, Sydney NSW 2000')).toBeNull();
+  appointment = { ...appointment, status: 'active', isEffective: true, revokedAt: null };
+  await act(async () => client.invalidateQueries({ queryKey: ['company-appointments'] }));
+  expect(await screen.findByRole('region', { name: 'Review ledger' })).toBeTruthy();
+  const workingGet = api.get.getMockImplementation()!;
+  api.get.mockImplementation(async (url: string, ...rest: unknown[]) => {
+    if (url === REGISTER) throw new Error('Classes read failed');
+    return workingGet(url, ...rest);
+  });
+  await act(async () => client.invalidateQueries({ queryKey: ['register'] }));
+  expect(await screen.findByText('The register or your appointments could not be loaded.')).toBeTruthy();
+  expect(screen.queryByRole('region', { name: 'Review ledger' })).toBeNull();
+  api.get.mockImplementation(workingGet);
+  fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+  expect(await screen.findByRole('region', { name: 'Review ledger' })).toBeTruthy();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   const shareholderList = await screen.findByRole('list', { name: 'Shareholders' });
   expect(within(shareholderList).getByText('Example Shareholder')).toBeTruthy();
   expect(within(shareholderList).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();

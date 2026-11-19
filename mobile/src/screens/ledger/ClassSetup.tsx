@@ -490,9 +490,9 @@ export function ClassSetup({
   const members = usePeople(owner, token, guard, readable, orderSubmissionSession);
   const register = useImportRegister(owner, token, readable, guard, orderSubmissionSession);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
-  const resumed = record ?? retained?.saved?.uuid;
+  const resumed = record ?? (retained ? (retained.saved?.uuid ?? null) : undefined);
   const saved = imports.data?.find((proposal) =>
-    resumed
+    resumed !== undefined
       ? proposal.uuid === resumed
       : proposal.status === 'submitted' &&
         proposal.sourceConfirmed &&
