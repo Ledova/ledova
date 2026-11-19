@@ -431,7 +431,6 @@ export function ClassSetup({
   available,
   company,
   token,
-  record,
   externalHeld,
   onHeldChange,
   onRecordsChanged,
@@ -450,7 +449,6 @@ export function ClassSetup({
   available: boolean;
   company: string;
   token: string;
-  record?: string;
   externalHeld: boolean;
   onHeldChange: (held: boolean) => void;
   onRecordsChanged: () => void;
@@ -490,7 +488,7 @@ export function ClassSetup({
   const members = usePeople(owner, token, guard, readable, orderSubmissionSession);
   const register = useImportRegister(owner, token, readable, guard, orderSubmissionSession);
   const correction = imports.data?.find((proposal) => proposal.status === 'applied' && proposal.correctionAllowed);
-  const resumed = record ?? (retained ? (retained.saved?.uuid ?? null) : undefined);
+  const resumed = retained ? (retained.saved?.uuid ?? null) : undefined;
   const saved = imports.data?.find((proposal) =>
     resumed !== undefined
       ? proposal.uuid === resumed
@@ -509,24 +507,16 @@ export function ClassSetup({
     (!register.data?.initialized || !imports.data?.some((proposal) => proposal.status === 'applied') || !!correction);
   const canPrepare = !!steps?.prepare && correctable;
   const canOpen = saved ? saved.status !== 'rejected' || canPrepare : canPrepare;
-  const cannotOpen = !retaining && fresh && !record && !!mirrorAllowed && !!correctable && !canOpen;
+  const cannotOpen = !retaining && fresh && !!mirrorAllowed && !!correctable && !canOpen;
   useEffect(() => {
     if (cannotOpen) onCannotOpen?.();
   }, [cannotOpen, onCannotOpen]);
   const showForm =
-    available &&
-    companyMatches &&
-    !!retained &&
-    !stale &&
-    !!listed &&
-    readable &&
-    (!record || !!saved) &&
-    (retaining || (fresh && canOpen));
+    available && companyMatches && !!retained && !stale && !!listed && readable && (retaining || (fresh && canOpen));
   if (
     !retaining &&
     fresh &&
     canOpen &&
-    (!record || !!saved) &&
     (retained?.listed !== listed ||
       retained?.register !== register.data ||
       retained?.correction !== correction ||
@@ -571,7 +561,6 @@ export function ClassSetup({
       externalHeld ||
       classHeld ||
       classContentHeld ||
-      (record && !saved) ||
       retained?.listed.companyUuid !== listed?.companyUuid
     )
       throw createUserFriendlyError('Your company, authority or source records changed. Refresh before continuing.');
@@ -579,7 +568,6 @@ export function ClassSetup({
   const notice = (children: string) => <Text style={look.muted}>{children}</Text>;
   let content: ReactNode;
   if (!companyMatches) content = notice('This share class is not in a register you can read.');
-  else if (fresh && record && !saved) content = notice('This saved snapshot is not in the selected share class.');
   else if (!retained || stale || !listed || !readable || (!retaining && (!fresh || !canOpen))) {
     if (stale)
       content = (
@@ -596,8 +584,6 @@ export function ClassSetup({
       content = <Loading>Loading the register…</Loading>;
     else if (!listed) content = notice('This share class is not in a register you can read.');
     else if (!readable) content = notice(COPY.READ_ONLY_NOTE);
-    else if (record && imports.data && !saved)
-      content = notice('This saved snapshot is not in the selected share class.');
     else if (!mirrorAllowed)
       content = (
         <Section title={`${listed.name} · ${listed.symbol}`}>

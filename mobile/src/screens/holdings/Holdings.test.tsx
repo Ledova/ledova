@@ -2636,7 +2636,7 @@ it('records an accepted officer invitation without changing the chosen company, 
       route={{
         key: 'cold-saved-new-shareholder',
         name: 'ShareClass',
-        params: { ...unopened, record: preparedOpening.uuid },
+        params: unopened,
       }}
     />,
   );

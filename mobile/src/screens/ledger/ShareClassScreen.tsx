@@ -44,7 +44,7 @@ export function ShareClassScreen({
 }: {
   route: RouteProp<SignedInStackParamList, 'ShareClass' | 'RegisterSetup'>;
 }) {
-  const { company, token, record, from } = route.params;
+  const { company, token, from } = route.params;
   const flow = useClassFlow(company, token, from);
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
   const preferences = useUserPreferences();
@@ -68,8 +68,7 @@ export function ShareClassScreen({
         owner={owner}
         company={company}
         token={token}
-        record={record}
-        requested={route.name === 'RegisterSetup' || !!record}
+        requested={route.name === 'RegisterSetup'}
         available={scope.available}
         flow={flow}
       />
@@ -117,7 +116,6 @@ function OwnShareClass({
   owner,
   company,
   token,
-  record,
   requested,
   available,
   flow,
@@ -125,7 +123,6 @@ function OwnShareClass({
   owner: OrderSubmissionOwner;
   company: string;
   token: string;
-  record?: string;
   requested: boolean;
   available: boolean;
   flow: ReturnType<typeof useClassFlow>;
@@ -144,7 +141,6 @@ function OwnShareClass({
       owner={owner}
       company={company}
       token={token}
-      record={record}
       requested={requested}
       available={available}
       flow={flow}
@@ -157,7 +153,6 @@ function ClassPage({
   owner,
   company,
   token,
-  record,
   requested,
   available,
   flow,
@@ -166,7 +161,6 @@ function ClassPage({
   owner: OrderSubmissionOwner;
   company: string;
   token: string;
-  record?: string;
   requested: boolean;
   available: boolean;
   flow: ReturnType<typeof useClassFlow>;
@@ -329,7 +323,6 @@ function ClassPage({
             available={available && !sourceError}
             company={company}
             token={token}
-            record={record}
             onCannotOpen={requested ? undefined : showRecorded}
             externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
             classHeld={details.held}
