@@ -361,7 +361,7 @@ export function ClassRightsEditAction({
   if (!rights.appointment && !rights.pending) return null;
   return (
     <Action
-      label={embedded ? 'Edit class rights' : 'Edit'}
+      label={embedded ? (rights.current ? 'Edit class rights' : 'Add class rights') : 'Edit'}
       accessibilityLabel={embedded ? undefined : 'Edit (Class rights)'}
       disabled={rights.busy || blocked}
       onPress={() => {

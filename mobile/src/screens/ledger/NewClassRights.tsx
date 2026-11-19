@@ -26,18 +26,22 @@ export function NewClassRightsAction({
       disabled={rights.busy || blocked}
       onPress={() => {
         if (blocked) return;
-        rights.open({
-          appointment: administrator,
-          previousRevision: revision?.revision ?? 0,
-          attributes: rightsWithoutConditions(revision?.attributes ?? {}),
-          summary: classRightsTerms(revision?.attributes ?? {}, revision?.summary ?? ''),
-          effectiveDate: revision?.effectiveDate ?? '',
-          documents: (revision?.documents ?? []).map((snapshot) => ({
-            id: snapshot.evidence,
-            file: null,
-            snapshot,
-          })),
-        });
+        try {
+          rights.open({
+            appointment: administrator,
+            previousRevision: revision?.revision ?? 0,
+            attributes: rightsWithoutConditions(revision?.attributes ?? {}),
+            summary: classRightsTerms(revision?.attributes ?? {}, revision?.summary ?? ''),
+            effectiveDate: revision?.effectiveDate ?? '',
+            documents: (revision?.documents ?? []).map((snapshot) => ({
+              id: snapshot.evidence,
+              file: null,
+              snapshot,
+            })),
+          });
+        } catch {
+          return;
+        }
       }}
     />
   );

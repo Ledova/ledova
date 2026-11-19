@@ -242,7 +242,7 @@ export function ClassRightsEditAction({
   return (
     <PageAction
       ref={ref}
-      label={embedded ? 'Edit class rights' : 'Edit'}
+      label={embedded ? (rights.current ? 'Edit class rights' : 'Add class rights') : 'Edit'}
       context={embedded ? undefined : 'Class rights'}
       disabled={rights.busy || blocked}
       onClick={rights.open}

@@ -486,7 +486,7 @@ function MemberAccess({
         actions={
           <Action
             label={access.busy ? 'Revoking…' : 'Revoke access'}
-            primary
+            destructive
             disabled={held || !reason.trim() || !access.admin}
             onPress={() => {
               if (!revoking || held || !reason.trim() || !access.admin) return;
