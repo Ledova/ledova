@@ -662,7 +662,7 @@ The inline metadata task keeps its explicit save/recovery controls
 and blocks opening actions while held; it does not save through ledger confirmation. Completed
 classes order their cards as Class details, Class rights, then Summary. Shareholder attachments
 stay on each shareholder's page.
-Edit stays in Class details and **Delete share class** follows Summary in a right-aligned page footer.
+Edit stays in Class details and **Delete** follows Summary in a right-aligned page footer.
 Unfinished setup stays first. Class rights
 has its own setup step between Share class and Shareholders, and retains its separate card for
 completed classes on both clients.
@@ -685,7 +685,7 @@ The web and native class pages' `ClassDetails.tsx` use the shared `useClassDetai
 or delete an unused class using the API's `canEditDetails`, `editBlockedReason`, `canDelete` and
 `updatedAt`. On the web, a current preparer sees disabled Edit with `editBlockedReason` when details
 are locked; readers without preparation authority see no Edit action. An authorised
-preparer sees the API's `deletionBlockedReason` beside a disabled **Delete share class** action when records prevent
+preparer sees the API's `deletionBlockedReason` beside a disabled **Delete** action when records prevent
 deletion. The web confirmation explains that saved setup reviews are retired automatically and
 their records and audit history are kept. They pin the
 original class, company and version when opening the action, preserve edits during source checks,
@@ -703,7 +703,7 @@ including deleted classes. Past ownership activity still locks editing even if c
 Class rights retain their separate revision-based editor and permissions.
 The Class rights step owns an independent explicit save/cancel task, outside the opening HTML form
 on web; step navigation and the opening footer are unavailable while that task is held. New classes
-use the existing creation recovery before **Save class rights**, staying on Class rights with the
+use the existing creation recovery before the rights editor's **Save**, staying on Class rights with the
 record date and shareholder draft retained. Skipping rights creates no empty revision. Current company
 administration, not preparation authority, is required to save them. The company supplies the structured
 attributes and terms; class selection supplies no rights. The recorded summary is also
@@ -749,7 +749,7 @@ The web setup's **Allocation history** is independent of **Current shares held**
 Its **Add allocation** heading action keeps one editor open, retains unfinished input when switching
 and folds checked entries into compact summaries. Allocation, document and draft-row actions use
 the existing descriptive text buttons. Full-width entry fields have **Remove** beneath them;
-collapsed summaries have **Edit** and **Remove** together. **Add shareholder** or **Save changes**
+collapsed summaries have **Edit** and **Remove** together. **Add** or **Save**
 finishes the shareholder. Historical quantities
 neither set nor limit the current holding; new paid/unpaid blanks normalize to zero
 ([form conventions](frontend-ux.md#forms)).

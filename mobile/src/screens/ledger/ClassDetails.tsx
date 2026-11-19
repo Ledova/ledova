@@ -99,7 +99,7 @@ export function ClassDetailsEditAction({ token, details, available }: ClassDetai
     <>
       <Action
         label="Edit"
-        accessibilityLabel="Edit Class details"
+        accessibilityLabel="Edit (Class details)"
         disabled={!available || details.held || !token.canEditDetails}
         onPress={() => details.open('edit')}
       />
@@ -115,7 +115,8 @@ export function ClassDeleteAction({ token, details, available }: ClassDetailsPro
     <>
       <Action
         destructive
-        label="Delete share class"
+        label="Delete"
+        accessibilityLabel="Delete (share class)"
         disabled={!available || details.held || !token.canDelete}
         onPress={() => details.open('delete')}
       />
@@ -190,7 +191,7 @@ export function ClassDetailsContent({
                   ? details.retry
                     ? 'Retry original deletion'
                     : 'Check original deletion'
-                  : 'Delete class'
+                  : 'Delete'
             }
             destructive
             disabled={!available || details.busy || (!details.pending && !currentDelete)}

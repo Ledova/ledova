@@ -39,18 +39,18 @@ Web and native register setup use one **Ledger setup** card, with **Share class*
 **Shareholders** and **Review** steps. The class name stays in the page header. The first step groups any name, code and type asked for
 and the record date, reusing the inline metadata editor rather than a separate Class details card or nested card.
 In its read view, name/code and type/date share a two-column grid on wide screens, with labels
-above values, stacking on phones. **Edit** and **Delete share class** appear only on the Share class step, alongside
-Cancel/Import/Continue in one bottom-right workflow footer. Later steps show only their own
-navigation and decision controls. Class rights groups **Back**, **Add class rights** or **Edit class rights**, and
+above values, stacking on phones. **Edit** and **Delete** appear only on the Share class step, alongside
+Cancel and Continue in one bottom-right workflow footer that fits one row at phone width. Later steps show only their own
+navigation and decision controls. Class rights groups **Back**, **Add** or **Edit**, and
 **Continue** in that footer when its explicit editor is closed (owner, 19 November 2026); continuing without rights
-creates no assumed terms or revision. On the web, closing the rights editor returns focus to that action. Shareholders groups **Back**, **Add a shareholder** and
+creates no assumed terms or revision. On the web, closing the rights editor returns focus to that action. Shareholders groups **Back**, **Add** and
 **Continue** in that footer; an open shareholder editor keeps its own Cancel/Add or Save controls.
 Do not add a second class-action row or controls beside the setup heading.
 New classes show their editable fields; existing classes keep the server's edit/delete restrictions.
 New-class presets use one **Start with** radio group, one preset per line, leaving out a common class whose code
 the company already uses. A common class sets its own name, code and type, so Class name, Class code and Class type
 are asked only for **Another class**. Name/code and type/date then share the existing two-column form grid, stacking
-on phones. The Class rights step groups its heading, status and Add action together;
+on phones. The Class rights step shows its heading and status, with its Add or Edit action in the footer;
 the governing-document note appears with its editor or recorded terms.
 While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
 Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and
@@ -456,12 +456,12 @@ Current preparers see **Edit** even when editing is locked, disabled with the se
 preparation authority see no Edit action. Do not infer editing eligibility from deletion eligibility.
 Keep the setup draft mounted while that editor is open. A completed web class page orders its cards
 as **Class details**, **Class rights**, then **Summary**. **Edit** stays
-in Class details; **Delete share class** sits after Summary, aligned right, because it acts on the
+in Class details; **Delete** sits after Summary, aligned right, because it acts on the
 whole class. Unfinished setup stays first, and the native layout is unchanged.
 Hide deletion while the metadata or rights editor is open; keep its trigger mounted
 while the deletion confirmation is open. Deletion is available only for an unused class and asks
 for confirmation naming that class. Explain that saved setup reviews are retired
-automatically and their records and audit history are kept. When records prevent deletion, retain a disabled **Delete share class** action for authorised
+automatically and their records and audit history are kept. When records prevent deletion, retain a disabled **Delete** action for authorised
 preparers with the API's plain reason visibly beside it and linked as its accessible description.
 A lost reply holds the original action for checking. Recorded ownership, rights revisions and
 documents are never erased by this control. After a deletion, from the class page or **Delete
@@ -472,7 +472,7 @@ Use **Add documents**, not Edit: uploads append linked attachments rather than o
 files. Keep the action visible to current preparers when no holding exists, disabled with
 **Record a shareholding before adding documents.** Class-wide governing documents stay with
 Class rights.
-Class rights follows this pattern: Edit replaces its read view and previous versions with six
+Class rights follows this pattern: **Add**, or **Edit** once rights are recorded, replaces its read view and previous versions with six
 compact rights groups, one full-width Additional terms field, the known effective date and Documents
 in the same form. Keep one Class rights heading and focus the first field. Put relevant structured
 details beside their choice; combine conditions, exceptions and custom rights in Additional terms
@@ -636,7 +636,7 @@ fields and action buttons, keep their own focus rings.
 
 `PageAction` (`dashboard/src/components/Page.tsx`) is the standard action on a signed-in page. It
 looks plain, primary (the one main action of its card or form) or destructive (red: every action that
-deletes something, such as **Delete selected**, **Delete share class** or the account's **Delete**,
+deletes something, such as **Delete selected**, a share class's **Delete** or the account's **Delete**,
 and the confirm action of a confirmation; a compact text action shows it as red text), and comes in
 three forms:
 
@@ -654,6 +654,15 @@ three forms:
 All three are at least 44 px tall below `sm`, so they are easy to tap on a phone; wider screens keep
 the compact size. `MoreToggle`'s "Show …" text links get a 44 px tap area from an `after:` overlay,
 which moves nothing.
+
+**Labels are short** (owner, 19 November 2026). An action says only what its card, step, form or
+dialog doesn't already say: usually one verb, such as **Edit**, **Delete**, **Add** or **Save**, so a
+form's actions fit on one row at phone width. The object stays in the accessible name, `context` on
+the web and `accessibilityLabel` in the app, both read as "Delete (share class)". Keep the object in
+the label only where the verb alone would be unclear: two kinds of addition in one form (**Add
+allocation**, **Add document**), or an action with no heading naming what it acts on. So far Ledger
+setup and the share class page follow this; [#1702](https://github.com/Ledova/ledova/issues/1702)
+brings the other pages in line.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
 "Saving…". Every page form's submit button uses them, and so does every action that starts a
@@ -677,8 +686,7 @@ way:
 - A register decision's rejection preview shows "Loading the preview…".
 
 A load error's Try again and recovery actions keep their label while they run; a form's submit
-button that also recovers an earlier attempt keeps its busy label. Icon buttons and register setup's
-Import placeholder keep their own controls, and dialog footers use the
+button that also recovers an earlier attempt keeps its busy label. Icon buttons keep their own controls, and dialog footers use the
 same order as `FormActions`. Mobile's `Action` has no busy form; its destructive form matches the web's
 (owner, 19 November 2026).
 
@@ -1112,7 +1120,7 @@ Some messages keep their own form:
   grid, with **Remove** beneath the entry, aligned right; section add actions sit beside their headings.
   Fields never collapse on
   blur or simply because they look complete. Editing or switching entries preserves unfinished input;
-  validation opens the entry needing attention. **Add shareholder**, or **Save changes** when editing,
+  validation opens the entry needing attention. **Add**, or **Save** when editing,
   completes the shareholder and their optional history, with Cancel beside it. These main actions
   share the same button typography and spacing, with the main action alone emphasised. Historical quantities never set or limit current
   holdings; there is no remaining-share counter or equality requirement. New paid/unpaid fields

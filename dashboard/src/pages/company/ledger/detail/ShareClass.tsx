@@ -201,12 +201,7 @@ function ShareClassWorkspace({
                 />
               }
               rightsActions={
-                <ClassRightsEditAction
-                  ref={rightsEditAction}
-                  rights={rights}
-                  embedded
-                  blocked={setupHeld || detailsHeld}
-                />
+                <ClassRightsEditAction ref={rightsEditAction} rights={rights} blocked={setupHeld || detailsHeld} />
               }
               classContentHeld={rightsHeld}
               classReview={

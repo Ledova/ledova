@@ -342,14 +342,14 @@ Current shareholders and any authorised shares one line each, **Ledger not opene
 applies, the non-transferable note and the waiting notes; Class rights (`ClassRights.tsx`, through the
 shared `useClassRights`) with the structured rights one line each, Additional terms, the effective
 date on one line, the documents with **Download**, the recorded
-line and **Show previous versions**, and **Edit** when the server names a current administration
-appointment, which opens the web's form in the card: the six rights groups with the fields their
+line and **Show previous versions**, and **Add**, or **Edit** once rights are recorded, when the server names a current
+administration appointment, which opens the web's form in the card: the six rights groups with the fields their
 choice needs, Additional terms, the effective date typed as `YYYY-MM-DD` (UTC) and the documents, with
 the web's retry of an uncertain save. Shareholder attachments stay on each shareholder's page;
 the class page keeps only its class-wide governing documents in Class rights. Without register access to the company, both
 pages read nothing and point to Dashboard, and a class of another company is not in a register you can
 read. Class details uses the shared `useClassDetails` action/recovery hook and an inline name/code/type editor.
-**Edit** stays in Class details; **Delete share class** sits below all cards and opens its named
+**Edit** stays in Class details; **Delete** sits below all cards and opens its named
 confirmation. The server supplies edit/delete eligibility, including a confirmed empty class's
 audited editing, with a visible reason when either action is unavailable. The audit stays stored,
 without a class-details history panel. Original uncertain requests stay on the page for checking or retry, with navigation blocked until resolved. Successful deletion returns to Ledger; retained records are not erased. The class and setup reuse one owner-scoped ownership query. The class page's top bar has the back arrow ([navigation](#navigation)). Pulling
@@ -441,14 +441,14 @@ structured terms and governing documents, using the existing editor and the shar
 for a new class, with its own explicit save and recovery), Shareholders (each opening
 shareholder chosen from the company's people or New person, with their name, address, first date and
 current shares, the optional **Allocation history** and **Documents**, and **Show company source copies** for the register copy and ASIC extract), then Review, where **Confirm** records the review
-and the confirmation together and returns to Dashboard. Class creation and resumed records use the same class workspace; the `RegisterSetup` stack route remains an entry for new classes and for bringing records or corrections into a class, not another implementation; a saved draft resumes from its class page. The first step keeps the web's disabled **Import** action. Opened
+and the confirmation together and returns to Dashboard. Class creation and resumed records use the same class workspace; the `RegisterSetup` stack route remains an entry for new classes and for bringing records or corrections into a class, not another implementation; a saved draft resumes from its class page. Opened
 for an unfinished class, or from Corrections, it brings records into its unopened register,
 or replaces the latest applied opening's shareholder rows in full with a reason, and resumes a saved
 draft for review. One **Ledger setup** card owns the steps: the first groups any name, code and type asked
 for and the record date as stacked fields, with the existing inline metadata editor and safe deletion where
 permitted. Edit/Delete join the workflow actions in the bottom footer only on Share class;
-Class rights groups Back, Add or Edit class rights and Continue in the same footer, and
-Shareholders groups Back, Add a shareholder and Continue, while an open
+Class rights groups Back, Add or Edit and Continue in the same footer, and
+Shareholders groups Back, Add and Continue, while an open
 shareholder editor keeps its own Cancel/Add or Save controls. Review keeps its decision controls. It replaces
 the separate Class details card during setup; completed and read-only class views keep their details.
 The metadata task's explicit Save/Cancel or recovery controls replace the opening footer while held;

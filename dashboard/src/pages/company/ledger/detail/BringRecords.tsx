@@ -181,7 +181,8 @@ export function BringRecords({
                 }}
               />
               <PageAction
-                label={editor?.original ? 'Save changes' : 'Add shareholder'}
+                label={editor?.original ? 'Save' : 'Add'}
+                context="shareholder"
                 primary
                 disabled={busy}
                 onClick={() => {
@@ -239,7 +240,7 @@ export function BringRecords({
           </fieldset>
         )}
       </ShowMore>
-      {!editorOpen && footer(<PageAction label="Add a shareholder" disabled={busy} onClick={add} />)}
+      {!editorOpen && footer(<PageAction label="Add" context="shareholder" disabled={busy} onClick={add} />)}
     </>
   );
 }

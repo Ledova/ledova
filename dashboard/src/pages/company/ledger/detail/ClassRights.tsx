@@ -93,14 +93,12 @@ export function RightsSummary({
 
 export function RightsEditor({
   rights,
-  saveLabel = 'Save',
   saveDisabled = false,
 }: {
   rights: Pick<
     ReturnType<typeof useClassRights>,
     'editor' | 'setEditor' | 'busy' | 'pending' | 'stale' | 'error' | 'save' | 'close'
   >;
-  saveLabel?: string;
   saveDisabled?: boolean;
 }) {
   const id = useId();
@@ -214,7 +212,8 @@ export function RightsEditor({
         <PageAction label="Cancel" onClick={rights.close} disabled={rights.busy || rights.pending} />
         <PageAction
           type="submit"
-          label={rights.pending ? 'Retry original save' : saveLabel}
+          label={rights.pending ? 'Retry original save' : 'Save'}
+          context="Class rights"
           primary
           busy={rights.busy}
           busyLabel="Saving…"
@@ -229,12 +228,10 @@ export function RightsEditor({
 export function ClassRightsEditAction({
   ref,
   rights,
-  embedded = false,
   blocked = false,
 }: {
   ref?: Ref<HTMLButtonElement>;
   rights: ReturnType<typeof useClassRights>;
-  embedded?: boolean;
   blocked?: boolean;
 }) {
   if (!rights.tokenReady || rights.hasError || !rights.ready || rights.editor) return null;
@@ -242,8 +239,8 @@ export function ClassRightsEditAction({
   return (
     <PageAction
       ref={ref}
-      label={embedded ? (rights.current ? 'Edit class rights' : 'Add class rights') : 'Edit'}
-      context={embedded ? undefined : 'Class rights'}
+      label={rights.current ? 'Edit' : 'Add'}
+      context="Class rights"
       disabled={rights.busy || blocked}
       onClick={rights.open}
     />
@@ -286,11 +283,7 @@ export function ClassRights({
             Company-recorded terms. The governing documents determine the rights.
           </p>
           {rights.editor ? (
-            <RightsEditor
-              rights={rights}
-              saveLabel={embedded ? 'Save class rights' : 'Save'}
-              saveDisabled={!rights.current && !rightsDetailsRecorded(rights.editor)}
-            />
+            <RightsEditor rights={rights} saveDisabled={!rights.current && !rightsDetailsRecorded(rights.editor)} />
           ) : rights.current ? (
             <RightsSummary revision={rights.current} rights={rights} />
           ) : (

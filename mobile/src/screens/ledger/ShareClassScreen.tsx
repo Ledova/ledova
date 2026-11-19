@@ -327,7 +327,7 @@ function ClassPage({
             externalHeld={data.readingPaused && !setupHeld && !detailsHeld && !details.held}
             classHeld={details.held}
             classContent={<ClassRights rights={rights} embedded blocked={setupHeld || detailsHeld} />}
-            rightsActions={<ClassRightsEditAction rights={rights} embedded blocked={setupHeld || detailsHeld} />}
+            rightsActions={<ClassRightsEditAction rights={rights} blocked={setupHeld || detailsHeld} />}
             classContentHeld={rightsHeld}
             classReview={
               <View style={look.summary}>

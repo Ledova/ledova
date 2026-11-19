@@ -48,7 +48,7 @@ and time automatically, without adding a history section to the page. The origin
 decisions and hash remain unchanged. The company pack includes the full attributed details history,
 even after deletion.
 A zero balance after actual ownership activity does not permit editing.
-**Delete share class** removes an unused
+A share class's **Delete** removes an unused
 class from active use and automatically retires any saved, unconfirmed setup reviews in the same
 transaction. Rejected setup drafts and a confirmed empty opening do not prevent deletion.
 The class must never have recorded actual ownership activity. It keeps the class,
@@ -57,7 +57,7 @@ by a new class without changing the earlier record. An empty register stub alone
 deletion. Class rights revisions and their governing documents also remain in the audit and company
 pack without preventing retirement. Actual ownership history and other operational dependencies
 still block deletion. The web shows the
-reason beside a disabled **Delete share class** action. On a completed class page, this action sits
+reason beside a disabled **Delete** action. On a completed class page, this action sits
 below the ownership, rights and document cards, while Edit stays with Class details. Deletion retirement records its actor, time and reason
 without granting ordinary review approval authority. If retirement or deletion fails, both roll back. These
 controls are also available in the native app. On the web, Share classes supports selecting classes
@@ -86,7 +86,7 @@ never starts or broadcasts a new transaction.
 
 Choose the class on Ledger. **Class rights** records the company's description of existing terms.
 On the web, it is available in setup's **Class rights** step and in the completed class view; the
-mobile app keeps its editor below the class summary. Choose **Edit** to record:
+mobile app keeps its editor below the class summary. Choose **Add**, or **Edit** once rights are recorded, to record:
 
 - **Voting:** general or conditional voting, including a recorded weight on a poll.
 - **Dividends:** participation or a preference, with its basis and conditions.
@@ -108,7 +108,7 @@ its rights, and the editor supplies no examples or legal templates. Leave rates,
 ranking and other unknown details unrecorded.
 
 Class rights are optional in setup. On the web they have their own step between Share class and
-Shareholders. **Save class rights** is a separate explicit save, not part of moving between steps
+Shareholders. The rights editor's **Save** is a separate explicit save, not part of moving between steps
 or confirming holdings. For a new class, it first creates or recovers that
 class, then records the rights, and stays on Class rights. If the later save fails, the class remains
 and the original rights draft can be recovered. A preparer without administration authority can

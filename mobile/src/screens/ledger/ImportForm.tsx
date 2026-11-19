@@ -192,14 +192,6 @@ export function ImportForm({
               }}
             />
           )}
-          {editable && !uncertain && phase === 'details' && (
-            <Action
-              label="Import"
-              accessibilityLabel="Import. Coming soon: read a document into these editable forms."
-              disabled
-              onPress={() => undefined}
-            />
-          )}
           {editable && !uncertain && (
             <Action
               primary
