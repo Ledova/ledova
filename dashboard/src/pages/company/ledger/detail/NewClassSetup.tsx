@@ -48,6 +48,7 @@ type FreshClassProps = {
   companyMembers: RegisterTransferMember[];
   steps: ReturnType<typeof registerSteps>;
   ready: boolean;
+  visible: boolean;
   onHeldChange: (held: boolean) => void;
   onConflict: () => void;
   administrator?: string;
@@ -161,6 +162,7 @@ export function NewClassSetup({
           companyMembers={(anchor ? (members.data ?? NO_MEMBERS) : NO_MEMBERS).members}
           steps={steps ?? context.steps}
           ready={ready && company?.uuid === context.company.uuid}
+          visible={held || ready}
           onHeldChange={setHeld}
           onConflict={retry}
           administrator={
@@ -185,6 +187,7 @@ function FreshClass({
   companyMembers,
   steps,
   ready,
+  visible,
   onHeldChange,
   onConflict,
   administrator,
@@ -236,7 +239,7 @@ function FreshClass({
       appointment={steps.prepare!}
       steps={steps}
       blocked={!ready || rightsHeld}
-      visible={ready}
+      visible={visible}
       onConflict={onConflict}
       onHeldChange={setOpeningHeld}
       resolveRegister={resolveRegister}

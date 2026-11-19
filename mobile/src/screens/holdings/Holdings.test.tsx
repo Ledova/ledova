@@ -2286,9 +2286,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByLabelText('2. Class rights, current step')).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
   await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
-  await waitFor(() =>
-    expect(mockSetParams).toHaveBeenLastCalledWith({ token: FOUNDERS.uuid, record: imports[0].uuid }),
-  );
+  expect(await screen.findByLabelText('Review ledger')).toBeTruthy();
   const replacement = imports[0];
   expect(importPosts()[4]).toEqual([
     URLS.REGISTER_IMPORTS,
@@ -2594,6 +2592,7 @@ it('records an accepted officer invitation without changing the chosen company, 
     releaseImports = resolve;
   });
   let pendingReview: ReturnType<typeof screen.getByLabelText> | undefined;
+  const navigationsBefore = mockNavigate.mock.calls.length + mockSetParams.mock.calls.length;
   try {
     await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
     await waitFor(() => expect(preparePosts()).toHaveLength(preparedBefore + 1));
@@ -2611,21 +2610,8 @@ it('records an accepted officer invitation without changing the chosen company, 
     });
   }
   const preparedOpening = imports[0];
-  await waitFor(() =>
-    expect(mockSetParams).toHaveBeenLastCalledWith({
-      token: PREFERENCE.uuid,
-      record: preparedOpening.uuid,
-    }),
-  );
-  await view.rerender(
-    <ShareClassScreen
-      route={{
-        key: 'unopened-class',
-        name: 'ShareClass',
-        params: { ...unopened, record: preparedOpening.uuid },
-      }}
-    />,
-  );
+  await settled();
+  expect(mockNavigate.mock.calls.length + mockSetParams.mock.calls.length).toBe(navigationsBefore);
   expect(screen.getByLabelText('Review ledger') === pendingReview).toBe(true);
   const resumedReview = within(screen.getByLabelText('Review ledger'));
   expect(await resumedReview.findByText(savedTerms)).toBeTruthy();
@@ -2643,18 +2629,6 @@ it('records an accepted officer invitation without changing the chosen company, 
   expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
   importsReadFailure = false;
   await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
-  expect(await screen.findByLabelText('Review ledger')).toBeTruthy();
-  imports = imports.filter((proposal) => proposal.uuid !== preparedOpening.uuid);
-  await act(async () => {
-    await client.invalidateQueries({ queryKey: importsKey(owner, PREFERENCE.uuid) });
-  });
-  expect(await screen.findByText('This saved snapshot is not in the selected share class.')).toBeTruthy();
-  expect(screen.queryByLabelText('Review ledger')).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Confirm' })).toBeNull();
-  imports = [preparedOpening, ...imports];
-  await act(async () => {
-    await client.invalidateQueries({ queryKey: importsKey(owner, PREFERENCE.uuid) });
-  });
   expect(await screen.findByLabelText('Review ledger')).toBeTruthy();
   await view.rerender(<></>);
   await view.rerender(
@@ -2734,16 +2708,6 @@ it('records an accepted officer invitation without changing the chosen company, 
     ],
   ]);
   const preparedAgain = imports[0];
-  expect(mockSetParams).toHaveBeenLastCalledWith({ token: PREFERENCE.uuid, record: preparedAgain.uuid });
-  await view.rerender(
-    <ShareClassScreen
-      route={{
-        key: 'unopened-class',
-        name: 'ShareClass',
-        params: { ...unopened, record: preparedAgain.uuid },
-      }}
-    />,
-  );
   await screen.findByLabelText('Review ledger');
   await fireEvent.press(await screen.findByRole('button', { name: '3. Shareholders', disabled: false }));
   await waitFor(() =>
@@ -2787,14 +2751,16 @@ it('records an accepted officer invitation without changing the chosen company, 
   await fireEvent.press(screen.getByRole('button', { name: 'Add shareholder' }));
   expect(importPosts()).toHaveLength(posted);
   const newPreparations = preparePosts().length;
+  const newClassNavigations = mockNavigate.mock.calls.length;
   let releaseClasses: () => void = () => undefined;
   classesWait = new Promise<void>((resolve) => {
     releaseClasses = resolve;
   });
+  let newReview: ReturnType<typeof screen.getByLabelText> | undefined;
   try {
     await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
     await waitFor(() => expect(preparePosts()).toHaveLength(newPreparations + 1));
-    expect(screen.getByLabelText('Review ledger')).toBeTruthy();
+    newReview = screen.getByLabelText('Review ledger');
     expect(screen.queryByText('Loading the register…')).toBeNull();
     expect(screen.getByRole('button', { name: 'Confirm', disabled: true })).toBeTruthy();
   } finally {
@@ -2803,14 +2769,12 @@ it('records an accepted officer invitation without changing the chosen company, 
       releaseClasses();
     });
   }
+  await settled();
+  expect(screen.getByLabelText('Review ledger') === newReview).toBe(true);
   await fireEvent.press(await screen.findByRole('button', { name: 'Confirm', disabled: false }));
   await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('Dashboard'));
+  expect(mockNavigate.mock.calls.slice(newClassNavigations)).toEqual([['Dashboard']]);
   const opened = imports[0];
-  expect(mockNavigate).toHaveBeenCalledWith('ShareClass', {
-    company: ADMINISTERED.uuid,
-    token: PREFERENCE.uuid,
-    record: opened.uuid,
-  });
   const allocation = {
     allottedOn: '2026-10-26',
     fullyPaid: true,

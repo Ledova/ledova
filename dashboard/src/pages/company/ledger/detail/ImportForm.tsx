@@ -1,8 +1,7 @@
 import { useRunningAction } from '@hooks/useRunningAction';
 import { COMPANY_DASHBOARD_PATH } from '@utils/paths';
-import { generatePath, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
-  DESTINATIONS,
   FIELD_LIMITS,
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_DECISIONS,
@@ -32,7 +31,7 @@ import { MemberRecords, MemberRow } from '@pages/company/ledger/shared/MemberRec
 const IMPORT_NOTE =
   'Coming soon. Import will read a document into these same editable forms. Review and correct the records before saving.';
 
-type ImportFormProps = Omit<ImportPreparationOptions, 'onPrepared' | 'onFinished' | 'newKey' | 'session'> & {
+type ImportFormProps = Omit<ImportPreparationOptions, 'onFinished' | 'newKey' | 'session'> & {
   shareClass?: { name: string; symbol: string; type?: string };
   classFields?: ReactNode;
   classDetails?: (recordFields: ReactNode) => ReactNode;
@@ -41,7 +40,6 @@ type ImportFormProps = Omit<ImportPreparationOptions, 'onPrepared' | 'onFinished
   classReview?: ReactNode;
   classContentHeld?: boolean;
   classHeld?: boolean;
-  onPrepared?: ImportPreparationOptions['onPrepared'];
 };
 
 export function ImportForm({
@@ -70,7 +68,6 @@ export function ImportForm({
   emptyOpeningAllowed = false,
   visible = true,
   onHeldChange,
-  onPrepared,
 }: ImportFormProps) {
   const { running, track } = useRunningAction();
   const setupSteps = classContent ? REGISTER_SETUP_STEPS_WITH_RIGHTS : REGISTER_SETUP_STEPS;
@@ -135,12 +132,6 @@ export function ImportForm({
     visible,
     onHeldChange,
     newKey: () => crypto.randomUUID(),
-    onPrepared: (token, record) => {
-      onPrepared?.(token, record);
-      navigate(`${generatePath(DESTINATIONS.companyClass.path, { uuid: token })}?record=${record}`, {
-        replace: true,
-      });
-    },
     onFinished: () => navigate(COMPANY_DASHBOARD_PATH, { state: { registerCompany: company } }),
   });
 

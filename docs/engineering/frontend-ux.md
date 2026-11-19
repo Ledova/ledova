@@ -1082,7 +1082,8 @@ Some messages keep their own form:
   the current step's checks first. Each step's main button is **Continue**, and reaching Review saves
   the draft, so there is no separate save button. From Review an earlier step retires the saved draft
   for editing, then opens that exact step with the draft retained. Updates to a form's own saved
-  record must not remount it and reset the requested step.
+  record must not remount it and reset the requested step: saving the draft keeps the same page, so
+  Review renders in place while the records refresh behind it.
   Show class context once above the form; the footer identifies the current company. Keep exact
   company names in declarations or captured review targets, without a duplicate information card or
   routine technical and upload descriptions. Transfer preparation follows the investor pattern:

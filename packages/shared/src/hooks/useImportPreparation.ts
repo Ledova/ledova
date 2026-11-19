@@ -67,7 +67,6 @@ export type ImportPreparationOptions = {
   emptyOpeningAllowed?: boolean;
   visible?: boolean;
   onHeldChange?: (held: boolean) => void;
-  onPrepared: (token: string, uuid: string) => void;
   onFinished: () => void;
   newKey: () => string;
   session?: OrderSubmissionSession;
@@ -91,7 +90,6 @@ export function useImportPreparation({
   emptyOpeningAllowed = false,
   visible = true,
   onHeldChange,
-  onPrepared,
   onFinished,
   newKey,
   session,
@@ -425,8 +423,6 @@ export function useImportPreparation({
       setProposal(data);
       setPhase('review');
       await client.invalidateQueries({ queryKey: registerKey(owner) });
-      check();
-      onPrepared(request.tokenId, data.uuid);
     } catch (failure) {
       const status = failureStatus(failure);
       if (status === 400 || status === 404 || status === 409) {

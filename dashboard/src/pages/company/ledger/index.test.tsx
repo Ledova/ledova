@@ -1847,12 +1847,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     expect((screen.getByRole('button', { name: 'Recover saved records' }) as HTMLButtonElement).disabled).toBe(false),
   );
   fireEvent.click(screen.getByRole('button', { name: 'Recover saved records' }));
-  await waitFor(() =>
-    expect(
-      api.get.mock.calls.filter(([url]) => url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid)).length,
-    ).toBeGreaterThan(1),
-  );
+  const savedReview = await screen.findByRole('region', { name: 'Review ledger' });
   await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.getByRole('region', { name: 'Review ledger' })).toBe(savedReview);
   const shareholderList = await screen.findByRole('list', { name: 'Shareholders' });
   expect(within(shareholderList).getByText('Example Shareholder')).toBeTruthy();
   expect(within(shareholderList).getByText('1 Example Street, Sydney NSW 2000')).toBeTruthy();

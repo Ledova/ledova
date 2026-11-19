@@ -57,7 +57,6 @@ type Opener = 'Ledger' | 'IssueShares' | 'TransferShares' | 'Corrections';
 type Flow = {
   onCancel: () => void;
   onOpen: (place: Opener) => void;
-  onPrepared: (token: string, record: string) => void;
   onFinished: () => void;
 };
 
@@ -247,7 +246,6 @@ function FreshClass({
   onContinue,
   onCancel,
   onOpen,
-  onPrepared,
   onFinished,
   administrator,
 }: Flow & {
@@ -343,7 +341,6 @@ function FreshClass({
         </View>
       }
       onCancel={onCancel}
-      onPrepared={onPrepared}
       onFinished={onFinished}
       classFields={
         <View style={look.fields}>
@@ -462,7 +459,6 @@ export function ClassSetup({
   const client = useQueryClient();
   const [held, setHeld] = useState(false);
   const [retained, setRetained] = useState<Retained | null>(null);
-  const [preparedHere, setPreparedHere] = useState<string | null>(null);
   const retaining = held || classHeld || classContentHeld;
   useEffect(() => {
     onHeldChange(held);
@@ -494,7 +490,6 @@ export function ClassSetup({
         proposal.sourceConfirmed &&
         proposal.correctionOf === (correction?.uuid ?? null),
   );
-  const savedSource = saved?.uuid === preparedHere ? retained?.saved : saved;
   const fetching =
     classes.isFetching || appointments.isFetching || register.isFetching || imports.isFetching || members.isFetching;
   const stale = classes.isError || appointments.isError || register.isError || imports.isError || members.isError;
@@ -527,7 +522,7 @@ export function ClassSetup({
     (retained?.listed !== listed ||
       retained?.register !== register.data ||
       retained?.correction !== correction ||
-      retained?.saved !== savedSource ||
+      retained?.saved !== saved ||
       retained?.members !== members.data ||
       retained?.steps.prepare?.uuid !== steps?.prepare?.uuid ||
       retained?.steps.approve?.uuid !== steps?.approve?.uuid ||
@@ -539,7 +534,7 @@ export function ClassSetup({
       register: register.data!,
       steps: steps!,
       correction,
-      saved: savedSource,
+      saved,
       members: members.data!,
     });
   const retry = () => {
@@ -662,10 +657,6 @@ export function ClassSetup({
             onConflict={retry}
             onHeldChange={setHeld}
             onCancel={flow.onCancel}
-            onPrepared={(prepared, saved) => {
-              setPreparedHere(saved);
-              flow.onPrepared(prepared, saved);
-            }}
             onFinished={flow.onFinished}
           />
         )}
