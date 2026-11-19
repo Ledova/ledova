@@ -1,8 +1,12 @@
-import { classRightsTerms, rightsWithoutConditions, type useNewClassRights } from '@ledova/shared';
+import {
+  classRightsTerms,
+  rightsDetailsRecorded,
+  rightsWithoutConditions,
+  type useNewClassRights,
+} from '@ledova/shared';
 import { Failure, Outcome } from '@components/Ledger';
 import { PageAction } from '@components/Page';
 import { RightsEditor, RightsSummary } from './ClassRights';
-import { rightsDetailsRecorded } from './classRightsDraft';
 
 export function NewClassRights({
   rights,

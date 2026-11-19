@@ -10,6 +10,7 @@ import {
   isCalendarDate,
   preferenceMeasure,
   rightsAttributeProblems,
+  rightsDetailsRecorded,
   rightsGroupValues,
   structuredRightsRows,
   useErrorSummary,
@@ -372,7 +373,11 @@ export function ClassRights({
         <>
           <Text style={look.muted}>Company-recorded terms. The governing documents determine the rights.</Text>
           {rights.editor ? (
-            <RightsEditor rights={rights} saveLabel={embedded ? 'Save class rights' : 'Save'} />
+            <RightsEditor
+              rights={rights}
+              saveLabel={embedded ? 'Save class rights' : 'Save'}
+              saveDisabled={!rights.current && !rightsDetailsRecorded(rights.editor)}
+            />
           ) : rights.current ? (
             <RightsSummary revision={rights.current} rights={rights} />
           ) : (

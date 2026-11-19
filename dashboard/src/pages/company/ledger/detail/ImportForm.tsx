@@ -6,10 +6,11 @@ import {
   REGISTER_IMPORT_COPY,
   REGISTER_IMPORT_DECISIONS,
   REGISTER_SETUP_STEPS,
-  REGISTER_SETUP_STEPS_WITH_RIGHTS,
   formatDate,
   formatShareCount,
   formatShortDate,
+  hasSupportingRecords,
+  importSourceRecord,
   registerImportTotals,
   refusalSentences,
   shareCount,
@@ -36,8 +37,8 @@ type ImportFormProps = Omit<ImportPreparationOptions, 'onFinished' | 'newKey' | 
   classFields?: ReactNode;
   classDetails?: (recordFields: ReactNode) => ReactNode;
   classActions?: ReactNode;
-  classContent?: ReactNode;
-  classReview?: ReactNode;
+  classContent: ReactNode;
+  classReview: ReactNode;
   classContentHeld?: boolean;
   classHeld?: boolean;
 };
@@ -70,7 +71,6 @@ export function ImportForm({
   onHeldChange,
 }: ImportFormProps) {
   const { running, track } = useRunningAction();
-  const setupSteps = classContent ? REGISTER_SETUP_STEPS_WITH_RIGHTS : REGISTER_SETUP_STEPS;
   const navigate = useNavigate();
   const importDescription = useId();
   const preparationFormId = useId();
@@ -135,6 +135,7 @@ export function ImportForm({
     onFinished: () => navigate(COMPANY_DASHBOARD_PATH, { state: { registerCompany: company } }),
   });
 
+  const source = proposal ? importSourceRecord(proposal) : null;
   const recordFields = (
     <fieldset
       hidden={!canPrepare}
@@ -192,12 +193,15 @@ export function ImportForm({
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps
           label="Ledger setup steps"
-          steps={setupSteps}
+          steps={REGISTER_SETUP_STEPS}
           current={phase}
           reachable={(step) => !classContentHeld && stepReachable(step as typeof phase)}
           onSelect={(step) => {
             const target = step as typeof phase;
-            if (setupSteps.findIndex((step) => step.id === target) > setupSteps.findIndex((step) => step.id === phase))
+            if (
+              REGISTER_SETUP_STEPS.findIndex((step) => step.id === target) >
+              REGISTER_SETUP_STEPS.findIndex((step) => step.id === phase)
+            )
               setTries((count) => count + 1);
             goTo(target);
           }}
@@ -220,7 +224,7 @@ export function ImportForm({
                     setAttempted(true);
                     if (!detailProblems.length && !blocked) {
                       setAttempted(false);
-                      setPhase(classContent ? 'rights' : 'shareholders');
+                      setPhase('rights');
                     }
                   } else if (!holderEditor) void prepare();
                 }}
@@ -264,11 +268,11 @@ export function ImportForm({
                               <FormActions>
                                 <PageAction
                                   label="Back"
-                                  context={classContent ? 'class rights' : 'share class'}
+                                  context="class rights"
                                   disabled={busy || blocked || holderEditor}
                                   onClick={() => {
                                     setAttempted(false);
-                                    setPhase(classContent ? 'rights' : 'details');
+                                    setPhase('rights');
                                   }}
                                 />
                                 {addAction}
@@ -321,17 +325,12 @@ export function ImportForm({
                 </Rows>
                 {classReview}
                 {proposal.correctionOf && <p className="text-sm text-text-muted">Correction: {proposal.reason}</p>}
-                {((proposal.sourceReference || proposal.authorityReference) !== 'Company-provided share records' ||
-                  proposal.asicIssuedTotal !== null ||
-                  proposal.asicMemberCount !== null ||
-                  proposal.registerEvidence ||
-                  proposal.asicEvidence) && (
+                {hasSupportingRecords(proposal) && (
                   <ShowMore show="Show supporting records" hide="Hide supporting records">
                     <Rows>
-                      {(proposal.sourceReference || proposal.authorityReference) !==
-                        'Company-provided share records' && (
+                      {source && (
                         <Row label="Source record" inline>
-                          {proposal.sourceReference || proposal.authorityReference}
+                          {source}
                         </Row>
                       )}
                       {proposal.asicIssuedTotal !== null && (

@@ -68,7 +68,9 @@ export {
   type RegisterSteps,
 } from './register-commands';
 export {
+  hasSupportingRecords,
   importFigures,
+  importSourceRecord,
   isPreparedRegisterImport,
   isRegisterImportMembers,
   memberAddedOn,
@@ -88,6 +90,7 @@ export {
   memberIdentityProblems,
   memberRows,
   preparationProblems,
+  recordDetailProblems,
   statedFigures,
   type AllotmentDraft,
   type MemberDraft,
@@ -166,6 +169,7 @@ export {
 export {
   RIGHTS_GROUPS,
   classRightsTerms,
+  rightsDetailsRecorded,
   rightsWithoutConditions,
   preferenceMeasure,
   rightsAttributeProblems,

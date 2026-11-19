@@ -64,8 +64,8 @@ export function ClassSetup({
   onHeldChange?: (held: boolean) => void;
   classDetails: (recordFields: ReactNode) => ReactNode;
   classActions: ReactNode;
-  classContent?: ReactNode;
-  classReview?: ReactNode;
+  classContent: ReactNode;
+  classReview: ReactNode;
   classContentHeld?: boolean;
   onRecordsChanged?: () => void;
   onCannotOpen?: () => void;

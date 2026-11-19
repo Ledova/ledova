@@ -1,5 +1,10 @@
 import { Text, View } from 'react-native';
-import { classRightsTerms, rightsWithoutConditions, type useNewClassRights } from '@ledova/shared';
+import {
+  classRightsTerms,
+  rightsDetailsRecorded,
+  rightsWithoutConditions,
+  type useNewClassRights,
+} from '@ledova/shared';
 import { Action, Outcome } from '../../components/Ledger';
 import { RightsEditor, RightsSummary } from './ClassRights';
 import { useLedgerStyles } from './useLedgerStyles';
@@ -20,12 +25,6 @@ export function NewClassRights({
   const look = useLedgerStyles();
   const revision = rights.saved;
   const editor = rights.editor;
-  const recorded =
-    !!editor &&
-    (Object.keys(editor.attributes).length > 0 ||
-      !!editor.summary.trim() ||
-      !!editor.effectiveDate ||
-      editor.documents.some((row) => row.file || row.snapshot));
   return (
     <View style={look.fields}>
       {(editor || revision) && (
@@ -63,7 +62,7 @@ export function NewClassRights({
           <RightsEditor
             rights={{ ...rights, stale: false }}
             saveLabel="Save class rights"
-            saveDisabled={problems.length > 0 || !recorded}
+            saveDisabled={problems.length > 0 || !rightsDetailsRecorded(editor)}
           />
         </>
       ) : (

@@ -2,8 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   REGISTER_IMPORT_COPY,
+  REGISTER_IMPORT_SOURCE,
   REGISTER_IMPORT_UNMET_COPY,
-  REGISTER_SETUP_STEPS_WITH_RIGHTS,
+  REGISTER_SETUP_STEPS,
 } from '../constants/business/register-imports';
 import { uploadRegisterEvidence } from '../services/register-commands';
 import { prepareRegisterImport } from '../services/register-imports';
@@ -27,6 +28,7 @@ import {
   memberIdentityProblems,
   memberRows,
   preparationProblems,
+  recordDetailProblems,
   statedFigures,
   type MemberDraft,
   type PreparationDraft,
@@ -39,9 +41,9 @@ import { importsKey } from './useRegisterImports';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
 const CLOSED = 'This setup is closed. Reopen it before continuing.';
-type SetupPhase = (typeof REGISTER_SETUP_STEPS_WITH_RIGHTS)[number]['id'];
+type SetupPhase = (typeof REGISTER_SETUP_STEPS)[number]['id'];
 
-const SETUP_ORDER: readonly SetupPhase[] = REGISTER_SETUP_STEPS_WITH_RIGHTS.map((step) => step.id);
+const SETUP_ORDER: readonly SetupPhase[] = REGISTER_SETUP_STEPS.map((step) => step.id);
 
 type Upload = { file: RegisterDocumentFile; appointment: string; key: string; receipt: RegisterEvidence | null };
 
@@ -116,7 +118,7 @@ export function useImportPreparation({
       ? saved.sourceReference
       : correction?.sourceReference?.trim()
         ? correction.sourceReference
-        : 'Company-provided share records',
+        : REGISTER_IMPORT_SOURCE,
     reason: saved?.reason ?? (correction ? '' : 'Mirror the company’s existing share records.'),
     members: register
       ? emptyOpeningAllowed && !saved && !correction
@@ -291,6 +293,7 @@ export function useImportPreparation({
       members: current.members.map((row, at) => (at === index ? { ...row, ...patch } : row)),
     }));
   const differs = figuresDiffer(draft);
+  const detailProblems = [...classProblems, ...recordDetailProblems(draft, today)];
   const problems = [
     ...classProblems,
     ...preparationProblems(draft, today, !correction && emptyOpeningAllowed),
@@ -301,16 +304,6 @@ export function useImportPreparation({
         ]
       : []),
   ];
-  const detailProblems = problems.filter(
-    (problem) =>
-      !problem.startsWith('Shareholder') &&
-      !problem.startsWith('Add at least') &&
-      !problem.startsWith('Each company') &&
-      !problem.startsWith('Attach the optional') &&
-      !problem.startsWith('Complete any former') &&
-      !problem.startsWith('The earlier ASIC comparison') &&
-      !problem.startsWith('Enter valid whole-number'),
-  );
   const holderProblems = (index: number) =>
     problems.filter(
       (problem) =>

@@ -7,10 +7,11 @@ import {
   REGISTER_IMPORT_COPY as COPY,
   REGISTER_IMPORT_DECISIONS,
   REGISTER_SETUP_STEPS,
-  REGISTER_SETUP_STEPS_WITH_RIGHTS,
   formatDate,
   formatShareCount,
   formatShortDate,
+  hasSupportingRecords,
+  importSourceRecord,
   refusalSentences,
   registerImportTotals,
   shareCount,
@@ -31,13 +32,11 @@ type ImportFormProps = Omit<ImportPreparationOptions, 'newKey' | 'session'> & {
   classFields: ReactNode | ((recordFields: ReactNode) => ReactNode);
   classActions?: ReactNode;
   classHeld?: boolean;
-  classContent?: ReactNode;
-  classReview?: ReactNode;
+  classContent: ReactNode;
+  classReview: ReactNode;
   classContentHeld?: boolean;
   onCancel: () => void;
 };
-
-const SOURCE = 'Company-provided share records';
 
 export function ImportForm({
   shareClass,
@@ -53,7 +52,6 @@ export function ImportForm({
   const look = useLedgerStyles();
   const styles = useCompanyStyles();
   const { steps, blocked, correction, emptyOpeningAllowed = false, visible = true } = options;
-  const setupSteps = classContent ? REGISTER_SETUP_STEPS_WITH_RIGHTS : REGISTER_SETUP_STEPS;
   const [after, setAfter] = useState<{ run: () => void } | null>(null);
   const model = useImportPreparation({
     ...options,
@@ -84,19 +82,13 @@ export function ImportForm({
       model.setAttempted(true);
       if (!model.detailProblems.length && !blocked) {
         model.setAttempted(false);
-        model.setPhase(classContent ? 'rights' : 'shareholders');
+        model.setPhase('rights');
       }
     } else if (phase === 'rights') model.goTo('shareholders');
     else if (!model.holderEditor) void model.prepare();
   };
-  const supporting =
-    !!proposal &&
-    ((proposal.sourceReference || proposal.authorityReference) !== SOURCE ||
-      proposal.asicIssuedTotal !== null ||
-      proposal.asicMemberCount !== null ||
-      !!proposal.registerEvidence ||
-      !!proposal.asicEvidence);
   const total = proposal ? formatShareCount(registerImportTotals(proposal.members).total) : '';
+  const source = proposal ? importSourceRecord(proposal) : null;
   const recordFields = (
     <View style={[look.fields, (!editable || classHeld) && look.hidden]}>
       <Field
@@ -165,14 +157,12 @@ export function ImportForm({
           {editable && !uncertain && (phase === 'shareholders' || phase === 'rights') && (
             <Action
               label="Back"
-              accessibilityLabel={
-                phase === 'shareholders' && classContent ? 'Back (class rights)' : 'Back (share class)'
-              }
+              accessibilityLabel={phase === 'shareholders' ? 'Back (class rights)' : 'Back (share class)'}
               disabled={locked}
               onPress={() => {
                 Keyboard.dismiss();
                 model.setAttempted(false);
-                model.setPhase(phase === 'shareholders' && classContent ? 'rights' : 'details');
+                model.setPhase(phase === 'shareholders' ? 'rights' : 'details');
               }}
             />
           )}
@@ -246,7 +236,7 @@ export function ImportForm({
       {(!visible || proposal?.status !== 'applied') && (
         <FormSteps
           label="Ledger setup steps"
-          steps={setupSteps}
+          steps={REGISTER_SETUP_STEPS}
           current={phase}
           reachable={(step) => !classContentHeld && model.stepReachable(step as typeof phase)}
           onSelect={(step) => {
@@ -314,12 +304,12 @@ export function ImportForm({
           </Rows>
           {!!proposal.correctionOf && <Text style={look.muted}>Correction: {proposal.reason}</Text>}
           {classReview}
-          {supporting && (
+          {hasSupportingRecords(proposal) && (
             <ShowMore show="Show supporting records" hide="Hide supporting records">
               <Rows>
-                {(proposal.sourceReference || proposal.authorityReference) !== SOURCE && (
+                {!!source && (
                   <Fact label="Source record" inline>
-                    {proposal.sourceReference || proposal.authorityReference}
+                    {source}
                   </Fact>
                 )}
                 {proposal.asicIssuedTotal !== null && (

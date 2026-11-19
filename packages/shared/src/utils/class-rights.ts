@@ -244,6 +244,20 @@ export function classRightsTerms(attributes: ClassRightsAttributes, summary: str
   return [...conditions, summary].filter((text) => text.trim()).join('\n\n');
 }
 
+export function rightsDetailsRecorded(draft: {
+  attributes: ClassRightsAttributes;
+  summary: string;
+  effectiveDate: string;
+  documents: readonly { file: unknown; snapshot?: unknown }[];
+}) {
+  return (
+    Object.keys(draft.attributes).length > 0 ||
+    !!draft.summary.trim() ||
+    !!draft.effectiveDate ||
+    draft.documents.some((row) => row.file || row.snapshot)
+  );
+}
+
 export function rightsWithoutConditions(attributes: ClassRightsAttributes): ClassRightsAttributes {
   return Object.fromEntries(
     Object.entries(attributes).map(([key, value]) => {
