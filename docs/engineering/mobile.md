@@ -441,7 +441,7 @@ structured terms and governing documents, using the existing editor and the shar
 for a new class, with its own explicit save and recovery), Shareholders (each opening
 shareholder chosen from the company's people or New person, with their name, address, first date and
 current shares, the optional **Allocation history** and **Documents**, and **Show company source copies** for the register copy and ASIC extract), then Review, where **Confirm** records the review
-and the confirmation together and returns to Dashboard. Class creation and resumed records use the same class workspace; the `RegisterSetup` stack route remains an entry for new classes and saved/correction links, not another implementation. The first step keeps the web's disabled **Import** action. Opened
+and the confirmation together and returns to Dashboard. Class creation and resumed records use the same class workspace; the `RegisterSetup` stack route remains an entry for new classes and for bringing records or corrections into a class, not another implementation; a saved draft resumes from its class page. The first step keeps the web's disabled **Import** action. Opened
 for an unfinished class, or from Corrections, it brings records into its unopened register,
 or replaces the latest applied opening's shareholder rows in full with a reason, and resumes a saved
 draft for review. One **Ledger setup** card owns the steps: the first groups any name, code and type asked

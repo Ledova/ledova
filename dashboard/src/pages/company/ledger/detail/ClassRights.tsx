@@ -6,6 +6,7 @@ import {
   formatDateTime,
   isCalendarDate,
   rightsAttributeProblems,
+  rightsDetailsRecorded,
   structuredRightsRows,
   utcToday,
   type ClassRightsRevision,
@@ -19,7 +20,6 @@ import { FormActions, PageAction } from '@components/Page';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { useIncompleteDates } from '@hooks/useIncompleteDates';
 import { StructuredRightsFields } from './StructuredRightsFields';
-import { rightsDetailsRecorded } from './classRightsDraft';
 
 export function RightsSummary({
   revision,

@@ -38,7 +38,6 @@ export type SignedInStackParamList = {
   ShareClass: {
     company: string;
     token: string;
-    record?: string;
     from?: 'IssueShares' | 'TransferShares' | 'Corrections';
   };
   IssueShares: { company: string; token: string; member?: string; award?: string; record?: string } | undefined;
@@ -49,7 +48,6 @@ export type SignedInStackParamList = {
   RegisterSetup: {
     company: string;
     token?: string;
-    record?: string;
     from?: 'IssueShares' | 'TransferShares' | 'Corrections';
   };
   Shareholders: undefined;

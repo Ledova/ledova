@@ -247,14 +247,20 @@ export function figuresDiffer(draft: PreparationDraft) {
   return stated?.total !== undefined && stated.total !== imported.total;
 }
 
-export function preparationProblems(draft: PreparationDraft, today: string, emptyOpeningAllowed = false) {
+export function recordDetailProblems(draft: PreparationDraft, today: string) {
   const problems: string[] = [];
+  if (!isCalendarDate(draft.asAt) || draft.asAt > today)
+    problems.push('Enter a record date no later than today (UTC).');
+  if (!draft.reference.trim()) problems.push('The record attribution is unavailable. Reload the setup and try again.');
+  if (!draft.reason.trim()) problems.push('Give a reason for correcting the mirror.');
+  return problems;
+}
+
+export function preparationProblems(draft: PreparationDraft, today: string, emptyOpeningAllowed = false) {
+  const problems = recordDetailProblems(draft, today);
   const dated = (day: string) => isCalendarDate(day) && day <= draft.asAt;
   const incomplete = (row: { name: string; residentialAddress: string; shares: string }) =>
     !row.name.trim() || !row.residentialAddress.trim() || positiveShares(row.shares) === null;
-  if (!dated(draft.asAt) || draft.asAt > today) problems.push('Enter a record date no later than today (UTC).');
-  if (!draft.reference.trim()) problems.push('The record attribution is unavailable. Reload the setup and try again.');
-  if (!draft.reason.trim()) problems.push('Give a reason for correcting the mirror.');
   if (draft.members.length === 0 && (!emptyOpeningAllowed || draft.former.length > 0))
     problems.push('Add at least one current shareholder.');
   draft.members.forEach((row, index) => {

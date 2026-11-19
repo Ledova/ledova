@@ -11,7 +11,7 @@ import type {
   RegisterAwardRecipient,
   TokenHoldersResponse,
 } from '../types';
-import { REGISTER_IMPORT_COPY } from '../constants/business/register-imports';
+import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_SOURCE } from '../constants/business/register-imports';
 import { formatShareCount, sharePercentage } from './formatting';
 import { rowsOf } from './register-commands';
 import { isRegisterImportMemberDocuments } from './register-member-documents';
@@ -164,6 +164,21 @@ function memberRows(rows: (RegisterImportMemberRow | RegisterImportCurrentMember
 function formerRows(rows: RegisterImportFormerRow[]) {
   return JSON.stringify(
     rows.map((row) => JSON.stringify([row.name, row.residentialAddress, row.shares, row.ceasedOn])).sort(),
+  );
+}
+
+export function importSourceRecord(proposal: RegisterImport) {
+  const source = proposal.sourceReference || proposal.authorityReference;
+  return source !== REGISTER_IMPORT_SOURCE ? source : null;
+}
+
+export function hasSupportingRecords(proposal: RegisterImport) {
+  return (
+    !!importSourceRecord(proposal) ||
+    proposal.asicIssuedTotal !== null ||
+    proposal.asicMemberCount !== null ||
+    !!proposal.registerEvidence ||
+    !!proposal.asicEvidence
   );
 }
 

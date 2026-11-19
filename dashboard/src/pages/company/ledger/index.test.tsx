@@ -2348,6 +2348,8 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
               correction={correction}
               blocked={false}
               onConflict={() => {}}
+              classContent={null}
+              classReview={null}
             />
           </TestRouter>
         </ApiClientProvider>
@@ -2355,6 +2357,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     );
   };
   showReplacement('another-preparer');
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Show company source copies' }));
   expect(screen.getByText(/Earlier source documents remain with their original record/)).toBeTruthy();
@@ -2408,6 +2411,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getByLabelText('Reason for correcting the mirror'), {
     target: { value: 'Correct the copied shareholder name' },
   });
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed Shareholder' } });
