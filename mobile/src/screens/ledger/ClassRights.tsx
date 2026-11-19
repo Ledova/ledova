@@ -217,11 +217,9 @@ function StructuredRightsFields({
 
 export function RightsEditor({
   rights,
-  saveLabel = 'Save',
   saveDisabled = false,
 }: {
   rights: Pick<Rights, 'editor' | 'setEditor' | 'close' | 'save' | 'busy' | 'pending' | 'stale' | 'error'>;
-  saveLabel?: string;
   saveDisabled?: boolean;
 }) {
   const look = useLedgerStyles();
@@ -335,7 +333,7 @@ export function RightsEditor({
         />
         <Action
           primary
-          label={rights.busy ? 'Saving…' : rights.pending ? 'Retry original save' : saveLabel}
+          label={rights.busy ? 'Saving…' : rights.pending ? 'Retry original save' : 'Save'}
           disabled={rights.busy || (rights.stale && !rights.pending) || saveDisabled}
           onPress={() => {
             if (!checks.check()) return;
@@ -348,21 +346,14 @@ export function RightsEditor({
   );
 }
 
-export function ClassRightsEditAction({
-  rights,
-  embedded = false,
-  blocked = false,
-}: {
-  rights: Rights;
-  embedded?: boolean;
-  blocked?: boolean;
-}) {
+export function ClassRightsEditAction({ rights, blocked = false }: { rights: Rights; blocked?: boolean }) {
   if (!rights.tokenReady || rights.hasError || !rights.ready || rights.editor) return null;
   if (!rights.appointment && !rights.pending) return null;
+  const label = rights.current ? 'Edit' : 'Add';
   return (
     <Action
-      label={embedded ? (rights.current ? 'Edit class rights' : 'Add class rights') : 'Edit'}
-      accessibilityLabel={embedded ? undefined : 'Edit (Class rights)'}
+      label={label}
+      accessibilityLabel={`${label} (Class rights)`}
       disabled={rights.busy || blocked}
       onPress={() => {
         try {
@@ -400,11 +391,7 @@ export function ClassRights({
         <>
           <Text style={look.muted}>Company-recorded terms. The governing documents determine the rights.</Text>
           {rights.editor ? (
-            <RightsEditor
-              rights={rights}
-              saveLabel={embedded ? 'Save class rights' : 'Save'}
-              saveDisabled={!rights.current && !rightsDetailsRecorded(rights.editor)}
-            />
+            <RightsEditor rights={rights} saveDisabled={!rights.current && !rightsDetailsRecorded(rights.editor)} />
           ) : rights.current ? (
             <RightsSummary revision={rights.current} rights={rights} />
           ) : (

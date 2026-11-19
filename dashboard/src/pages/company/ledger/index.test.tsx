@@ -593,11 +593,11 @@ it('reads every class page and groups exact holdings by member identity with sea
   );
   fireEvent.click(screen.getByRole('link', { name: 'Open conflicting class company' }));
   expect(await screen.findByText('This share class is not in a register you can read.')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^(Add|Edit) \(Class rights\)$/ })).toBeNull();
   expect(screen.queryByRole('region', { name: 'Current ownership' })).toBeNull();
   fireEvent.click(screen.getByRole('link', { name: 'Open actual class company' }));
   await screen.findByText('No rights recorded.');
-  fireEvent.click(screen.getByRole('button', { name: 'Edit (Class rights)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (Class rights)' }));
   let rightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   expect(document.activeElement).toBe(rightsForm.getByLabelText('Voting'));
   expect(rightsForm.queryByLabelText(/document reference/i)).toBeNull();
@@ -756,7 +756,7 @@ it('reads every class page and groups exact holdings by member identity with sea
       ledovaSubmissionGuard: expect.any(Function),
     }),
   );
-  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^(Add|Edit) \(Class rights\)$/ })).toBeNull();
   rightsAppointment = 'rights-administrator';
   await act(async () => {
     await client.refetchQueries({ queryKey: ['class-rights'] });
@@ -851,7 +851,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   await screen.findByText('The class rights could not be loaded. They may be unavailable to this account.');
   expect(screen.queryByText('Each share has one vote.')).toBeNull();
   expect(screen.queryByText(rightsFile.name)).toBeNull();
-  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^(Add|Edit) \(Class rights\)$/ })).toBeNull();
   failRights = false;
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
   await screen.findByRole('button', { name: 'Edit (Class rights)' });
@@ -967,7 +967,7 @@ it('reads every class page and groups exact holdings by member identity with sea
   expect(screen.queryByText('Each share has one vote.')).toBeNull();
   expect(screen.queryByText(rightsFile.name)).toBeNull();
   expect(() => rightsFileGuard()).toThrow(/signed-in account changed/);
-  expect(screen.queryByRole('button', { name: 'Edit (Class rights)' })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^(Add|Edit) \(Class rights\)$/ })).toBeNull();
 
   cleanup();
   client.clear();
@@ -1737,12 +1737,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByLabelText('Record source')).toBeNull();
   const recordDate = (screen.getByLabelText('Record date') as HTMLInputElement).value;
   const displayedRecordDate = formatShortDate(recordDate);
-  const futureImport = screen.getByRole('button', { name: 'Import' });
-  expect(futureImport.getAttribute('aria-disabled')).toBe('true');
-  expect(futureImport.getAttribute('title')).toMatch(/Coming soon.*Review and correct/);
-  expect(futureImport.getAttribute('type')).toBe('button');
-  fireEvent.click(futureImport);
-  expect(api.post).not.toHaveBeenCalled();
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain(COMPANY_ENDPOINTS.BASE);
   expect(api.get.mock.calls.map(([url]) => url)).not.toContain(COMPANY_ENDPOINTS.DETAIL(company.uuid));
   expect(screen.getByLabelText('Record date')).toBeTruthy();
@@ -1751,16 +1745,16 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(
     screen.getByRole('list', { name: 'Ledger setup steps' }).querySelector('[aria-current="step"]')?.textContent,
   ).toContain('Class rights');
-  expect(screen.queryByRole('button', { name: 'Add a shareholder' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add (shareholder)' })).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (shareholder)' }));
   expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Cancel (shareholder edit)' }));
   expect(screen.getByText('No shareholders added yet.')).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (shareholder)' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Example Shareholder' } });
   fireEvent.change(screen.getByLabelText('Residential address'), {
     target: { value: '1 Example Street, Sydney NSW 2000' },
@@ -1769,7 +1763,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getByLabelText('Current shares held'), { target: { value: '600' } });
   expect(screen.getByRole('heading', { name: 'Allocation history' })).toBeTruthy();
   expect(screen.queryByRole('group', { name: 'Allocation 1' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Add shareholder' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (shareholder)' }));
   expect(screen.queryByLabelText('Name')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
   expect(screen.queryByRole('group', { name: 'Allocation 1' })).toBeNull();
@@ -1805,9 +1799,9 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(within(screen.getByRole('group', { name: 'Document 2' })).getByLabelText('File'), {
     target: { files: [agreement] },
   });
-  fireEvent.submit(screen.getByRole('button', { name: 'Save changes' }).closest('form')!);
+  fireEvent.submit(screen.getByRole('button', { name: 'Save (shareholder)' }).closest('form')!);
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save (shareholder)' }));
   expect(screen.getByText('Example Shareholder')).toBeTruthy();
   expect(screen.queryByLabelText('Name')).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
@@ -2238,7 +2232,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect((screen.getByLabelText('Current shares held') as HTMLInputElement).value).toBe('600');
   expect(screen.getByText('share-certificate.pdf')).toBeTruthy();
   expect(screen.getByText('shareholder-agreement.pdf')).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save (shareholder)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   expect(await screen.findByRole('list', { name: 'Shareholders' })).toBeTruthy();
   expect(proposal!.uuid).not.toBe(resumedDraft.uuid);
@@ -2415,7 +2409,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Edit (shareholder 1)' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed Shareholder' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save (shareholder)' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
   const correction = api.post.mock.calls[0][1] as RegisterImportPreparation;
@@ -2470,7 +2464,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       .map((radio) => (radio as HTMLInputElement).value),
   ).toEqual(['preference', 'redeemable', 'custom']);
   expect(within(shareClass).getByRole('radio', { checked: true }).getAttribute('value')).toBe('preference');
-  expect(screen.queryByRole('button', { name: 'Add class rights' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Add (Class rights)' })).toBeNull();
   pick('Redeemable preference (REDP)');
   expect(within(shareClass).getByRole('radio', { name: 'Redeemable preference (REDP)', checked: true })).toBeTruthy();
   expect(screen.queryByLabelText('Class code')).toBeNull();
@@ -2545,20 +2539,20 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
         fireEvent.change(screen.getByLabelText(label), { target: { value } });
     });
   };
-  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (shareholder)' }));
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: companyMembers[0].name } });
   fireEvent.change(screen.getByLabelText('Residential address'), {
     target: { value: companyMembers[0].residentialAddress },
   });
   enterHolding();
-  fireEvent.click(screen.getByRole('button', { name: 'Add shareholder' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (shareholder)' }));
   expect(screen.getByText(/explicitly choose a new shareholder/)).toBeTruthy();
   expect(api.post).not.toHaveBeenCalled();
   await choose('Company shareholder', companyMembers[0].name!);
   expect((screen.getByLabelText('Date first added to register') as HTMLInputElement).value).toBe('2020-01-01');
-  expect(screen.getByRole('button', { name: 'Add shareholder' })).toBeTruthy();
-  fireEvent.click(screen.getByRole('button', { name: 'Add shareholder' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  expect(screen.getByRole('button', { name: 'Add (shareholder)' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Add (shareholder)' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (shareholder)' }));
   fireEvent.change(screen.getByRole('combobox', { name: 'Company shareholder' }), {
     target: { value: companyMembers[0].name },
   });
@@ -2618,7 +2612,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   showJourney(importPath);
   fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add a shareholder' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (shareholder)' }));
   await choose(
     'Company shareholder',
     `${trustedRecipient.name} · ${trustedRecipient.residentialAddress} · Award recipient without shares`,
@@ -2634,7 +2628,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
     expect((screen.getByLabelText(label) as HTMLInputElement).value).toBe('');
   expect(screen.queryByRole('group', { name: 'Allocation 1' })).toBeNull();
   enterHolding();
-  fireEvent.click(screen.getByRole('button', { name: 'Add shareholder' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (shareholder)' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Continue' }));
   await waitFor(() => expect(api.post).toHaveBeenCalledOnce());
   const awardOpening = api.post.mock.calls[0][1] as RegisterImportPreparation;
@@ -2901,7 +2895,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await act(async () =>
     client.invalidateQueries({ predicate: (query) => (query.state.data as CompanyShareToken)?.uuid === token.uuid }),
   );
-  const blockedDeletion = await screen.findByRole('button', { name: 'Delete share class' });
+  const blockedDeletion = await screen.findByRole('button', { name: 'Delete (share class)' });
   const blockedEdit = screen.getByRole('button', { name: 'Edit (Class details)' });
   expect(blockedEdit.matches(':disabled')).toBe(true);
   expect(document.getElementById(blockedEdit.getAttribute('aria-describedby')!)?.textContent).toBe(editBlockedReason);
@@ -2914,17 +2908,17 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   await act(async () =>
     client.invalidateQueries({ predicate: (query) => (query.state.data as CompanyShareToken)?.uuid === token.uuid }),
   );
-  fireEvent.click(await screen.findByRole('button', { name: 'Delete share class' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Delete (share class)' }));
   let deletion = within(await screen.findByRole('dialog', { name: 'Delete Renamed ordinary shares?' }));
   fireEvent.click(deletion.getByRole('button', { name: 'Cancel' }));
   expect(api.delete).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: 'Delete share class' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Delete (share class)' }));
   deletion = within(await screen.findByRole('dialog', { name: 'Delete Renamed ordinary shares?' }));
   const detailReadsBeforeDelete = api.get.mock.calls.filter(([url]) => url === lifecycleDetail).length;
   const holdersBeforeDelete = api.get.mock.calls.filter(
     ([url]) => url === COMPANY_TOKEN_ENDPOINTS.HOLDERS(token.uuid),
   ).length;
-  fireEvent.click(deletion.getByRole('button', { name: 'Delete class' }));
+  fireEvent.click(deletion.getByRole('button', { name: 'Delete' }));
   expect(await screen.findByText('Share class deleted.')).toBeTruthy();
   expect(api.delete).toHaveBeenCalledOnce();
   expect(api.get.mock.calls.filter(([url]) => url === lifecycleDetail)).toHaveLength(detailReadsBeforeDelete);
@@ -3154,10 +3148,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   fireEvent.change(screen.getByLabelText('Record date'), { target: { value: '2026-10-13' } });
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (Class rights)' }));
   let setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save' }));
   expect(
     await setupRightsForm.findByText('The class rights changed. Close this form and reopen the current details.'),
   ).toBeTruthy();
@@ -3180,19 +3174,19 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.getByLabelText('Class name').matches(':disabled')).toBe(true);
   rightsSetupAdmin = true;
   fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Add class rights' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Add (Class rights)' }));
   setupRightsForm = within(await screen.findByRole('form', { name: 'Edit class rights' }));
   fireEvent.change(setupRightsForm.getByLabelText('Additional terms'), {
     target: { value: 'Company constitution applies.' },
   });
   fireEvent.change(setupRightsForm.getByLabelText('Effective date'), { target: { value: '2020-01-01' } });
   fireEvent.change(setupRightsForm.getByLabelText('Voting'), { target: { value: 'general' } });
-  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save class rights' }));
+  fireEvent.click(setupRightsForm.getByRole('button', { name: 'Save' }));
   const originalRightsSave = await setupRightsForm.findByRole('button', { name: 'Retry original save' });
   expect(setupRightsForm.getByRole('button', { name: 'Cancel' }).matches(':disabled')).toBe(true);
   fireEvent.click(originalRightsSave);
   expect(await screen.findByText('Class rights saved.')).toBeTruthy();
-  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Edit class rights' })));
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Edit (Class rights)' })));
   expect(api.post.mock.calls.map(([url]) => url)).toEqual([
     COMPANY_TOKEN_ENDPOINTS.BASE,
     COMPANY_TOKEN_ENDPOINTS.CLASS_RIGHTS(rightsSetupToken.uuid),

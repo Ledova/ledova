@@ -22,7 +22,7 @@ stay here as history and are marked where they appear.
 | [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)                  | 19 October 2026                                | Current; #1146                                                                                                                     |
 | [ABR company lookup at activation](#abr-company-lookup-at-activation)                                              | 19 October 2026                                | Superseded 2 November 2026; the ABR check was removed (#1491)                                                                      |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                            | 14 October 2026                                | Current; setup amended by #1029                                                                                                    |
-| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)             | 14 October 2026                                | Current; #1029, CSV entry removed under #1036                                                                                      |
+| [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)             | 14 October 2026                                | Current; #1029, CSV entry removed under #1036, Import placeholder removed 19 November (#1702)                                       |
 | [Eligibility and ownership records](#eligibility-and-ownership-records)                                            | September to 6 October 2026                    | Eligibility superseded 2 November (#1491); offering parts removed under #1421                                                      |
 | [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Current; #1491; supersedes classification, eligibility, payslips, the ABR check and company documents                              |
 | [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; activation itself removed 14 November (#1567)                                                                                             |
@@ -67,7 +67,7 @@ stay here as history and are marked where they appear.
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)           | 19 October 2026                                | Current; #1155 (web); mobile (#1157) superseded 26 October                                                                         |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)                 | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile superseded 26 October                                             |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                    | 14 October 2026                                | Current; #1040                                                                                                                     |
-| [Frontend UX standards](#frontend-ux-standards)                                                                    | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201)                      |
+| [Frontend UX standards](#frontend-ux-standards)                                                                    | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201); short action labels 19 November (#1702) |
 | [Mobile app for shareholders](#mobile-app-for-shareholders)                                                        | 26 October 2026                                | Current; #1201; tabs, no drawer and the removal of investor eligibility superseded 31 October; shareholder-only scope 3 November   |
 | [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                                  | 31 October 2026                                | Current; phase 1 delivered, phase 2 per company; eligibility brought forward, removed 2 November; company side from 3 November     |
 | [The account-data export](#the-account-data-export)                                                                | 23 September 2026                              | Current                                                                                                                            |
@@ -448,7 +448,10 @@ beside **Continue**, with a tooltip explaining the feature and **Coming soon**.
 There is no extraction implementation in this increment. Future extracted values
 must populate these same editable forms for manual review and correction;
 extraction cannot confirm ownership or bypass validation. Optional retained
-supporting copies remain distinct from extraction.
+supporting copies remain distinct from extraction. _Superseded on 19 November
+2026: the owner removed the inactive **Import** button
+([#1702](https://github.com/Ledova/ledova/issues/1702)), so setup shows no import
+until one exists ([short action labels](#frontend-ux-standards))._
 
 The owner amended setup under
 [#1036](https://github.com/Ledova/ledova/issues/1036) on the same day: remove CSV
@@ -2223,6 +2226,16 @@ request list leads with it, requests already sent keep their summary, and a late
 leaves an accepted decision current. _The request link, the eligibility pages and their requests
 went with investor eligibility on 2 November 2026
 ([verification limited to ID checks](#verification-limited-to-id-checks))._
+
+On 19 November 2026, checking TestFlight 1.0.4 (90), the owner asked for Ledger setup's Share class
+step to keep its buttons on one line: "Let's remove the import option and the title "delete share
+class" we can just name it delete so we can keep all the buttons on the same line. Ideally we should
+have that as standard and try to use as little space as possible with these button because big
+titles on the buttons only use extra unnecessary space". So the inactive **Import** placeholder is
+gone, and an action's label is as short as its card, step, form or dialog allows, with the object
+kept in its accessible name for screen readers
+([#1702](https://github.com/Ledova/ledova/issues/1702)): Ledger setup and the share class first, then
+the rest of the app.
 
 ## Mobile app for shareholders
 

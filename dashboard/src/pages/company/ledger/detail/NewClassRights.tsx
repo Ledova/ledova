@@ -25,7 +25,8 @@ export function NewClassRightsAction({
   return (
     <PageAction
       ref={ref}
-      label={revision ? 'Edit class rights' : 'Add class rights'}
+      label={revision ? 'Edit' : 'Add'}
+      context="Class rights"
       disabled={rights.busy || blocked}
       onClick={() => {
         if (blocked) return;
@@ -78,7 +79,6 @@ export function NewClassRights({
           ))}
           <RightsEditor
             rights={{ ...rights, stale: false }}
-            saveLabel="Save class rights"
             saveDisabled={problems.length > 0 || !rightsDetailsRecorded(rights.editor)}
           />
         </>

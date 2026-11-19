@@ -130,7 +130,8 @@ export function ClassDeleteAction({ token, details, available }: ClassDetailsPro
     <>
       <PageAction
         destructive
-        label="Delete share class"
+        label="Delete"
+        context="share class"
         describedBy={token.deletionBlockedReason ? reasonId : undefined}
         disabled={!available || details.held || !token.canDelete}
         onClick={() => details.open('delete')}
@@ -202,9 +203,7 @@ export function ClassDetailsContent({
         <ModalActions>
           <PageAction label="Cancel" disabled={details.busy || details.pending} onClick={details.close} />
           <PageAction
-            label={
-              details.pending ? (details.retry ? 'Retry original deletion' : 'Check original deletion') : 'Delete class'
-            }
+            label={details.pending ? (details.retry ? 'Retry original deletion' : 'Check original deletion') : 'Delete'}
             destructive
             disabled={!available || (!details.pending && !currentDelete)}
             busy={details.busy}

@@ -253,7 +253,8 @@ export function ImportShareholders({
             />
             <Action
               primary
-              label={editor?.original ? 'Save changes' : 'Add shareholder'}
+              label={editor?.original ? 'Save' : 'Add'}
+              accessibilityLabel={editor?.original ? 'Save (shareholder)' : 'Add (shareholder)'}
               disabled={locked}
               onPress={() => {
                 Keyboard.dismiss();
@@ -321,7 +322,11 @@ export function ImportShareholders({
           </View>
         )}
       </ShowMore>
-      {footer?.(!editorOpen ? <Action label="Add a shareholder" disabled={locked} onPress={add} /> : null)}
+      {footer?.(
+        !editorOpen ? (
+          <Action label="Add" accessibilityLabel="Add (shareholder)" disabled={locked} onPress={add} />
+        ) : null,
+      )}
     </>
   );
 }

@@ -215,7 +215,7 @@ web and, at phone width, in the app:
    ORD, Preference PRF or Redeemable preference REDP, ASIC's codes), which sets the class name, code and type, or Another
    class with the company's own name, code and type. A common class whose code the company already uses is not
    offered, and the first one left starts selected. Another class's name, code and type and the record date sit together in the first step of one **Ledger setup**
-   card. **Edit** and **Delete share class** join Cancel/Continue in its bottom footer only on the Share class step.
+   card. **Edit** and **Delete** join Cancel/Continue in its bottom footer only on the Share class step.
    Existing class details use the inline editor where permitted. A current preparer sees disabled
    Edit with the server's reason when they are locked; saving those details is
    separate from confirming the copied opening. The company choices come from current personal administrator or preparer appointments,
@@ -246,7 +246,7 @@ web and, at phone width, in the app:
    folds it into a date, shares, paid and unpaid summary, and opens any unfinished entry or a new one.
    **Edit** and **Remove** sit beside a collapsed summary; an open entry has **Remove** below its
    full-width fields. Unfinished input is kept when switching entries. Entries do not collapse while typing.
-   **Add shareholder**, or **Save changes** when editing, finishes the shareholder and any history
+   **Add**, or **Save** when editing, finishes the shareholder and any history
    entered. Removing the final entry leaves no copied history. History never sets
    or limits current holdings. New paid/unpaid fields start at zero; clearing either records zero,
    and fully paid means nothing remains unpaid. Existing unknown amounts remain unknown.
@@ -294,8 +294,7 @@ own, not a new director resolution. **Company source copies** optionally holds a
 extract, kept without being read. Fresh setup asks for neither former shareholders nor ASIC
 comparison figures. Earlier former-member records remain in saved snapshots, review and history;
 an inherited **Earlier ASIC comparison** is read-only, with **Leave out ASIC comparison** available
-when revising it. The web's Import button is marked Coming soon, and the app leaves it out: document
-extraction will later fill these forms for review. Earlier imports keep their evidence and
+when revising it. There is no document import: shareholders are entered by hand. Earlier imports keep their evidence and
 authority, and fields their snapshots lack stay unknown.
 
 An import is refused when the class already has an applied import; once an issue was approved or an
@@ -806,7 +805,7 @@ summary gives issued shares and current shareholders one line each, any authoris
 other than the internal quantity guard, whether the ledger is not yet opened, and whether the class
 is recorded as non-transferable. Shareholder attachments stay on each shareholder's page and
 register downloads on Documents. Each recorded right sits beside its name (owner, 5 November 2026).
-**Edit** stays in Class details; **Delete share class** sits below all cards, with the server's
+**Edit** stays in Class details; **Delete** sits below all cards, with the server's
 reason when deletion is unavailable.
 
 The page no longer shows a class's chain state or offers its chain workflows: the owner removed the

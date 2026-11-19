@@ -20,9 +20,11 @@ export function NewClassRightsAction({
 }) {
   const revision = rights.saved;
   if (rights.editor || !administrator) return null;
+  const label = revision ? 'Edit' : 'Add';
   return (
     <Action
-      label={revision ? 'Edit class rights' : 'Add class rights'}
+      label={label}
+      accessibilityLabel={`${label} (Class rights)`}
       disabled={rights.busy || blocked}
       onPress={() => {
         if (blocked) return;
@@ -74,7 +76,6 @@ export function NewClassRights({
           ))}
           <RightsEditor
             rights={{ ...rights, stale: false }}
-            saveLabel="Save class rights"
             saveDisabled={problems.length > 0 || !rightsDetailsRecorded(editor)}
           />
         </>

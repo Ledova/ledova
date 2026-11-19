@@ -29,9 +29,6 @@ import { BringRecords } from './BringRecords';
 import { registerPlace } from '@pages/company/ledger/shared/registerPlace';
 import { MemberRecords, MemberRow } from '@pages/company/ledger/shared/MemberRecords';
 
-const IMPORT_NOTE =
-  'Coming soon. Import will read a document into these same editable forms. Review and correct the records before saving.';
-
 type ImportFormProps = Omit<ImportPreparationOptions, 'onFinished' | 'newKey' | 'session'> & {
   shareClass?: { name: string; symbol: string; type?: string };
   classFields?: ReactNode;
@@ -74,7 +71,6 @@ export function ImportForm({
 }: ImportFormProps) {
   const { running, track } = useRunningAction();
   const navigate = useNavigate();
-  const importDescription = useId();
   const preparationFormId = useId();
   const [tries, setTries] = useState(0);
   const focusedTry = useRef(0);
@@ -491,18 +487,6 @@ export function ImportForm({
                     navigate(place.to, { state: place.state });
                   }}
                 />
-                <button
-                  type="button"
-                  aria-disabled="true"
-                  aria-describedby={importDescription}
-                  title={IMPORT_NOTE}
-                  className="inline-flex rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-muted opacity-60"
-                >
-                  Import
-                </button>
-                <span id={importDescription} className="sr-only">
-                  {IMPORT_NOTE}
-                </span>
               </>
             ) : (
               <>
