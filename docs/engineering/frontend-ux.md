@@ -666,7 +666,9 @@ original save**); links named after the page they open (**Open Employee share sc
 particulars**); the app Dashboard's **Accept invitation**, whose card doesn't name an invitation; a
 feed's **Load more …** ([Feeds](#lists-search-filters-and-paging)); the register forms' submits that
 name what they prepare or record (**Prepare allotment**, **Prepare transfer**, **Prepare grant**,
-**Prepare issue**, **Prepare correction**, **Record award**, **Record vesting**); and **Permanently
+**Prepare issue**, **Prepare correction**, **Record award**, **Record vesting**, setup's **Record
+review**); a register decision's confirm, which names the decision (**Reject transfer**, **Record
+issue**, **Apply correction**, **Confirm import** and the like); and **Permanently
 revoke appointment**, **Confirm and download inspection copy** and **Prepare a non-paid transfer**,
 whose extra words mark an irreversible, audited or unpaid step.
 
