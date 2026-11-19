@@ -149,7 +149,8 @@ export function ClassIssues({
         <Actions>
           <PageAction
             ref={prepareAction}
-            label="Prepare issue"
+            label="Prepare"
+            context="issue"
             primary
             disabled={held || !sourceReady}
             onClick={() => {

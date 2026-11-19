@@ -228,7 +228,7 @@ it('preserves original preparation and combined approval recovery through refres
   const allotments = within(workflow);
   expect(await allotments.findByText('No share issues recorded yet.')).toBeTruthy();
   expect(allotments.queryByRole('radio', { name: 'Investor issue' })).toBeNull();
-  const prepareIssue = allotments.getByRole('button', { name: 'Prepare issue' });
+  const prepareIssue = allotments.getByRole('button', { name: 'Prepare (issue)' });
   await waitFor(() => expect(prepareIssue.matches(':disabled')).toBe(false));
   fireEvent.click(prepareIssue);
   const investorIssue = await allotments.findByRole('radio', { name: 'Investor issue' });
@@ -346,7 +346,7 @@ it('preserves original preparation and combined approval recovery through refres
   fireEvent.click(allotments.getByRole('button', { name: /^Review and approve [(]allotment/ }));
   const incomplete = await screen.findByRole('region', { name: 'Review share issue' });
   expect(screen.queryByRole('dialog')).toBeNull();
-  expect(allotments.queryByRole('button', { name: 'Prepare issue' })).toBeNull();
+  expect(allotments.queryByRole('button', { name: 'Prepare (issue)' })).toBeNull();
   expect(document.activeElement).toBe(within(incomplete).getByRole('heading', { name: 'Review share issue' }));
   expect(taskClass().disabled).toBe(true);
   expect(transferTask().getAttribute('aria-disabled')).toBe('true');
@@ -454,7 +454,7 @@ it('preserves original preparation and combined approval recovery through refres
   interruptedAbsentPreparation = true;
   appointments = [APPOINTMENT];
   await refreshAllotments();
-  const prepareAnother = await allotments.findByRole('button', { name: 'Prepare issue' });
+  const prepareAnother = await allotments.findByRole('button', { name: 'Prepare (issue)' });
   await waitFor(() => expect(prepareAnother.matches(':disabled')).toBe(false));
   fireEvent.click(prepareAnother);
   fireEvent.click(await allotments.findByRole('radio', { name: 'Investor issue' }));

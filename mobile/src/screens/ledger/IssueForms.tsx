@@ -613,7 +613,7 @@ export function GrantForm({
               : model.held
                 ? 'Recover original grant preparation'
                 : award
-                  ? 'Prepare vested share issue'
+                  ? 'Prepare issue'
                   : GRANT_COPY.SUBMIT
           }
           disabled={blocked || (!model.held && !canPrepare)}

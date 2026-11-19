@@ -61,7 +61,7 @@ export function AppointmentRecord({
             <div className="ml-auto">
               <PageAction
                 compact
-                label="Revoke appointment"
+                label="Revoke"
                 context={`${title} · ${scopeLabels(appointment.capabilities)} · appointed ${formatDate(appointment.createdAt)}`}
                 disabled={disabled}
                 onClick={onRevoke}

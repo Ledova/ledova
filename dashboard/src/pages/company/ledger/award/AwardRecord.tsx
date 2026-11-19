@@ -236,7 +236,7 @@ export function AwardRecord({
             <p className="text-sm text-text-muted">Dated {formatShortDate(award.termsOn)}</p>
             <PageAction
               compact
-              label="Download agreement"
+              label="Download"
               busy={download.isPending && !download.variables}
               busyLabel="Downloading…"
               context={`award for ${award.recipientName}`}
@@ -281,7 +281,7 @@ export function AwardRecord({
                         <div className="flex flex-wrap justify-end gap-x-4 gap-y-6">
                           <PageAction
                             compact
-                            label="Download evidence"
+                            label="Download"
                             busy={
                               download.isPending &&
                               download.variables?.kind === 'vesting' &&
@@ -348,7 +348,7 @@ export function AwardRecord({
                       <div className="flex justify-end">
                         <PageAction
                           compact
-                          label="Download evidence"
+                          label="Download"
                           busy={
                             download.isPending &&
                             download.variables?.kind === 'end' &&
@@ -376,7 +376,7 @@ export function AwardRecord({
                       <div className="flex justify-end">
                         <PageAction
                           compact
-                          label="Download evidence"
+                          label="Download"
                           busy={
                             download.isPending &&
                             download.variables?.kind === 'reversal' &&

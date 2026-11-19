@@ -114,7 +114,7 @@ export function AuthorityRequestRecord({
               <Confirmation
                 isOpen
                 title="Withdraw this authority request?"
-                confirmLabel="Withdraw request"
+                confirmLabel="Withdraw"
                 confirmDisabled={blocked}
                 busy={action === 'withdraw'}
                 busyLabel="Withdrawing…"
@@ -213,7 +213,7 @@ export function AuthorityRequestRecord({
         <FormActions>
           {request.fileUrl && (
             <PageAction
-              label="Download evidence"
+              label="Download"
               context={request.originalFilename || request.companyIdentityRaw.name}
               disabled={opening || blocked}
               busy={opening}
@@ -224,17 +224,17 @@ export function AuthorityRequestRecord({
           {request.status === 'pending' && (
             <>
               <PageAction
-                label="Withdraw request"
+                label="Withdraw"
                 context={request.companyIdentityRaw.name}
                 disabled={blocked}
                 onClick={() => setConfirmingWithdrawal(true)}
               />
               {request.requestedCapabilities.includes('admin') && (
                 <PageAction
-                  label="Establish appointment"
+                  label="Establish"
                   context={request.companyIdentityRaw.name}
                   busy={action === 'admit'}
-                  busyLabel="Establishing appointment…"
+                  busyLabel="Establishing…"
                   primary
                   disabled={blocked}
                   onClick={() => {
@@ -246,7 +246,7 @@ export function AuthorityRequestRecord({
           )}
           {appointment && appointment.status !== 'revoked' && (
             <PageAction
-              label="Revoke appointment"
+              label="Revoke"
               context={request.companyIdentityRaw.name}
               disabled={blocked}
               onClick={() => {

@@ -150,7 +150,8 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
               <PageAction
                 type="submit"
                 primary
-                label="Save personal details"
+                label="Save"
+                context="personal details"
                 busy={isUpdating}
                 busyLabel="Saving…"
                 disabled={blocked}
@@ -159,7 +160,14 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
           </form>
         ) : (
           <Actions>
-            <PageAction ref={editAction} compact label="Edit details" disabled={blocked} onClick={editDetails} />
+            <PageAction
+              ref={editAction}
+              compact
+              label="Edit"
+              context="personal details"
+              disabled={blocked}
+              onClick={editDetails}
+            />
           </Actions>
         )}
       </Section>

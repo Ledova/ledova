@@ -259,7 +259,7 @@ function AuthorityRequestRecord({
               onClose={() => setConfirmingWithdrawal(false)}
               actions={
                 <Action
-                  label={action === 'withdraw' ? 'Withdrawing…' : 'Withdraw request'}
+                  label={action === 'withdraw' ? 'Withdrawing…' : 'Withdraw'}
                   destructive
                   disabled={blocked}
                   onPress={() =>
@@ -353,7 +353,7 @@ function AuthorityRequestRecord({
         <FormActions>
           {request.fileUrl && (
             <Action
-              label={opening ? 'Downloading…' : 'Download evidence'}
+              label={opening ? 'Downloading…' : 'Download'}
               accessibilityLabel={`Download evidence (${request.originalFilename || name})`}
               disabled={opening || blocked}
               onPress={onDownload}
@@ -362,14 +362,14 @@ function AuthorityRequestRecord({
           {request.status === 'pending' && (
             <>
               <Action
-                label="Withdraw request"
+                label="Withdraw"
                 accessibilityLabel={`Withdraw request (${name})`}
                 disabled={blocked}
                 onPress={() => setConfirmingWithdrawal(true)}
               />
               {request.requestedCapabilities.includes('admin') && (
                 <Action
-                  label={action === 'admit' ? 'Establishing appointment…' : 'Establish appointment'}
+                  label={action === 'admit' ? 'Establishing…' : 'Establish'}
                   accessibilityLabel={`Establish appointment (${name})`}
                   primary
                   disabled={blocked}
@@ -382,7 +382,7 @@ function AuthorityRequestRecord({
           )}
           {appointment && appointment.status !== 'revoked' && (
             <Action
-              label="Revoke appointment"
+              label="Revoke"
               accessibilityLabel={`Revoke appointment (${name})`}
               disabled={blocked}
               onPress={() => {

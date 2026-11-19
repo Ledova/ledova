@@ -79,7 +79,8 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
             <Actions>
               <Action
                 compact
-                label="Edit details"
+                label="Edit"
+                accessibilityLabel="Edit (personal details)"
                 disabled={blocked}
                 onPress={() => {
                   setFullName(userProfile.fullName || '');
@@ -139,7 +140,8 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
           <FormActions>
             <Action label="Cancel" disabled={update.isPending} onPress={() => setEditing(null)} />
             <Action
-              label={update.isPending ? 'Saving…' : 'Save personal details'}
+              label={update.isPending ? 'Saving…' : 'Save'}
+              accessibilityLabel={`${update.isPending ? 'Saving…' : 'Save'} (personal details)`}
               primary
               disabled={blocked}
               onPress={() =>

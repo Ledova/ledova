@@ -102,7 +102,7 @@ An owner of a draft company can also request initial authority outside signup, f
 requests by company, ACN, submission date and status; each opens its own page with a **Request** card
 and, once admitted, an **Appointment** card with the recorded declaration behind **Show the
 declaration**, and the request's actions at the foot. In the app you type the expiry as `YYYY-MM-DD`,
-choose the file with the device's file picker, and **Download evidence** opens the share sheet.
+choose the file with the device's file picker, and **Download** opens the share sheet.
 
 1. Use your verified account for the selected draft company you own.
 2. Choose your personal capabilities and, separately, the capabilities you intend to delegate.
@@ -116,14 +116,14 @@ choose the file with the device's file picker, and **Download evidence** opens t
    the Terms on its behalf, and admit the request. Where your instance requires a verified
    identity, an unverified one leaves the request pending. Admission makes the company Active.
 6. Read the appointment's personal and delegatable capabilities, expiry and status. An attached
-   file stays available from the request's page (**Download evidence**).
-7. Withdraw a pending request you no longer want. After admission, **Revoke appointment** asks you
+   file stays available from the request's page (**Download**).
+7. Withdraw a pending request you no longer want. After admission, **Revoke** asks you
    to confirm the permanent loss of this appointment's authority under the revocation rules below;
    the declaration and any file stay in the history.
 
 ## Team invitations and appointments
 
-Team (**Settings → Team**) is the selected company's page: its team, **Invite a company user** and
+Team (**Settings → Team**) is the selected company's page: its team, **Invite** and
 the invitations you issued (owner, 5 November 2026). To accept a company invitation, open
 **Settings → Account → Invitations → Company officer invitation → Accept**, which opens Team's
 focused accept form. Investor-only accounts can accept too: accepting an invitation or reading your
@@ -233,13 +233,13 @@ A current company administrator reads and edits the company's basic information 
 [choose the company on Dashboard](README.md#the-app-at-a-glance).
 
 1. Read the selected company's name, address, contact details and status.
-2. Choose **Edit company** to change the permitted fields inline on web, save, and wait for the confirmed receipt
+2. Choose **Edit** on Company details to change the permitted fields inline on web, save, and wait for the confirmed receipt
    and refreshed information.
 
 Rules:
 
-- Administrators can correct the registered name and contact details with **Edit company** at any
-  time, and Ledova does not freeze a company's details after signup. Edit company does not offer the
+- Administrators can correct the registered name and contact details with **Edit** on Company details at any
+  time, and Ledova does not freeze a company's details after signup. Editing does not offer the
   ACN, ABN or company type, which are entered at signup.
 - An ACN and an ABN must pass their check digits, and an ASIC-registered company's ABN must be its
   ACN with two check digits in front. A check-digit pass is a typo filter, not verification: Ledova
@@ -287,7 +287,7 @@ requirement is separate ([participants](participants.md#account-standing)).
 The company section of web **Settings → Profile** shows the selected company's details
 as provided by the company: status, trading name, type, ACN, ABN, email (administrators only), phone
 and address, and whether the ownership overview is shared with members. Administrators see
-**Edit company**.
+**Edit**.
 
 On web, select the company in Dashboard. Settings opens Profile, combining personal and permitted
 company sections with separate editors and permissions, beside Account and Data and privacy. Team has

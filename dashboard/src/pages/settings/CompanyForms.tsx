@@ -81,11 +81,12 @@ export function EditCompanyForm(props: EditCompanyFormProps) {
         <PageAction label="Cancel" disabled={save.isPending} onClick={onClose} />
         <PageAction
           type="submit"
-          label="Save changes"
+          label="Save"
+          context="company"
           primary
           disabled={!available}
           busy={save.isPending}
-          busyLabel="Saving changes…"
+          busyLabel="Saving…"
         />
       </FormActions>
     </form>

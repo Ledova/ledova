@@ -391,7 +391,7 @@ async function openTheSidebar(page: Page, role: Role) {
   for (const name of ['Account status', 'Security', 'Preferences', 'Data and privacy'])
     await expect(page.getByRole('heading', { name, exact: true })).toHaveCount(0);
   if (role === 'both') {
-    await page.getByRole('button', { name: 'Edit company', exact: true }).click();
+    await page.getByRole('button', { name: 'Edit (company)', exact: true }).click();
     await page.getByRole('textbox', { name: 'Trading name', exact: true }).fill('Unsent company draft');
     await expect(page.getByRole('textbox', { name: 'Trading name', exact: true })).toHaveValue('Unsent company draft');
     aside = await visibleSidebar(page);

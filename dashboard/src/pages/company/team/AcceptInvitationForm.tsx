@@ -86,9 +86,10 @@ export function AcceptInvitationForm({
         <PageAction label={receipt ? 'Done' : 'Cancel'} disabled={busy} onClick={onCancel} />
         <PageAction
           type="submit"
-          label="Accept invitation"
+          label="Accept"
+          context="invitation"
           busy={busy}
-          busyLabel="Accepting invitation…"
+          busyLabel="Accepting…"
           primary
           disabled={disabled}
         />

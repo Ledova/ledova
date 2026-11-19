@@ -233,7 +233,8 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
             />
           </Field>
           <PageAction
-            label="Preview the rejection"
+            label="Preview"
+            context="rejection"
             disabled={decision.busy || !!decision.recovery || target?.request.reason === reason.trim()}
             onClick={() => {
               if (checks.check()) void reject.open('reject', reason.trim());

@@ -75,14 +75,14 @@ it('shows focused company details, keeps team drafts and retries unavailable ide
   expect(screen.getByText(/Company information is provided by the company/)).toBeTruthy();
   expect(screen.queryByRole('heading', { name: 'Company administration' })).toBeNull();
   expect(screen.getByText('company@example.invalid')).toBeTruthy();
-  expect(screen.getByRole('button', { name: 'Edit company' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Edit (company)' })).toBeTruthy();
   expect(screen.queryByText(/Share classes/)).toBeNull();
   expect(screen.queryByRole('button', { name: 'Create share class' })).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: 'Edit company' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Edit (company)' }));
   const sharing = screen.getByRole('checkbox', { name: 'Share ownership overview with members' });
   expect((sharing as HTMLInputElement).checked).toBe(false);
   fireEvent.click(sharing);
-  fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Save (company)' }));
   await waitFor(() => expect(screen.queryByRole('form', { name: 'Edit company' })).toBeNull());
   expect(api.patch).toHaveBeenCalledWith(
     COMPANY,
@@ -120,7 +120,7 @@ it('shows focused company details, keeps team drafts and retries unavailable ide
   expect(screen.queryByRole('combobox', { name: 'Company' })).toBeNull();
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(screen.queryByRole('button', { name: /Refresh/ })).toBeNull();
-  const invitationOpener = screen.getByRole('button', { name: 'Invite a company user' });
+  const invitationOpener = screen.getByRole('button', { name: 'Invite (company user)' });
   fireEvent.click(invitationOpener);
   const invitationHeading = await screen.findByRole('heading', { name: 'Invite a company user' });
   expect(document.activeElement).toBe(invitationHeading);
@@ -155,7 +155,7 @@ it('shows focused company details, keeps team drafts and retries unavailable ide
   await act(async () => client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true }));
   await screen.findAllByText('Your appointments could not be loaded.');
   expect(screen.queryAllByText('Private team administrator')).toHaveLength(0);
-  expect((screen.getByRole('button', { name: 'Invite a company user' }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole('button', { name: 'Invite (company user)' }) as HTMLButtonElement).disabled).toBe(true);
   expect(api.post).not.toHaveBeenCalled();
 
   cleanup();
@@ -186,20 +186,20 @@ it('shows focused company details, keeps team drafts and retries unavailable ide
     path: '*',
   });
   await screen.findByText('Your identity verification status could not be loaded.');
-  expect(screen.queryByRole('button', { name: 'Start verification' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Start (verification)' })).toBeNull();
   statusUnavailable = false;
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
-  await screen.findByRole('button', { name: 'Start verification' });
+  await screen.findByRole('button', { name: 'Start (verification)' });
   expect(screen.queryByText(/financial regulations/)).toBeNull();
 
   const providerContainer = document.querySelector('#sumsub-profile-websdk-container');
   expect(providerContainer).toBeTruthy();
   statusUnavailable = true;
   api.post.mockResolvedValueOnce({ data: { accessToken: 'synthetic-provider-token' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Start verification' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Start (verification)' }));
   await screen.findByText('Identity provider widget');
   await screen.findByText('Your identity verification status could not be loaded.');
-  expect(screen.queryByRole('button', { name: 'Start verification' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Start (verification)' })).toBeNull();
   expect(document.querySelector('#sumsub-profile-websdk-container')).toBe(providerContainer);
   statusUnavailable = false;
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
@@ -212,7 +212,7 @@ it('shows focused company details, keeps team drafts and retries unavailable ide
   verified = true;
   await act(async () => client.refetchQueries({ queryKey: IDENTITY_VERIFICATION_QUERY_KEY, exact: true }));
   await screen.findByRole('heading', { name: 'Already verified' });
-  expect(screen.queryByRole('button', { name: 'Start verification' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Start (verification)' })).toBeNull();
   expect(screen.queryByText('Identity provider widget')).toBeNull();
   expect(api.post).toHaveBeenCalledTimes(1);
 });

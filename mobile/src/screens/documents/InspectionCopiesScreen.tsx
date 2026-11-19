@@ -272,7 +272,13 @@ function InspectionForm({
   if (!open)
     return (
       <Actions>
-        <Action primary label="Prepare inspection copy" disabled={blocked} onPress={() => onOpenChange(true)} />
+        <Action
+          primary
+          label="Prepare"
+          accessibilityLabel="Prepare (inspection copy)"
+          disabled={blocked}
+          onPress={() => onOpenChange(true)}
+        />
       </Actions>
     );
   return (
@@ -332,7 +338,9 @@ function InspectionForm({
             onOpenChange(false);
           }}
         />
-        {target && <Action label="Edit request" disabled={blocked} onPress={() => setTarget(null)} />}
+        {target && (
+          <Action label="Edit" accessibilityLabel="Edit (request)" disabled={blocked} onPress={() => setTarget(null)} />
+        )}
         {target ? (
           <Action
             key="download"
@@ -345,7 +353,8 @@ function InspectionForm({
           <Action
             key="preview"
             primary
-            label={busy === 'preview' ? 'Preparing preview…' : 'Preview inspection copy'}
+            label={busy === 'preview' ? 'Preparing preview…' : 'Preview'}
+            accessibilityLabel={`${busy === 'preview' ? 'Preparing preview…' : 'Preview'} (inspection copy)`}
             disabled={blocked}
             onPress={() => {
               if (!checks.check()) return;

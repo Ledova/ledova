@@ -102,25 +102,25 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   expect(await screen.findByText('For Synthetic pack recipient')).toBeTruthy();
   expect(screen.getByText('Instruction: SYNTHETIC-EARLIER-PACK')).toBeTruthy();
   const certificateContext = `unsigned certificate for ${entryContext(OUTPUT_ENTRY)}`;
-  fireEvent.click(screen.getByRole('button', { name: /Prepare certificate/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Prepare \(certificate for/ }));
   fireEvent.click(screen.getByRole('button', { name: `Cancel (${certificateContext})` }));
   expect(screen.queryByRole('form', { name: `Unsigned certificate for ${entryContext(OUTPUT_ENTRY)}` })).toBeNull();
   expect(api.post).not.toHaveBeenCalled();
-  fireEvent.click(screen.getByRole('button', { name: /Prepare certificate/ }));
+  fireEvent.click(screen.getByRole('button', { name: /Prepare \(certificate for/ }));
   const certificateForm = screen.getByRole('form', {
     name: `Unsigned certificate for ${entryContext(OUTPUT_ENTRY)}`,
   });
   const certificateControls = within(certificateForm);
   expect(certificateControls.queryByRole('textbox')).toBeNull();
   fireEvent.submit(certificateForm);
-  await certificateControls.findByRole('button', { name: `Download PDF (${certificateContext})` });
+  await certificateControls.findByRole('button', { name: `Download (${certificateContext})` });
   expect(api.post).not.toHaveBeenCalled();
   await act(async () => {
     fireEvent.submit(certificateForm);
   });
   expect(api.post).not.toHaveBeenCalled();
   expect(certificateControls.queryByRole('button', { name: `Edit (${certificateContext})` })).toBeNull();
-  const download = await certificateControls.findByRole('button', { name: `Download PDF (${certificateContext})` });
+  const download = await certificateControls.findByRole('button', { name: `Download (${certificateContext})` });
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(download);
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(pdf));
@@ -140,23 +140,23 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
       }),
   );
   fireEvent.click(certificateControls.getByRole('button', { name: `Preview (${certificateContext})` }));
-  fireEvent.click(await certificateControls.findByRole('button', { name: `Download PDF (${certificateContext})` }));
+  fireEvent.click(await certificateControls.findByRole('button', { name: `Download (${certificateContext})` }));
   await waitFor(() => expect(release).toBeTypeOf('function'));
   const certificateSignal = api.post.mock.calls.at(-1)![2].signal as AbortSignal;
   fireEvent.click(screen.getByRole('button', { name: 'Hide certificate task' }));
   expect(certificateSignal.aborted).toBe(true);
   expect(screen.queryByLabelText('Instruction reference')).toBeNull();
-  expect(screen.getByRole('button', { name: /Prepare certificate/ }).matches(':disabled')).toBe(true);
+  expect(screen.getByRole('button', { name: /Prepare \(certificate for/ }).matches(':disabled')).toBe(true);
   await act(async () => release!());
   release = undefined;
   expect(createObjectURL).toHaveBeenCalledTimes(1);
-  fireEvent.click(await screen.findByRole('button', { name: 'Prepare company pack' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Prepare (company pack)' }));
   expect(screen.queryByRole('button', { name: 'Refresh pack appointment' })).toBeNull();
   fireEvent.change(await screen.findByLabelText('Pack instruction reference'), {
     target: { value: 'Synthetic pack instruction' },
   });
   fireEvent.change(screen.getByLabelText('Pack recipient'), { target: { value: 'Synthetic recipient' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Prepare and download company pack' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Download (company pack)' }));
   await waitFor(() => expect(createObjectURL).toHaveBeenCalledWith(zip));
   expect(api.post).toHaveBeenCalledWith(
     pack,
@@ -173,7 +173,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
         release = () => resolve({ data: zip });
       }),
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Prepare and download company pack' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Download (company pack)' }));
   await waitFor(() => expect(release).toBeTypeOf('function'));
   await act(async () => {
     await client
@@ -304,7 +304,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   expect(within(records).queryByText('You')).toBeNull();
   expect(within(records).getAllByText(MEMBER_RECORD.name)).toHaveLength(1);
   expect(within(records).getByText('Other shareholder')).toBeTruthy();
-  expect(within(records).getAllByRole('button', { name: /^Prepare certificate/ })).toHaveLength(2);
+  expect(within(records).getAllByRole('button', { name: /^Prepare \(certificate for/ })).toHaveLength(2);
   expect(within(records).queryByText('Can prepare')).toBeNull();
   expect(within(records).queryByText('Earlier shareholder')).toBeNull();
   expect(screen.queryByRole('combobox', { name: 'Share class' })).toBeNull();
@@ -320,7 +320,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   expect(screen.queryByRole('searchbox', { name: 'Shareholder' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
   expect(screen.queryByText('Other shareholder')).toBeNull();
-  expect(screen.queryByRole('button', { name: /Prepare certificate/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /Prepare \(certificate for/ })).toBeNull();
   await act(async () =>
     setContext({ ...context, company: undefined, directory: { ...context.directory, hasError: true } }),
   );
@@ -413,16 +413,16 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   fireEvent.click(screen.getByRole('button', { name: 'Clear (certificate filters)' }));
   records = await screen.findByRole('list', { name: 'Certificate records' });
   await within(records).findByText('Other shareholder');
-  expect(within(records).getAllByRole('button', { name: /Prepare certificate/ })).toHaveLength(2);
-  fireEvent.click(screen.getByRole('button', { name: `Prepare certificate (${entryContext(OUTPUT_ENTRY)})` }));
+  expect(within(records).getAllByRole('button', { name: /Prepare \(certificate for/ })).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: `Prepare (certificate for ${entryContext(OUTPUT_ENTRY)})` }));
   fireEvent.submit(screen.getByRole('form', { name: `Unsigned certificate for ${entryContext(OUTPUT_ENTRY)}` }));
-  await screen.findByRole('button', { name: `Download PDF (${certificateContext})` });
+  await screen.findByRole('button', { name: `Download (${certificateContext})` });
   await act(async () => setContext({ ...context, directory: { ...context.directory, isRefreshing: true } }));
-  expect(screen.queryByRole('button', { name: `Download PDF (${certificateContext})` })).toBeNull();
+  expect(screen.queryByRole('button', { name: `Download (${certificateContext})` })).toBeNull();
   await act(async () => setContext(context));
   records = await screen.findByRole('list', { name: 'Certificate records' });
-  expect(screen.queryByRole('button', { name: `Download PDF (${certificateContext})` })).toBeNull();
-  expect(within(records).getAllByRole('button', { name: /Prepare certificate/ })).toHaveLength(2);
+  expect(screen.queryByRole('button', { name: `Download (${certificateContext})` })).toBeNull();
+  expect(within(records).getAllByRole('button', { name: /Prepare \(certificate for/ })).toHaveLength(2);
 
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
   fireEvent.change(screen.getByRole('searchbox', { name: 'Shareholder' }), { target: { value: 'Old company draft' } });
@@ -463,7 +463,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   expect(within(records).getAllByRole('listitem')).toHaveLength(2);
   expect(
     within(records)
-      .getAllByRole('button', { name: /Prepare certificate/, hidden: true })
+      .getAllByRole('button', { name: /Prepare \(certificate for/, hidden: true })
       .every((button) => (button as HTMLButtonElement).disabled),
   ).toBe(true);
   refusedMore = false;
@@ -471,7 +471,7 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
   await waitFor(() =>
     expect(
       within(records)
-        .getAllByRole('button', { name: /Prepare certificate/, hidden: true })
+        .getAllByRole('button', { name: /Prepare \(certificate for/, hidden: true })
         .every((button) => !(button as HTMLButtonElement).disabled),
     ).toBe(true),
   );

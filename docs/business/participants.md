@@ -251,8 +251,8 @@ Optional identity checks can collect the provider's required information separat
 Profile shows Personal information (full name, email, retained phone and date of birth, address
 and citizenship). Personal-details editing opens inline, with aligned Cancel and save actions.
 
-On web, to change your full name or address, choose **Edit details**, change
-them and choose **Save personal details**. These details are self-reported: editing them verifies
+On web, to change your full name or address, choose **Edit**, change
+them and choose **Save**. These details are self-reported: editing them verifies
 nothing and leaves existing identity results unchanged. A Profile save creates no company
 appointment, member association or register instruction. While your account is linked to a member of
 a company's register, saving your full name or residential address also updates that register, with
@@ -280,12 +280,12 @@ the Profile change described above.
 **Account** shows **Security** (the identity check's status with **Review**, and the
 password with **Change**), **Account details** (**Member since**, such as "21 Oct 2026", and **Last
 login**, such as "2 Nov 2026, 1:38 pm"), **Terms of Service**, **Invitations** and **Your appointments**.
-Terms shows the accepted version’s timestamp or an explicit **Accept Terms** action beside the
+Terms shows the accepted version’s timestamp or an explicit **Accept** action beside the
 versioned text; earlier booleans are not treated as acceptance. Invitations has a
 **Shareholder invitation** row whose **Accept** opens Member invitation, and a **Company officer
 invitation** row whose **Accept** opens Team's accept form (owner, 3 and 5 November 2026). Your
 appointments lists your company appointments, with **Show the declaration** where one was recorded
-and **Revoke appointment** until it is revoked, and, for a company's owner, **Representative authority**
+and **Revoke** until it is revoked, and, for a company's owner, **Representative authority**
 ([appointments](companies.md#team-invitations-and-appointments)). Existing company and
 investor verification requirements stay unchanged. The theme is the **Dark theme** switch beside Sign
 out (remembered in this browser with Paper as the default); the web app no longer offers transaction

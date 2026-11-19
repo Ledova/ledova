@@ -130,7 +130,8 @@ export function AuthorityRequestForm({
         <PageAction label="Cancel" disabled={disabled || busy} onClick={onCancel} />
         <PageAction
           type="submit"
-          label="Submit authority request"
+          label="Submit"
+          context="authority request"
           busy={busy}
           busyLabel="Submitting…"
           primary

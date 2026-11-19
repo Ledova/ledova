@@ -175,7 +175,8 @@ export function AccountSettings() {
                 {profile.userProfile.termsAcceptance?.version !== TERMS_VERSION && (
                   <PageAction
                     compact
-                    label="Accept Terms"
+                    label="Accept"
+                    context="Terms of Service"
                     disabled={profile.isFetching || profile.isUpdating}
                     onClick={() => {
                       profile.resetUpdate();

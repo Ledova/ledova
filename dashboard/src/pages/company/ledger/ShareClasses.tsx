@@ -147,7 +147,8 @@ export function ShareClasses({
         <Actions>
           {hasControls && (
             <PageAction
-              label="Delete selected"
+              label="Delete"
+              context="selected share classes"
               destructive
               disabled={locked || deletableCount === 0}
               onClick={() => {
@@ -160,7 +161,8 @@ export function ShareClasses({
             <PageLink
               primary
               to={`${DESTINATIONS.companyRegisterSetup.path}?company=${company}`}
-              label="Add share class"
+              label="Add"
+              context="share class"
             />
           )}
         </Actions>
@@ -225,7 +227,7 @@ export function ShareClasses({
                       ? operation.retry
                         ? 'Retry original deletion'
                         : 'Check original deletion'
-                      : 'Delete selected'
+                      : 'Delete'
                   }
                   destructive
                   busy={deletion.busy}

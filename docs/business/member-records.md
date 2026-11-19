@@ -36,7 +36,7 @@ Register readers prepare the company's certificates there; a member who is not a
 the entries that changed their own holding.
 **Inspection copies** and **Company pack** remain alongside Certificates where company access permits
 them. Certificates and Inspection copies use one selected share class. Certificates keeps the class
-visible in each record, and a register reader's rows offer **Prepare certificate** where a
+visible in each record, and a register reader's rows offer **Prepare** where a
 certificate can be prepared and say **None due, the entry was reversed** where none is due. For a
 register reader the **Filters** icon opens a compact panel with **Share class** when there is more
 than one, shareholder search and certificate status (**All**, **Can prepare** or **Reversed**);
@@ -73,9 +73,9 @@ read their own records without a wallet. It gives no company appointment, holdin
 ### Inviting a member
 
 1. On the web or in the app, a company administrator opens **Shareholders** → **Member access** in the
-   sidebar or menu, or chooses **Invite to their records** on a shareholder's page.
-2. Choose **Invite a member**, select a named member or award recipient, enter the recipient's email
-   and choose **Send invitation**. An award recipient can be invited before any shares are issued
+   sidebar or menu, or chooses **Invite** under Access to their own records on a shareholder's page.
+2. Choose **Invite**, select a named member or award recipient, enter the recipient's email
+   and choose **Send**. An award recipient can be invited before any shares are issued
    and sees their own award.
 3. Ledova emails an invitation link; neither person needs to copy or enter a code. **Pending** means
    awaiting acceptance, not proof of email delivery. The success notice means the mail service
@@ -90,13 +90,13 @@ The email's **View invitation** link opens **Member invitation** on the web. The
 or creates an account, then returns to the invitation in the same tab. Opened without the link, from
 **Settings** → **Account** → **Invitations** → **Shareholder invitation**, the page takes the pasted
 link or its code instead, and keeps a valid code through signing in or account setup as it keeps the link. They review the company,
-shareholder and intended email before choosing **Accept invitation**; opening a link never grants
+shareholder and intended email before choosing **Accept**; opening a link never grants
 access. Their verified email must match, and acceptance binds one current account to one member
 in that company. On mobile, **Accept** on **Settings** → **Account**'s Shareholder invitation row,
 and **Accept invitation** on Dashboard before the first company, open the same Member invitation
 page in the web's **Access to your shares** card. It takes the pasted **View invitation** link (or
 its code), shows the company, shareholder, email and deadline as the web does, and accepts with
-**Accept invitation**; it reports acceptance only once the server does.
+**Accept**; it reports acceptance only once the server does.
 An expired invitation, a changed recorded identity for the member, a revoked appointment of the
 inviting administrator, another person's account or a conflicting association is refused.
 Accepting brings the company's register up to the person's Profile in the same step: their full name
@@ -119,7 +119,7 @@ information together, without switching workspaces or profiles. Company and clas
 in the address, with a breadcrumb and browser Back/Forward. Shares and percentages from unrelated companies are never combined.
 
 A company administrator can enable **Share ownership overview with members** in Settings → Profile →
-Edit company. It starts off. When enabled, the selected company's overview shows its issued-share
+Company details, with **Edit**. It starts off. When enabled, the selected company's overview shows its issued-share
 total, shareholder count and share classes, alongside the member's own quantity and percentage
 within each class. Selecting a class shows the member's position, without reading other holders.
 The company retains who last changed the setting and when. The overview shares no other holder's
@@ -183,7 +183,7 @@ invitation, for transfers, for a change to their particulars, or for shares reco
 ### Revoking member access
 
 A company administrator opens **Shareholders** → **Member access** in the web sidebar or the app's
-menu and chooses **Revoke access** on the person's row under **People**, supplying a reason for that
+menu and chooses **Revoke** on the person's row under **People**, supplying a reason for that
 action, then confirms it; relinking needs a new invitation. Revocation stops the person's own-record access.
 
 **Member access** shows **People** and **Invitations**. The rows keep names and relevant details
@@ -213,9 +213,9 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 1. Keep the company's written instruction, noting its reference, the request date and the
    recipient.
 2. On the web or in the app, open **Documents** → **Inspection copies** for the selected company and
-   choose the share class. Its prepared copies come first; choose **Prepare inspection copy** below
+   choose the share class. Its prepared copies come first; choose **Prepare** below
    them and enter the reference, recipient and request date (typed as `YYYY-MM-DD` in the app).
-3. Choose **Preview inspection copy**, check the request, then **Confirm and
+3. Choose **Preview**, check the request, then **Confirm and
    download inspection copy**.
 
 The file is `register-<symbol>-inspection-copy.csv`; the app hands it to the phone's share sheet.
@@ -267,9 +267,9 @@ register, or a correction has since reversed the entry (the refusal names the co
 ### Preparing a certificate
 
 1. On the web or in the app, open **Documents** → **Certificates**, select the share class and
-   choose **Prepare certificate** on the issue or transfer row.
+   choose **Prepare** on the issue or transfer row.
 2. In the focused main-page form, choose **Preview**. Check the share class, share movements,
-   dates and PDF page count. Choose **Download PDF** to generate
+   dates and PDF page count. Choose **Download** to generate
    the unsigned file (the app hands it to the phone's share sheet), or **Cancel** to close the form. The download action records the requester
    and an instruction linked to the exact ledger entry automatically; no reference needs typing.
    The form keeps the privacy and signing reminder visible; the company arranges execution and
@@ -427,7 +427,7 @@ it, without which it cannot be checked.
 ### Producing a core pack
 
 A company administrator produces the pack in **Documents** → **Company pack**, at company scope.
-On the web and in the app, the prepared packs come first; choose **Prepare company pack** below them
+On the web and in the app, the prepared packs come first; choose **Prepare** below them
 to open the form, enter the company's written instruction and the recipient, then choose **Prepare
 and download company pack**; the app hands the ZIP to the phone's share sheet. The appointment is
 checked again before the pack is recorded.

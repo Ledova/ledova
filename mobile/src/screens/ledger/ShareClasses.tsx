@@ -165,7 +165,8 @@ export function ShareClasses({
             {hasControls && (
               <Action
                 destructive
-                label="Delete selected"
+                label="Delete"
+                accessibilityLabel="Delete (selected share classes)"
                 disabled={locked || deletableCount === 0}
                 onPress={() => {
                   onNoticeClear();
@@ -176,7 +177,8 @@ export function ShareClasses({
             {canAdd && (
               <Action
                 primary
-                label="Add share class"
+                label="Add"
+                accessibilityLabel="Add (share class)"
                 disabled={locked}
                 onPress={() => navigation.navigate('RegisterSetup', { company })}
               />
@@ -207,7 +209,7 @@ export function ShareClasses({
                     ? operation.retry
                       ? 'Retry original deletion'
                       : 'Check original deletion'
-                    : 'Delete selected'
+                    : 'Delete'
               }
               destructive
               disabled={!available || deletion.busy}

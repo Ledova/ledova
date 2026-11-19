@@ -203,7 +203,7 @@ import records are applied, and the register keeps the particulars from their Pr
 ([particulars from Profile](member-records.md#particulars-from-profile)). Register setup is on the
 web and, at phone width, in the app:
 
-1. On web or mobile, open Ledger → **Share classes**. Choose **Add share class**, or select an unfinished
+1. On web or mobile, open Ledger → **Share classes**. Choose **Add**, or select an unfinished
    class to continue its setup on the same class page. The Dashboard's **Set up your ledger** and
    the sidebar's **Share classes** both open this same selected-company Ledger page, regardless of
    class count. Recorded classes show their summary, rights and documents; readers
@@ -228,7 +228,7 @@ web and, at phone width, in the app:
    moves to Shareholders; **Back** returns to Share class. Rights come from the company's governing
    documents; continuing without rights records no assumed terms or revision. Both clients use
    Share class → Class rights → Shareholders → Review.
-   With no classes yet, a preparer uses Ledger → Share classes and **Add share class** on web or mobile.
+   With no classes yet, a preparer uses Ledger → Share classes and **Add** on web or mobile.
    Preparation access does not change their initial landing page or account role.
 3. Shareholders, one at a time: choose a recorded person or New person
    ([choosing a person](#choosing-a-person); names never link records, and existing names and
@@ -313,7 +313,7 @@ attachments on either client.
 
 Each attachment belongs to the company, person and share class; a setup attachment also keeps its
 source opening record. Recording existing holdings creates no historical share issue. On the web,
-a current preparer sees **Add documents** even when the person has no recorded holding, disabled
+a current preparer sees **Add** in Documents even when the person has no recorded holding, disabled
 with **Record a shareholding before adding documents.** Class-wide governing documents belong with
 [Class rights](issuing-shares.md#class-rights); company source copies belong to the whole opening
 and remain separate.
@@ -457,7 +457,7 @@ account, payment, application or chain transaction.
    ([choosing a person](#choosing-a-person)), and give the company transfer date. An
    existing company recipient keeps their member ID, including someone holding only another class,
    a former member returning from zero, or someone without shares. Register a first-time recipient
-   through **Add person** on Shareholders before preparing the transfer. This creates particulars,
+   through **Add** on Shareholders before preparing the transfer. This creates particulars,
    not shares or member access. If a returning member's particulars were lawfully purged, the
    company supplies current ones against the same existing identity. The API keeps its existing
    new-recipient path.
@@ -628,7 +628,7 @@ reason, the person, their appointment and the time, and the
 The destination is **Ledger** on the web, with the subtitle **Share classes and current
 ownership.** On the web, Ledger is open to every signed-in account and shows the
 registers of companies the person owns or where their appointment includes register access. With
-none, it offers **Add share class** to someone who can prepare one and otherwise says there are none.
+none, it offers **Add** to someone who can prepare one and otherwise says there are none.
 The selected company follows Dashboard. Ledger's sidebar label opens the share-class
 overview; its separate caret expands Issue shares, Transfer shares and Corrections.
 Shareholders and Documents remain beside Ledger; Employee scheme is under Shareholders. Ledger and Shareholders
@@ -644,13 +644,13 @@ The Ledger view shows:
   line with its code, current shareholders, Authorised shares where applicable, and a short note while
   its ledger is not opened or completed issues or transfers wait or cannot be checked; each row opens
   the class (owner, 5 November 2026);
-- **Add share class** below the card, aligned right, for someone who can prepare the register, opening
+- **Add** below the card, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
 On web and mobile, selection controls appear when at least one class can be removed. Checkboxes
 select classes individually; for multiple classes, **Select all** selects every class shown, including
 protected classes. A single class needs only its own checkbox.
-**Delete selected** confirms which selected classes can be removed and which will be kept, with
+**Delete** confirms which selected classes can be removed and which will be kept, with
 their reasons ([safe class deletion](issuing-shares.md#share-classes)).
 
 The mobile app's Ledger shows the same rows to a register reader of the selected company, and **Add
@@ -719,7 +719,7 @@ Former-member history 10 at a time, with Details for a former member the registe
 Shareholders' sidebar submenus open Employee scheme for employee awards and Member access for invitations and
 access ([member records](member-records.md)). While register work is unfinished,
 Details is unavailable, so the work and its recovery stay on the page. The mobile app's Shareholders
-shows the same list, filters, pages, former shareholders and **Add person** for a register reader of
+shows the same list, filters, pages, former shareholders and **Add** for a register reader of
 the selected company, keeping the search, class and page on the screen; each row opens the
 shareholder's page.
 
@@ -754,14 +754,14 @@ reached from Recipient details on their award's page. It shows:
   a link to Employee share scheme;
 - Documents: the shareholder's retained supporting files, with their category and share class;
   someone who can prepare the register can add more for a recorded holding;
-- for an administrator, whether they can see their own records, with **Invite to their records**
+- for an administrator, whether they can see their own records, with **Invite**
   when they cannot.
 
 Details show only while the account, the classes and the holdings read are current; a refresh
 withholds them rather than showing stale ownership. Particulars, history and awards also need a
 current company register appointment and settled reads, as on Ledger. The app's shareholder page shows
 the same sections and **Change particulars**, with award rows opening their pages and **Open Employee
-share scheme**, **Issue shares to them** and, on a holding, **Transfer shares**, and the same supporting
+share scheme**, **Issue shares** and, on a holding, **Transfer**, and the same supporting
 Documents across their classes.
 
 ### Choosing a person
@@ -781,7 +781,7 @@ Each flow keeps its own rule for who can be chosen:
 - register setup: everyone on the list;
 - invitations: current and former members and award recipients.
 
-**Add person** on Shareholders records a company person's name and residential address without
+**Add person**, opened with **Add** on Shareholders, records a company person's name and residential address without
 a class, shares, an award, a login or an invitation. People without shares remain separate from
 current shareholders and can be found with the same search. Recording a person does not add them
 to the legal register; a later confirmed opening, share issue or transfer records their holding.
@@ -793,7 +793,7 @@ An award recipient without shares has a person record from their first award. Ev
 their member ID and current particulars, so an issue, a transfer or another award reaches the same
 person, and the company corrects their particulars with an ordinary particulars change (a linked
 recipient corrects them in their Profile). On a shareholder's
-page, **Issue shares to them** and, on each holding, **Transfer shares** start those flows with the
+page, **Issue shares** and, on each holding, **Transfer** start those flows with the
 person chosen.
 
 ### The Share class page

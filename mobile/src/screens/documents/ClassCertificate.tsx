@@ -44,7 +44,7 @@ function CertificateRequest({ onEditingChange, ...source }: ClassCertificateSour
     <Actions>
       <Action
         compact
-        label="Prepare certificate"
+        label="Prepare"
         accessibilityLabel={`Prepare certificate (${certificateContext(source.entry)})`}
         disabled={!source.sourceReady || !source.register.initialized}
         onPress={() => setOpen(true)}
@@ -74,7 +74,7 @@ function CertificateForm({
   const action = target
     ? busy === 'download'
       ? 'Downloading…'
-      : 'Download PDF'
+      : 'Download'
     : busy === 'preview'
       ? 'Preparing preview…'
       : 'Preview';

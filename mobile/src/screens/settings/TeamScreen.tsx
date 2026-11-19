@@ -282,7 +282,8 @@ function OwnTeam({
         </Section>
         <Actions>
           <Action
-            label="Invite a company user"
+            label="Invite"
+            accessibilityLabel="Invite (company user)"
             primary
             disabled={disabled || own.isFetching || own.isError || !company || sources.length === 0}
             onPress={() => {

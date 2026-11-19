@@ -108,7 +108,8 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                   <PageAction
                     ref={editAction}
                     compact
-                    label="Edit company"
+                    label="Edit"
+                    context="company"
                     onClick={() => setEditing(company)}
                     disabled={data.isRefreshing}
                   />

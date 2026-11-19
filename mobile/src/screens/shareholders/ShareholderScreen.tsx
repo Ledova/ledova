@@ -326,7 +326,7 @@ function OwnShareholder({
                           <Actions>
                             <Action
                               compact
-                              label="Transfer shares"
+                              label="Transfer"
                               accessibilityLabel={`Transfer shares (${register.token.name})`}
                               onPress={() =>
                                 navigation.navigate('TransferPreparation', {
@@ -355,7 +355,7 @@ function OwnShareholder({
               <Actions>
                 <Action
                   compact
-                  label="Issue shares to them"
+                  label="Issue shares"
                   onPress={() => navigation.navigate('IssueShares', { company, token: issueClass, member })}
                 />
               </Actions>
@@ -440,7 +440,8 @@ function OwnShareholder({
                 <Actions>
                   <Action
                     compact
-                    label="Invite to their records"
+                    label="Invite"
+                    accessibilityLabel="Invite (to their records)"
                     onPress={() => navigation.navigate('MemberAccess', { company, inviteMember: member })}
                   />
                 </Actions>

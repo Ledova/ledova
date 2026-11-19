@@ -278,7 +278,7 @@ function OwnShareholder({
                           compact
                           to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: register.token.uuid })}
                           state={{ fromMember: member }}
-                          label="Transfer shares"
+                          label="Transfer"
                           context={register.token.name}
                         />
                       </div>
@@ -301,7 +301,7 @@ function OwnShareholder({
                   compact
                   to={`${DESTINATIONS.companyRegister.path}?company=${company}#issue`}
                   state={{ registerCompany: company, registerToken: issueClass, issueMember: member }}
-                  label="Issue shares to them"
+                  label="Issue shares"
                 />
               </div>
             )}
@@ -392,7 +392,8 @@ function OwnShareholder({
                     compact
                     to={`${DESTINATIONS.companyRegister.path}?company=${company}#member-access`}
                     state={{ registerCompany: company, inviteMember: member }}
-                    label="Invite to their records"
+                    label="Invite"
+                    context="to their records"
                   />
                 </div>
               )}

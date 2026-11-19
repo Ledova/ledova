@@ -109,7 +109,7 @@ export function AppointmentRecord({
             <View style={look.end}>
               <Action
                 compact
-                label="Revoke appointment"
+                label="Revoke"
                 accessibilityLabel={`Revoke appointment (${title} · ${scope} · appointed ${formatDate(appointment.createdAt)})`}
                 disabled={disabled}
                 onPress={onRevoke}

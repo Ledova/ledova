@@ -102,7 +102,8 @@ export function AcceptInvitationForm({
       <FormActions>
         <Action label={receipt ? 'Done' : 'Cancel'} disabled={busy} onPress={onCancel} />
         <Action
-          label={busy ? 'Accepting invitation…' : 'Accept invitation'}
+          label={busy ? 'Accepting…' : 'Accept'}
+          accessibilityLabel={`${busy ? 'Accepting…' : 'Accept'} (invitation)`}
           primary
           disabled={disabled || busy}
           onPress={() => {
@@ -190,7 +191,8 @@ export function TeamInvitationForm({
         <FormActions>
           <Action label="Done" disabled={disabled} onPress={onCancel} />
           <Action
-            label="Create another invitation"
+            label="Create another"
+            accessibilityLabel="Create another (invitation)"
             disabled={disabled}
             onPress={() => {
               keyRef.current = null;
@@ -260,7 +262,8 @@ export function TeamInvitationForm({
       <FormActions>
         <Action label="Cancel" disabled={busy} onPress={onCancel} />
         <Action
-          label={busy ? 'Creating invitation…' : 'Create invitation'}
+          label={busy ? 'Creating…' : 'Create'}
+          accessibilityLabel={`${busy ? 'Creating…' : 'Create'} (invitation)`}
           primary
           disabled={disabled || busy}
           onPress={() => {

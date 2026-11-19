@@ -119,7 +119,7 @@ ledger, Back to Employee share scheme on an award, Back to Shareholders on a sha
 shareholder on a particulars change, Back to Transfer shares on a non-paid transfer and Back to
 Corrections on a correction. The arrow returns to the previous page, as Android's Back and the iOS
 swipe do, and reads Back; only a page with nothing beneath it in the stack opens that parent in its
-place, under the parent's name. The menu's pages replace the stack above Dashboard; Add share class opens the class workflow above Ledger. A parent that needs
+place, under the parent's name. The menu's pages replace the stack above Dashboard; Ledger's **Add** opens the class workflow above Ledger. A parent that needs
 params for that fallback gets them from the page (`keepParams`). A non-paid transfer locks Cancel while a submission is
 unresolved, and sets `held` then, which hides its arrow so the bar shows the menu button instead. Inside the frame `Page` sets
 the title, action and `held` as the screen's options (`FrameOptions`) and starts with
@@ -195,10 +195,10 @@ shareholders and changes, then the kind, class and short date (and ledger date),
 certificate** beneath one that can be prepared. Filters holds the web's drafts, Share class
 when there is more than one, Shareholder and Certificate status, with **Clear**, which keeps the class,
 and **Apply**; the server filters the whole history before paging, and **Load more register entries**
-reads the next page, a failed one leaving the list marked incomplete. **Prepare certificate** opens the
+reads the next page, a failed one leaving the list marked incomplete. **Prepare** opens the
 web's form in its row, hiding the other rows and holding the filters (`ClassCertificate.tsx`, through
 the shared `useClassCertificate`): the share movements, company date, ledger date and
-recording time, **Preview**, which adds the PDF's page count, then **Download PDF**, which shares the
+recording time, **Preview**, which adds the PDF's page count, then **Download**, which shares the
 unsigned certificate ([document view copies](#document-view-copies)). For anyone else it is the member's own
 entries in one share class, newest first. For a member with more than one class, Filters opens the
 web's panel under its button (`FilterPopover`) with Share class and Apply. Each record shows the
@@ -211,11 +211,11 @@ one, then the Prepared copies card read through the shared `useClassRegister`,
 `useInspectionCopies` and `useClassInspectionCopy`: each recipient, then one muted line with the
 short request date, any late delivery and who prepared it when, then the instruction. **Prepare
 inspection copy** beneath the card opens the web's New inspection copy card. Its request date is typed as `YYYY-MM-DD` (Sydney), starting
-at today; **Preview inspection copy** shows the request's rows and **Confirm and download inspection
+at today; **Preview** shows the request's rows and **Confirm and download inspection
 copy** shares the CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack page, through
 the shared `useCompanyPackAuthority`, `useCompanyPacks` and `useCompanyPack`: for a current
 administrator, the Prepared packs card (each recipient, then who prepared it when and its share-class
-count, then the instruction) and **Prepare company pack** beneath it, whose New company pack card takes the
+count, then the instruction) and **Prepare** beneath it, whose New company pack card takes the
 instruction and recipient, keeps the web's included records and limitations behind **Show included records and
 limitations** and shares the ZIP; for any other register reader, the web's notice that administration
 is required. Both pages show the web's loading, failure and empty states, and without register access
@@ -231,8 +231,8 @@ web's unopened-class, identity-review, empty and no-match lines and a page at a 
 people**, which searches 300 ms after typing stops, with **Clear** and the web's match count, above
 **Share class**, which applies at once and closes the panel; the search, class and page are kept on the
 screen. Former shareholders follows, with each class's former-member history behind its **Show**
-toggle, a page at a time, and **Details** for a former member the register names. **Add person** opens the
-web's form beneath them, through the shared `usePersonRegistration`, with its retry of an uncertain save
+toggle, a page at a time, and **Details** for a former member the register names. **Add** opens the
+web's Add person form beneath them, through the shared `usePersonRegistration`, with its retry of an uncertain save
 and the added person's name in its outcome line; while a save is unfinished the rows don't open. A row
 opens the shareholder's page (`ShareholderScreen.tsx`, their name as its title) through the shared
 `useShareholder`: Particulars with **Change particulars** or the profile note, Holdings with any
@@ -244,13 +244,13 @@ one-step form, which starts with their
 current particulars and returns to the shareholder's page saying Particulars changed., where the edit
 began. A member who keeps their own details in their profile gets Current particulars and the profile
 note instead of the form. The change is listed under Corrections' Particulars changes. Each Employee awards row opens that award's page, and
-**Open Employee share scheme** opens the scheme. **Issue shares to them**, under Holdings for someone
+**Open Employee share scheme** opens the scheme. **Issue shares**, under Holdings for someone
 who can prepare the register when the person holds no linked wallet and their particulars are
 retained, opens Issue shares for an opened draft class they hold, or else the company's first, with
 them chosen in an investor issue, as on the web. **Transfer shares**, on a holding without a linked
 wallet in an opened draft class for someone who can prepare the register, opens the transfer's
 preparation with them as transferor, as on the web. **Documents** lists that person's retained
-supporting files across classes, with category, class and **Download**. **Add documents**, for someone
+supporting files across classes, with category, class and **Download**. **Add**, for someone
 who can prepare the register, keeps the person fixed and offers **Share class** when they hold more
 than one class. `screens/shareholders/ShareholderDocuments.tsx` uses
 `useMemberDocuments`, with the same appointment checks and uncertain-save recovery. Picking a file
@@ -258,9 +258,9 @@ locks its class, and pulling down waits while the editor or a save is open.
 Member access
 (`MemberAccessScreen.tsx`, through the shared `useMemberAccessForm`) has the web's People and
 Invitations in the web's two-line rows: each person's name and access, then their email and short
-linked date, with a compact **Revoke access**, whose reason form and confirmation dialog send nothing
+linked date, with a compact **Revoke**, whose reason form and confirmation dialog send nothing
 until confirmed, and each invitation's name and status, then its email and short invited date, with
-any deadline beneath. **Invite a member** replaces them with the web's form, choosing the recipient from a
+any deadline beneath. **Invite** replaces them with the web's form, choosing the recipient from a
 searchable list of the company's members and award recipients (`PersonSelect.tsx`). Without register
 access to the company, these pages read no private company records and point to Dashboard. Pulling down rereads
 each of them while no form or action is open. An unresolved request (in flight, or unanswered and waiting for its
@@ -271,7 +271,7 @@ class pages; a class's opening records and their decisions, including a copied o
 Corrections; adding a person on Shareholders; a shareholder's documents; Member access; Employee
 scheme and an award; preparing and deciding share issues, transfers and corrections; Change
 particulars; Team's invitation create, accept and revoke; a representative authority request and
-its withdraw, revoke and admit; Inspection copies; Company pack; and Edit company. The pages that
+its withdraw, revoke and admit; Inspection copies; Company pack; and the company details form. The pages that
 leave by themselves after a save (preparing a transfer or a correction, Change particulars, saving
 or applying opening records) do so only once the request has settled, so the guard does not cancel
 that step. A decision or opening-records retry blocks only while its record is on screen; once its
@@ -311,9 +311,9 @@ schedule), with its retry of an uncertain recording. A row opens the award's pag
 (`EmployeeAwardScreen.tsx`, the recipient as its title, the class as its lede and a compact
 **Recipient details** above it), read through the shared `useRegisterAward`, `useRegisterGrants` and the
 award's events, as on the web: Entitlement (the web's chart with **Record vesting** and **End unissued
-rights**), Agreement (its date with **Download agreement**, and the terms, schedule and recorded line
+rights**), Agreement (its date with **Download**, and the terms, schedule and recorded line
 behind **Show terms and vesting schedule**), Vesting history (the latest five, with **Show all**, each a
-compact row with **Download evidence** and, only while the event can be corrected, **Correct**),
+compact row with **Download** and, only while the event can be corrected, **Correct**),
 Entitlement changes with their downloads, and the non-paid issues still in progress with their stage.
 Recording vesting, ending rights and correcting a
 vesting open the web's forms in the Entitlement card (through the shared `useAwardVestingForm` and
@@ -331,10 +331,10 @@ transfers wait or cannot be checked (`classFacts`); each row opens the class's p
 without classes shows No share classes yet. Selection controls appear only when at least one class
 is removable. Header and row checkboxes share a 44px column aligned to the class name, with 44px
 touch targets separate from the class links. Multiple-class lists have **Select all**, showing a mixed
-state for partial selection; it selects the visible classes, including protected records. **Delete selected**, beside **Add share class** below the card, uses the
+state for partial selection; it selects the visible classes, including protected records. **Delete**, beside **Add** below the card, uses the
 shared `useClassDeletion` to review removable classes and retained classes with their reasons,
 preserve partial results and recover uncertain requests before refreshing the remaining class set. The result line sits at the top of the card ([feedback](frontend-ux.md#feedback)).
-**Add share class**, for someone whose appointment allows preparation, opens Set
+**Add**, for someone whose appointment allows preparation, opens Set
 up your ledger. A class's page (`ShareClassScreen.tsx`, the class's name as its title) is one workspace for details and setup, read
 through the shared `useShareClass`: an unfinished class with preparation, approval or application access opens the existing clickable setup; an opened class or a read-only appointee sees Class details,
 Class rights, then Summary with Issued shares,
@@ -367,7 +367,7 @@ record's actions: **Reject** and **Review and approve**, and **Record issue** fo
 issue, only for the steps the person's appointments hold.
 Reviewing replaces the records with the web's Review share issue: the preview, ownership impact, company
 records and unmet requirements, Cancel and the confirmation, where an investor's **Approve** records the
-approval and the issue together, as on the web. **Prepare issue**, beneath the card, asks **What kind of issue?**: Investor
+approval and the issue together, as on the web. **Prepare**, beneath the card, asks **What kind of issue?**: Investor
 issue opens the web's three steps (Person and shares, Agreement and receipt, Company authority and
 review) and Non-paid issue the web's non-paid form, with an employee award's recipient, available
 vested shares and retained agreement when it was opened from the award. Each keeps its retry of an
@@ -434,7 +434,7 @@ held decision is open, and pulling down rereads the classes, the person's appoin
 corrections, opening records and particulars changes while none is.
 Class setup (`ClassSetup.tsx`, rendered by `ShareClassScreen.tsx`) is the web's register setup at phone width, through the
 shared `useImportPreparation`, `useNewShareClass`, `useImportRegister` and `useStartedClasses`
-(`ImportForm.tsx`, `ImportShareholders.tsx`). Opened from **Add share class**, it is the web's four
+(`ImportForm.tsx`, `ImportShareholders.tsx`). Opened from Ledger's **Add**, it is the web's four
 steps for a new class: Share class (Ordinary, Preference or Redeemable preference, which set their own name,
 code and type, or Another class with its name, code and type; any class already started, as links; and the record date), Class rights (the company's
 structured terms and governing documents, using the existing editor and the shared `useNewClassRights`
@@ -476,9 +476,9 @@ opened it. **Back** returns to the preceding step, and a page that
 cannot show the form still offers it. The top bar's arrow returns to Ledger.
 Settings has the web's three pages for everyone (`mobile/src/screens/settings/index.tsx`) and
 Team. Profile, the `Settings` route, is the web's Personal
-information card: the person's details on one-line rows, and **Edit details** opens their form
+information card: the person's details on one-line rows, and **Edit** opens their form
 in the card. Above it, when the selected company's `canManage` is true, the web's Company details
-card shows the company's recorded details, and **Edit company** opens the same eight fields and the
+card shows the company's recorded details, and **Edit** opens the same eight fields and the
 ownership-sharing choice (`CompanyProfile.tsx`). Both clients save through the shared
 `useEditCompanyForm`, which sends only changed fields under the current administration check.
 Without that authority the card is absent and the app reads no company details. Pulling down
@@ -491,7 +491,7 @@ details shows member since and last login in the same one-line rows; and Invitat
 **Accept**, which opens the Member invitation page, and, as on the web, the **Company officer
 invitation** row has **Accept**, which opens Team on its accept form. Your appointments
 (`mobile/src/screens/settings/Appointments.tsx`) lists the person's appointments across companies in
-Team's rows, with **Show the declaration** and **Revoke appointment**, which asks first in the web's
+Team's rows, with **Show the declaration** and **Revoke**, which asks first in the web's
 dialog. The first three cards' rows follow the web's: the label on the left, and its status, value, one compact action
 or switch on the right. Data and privacy (`DataPrivacy`) has the same rows and compact actions: Export data, whose **Export**
 saves or shares the file, and Delete account with **Delete**; a screen reader hears the row and then the action, named
@@ -502,7 +502,7 @@ with its original code, after leaving the page, and the pages show a loading lin
 empty one while the list rereads. Only the focused page selects its record and class.
 Team (`mobile/src/screens/settings/TeamScreen.tsx`, its forms in `TeamForms.tsx`) is the web's Team
 page at phone width, read and sent through the shared `useCompanyTeam`, `useAcceptInvitationForm`
-and `useTeamInvitationForm` with the selected company: the company's Appointments, **Invite a company user** and
+and `useTeamInvitationForm` with the selected company: the company's Appointments, **Invite** and
 Invitations you issued, with the web's rows, wording, loading, empty and failure states. Appointments are read only with a
 current own administration appointment for that company; otherwise it says that authority is required.
 Accepting and inviting replace the page with the web's inline form, and the invitation keeps its
@@ -511,13 +511,13 @@ for someone with no appointments who owns no company once their appointments loa
 account task, independent of the selected company's access. It keeps its receipt while the first
 company loads; **Done** opens the current company's Team. The capabilities are
 checkboxes, the invitation deadline and appointment expiry are typed as `YYYY-MM-DD` (UTC) with the
-web's checks, and the one-time code shows once as selectable text to copy. **Revoke appointment**
+web's checks, and the one-time code shows once as selectable text to copy. **Revoke**
 asks first in the web's dialog. Pulling down rereads the page while no form or revocation is open.
 Your appointments' **Representative authority**, shown as on the web to a company account that owns a company,
 opens the web's Representative authority page (`AuthorityScreen.tsx`), read and sent through the
 shared `useAuthorityRequests` and `useAuthorityRequestForm`: Authority requests, each a compact
 row with the company and the request's status, then its ACN and short submission date, then
-**Request authority**, which replaces the list with the web's New authority request form
+**Request**, which replaces the list with the web's New authority request form
 (`AuthorityRequestForm.tsx`) for the
 selected company when it is a draft the person owns, and otherwise the web's notice to choose a
 company on Dashboard. The capabilities are checkboxes, the expiry is typed as `YYYY-MM-DD` (UTC)
@@ -526,9 +526,9 @@ own picker (`pickDocument` in `mobile/src/services/documentCopies.ts`), checked 
 request opens its page (`AuthorityRequestScreen.tsx`, the company's name as its title): the web's
 Request and Appointment cards, each fact on one line with its label on the left and its value on the
 right (`inline` `Fact`s), the declaration and Terms for an admin request still pending,
-**Show the declaration**, **Download evidence**, which shares the file
-([document view copies](#document-view-copies)), **Withdraw request** and **Establish appointment**
-while pending, and **Revoke appointment**. Withdrawing and revoking ask first in the web's dialogs.
+**Show the declaration**, **Download**, which shares the file
+([document view copies](#document-view-copies)), **Withdraw** and **Establish**
+while pending, and **Revoke**. Withdrawing and revoking ask first in the web's dialogs.
 Pulling down rereads the requests while no request form is open and no action is running.
 Its top bar's back arrow, like the request page's, returns to the previous page, as Android's Back
 and the iOS swipe do.

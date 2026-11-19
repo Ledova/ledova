@@ -50,7 +50,7 @@ New classes show their editable fields; existing classes keep the server's edit/
 New-class presets use one **Start with** radio group, one preset per line, leaving out a common class whose code
 the company already uses. A common class sets its own name, code and type, so Class name, Class code and Class type
 are asked only for **Another class**. Name/code and type/date then share the existing two-column form grid, stacking
-on phones. The Class rights step shows its heading and status, with its Add or Edit action in the footer;
+on phones. The Class rights step shows its status, with its Add or Edit action in the footer;
 the governing-document note appears with its editor or recorded terms.
 While a metadata task is open, its explicit Save/Cancel or recovery controls replace the opening's
 Cancel/Continue footer and block step changes without discarding the draft. Metadata saves and
@@ -61,7 +61,7 @@ its state as a `Status`.
 After a selected step opens, focus moves to its current-step label on web and native, including
 after a saved Review is retired. Validation errors keep their existing error-summary focus.
 Company information, authority records and company team use this workspace frame too.
-Team is the selected company's page: its Appointments, **Invite a company user** and the invitations you
+Team is the selected company's page: its Appointments, **Invite** and the invitations you
 issued (owner, 5 November 2026). Inviting replaces the collection with one focused inline task, a
 card titled **Invite a company user** that retains its mounted editors and drafts. Accepting a
 company invitation is the same kind of task, **Accept a company invitation**, opened at once from Account's
@@ -72,7 +72,7 @@ its appointment date. Appointment rows are compact at every width: the company o
 status at the right; one muted line with a team member's email and the actions (**All actions**
 when the appointment holds every one) and any delegation ("may delegate all of these" when it
 matches, "may delegate all actions" when it covers every one); and one with the source and short
-date, any revocation and the expiry. A compact **Revoke appointment** sits at the right edge, on the
+date, any revocation and the expiry. A compact **Revoke** sits at the right edge, on the
 line that holds an own appointment's **Show the declaration**. Issued invitations show the company,
 their actions, and their acceptance or deadline with the appointment's expiry. The app's Team has
 the same cards, rows and inline tasks at phone width.
@@ -150,8 +150,8 @@ nonzero lifecycle quantities, each label above its number, with the full breakdo
 **Show award details**. An award that has issued shares notes that they are already included in the
 holding (owner, 3 November 2026). The Dashboard contains the overview and read-only
 awards; requests, documents and record-management actions stay on their focused pages.
-Profile holds Personal information, with **Edit details** to open its form, and Company details for a company
-administrator, with **Edit company**. Both use one-line rows with the action as compact text at the right edge;
+Profile holds Personal information, with **Edit** to open its form, and Company details for a company
+administrator, with **Edit**. Both use one-line rows with the action as compact text at the right edge;
 Profile shows no company's recorded particulars.
 Share history and certificate tracking belong in Documents.
 Section spacing is scoped to
@@ -160,7 +160,7 @@ the frame; sign-up keeps its own presentation.
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
 only where it adds to the titles. On web card collections, the primary creation action follows the
 last card in one right-aligned, wrapping row, rather than the title row; keep its content width.
-Ledger's Add share class, Issue shares' **Prepare issue** and Transfer shares' **Prepare a non-paid
+Ledger's **Add**, Issue shares' **Prepare** and Transfer shares' **Prepare a non-paid
 transfer** follow this pattern. The first
 section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
@@ -219,14 +219,14 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   end. On wide screens the action has its own fixed-width column (from `xl` for Certificates and
   Member access); on narrower screens, and for Team at every width, it sits beneath the row's facts,
   still at the right edge, except Changes' compact **Correct**, which stays at the end of the row's
-  first line. Member access's **Revoke access**, Certificates' **Prepare certificate** and Team's
-  **Revoke appointment** are compact text actions, placed like the others.
+  first line. Member access's **Revoke**, Certificates' **Prepare** and Team's
+  **Revoke** are compact text actions, placed like the others.
   A shareholder's Holdings and History rows don't expand either: the class, or the
   entry's kind, with the shares at the right, then the facts in muted text, with a holding's compact
   **Transfer shares** beneath them at the right edge. Register setup's shareholders and a copied opening's are
   compact rows at every width (`MemberRow`): the name with the shares at the right, the address, then the facts, with
-  **Edit** and **Remove**, or **Allotments**, as compact text actions at the right edge. **Change particulars**, **Issue shares to
-  them**, **Open Employee share scheme** and **Invite to their records** sit at the same edge as
+  **Edit** and **Remove**, or **Allotments**, as compact text actions at the right edge. **Change particulars**, **Issue
+  shares**, **Open Employee share scheme** and **Invite** sit at the same edge as
   compact text actions. The Account and Data and privacy rows and an action that stands on
   its own follow the same edge on web and in the app: Try again after a failed read, **Retry
   original member action**, and in the app the Invitation page's and empty Dashboard's actions. Load
@@ -281,11 +281,11 @@ issued shares beneath as one line. Each row opens the award's own page, built li
 shareholder's page: the recipient as its title, the class as its lede, the back arrow and a compact
 **Recipient details**, then headed cards without chevrons: **Entitlement** (the chart, whose legend keys
 each colour and lists only non-zero parts, one line each at phone width, and the award's actions),
-**Agreement** (its date with **Download agreement** on one line, and the typed terms, schedule and
+**Agreement** (its date with **Download** on one line, and the typed terms, schedule and
 recorded line behind **Show terms and vesting schedule**), **Vesting history** (the latest five events,
 with **Show all**, each a compact row: the shares vested with the date at the right, then **Download
 evidence** and, only while the event can be corrected, **Correct**), **Entitlement changes** (the shares
-ended or reversed with the date at the right, the reason beneath and **Download evidence**) and
+ended or reversed with the date at the right, the reason beneath and **Download**) and
 **Non-paid issues from this award**, which lists only issues still in progress; each of these last three
 shows only when it has records. The page shows what someone acts on and leaves the rest where it
 already lives (owner, 5 November 2026): the address on Recipient details, finished issues in the chart
@@ -303,7 +303,7 @@ grid. Show an award recipient and available vested shares once; its retained agr
 behind **Show award record details**, with read-only validation targets that open on error. Ordinary non-paid terms stay
 editable fields. Keep the required fields and guards, without repeated descriptions or routine
 upload hints, and show recovery guidance only while the original preparation is held.
-Issue shares is one **Share issues** card with **Prepare issue** beneath it. Both kinds of
+Issue shares is one **Share issues** card with **Prepare** beneath it. Both kinds of
 issue sit together under small muted headings with counts: **Needs a decision** (prepared and
 approved issues), **Issued** and **Rejected**, each newest company issue date first and undated issues
 last (`recordGroups` with `ISSUE_GROUPS` in `packages/shared/src/utils/record-groups.ts`, listed by
@@ -368,9 +368,8 @@ field grid and action footer, opening one focused main-page preparation at a tim
 preparation uses the existing labelled summary rows for share movements, company date,
 ledger date, recording time and PDF page count after preview. No manual certificate reference is
 needed: the server records the exact-entry request when the file is generated. Keep one
-right-aligned Cancel/Preview or Cancel/Download PDF row. Do not offer Edit when nothing is editable.
-**Prepared copies** and **Prepared packs** list what was prepared, with **Prepare inspection copy** or
-**Prepare company pack** beneath the card as the page's primary action. It opens **New inspection copy** or **New company
+right-aligned Cancel/Preview or Cancel/Download row. Do not offer Edit when nothing is editable.
+**Prepared copies** and **Prepared packs** list what was prepared, with **Prepare** beneath the card as the page's primary action. It opens **New inspection copy** or **New company
 pack** as a card of its own; privacy and source guidance stays with the opened form or download. A new inspection copy
 shows editable request fields before preview and captured summary rows afterwards.
 Each prepared record reads "For" the recipient, then one muted line, then the instruction. A copy's line has the short request date, any
@@ -384,13 +383,13 @@ Certificates uses one list for the selected company and class. Register readers 
 issue and transfer entries; a member who is not one sees only their own history. On wider screens
 each aligned row shows the shareholder or each party to a transfer with their shares, the kind and class
 beneath, and the short date (with the ledger date beneath when it differs); a register reader's row ends with
-**Prepare certificate**, or **None due, the entry was reversed** when no certificate is due. At phone width each
+**Prepare**, or **None due, the entry was reversed** when no certificate is due. At phone width each
 entry takes two lines: the same people and shares, then the kind, class and short date in muted text, with the
 ledger date when it differs. A member's own history doesn't repeat their name: the first line is the kind and
 class with the shares at the right. A member's empty class reads **No register entries for this class yet.**
 Rows don't expand.
 
-The Shareholders parent opens the people and holdings list, with **Add person** beneath it.
+The Shareholders parent opens the people and holdings list, with **Add** beneath it.
 Its **Member access** submenu uses **People** and **Invitations** `Section` cards, in that order.
 On wider screens their rows align under Person, Linked or Invited, and Status, with headers matching
 the row columns. At phone width each row takes two lines: the name with the access or invitation
@@ -398,19 +397,19 @@ status at the right, then the email and the short linked or invited date in mute
 retains current and revoked access records; invitations remain separate records. The view uses the
 standard workspace width and Ledger's aligned change-row pattern. Show names, secondary emails
 or class context and genuine dates in the row, without repeating the page title inside a card.
-A current person's Member access row ends with a compact **Revoke access**, which opens the reason form
+A current person's Member access row ends with a compact **Revoke**, which opens the reason form
 beneath the row; its confirmation says what revocation does. A pending or expired invitation shows its
 acceptance deadline, beneath the status on wider screens and beneath the email at phone width.
 Access and invitation records show no internal references, fingerprints or file sizes; these
 remain in the audit records. Keep unavailable reads and their retries distinct
 from confirmed empty collections.
-Invite a member sits in a right-aligned row beneath the Invitations card. Invitation preparation replaces
+**Invite** sits in a right-aligned row beneath the Invitations card. Invitation preparation replaces
 the collection with a focused view across the workspace, with member and email fields in the existing
-responsive grid and Cancel and Send invitation together at the bottom right. Keep invitation codes
+responsive grid and Cancel and Send together at the bottom right. Keep invitation codes
 out of query keys and logs, and drop the email link's code from the address on arrival: the link opens
 one focused Member invitation page, continuing through sign-in or signup in the same tab. Opened without the link, the page takes a pasted link or its code
 in a field (owner, 3 November 2026), kept for the session like the link's. Show company, shareholder, intended email and expiry before an explicit
-Accept invitation action; opening the link must never accept it. The company sees acceptance status
+Accept action; opening the link must never accept it. The company sees acceptance status
 and an honest sending result, with a retry on failure; provider acceptance is not inbox delivery.
 Show an action reason only for a selected revocation. Preserve drafts, current authority,
 failed-read retries and original-action recovery; there is no routine refresh control.
@@ -468,7 +467,7 @@ documents are never erased by this control. After a deletion, from the class pag
 selected**, the `Outcome` line ("Share class deleted.") sits at the top of Ledger's Share classes
 card, on web and app, and clears when another deletion starts or the app leaves Ledger.
 A shareholder's page owns their **Documents** section; do not duplicate it on the web class page.
-Use **Add documents**, not Edit: uploads append linked attachments rather than overwrite stored
+Use **Add**, not Edit: uploads append linked attachments rather than overwrite stored
 files. Keep the action visible to current preparers when no holding exists, disabled with
 **Record a shareholding before adding documents.** Class-wide governing documents stay with
 Class rights.
@@ -577,8 +576,8 @@ remain siblings, and every web group appears in the small-screen drawer; native 
 [separately](mobile.md#navigation). The sidebar has no More group or Help & Support link. Removing
 these links changes no underlying route, audience or permission. Representative authority is
 a contextual task in Account's Your appointments.
-Page controls start or complete work for that page or record: Add person, Invite a member,
-Add share class, Edit, Save, Confirm and contextual issue or transfer
+Page controls start or complete work for that page or record: Add, Invite, Edit, Save, Confirm
+and contextual issue or transfer
 actions remain beside their records. Keep section navigation in the sidebar rather than repeating it
 in page headers or a Company administration link card.
 
@@ -636,7 +635,7 @@ fields and action buttons, keep their own focus rings.
 
 `PageAction` (`dashboard/src/components/Page.tsx`) is the standard action on a signed-in page. It
 looks plain, primary (the one main action of its card or form) or destructive (red: every action that
-deletes something, such as **Delete selected**, a share class's **Delete** or the account's **Delete**,
+deletes something, such as the Ledger's and a share class's **Delete** or the account's **Delete**,
 and the confirm action of a confirmation; a compact text action shows it as red text), and comes in
 three forms:
 
@@ -648,7 +647,7 @@ three forms:
   the rule, for an action that stands on its own: a collection's primary action beneath its cards, or a
   card's compact text action.
 - **A link** (`PageLink`, same looks, optional router state) is an action that only goes somewhere:
-  Add share class, a shareholder's Details, Issue shares to them. While a
+  the Ledger's Add, a shareholder's Details, Issue shares. While a
   held Ledger action blocks leaving, `disabled` shows it as a disabled action instead.
 
 All three are at least 44 px tall below `sm`, so they are easy to tap on a phone; wider screens keep
@@ -657,12 +656,16 @@ which moves nothing.
 
 **Labels are short** (owner, 19 November 2026). An action says only what its card, step, form or
 dialog doesn't already say: usually one verb, such as **Edit**, **Delete**, **Add** or **Save**, so a
-form's actions fit on one row at phone width. The object stays in the accessible name, `context` on
-the web and `accessibilityLabel` in the app, both read as "Delete (share class)". Keep the object in
-the label only where the verb alone would be unclear: two kinds of addition in one form (**Add
-allocation**, **Add document**), or an action with no heading naming what it acts on. So far Ledger
-setup and the share class page follow this; [#1702](https://github.com/Ledova/ledova/issues/1702)
-brings the other pages in line.
+form's actions fit on one row at phone width. The accessible name starts with that label and keeps
+the object, through `context` on the web and `accessibilityLabel` in the app, such as "Delete (share
+class)". Keep the object in the label where the verb alone would be unclear: two kinds of addition
+in one form (**Add allocation**, **Add document**), actions on different objects in one card (an
+award's **Record vesting** and **Issue vested shares**), or an action with no heading naming what it
+acts on. These also keep their wording: recovery actions that retry the original request (**Retry
+original save**), links named after the page they open (**Open Employee share scheme**, **Change
+particulars**), the register forms' review-step submits (**Prepare allotment**, **Prepare transfer**
+and the like), and **Permanently revoke appointment**, **Confirm and download inspection copy** and
+**Prepare a non-paid transfer**, whose extra words mark an irreversible, audited or unpaid step.
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
 "Saving…". Every page form's submit button uses them, and so does every action that starts a
@@ -691,8 +694,8 @@ same order as `FormActions`. Mobile's `Action` has no busy form; its destructive
 (owner, 19 November 2026).
 
 An action that deletes, withdraws or revokes something saved asks first, in a dialog that names the
-consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw
-request" or "Revoke access". `Confirmation` (`dashboard/src/components/Modal.tsx`) is that dialog:
+consequence, with Cancel and a destructive action that repeats the verb, such as "Withdraw" or
+"Revoke". `Confirmation` (`dashboard/src/components/Modal.tsx`) is that dialog:
 its text is the dialog's description, its action needs whatever enabled the action that opened it,
 and it stays open and busy until the request ends. It confirms withdrawing a representative
 authority request and revoking member access.
@@ -755,7 +758,7 @@ keeps the company's stored member ID. Company scope and current authority remain
 
 On the web, both transfer parties are existing company people. A transferor holds shares in the
 class; a recipient may hold another class, be a former holder, have an award or have no shares yet.
-**Add person** on Shareholders records only a name and residential address, before or after the first
+**Add person**, opened with **Add** on Shareholders, records only a name and residential address, before or after the first
 class is added. It uses the existing inline form and right-aligned collection action. People without
 shares are distinguished from current shareholders, with no invented holding or award. Initial
 ledger setup, investor and non-paid issues and employee awards keep their explicit new-person
@@ -883,7 +886,7 @@ instead.
 
 The web's Share classes list is the common entry from both the sidebar and Dashboard's
 **Set up your ledger**, with the selected company preserved. Class count does not change either
-navigation destination. Creating a new class remains the explicit **Add share class** action.
+navigation destination. Creating a new class remains the explicit **Add** action beneath Share classes.
 Creation keeps links to unfinished classes as recovery if an existing code is chosen; normal web
 continuation uses the class row. The app still offers classes already started but not opened as
 links in a sentence. Both clients offer the new class's kind as radio buttons, so choosing never

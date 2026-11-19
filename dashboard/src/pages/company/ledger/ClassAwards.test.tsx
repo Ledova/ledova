@@ -631,11 +631,11 @@ it('retains original award, vesting and linked issue preparations through interr
   expect((screen.getByLabelText(GRANT.COMPANY_EVENT_ON) as HTMLInputElement).value).toBe('2026-10-06');
   expect(submissions(URLS.REGISTER_GRANTS)).toHaveLength(0);
   fireEvent.change(screen.getByLabelText(GRANT.COMPANY_EVENT_ON), { target: { value: '' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare issue' }));
   expect(document.activeElement).toBe(screen.getByText('Before continuing:').parentElement);
   expect(screen.getByLabelText(GRANT.COMPANY_EVENT_ON).getAttribute('aria-invalid')).toBe('true');
   fireEvent.change(screen.getByLabelText(GRANT.COMPANY_EVENT_ON), { target: { value: '2026-10-06' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare issue' }));
   const recover = await screen.findByRole('button', { name: 'Recover original grant preparation' });
   await waitFor(() => expect((recover as HTMLButtonElement).disabled).toBe(false));
   const original = submissions(URLS.REGISTER_GRANTS)[0];
@@ -696,7 +696,7 @@ it('retains original award, vesting and linked issue preparations through interr
     fireEvent.click(opener());
     let review = await screen.findByRole('region', { name: 'Review share issue' });
     expect(screen.queryByRole('dialog')).toBeNull();
-    expect(issues.queryByRole('button', { name: 'Prepare issue' })).toBeNull();
+    expect(issues.queryByRole('button', { name: 'Prepare (issue)' })).toBeNull();
     expect(document.activeElement).toBe(within(review).getByRole('heading', { name: 'Review share issue' }));
     expect(scopeClass().disabled).toBe(true);
     if (label === 'Approve') {
@@ -868,7 +868,7 @@ it('retains original award, vesting and linked issue preparations through interr
   });
   const refusedView = render(preparation());
   fillGrant();
-  fireEvent.click(screen.getByRole('button', { name: 'Prepare vested share issue' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Prepare issue' }));
   const absentRecover = await screen.findByRole('button', { name: 'Recover original grant preparation' });
   await waitFor(() => expect((absentRecover as HTMLButtonElement).disabled).toBe(false));
   const absentOriginal = submissions(URLS.REGISTER_GRANTS)[0];
@@ -1128,7 +1128,7 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   api.get.mockImplementation(async (url, config) =>
     url === URLS.REGISTER_AWARD_FILE(awards[0].uuid) ? download : get(url, config),
   );
-  fireEvent.click(screen.getByRole('button', { name: /^Download agreement/ }));
+  fireEvent.click(screen.getByRole('button', { name: /^Download \(award for/ }));
   await waitFor(() =>
     expect(api.get.mock.calls.some(([url]) => url === URLS.REGISTER_AWARD_FILE(awards[0].uuid))).toBe(true),
   );
@@ -1150,7 +1150,7 @@ it('keeps awards stable until entry or an explicit read and preserves guarded or
   await waitFor(() => expect(screen.queryByRole('heading', { name: AWARD_REQUEST.name! })).toBeNull());
   expect(screen.queryByText(AWARD_REQUEST.residentialAddress!)).toBeNull();
   expect(screen.queryByLabelText('Shares in this event')).toBeNull();
-  expect(screen.queryByRole('button', { name: /^Download agreement/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^Download \(award for/ })).toBeNull();
   expect(screen.queryByRole('button', { name: COPY.PREPARE })).toBeNull();
   expect(document.body.textContent).not.toContain(AWARD_REQUEST.name!);
   expect(screen.queryByRole('button', { name: new RegExp(AWARD_REQUEST.name!) })).toBeNull();

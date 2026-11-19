@@ -194,7 +194,8 @@ function PackForm({
       <Actions>
         <Action
           primary
-          label="Prepare company pack"
+          label="Prepare"
+          accessibilityLabel="Prepare (company pack)"
           disabled={busy || !sourceReady}
           onPress={() => onOpenChange(true)}
         />
@@ -246,7 +247,8 @@ function PackForm({
         />
         <Action
           primary
-          label={busy ? 'Preparing company pack…' : 'Prepare and download company pack'}
+          label={busy ? 'Preparing…' : 'Download'}
+          accessibilityLabel={`${busy ? 'Preparing…' : 'Download'} (company pack)`}
           disabled={busy || !sourceReady}
           onPress={() => {
             if (!checks.check()) return;

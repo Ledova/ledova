@@ -125,7 +125,12 @@ function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
             <Text style={look.muted}>No supporting documents attached.</Text>
           )}
           {!editor && documents.appointment && props.holdings.length > 0 && (
-            <Action label="Add documents" disabled={documents.busy} onPress={documents.open} />
+            <Action
+              label="Add"
+              accessibilityLabel="Add (documents)"
+              disabled={documents.busy}
+              onPress={documents.open}
+            />
           )}
         </>
       )}
@@ -206,7 +211,8 @@ function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
             />
             <Action
               primary
-              label={documents.busy ? 'Saving documents…' : documents.held ? 'Recover original save' : 'Save documents'}
+              label={documents.busy ? 'Saving…' : documents.held ? 'Recover original save' : 'Save'}
+              accessibilityLabel={`${documents.busy ? 'Saving…' : documents.held ? 'Recover original save' : 'Save'} (documents)`}
               disabled={documents.busy || !documents.ready}
               onPress={() => {
                 Keyboard.dismiss();

@@ -118,7 +118,8 @@ export function AuthorityRequestForm({
       <FormActions>
         <Action label="Cancel" disabled={unavailable} onPress={onCancel} />
         <Action
-          label={busy ? 'Submitting…' : 'Submit authority request'}
+          label={busy ? 'Submitting…' : 'Submit'}
+          accessibilityLabel={`${busy ? 'Submitting…' : 'Submit'} (authority request)`}
           primary
           disabled={unavailable}
           onPress={() => {

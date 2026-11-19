@@ -162,7 +162,8 @@ function CompanyDetails({
             <Actions>
               <Action
                 compact
-                label="Edit company"
+                label="Edit"
+                accessibilityLabel="Edit (company)"
                 disabled={data.isRefreshing}
                 onPress={() => {
                   setSaved(false);
@@ -244,7 +245,8 @@ function EditCompanyForm(props: EditCompanyFormProps) {
           onPress={onClose}
         />
         <Action
-          label={save.isPending ? 'Saving changes…' : 'Save changes'}
+          label={save.isPending ? 'Saving…' : 'Save'}
+          accessibilityLabel={`${save.isPending ? 'Saving…' : 'Save'} (company)`}
           primary
           disabled={!available || save.isPending}
           onPress={() => {
