@@ -2,8 +2,9 @@
 
 [Engineering](README.md) · [Documentation](../README.md)
 
-How to build the native apps, run the manual native probes, complete the physical-device checks and
-understand the iOS distribution configuration. The architecture these checks exercise is in [mobile](mobile.md).
+How to build the native apps, run the manual native probes, complete the physical-device checks,
+understand the iOS distribution configuration and keep the App Store listing. The architecture these checks exercise
+is in [mobile](mobile.md).
 
 - [Toolchain and generated projects](#toolchain-and-generated-projects)
 - [Building from a clean checkout](#building-from-a-clean-checkout)
@@ -14,6 +15,7 @@ understand the iOS distribution configuration. The architecture these checks exe
 - [What automated checks do not establish](#what-automated-checks-do-not-establish)
 - [Pre-release device checks](#pre-release-device-checks)
 - [iOS distribution configuration](#ios-distribution-configuration)
+- [App Store listing](#app-store-listing)
 
 ## Toolchain and generated projects
 
@@ -328,5 +330,27 @@ simulator app.
 
 Signing, archive/export and upload procedures are maintained in the private
 [Ledova infrastructure guide](https://github.com/Ledova/infra/blob/main/docs/mobile-distribution.md).
+
+## App Store listing
+
+[`mobile/store/listing.md`](../../mobile/store/listing.md) holds what the App Store page shows, and
+`mobile/store/screenshots/` holds its iPhone screenshots. App Store Connect has the live copy.
+
+- Change the listing in the pull request that changes what it describes. Once that merges, copy
+  the text or screenshots into App Store Connect by hand.
+- The App Store icon comes from the build's `mobile/assets/icon.png`. App Store Connect has no
+  separate icon upload.
+- These stay private in the infrastructure repository:
+  - App Review's sign-in, contact details and notes;
+  - the App Store Connect identifiers.
+
+To retake the screenshots:
+
+1. Run the app on an iPhone 17 simulator, which captures at 1206 × 2622.
+2. Point it at a local backend holding the data in [demo accounts](../demo-accounts.md), and sign
+   in as the demo company administrator.
+3. Capture each screen with `xcrun simctl io <device> screenshot --type=png <file>`.
+4. Convert each capture to JPEG without transparency, for example with `sips -s format jpeg`.
+5. Keep only screens whose names are plainly fictional.
 
 Next: [mobile](mobile.md) and [testing](testing.md).
