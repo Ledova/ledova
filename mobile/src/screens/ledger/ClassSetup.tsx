@@ -99,6 +99,7 @@ export function NewClassSetup({
   const look = useLedgerStyles();
   const client = useQueryClient();
   const [held, setHeld] = useState(false);
+  const [rightsHeld, setRightsHeld] = useState(false);
   const [retained, setRetained] = useState<{ company: Pick<Company, 'uuid' | 'name'>; steps: RegisterSteps } | null>(
     null,
   );
@@ -195,7 +196,7 @@ export function NewClassSetup({
     <Page
       testID="register-setup-scroll"
       title={TITLE}
-      held={held}
+      held={rightsHeld}
       available={showForm}
       unavailable={
         !available ? <RegisterAccess owner={owner} /> : (content ?? <Loading>Loading the register…</Loading>)
@@ -214,6 +215,7 @@ export function NewClassSetup({
           ready={ready && chosen?.uuid === context!.company.uuid}
           visible={showForm}
           onHeldChange={setHeld}
+          onRightsHeldChange={setRightsHeld}
           onConflict={retry}
           onContinue={onContinue}
           administrator={
@@ -242,6 +244,7 @@ function FreshClass({
   ready,
   visible,
   onHeldChange,
+  onRightsHeldChange,
   onConflict,
   onContinue,
   onCancel,
@@ -259,6 +262,7 @@ function FreshClass({
   ready: boolean;
   visible: boolean;
   onHeldChange: (held: boolean) => void;
+  onRightsHeldChange: (held: boolean) => void;
   onConflict: () => void;
   onContinue: (token: string) => void;
   administrator?: string;
@@ -295,8 +299,12 @@ function FreshClass({
   usePreventRemove(rights.busy || rights.pending, () => {});
   useEffect(() => {
     onHeldChange(openingHeld || rightsHeld);
-    return () => onHeldChange(false);
-  }, [openingHeld, rightsHeld, onHeldChange]);
+    onRightsHeldChange(rightsHeld);
+    return () => {
+      onHeldChange(false);
+      onRightsHeldChange(false);
+    };
+  }, [openingHeld, rightsHeld, onHeldChange, onRightsHeldChange]);
   return (
     <ImportForm
       owner={owner}
