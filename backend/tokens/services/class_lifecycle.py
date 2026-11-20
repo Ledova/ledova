@@ -1,18 +1,75 @@
+from collections import defaultdict, deque
+
+from django.apps import apps
 from django.db import connections
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
-from companies.models import Company
+from companies.models import Company, CompanyCapability, DeletionScope
+from companies.services.company_deletion import (
+    NOT_SUPPORTED,
+    chain_free,
+    chain_unreferenced,
+    current_appointment,
+    discard,
+    follow_ups,
+    remove,
+    stored_files,
+)
 from shared.db import current_alias
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import ShareRegister, ShareToken
 from tokens.models.choices import ShareTokenType
 from tokens.services.register_authority import register_command
-from tokens.services.register_imports import retire_class_imports
 from tokens.services.share_token_service import reserved_symbol
 
 EDIT_DETAILS_BLOCKED_REASON = "Class details can change only while its opening is empty and no dependent records exist."
+KEPT_ON_CHAIN = "This class has on-chain records, which Ledova keeps, so it can't be deleted here."
+CLASS_RECORDS = (
+    "ShareRegister",
+    "RegisterEntry",
+    "RegisterPosition",
+    "RegisterReconciliation",
+    "RegisterAcknowledgement",
+    "RegisterExport",
+    "ImportedFormerMember",
+    "ClassDetailsRevision",
+    "ClassRightsRevision",
+    "RegisterImport",
+    "RegisterImportDecision",
+    "RegisterOpening",
+    "RegisterOpeningDecision",
+    "RegisterCorrection",
+    "RegisterCorrectionDecision",
+    "RegisterGrant",
+    "RegisterGrantDecision",
+    "RegisterAllotment",
+    "RegisterAllotmentDecision",
+    "RegisterTransfer",
+    "RegisterTransferDecision",
+    "RegisterAward",
+    "RegisterAwardVesting",
+    "RegisterAwardEnd",
+    "RegisterAwardVestingReversal",
+    "RegisterMemberCessation",
+    "RegisterMemberDocument",
+)
+CHAIN_RECORDS = {
+    f"tokens.{name}"
+    for name in (
+        "CapitalIncreaseRequest",
+        "FormerHolder",
+        "RegisterCapitalIncrease",
+        "RegisterDeployment",
+        "RegisterInstruction",
+        "RegisterPauseChange",
+        "ShareIssuance",
+        "ShareIssuanceRequest",
+        "SwapOrder",
+        "TransferOrder",
+    )
+}
 
 
 def class_lifecycle_access(token, actor):
@@ -81,13 +138,67 @@ def update_class_details(*, actor, token, expected_updated_at, changes):
         return class_lifecycle_access(token, current_actor)
 
 
-def delete_unused_class(*, actor, token, expected_updated_at):
-    with register_command(actor, token.company_id, "register_class_delete") as (_, current_actor, profile, operator):
+def share_class_rows(token, alias=None):
+    alias = alias or current_alias()
+    allowed = {apps.get_model("tokens", name) for name in CLASS_RECORDS}
+    particulars = apps.get_model("tokens", "RegisterMemberParticulars")
+    rows = {ShareToken: list(ShareToken._base_manager.using(alias).filter(pk=token.pk).select_for_update().values())}
+    detached = defaultdict(set)
+    queue = deque([(ShareToken, [token.pk])])
+    while queue:
+        model, identifiers = queue.popleft()
+        for related in model._meta.related_objects:
+            target = related.related_model
+            found = list(
+                target._base_manager.using(alias)
+                .filter(**{f"{related.field.attname}__in": identifiers})
+                .order_by("pk")
+                .select_for_update()
+                .values()
+            )
+            if not found:
+                continue
+            if target is particulars and not related.many_to_many:
+                for row in found:
+                    detached[row["uuid"]].add(related.field.column)
+                continue
+            if target not in allowed or related.many_to_many:
+                raise ValidationError(KEPT_ON_CHAIN if target._meta.label in CHAIN_RECORDS else NOT_SUPPORTED)
+            key = target._meta.pk.attname
+            known = {row[key] for row in rows.get(target, [])}
+            new = [row for row in found if row[key] not in known]
+            if new:
+                rows.setdefault(target, []).extend(new)
+                queue.append((target, [row[key] for row in new]))
+    chain_free(rows[ShareToken], None, KEPT_ON_CHAIN, alias)
+    chain_unreferenced(rows, KEPT_ON_CHAIN, alias)
+    awards = [str(row["uuid"]) for row in rows.get(apps.get_model("tokens", "RegisterAward"), [])]
+    rows = follow_ups(
+        rows,
+        lambda data: Q(**{f"{data}__token": str(token.pk)}) | Q(**{f"{data}__award__in": awards}),
+        alias,
+    )
+    return rows, detached
+
+
+def delete_share_class(*, actor, token, expected_updated_at):
+    with register_command(actor, token.company_id, "register_class_delete") as (_, current_actor, _profile, operator):
         token = _current(token, current_actor, expected_updated_at)
         reason = _available(token.pk)[1]
         if reason:
             raise RegisterChangeConflict(reason)
-        retire_class_imports(token, current_actor, profile, operator)
-        token.deleted_at = timezone.now()
-        token.deleted_by = current_actor
-        token.save(update_fields=["deleted_at", "deleted_by", "updated_at"])
+        appointment, expires_at = current_appointment(
+            current_actor, token.company_id, operator, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
+        )
+        rows, detached = share_class_rows(token)
+        files = stored_files(rows)
+        remove(
+            company_id=token.company_id,
+            actor_id=current_actor.pk,
+            appointment_id=appointment,
+            scope=DeletionScope.SHARE_CLASS,
+            rows=rows,
+            detached=detached,
+            expires_at=expires_at,
+        )
+    discard(files)

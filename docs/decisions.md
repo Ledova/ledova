@@ -2853,3 +2853,8 @@ revisions and their governing documents are retained evidence, not ownership act
 intact with the class's attributed audit history and company pack. Actual ownership history,
 operational dependencies, chain records and company-authority safeguards remain protected. This
 source decision authorises no live deletion, migration or release.
+
+_Since 20 November 2026 deleting a share class removes it with all its records, including recorded
+ownership, and its saved setup reviews go with it rather than being retired
+([Companies may delete what they record](#companies-may-delete-what-they-record)). Classes the
+earlier delete had only hidden are removed with their records when this step's migration runs._

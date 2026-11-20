@@ -44,26 +44,8 @@ def _require_core_contents(company, classes, approvals, mandate_source):
             for name in ("class", "chain", "issues", "settlements", "entries")
         }
         details = records["class"]
-        if token.deleted_at:
-            with connections[current_alias()].cursor() as cursor:
-                cursor.execute("SELECT tokens_class_history_empty(%s)", [token.pk])
-                if not cursor.fetchone()[0]:
-                    raise RegisterIntegrityError(
-                        "A deleted class contains ownership activity; no audit pack was produced."
-                    )
         if (
-            (
-                not token.deleted_at
-                and not RegisterImport.objects.filter(company=company, token=token, status="applied").exists()
-            )
-            or (
-                token.deleted_at
-                and (
-                    RegisterImport.objects.filter(company=company, token=token)
-                    .exclude(status__in=["rejected", "applied"])
-                    .exists()
-                )
-            )
+            not RegisterImport.objects.filter(company=company, token=token, status="applied").exists()
             or token.status != ShareTokenStatus.DRAFT
             or token.contract_address
             or token.deployment_id
@@ -83,8 +65,8 @@ def _require_core_contents(company, classes, approvals, mandate_source):
         members = {change["member"] for entry in records["entries"] for change in entry["changes"]}
         if (
             token.company_id != company.pk
-            or (not token.deleted_at and register is None)
-            or (register is not None and register.company_id != company.pk)
+            or register is None
+            or register.company_id != company.pk
             or RegisterMember.objects.filter(pk__in=members, company=company).count() != len(members)
         ):
             raise RegisterIntegrityError("The captured register's company binding is inconsistent.")
@@ -106,9 +88,7 @@ def prepare_company_pack(*, actor, company_id, appointment, instruction, recipie
                 register_appointment(company, actor, profile, operator, appointment, CompanyCapability.ADMIN)
                 class_ids = [share_class["token"].pk for share_class in classes]
                 locked = list(
-                    ShareToken.all_objects.select_for_update()
-                    .filter(pk__in=class_ids, company=company)
-                    .order_by("uuid")
+                    ShareToken.objects.select_for_update().filter(pk__in=class_ids, company=company).order_by("uuid")
                 )
                 if len(locked) != len(class_ids):
                     raise ValidationError("A captured share class no longer belongs to this company.")

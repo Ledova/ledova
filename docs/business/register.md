@@ -188,7 +188,9 @@ Only the company owner, current register appointees and the operator read former
 Former shareholders on Shareholders and on a former member's own page; register appointees also see
 them, with residential addresses, in inspection copies. Particulars are
 kept while a person is a member and for the retention period after they last held shares, at least
-seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)).
+seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)). The
+clock runs from the person's recorded positions, so when the only class someone held is deleted,
+their particulars stay until the company deletes that person or the company.
 
 ## Opening a register
 
@@ -647,14 +649,14 @@ The Ledger view shows:
 - **Add** below the card, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
-On web and mobile, selection controls appear when at least one class can be removed. Checkboxes
-select classes individually; for multiple classes, **Select all** selects every class shown, including
-protected classes. A single class needs only its own checkbox.
-**Delete** confirms which selected classes can be removed and which will be kept, with
-their reasons ([safe class deletion](issuing-shares.md#share-classes)).
+On web and mobile, selection controls appear when at least one class can be deleted. Checkboxes
+select classes individually; for multiple classes, **Select all** selects every class shown. A single
+class needs only its own checkbox. **Delete** confirms which selected classes will be deleted with
+all their records and which will be kept, with their reasons
+([class deletion](issuing-shares.md#share-classes)).
 
 The mobile app's Ledger shows the same rows to a register reader of the selected company, and **Add**
-to someone who can prepare the register. Dashboard Set up your ledger and the menu's Share classes open that same overview. Selecting an unfinished class continues the clickable setup in its class workspace; an opened class shows its current ownership, rights and documents. Both clients expose the same safe details editing and deletion eligibility, including the reason when deletion is blocked. The menu lists Issue
+to someone who can prepare the register. Dashboard Set up your ledger and the menu's Share classes open that same overview. Selecting an unfinished class continues the clickable setup in its class workspace; an opened class shows its current ownership, rights and documents. Both clients expose the same details editing and deletion eligibility, including the reason when deletion is blocked. The menu lists Issue
 shares, Transfer shares and Corrections beneath it ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
 [non-paid transfers](#non-paid-transfers-between-members),
 [compensating corrections](#compensating-corrections)).

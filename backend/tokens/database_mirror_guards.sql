@@ -148,7 +148,7 @@ $function$;
 CREATE OR REPLACE FUNCTION public.tokens_validate_mirror_import(candidate tokens_registerimport, previous tokens_registerimport, operation text)
 RETURNS tokens_registerimport LANGUAGE plpgsql SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
-DECLARE principal bigint; at_time timestamptz; copy tokens_registerevidence; head tokens_shareregister; entry tokens_registerentry; former_item jsonb; retiring boolean;
+DECLARE principal bigint; at_time timestamptz; copy tokens_registerevidence; head tokens_shareregister; entry tokens_registerentry; former_item jsonb;
 BEGIN
     IF operation = 'DELETE' THEN RAISE EXCEPTION 'Retain mirror snapshots and their evidence' USING ERRCODE = '23514'; END IF;
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint; at_time := clock_timestamp();
@@ -218,22 +218,16 @@ BEGIN
         END IF;
         RETURN candidate;
     END IF;
-    retiring := candidate.status = 'rejected' AND EXISTS (
-        SELECT 1 FROM tokens_registerimportdecision decision WHERE decision.register_import_id = candidate.uuid
-            AND decision.kind = 'reject' AND decision.decided_by_id = candidate.reviewed_by_id
-            AND decision.decided_at = candidate.reviewed_at AND decision.reason = candidate.rejection_reason
-            AND tokens_class_review_retirement(candidate.uuid, principal, decision.appointment_id,
-                decision.uuid, decision.idempotency_key, decision.reason));
     IF previous.status <> 'submitted' OR candidate.status NOT IN ('applied','rejected')
         OR (to_jsonb(candidate) - ARRAY['status','reviewed_by_id','reviewed_at','rejection_reason','register_sequence','updated_at'])
             IS DISTINCT FROM (to_jsonb(previous) - ARRAY['status','reviewed_by_id','reviewed_at','rejection_reason','register_sequence','updated_at'])
         OR candidate.reviewed_by_id IS DISTINCT FROM principal OR candidate.reviewed_at IS NULL
-        OR (current_setting('app.company_operation', true) IS DISTINCT FROM ('register_import_' || CASE candidate.status WHEN 'applied' THEN 'apply' ELSE 'reject' END) AND NOT retiring)
+        OR current_setting('app.company_operation', true) IS DISTINCT FROM ('register_import_' || CASE candidate.status WHEN 'applied' THEN 'apply' ELSE 'reject' END)
         OR NOT EXISTS (SELECT 1 FROM tokens_registerimportdecision decision WHERE decision.register_import_id = candidate.uuid
             AND decision.decided_by_id = principal AND decision.decided_at = candidate.reviewed_at
             AND decision.kind = CASE candidate.status WHEN 'applied' THEN 'apply' ELSE 'reject' END
             AND tokens_register_appointment_current(decision.appointment_id, candidate.company_id, principal,
-                CASE WHEN retiring THEN 'prepare' WHEN candidate.status = 'applied' THEN 'apply' ELSE 'approve' END, at_time)) THEN
+                CASE candidate.status WHEN 'applied' THEN 'apply' ELSE 'approve' END, at_time)) THEN
         RAISE EXCEPTION 'Mirror snapshots are immutable except for their exact company decision' USING ERRCODE = '23514'; END IF;
     IF candidate.status = 'rejected' THEN
         IF length(btrim(candidate.rejection_reason)) = 0 OR candidate.register_sequence IS NOT NULL THEN

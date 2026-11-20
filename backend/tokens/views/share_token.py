@@ -59,7 +59,7 @@ from tokens.serializers.share_token import (
 )
 from tokens.services.class_lifecycle import (
     class_lifecycle_access,
-    delete_unused_class,
+    delete_share_class,
     update_class_details,
 )
 from tokens.services.class_rights import (
@@ -124,8 +124,8 @@ class ShareTokenViewSet(
     operator_actions_because = (
         "Share-class creation requires current personal company administration or prepare authority; its company "
         "selector and insertion recheck that authority inside the locked company operation. Owned reads remain "
-        "separately scoped. Class-detail edits and unused-class deletion use the same personal authority, "
-        "locked company and class, fresh version and database-enforced activity restrictions. "
+        "separately scoped. Class-detail edits and class deletion use the same personal authority, locked "
+        "company and class, and fresh version; a class delete runs through its receipt-bound delete command. "
         "a members' register has to carry each holder's name and residential address, and those "
         "belong to the issuer's investors rather than to the issuer, so no policy admits them to the "
         "principal reading it. Without the operator connection the register does not fail - it prints "
@@ -228,7 +228,7 @@ class ShareTokenViewSet(
         token = self.get_object()
         serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
-        delete_unused_class(actor=request.user, token=token, **serializer.validated_data)
+        delete_share_class(actor=request.user, token=token, **serializer.validated_data)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
