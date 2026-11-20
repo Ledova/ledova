@@ -88,14 +88,21 @@ LAST_ADMINISTRATOR = (
 
 
 def last_administrator(appointment):
-    with use_operator(), _requester_principal(appointment.appointee_id):
-        administrators = (
-            CompanyAppointment.objects.filter(company_id=appointment.company_id)
-            .current(at=timezone.now(), identity_required=Operator.get().issuer_kyc_required)
-            .holding_any([CompanyCapability.ADMIN])
+    now = timezone.now()
+    if str(CompanyCapability.ADMIN) not in appointment.capabilities or (
+        appointment.expires_at is not None and appointment.expires_at <= now
+    ):
+        return False
+    with use_operator():
+        administrators = CompanyAppointment.objects.filter(company_id=appointment.company_id).holding_any(
+            [CompanyCapability.ADMIN]
         )
-        return (
-            administrators.filter(pk=appointment.pk).exists() and not administrators.exclude(pk=appointment.pk).exists()
+        if not administrators.filter(pk=appointment.pk, revocation__isnull=True).exists():
+            return False
+        return not (
+            administrators.current(at=now, identity_required=Operator.get().issuer_kyc_required)
+            .exclude(pk=appointment.pk)
+            .exists()
         )
 
 

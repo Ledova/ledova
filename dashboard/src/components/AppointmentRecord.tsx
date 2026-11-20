@@ -34,7 +34,7 @@ export function AppointmentRecord({
       ? appointment.declarationText
       : '';
   const revocable = appointment.status !== 'revoked';
-  const kept = revocable ? appointment.revocationBlockedReason : null;
+  const blockedReason = revocable ? appointment.revocationBlockedReason : null;
   return (
     <li className="flex min-w-0 flex-col gap-1 py-3 text-sm">
       <div className="flex items-baseline justify-between gap-3">
@@ -65,15 +65,15 @@ export function AppointmentRecord({
                 compact
                 label="Revoke"
                 context={`appointment for ${title} · ${scopeLabels(appointment.capabilities)} · appointed ${formatDate(appointment.createdAt)}`}
-                describedBy={kept ? reasonId : undefined}
-                disabled={disabled || !!kept}
+                describedBy={blockedReason ? reasonId : undefined}
+                disabled={disabled || !!blockedReason}
                 onClick={onRevoke}
               />
             </div>
           )}
-          {kept && (
+          {blockedReason && (
             <p id={reasonId} className="basis-full text-text-muted">
-              {kept}
+              {blockedReason}
             </p>
           )}
         </div>

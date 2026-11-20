@@ -81,7 +81,7 @@ export function AppointmentRecord({
       : '';
   const scope = scopeLabels(appointment.capabilities);
   const revocable = appointment.status !== 'revoked';
-  const kept = revocable ? appointment.revocationBlockedReason : null;
+  const blockedReason = revocable ? appointment.revocationBlockedReason : null;
   return (
     <View style={look.row}>
       <View style={look.line}>
@@ -112,14 +112,14 @@ export function AppointmentRecord({
                 compact
                 label="Revoke"
                 accessibilityLabel={`Revoke appointment (${title} · ${scope} · appointed ${formatDate(appointment.createdAt)})`}
-                disabled={disabled || !!kept}
+                disabled={disabled || !!blockedReason}
                 onPress={onRevoke}
               />
             </View>
           )}
         </View>
       )}
-      {!!kept && <Text style={look.muted}>{kept}</Text>}
+      {!!blockedReason && <Text style={look.muted}>{blockedReason}</Text>}
       {!!declaration && declarationShown && <Text style={look.muted}>{declaration}</Text>}
     </View>
   );
