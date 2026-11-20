@@ -345,7 +345,8 @@ function InspectionForm({
           <Action
             key="download"
             primary
-            label={busy === 'download' ? 'Downloading inspection copy…' : 'Confirm and download inspection copy'}
+            label={busy === 'download' ? 'Downloading…' : 'Download'}
+            accessibilityLabel={`${busy === 'download' ? 'Downloading…' : 'Download'} (inspection copy)`}
             disabled={blocked}
             onPress={() => void download()}
           />

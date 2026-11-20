@@ -211,8 +211,8 @@ one, then the Prepared copies card read through the shared `useClassRegister`,
 `useInspectionCopies` and `useClassInspectionCopy`: each recipient, then one muted line with the
 short request date, any late delivery and who prepared it when, then the instruction. **Prepare**
 beneath the card opens the web's New inspection copy card. Its request date is typed as `YYYY-MM-DD` (Sydney), starting
-at today; **Preview** shows the request's rows and **Confirm and download inspection
-copy** shares the CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack page, through
+at today; **Preview** shows the request's rows and **Download** shares the
+CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack page, through
 the shared `useCompanyPackAuthority`, `useCompanyPacks` and `useCompanyPack`: for a current
 administrator, the Prepared packs card (each recipient, then who prepared it when and its share-class
 count, then the instruction) and **Prepare** beneath it, whose New company pack card takes the
@@ -387,7 +387,7 @@ or hides the details and the documents' downloads to the share sheet; an unfinis
 status and **Reject** and **Review and approve**, only for the steps the person's appointments hold.
 Review share transfer replaces the records, and **Approve** records the approval and
 the transfer together, as on the web. An unopened draft class offers **Set up your ledger**, as on Issue
-shares. **Prepare a non-paid transfer**, beneath the card,
+shares. **Transfer**, beneath the card,
 opens the web's three-step form on its own page (`TransferPreparationScreen.tsx`, through the shared
 `useTransferPreparation`, keeping its retry of an uncertain preparation). Preparing or Cancel returns to
 the class's transfers, with a prepared transfer in view and marked as prepared, as on the web. A

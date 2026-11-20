@@ -160,8 +160,8 @@ the frame; sign-up keeps its own presentation.
 The title row holds the title and contextual page actions, with a one-sentence muted lede under it
 only where it adds to the titles. On web card collections, the primary creation action follows the
 last card in one right-aligned, wrapping row, rather than the title row; keep its content width.
-Ledger's **Add**, Issue shares' **Prepare** and Transfer shares' **Prepare a non-paid
-transfer** follow this pattern. The first
+Ledger's **Add**, Issue shares' **Prepare** and Transfer shares' **Transfer** follow this
+pattern. The first
 section follows at the same gap as between sections (`Page`
 is one flex column with a single gap; add no margin under the title). On mobile `Page` is a scroll
 view on the page ground with the web's phone sizes, starting with the lede. Every page's header is
@@ -196,8 +196,8 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
 - `LinkRow`: how a list of sub-pages or neighbours links to each; the whole row is the link, named
   with its destination's title, with optional detail lines, an optional `figure` at the right of the
   title, such as an award's promised shares, and an aside. A step in a checklist, such
-  as "Set up your ledger", and a row that starts a task, such as "Prepare a non-paid
-  transfer", are named for the step or the task; a record's row, such as a share class in Ledger,
+  as "Set up your ledger", and a row that starts a task, such as "Correct copied
+  opening", are named for the step or the task; a record's row, such as a share class in Ledger,
   for the record; and a row that opens a section of a page, such as "Documents", for that
   section. Dashboard's class card ends with a **Class details** row, and each of Ledger's class rows
   opens the class's page. While a held
@@ -318,8 +318,8 @@ for the longer state explanations, compliance responsibilities, terms, history a
 prepared or approved issue shows its status beneath it, followed by its decision actions. The app's
 Issue shares has the same card, groups and rows at phone width, the details' rows stacked as `Fact`s,
 the same forms with their fields stacked, and the same review in place of the records.
-Transfer shares is built the same way: one **Share transfers** card with **Prepare a non-paid
-transfer** beneath it, and the transfers under **Needs a decision** (prepared and approved),
+Transfer shares is built the same way: one **Share transfers** card with **Transfer** beneath
+it, and the transfers under **Needs a decision** (prepared and approved),
 **Transferred** and **Rejected** (`TRANSFER_GROUPS`), newest company transfer date first, with **Show
 all N transfers** or **Show all N rejected transfers** after five. A row has no labels: the parties
 as "transferor to recipient" and the share count, then "Non-paid transfer" and the short company
@@ -668,9 +668,8 @@ feed's **Load more …** ([Feeds](#lists-search-filters-and-paging)); the regist
 name what they prepare or record (**Prepare allotment**, **Prepare transfer**, **Prepare grant**,
 **Prepare issue**, **Prepare correction**, **Record award**, **Record vesting**, setup's **Record
 review**); a register decision's confirm, which names the decision (**Reject transfer**, **Record
-issue**, **Apply correction**, **Confirm import** and the like); and **Permanently
-revoke appointment**, **Confirm and download inspection copy** and **Prepare a non-paid transfer**,
-whose extra words mark an irreversible, audited or unpaid step.
+issue**, **Apply correction**, **Confirm import** and the like). An irreversible step says so in its
+dialog, not its button: **Revoke** answers "Revoke appointment permanently?".
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
 "Saving…". Every page form's submit button uses them, and so does every action that starts a

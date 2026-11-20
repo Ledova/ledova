@@ -68,7 +68,7 @@ stay here as history and are marked where they appear.
 | [Dashboard, Settings and Register for a new company](#dashboard-settings-and-register-for-a-new-company)           | 19 October 2026                                | Current; #1155 (web); mobile (#1157) superseded 26 October                                                                         |
 | [Share classes, shareholders and employee awards](#share-classes-shareholders-and-employee-awards)                 | 20 to 26 October 2026                          | Current; Ledger and revised workflows on the web (#1165); mobile superseded 26 October                                             |
 | [Paper and Dark themes](#paper-and-dark-themes)                                                                    | 14 October 2026                                | Current; #1040                                                                                                                     |
-| [Frontend UX standards](#frontend-ux-standards)                                                                    | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201); short action labels 19 November (#1702) |
+| [Frontend UX standards](#frontend-ux-standards)                                                                    | 20 to 21 October 2026                          | Web delivered (#1176, #1178–#1183), picker server search deferred; on mobile, the shareholder screens (#1201); short action labels 19 and 20 November (#1702) |
 | [Mobile app for shareholders](#mobile-app-for-shareholders)                                                        | 26 October 2026                                | Current; #1201; tabs, no drawer and the removal of investor eligibility superseded 31 October; shareholder-only scope 3 November   |
 | [Mobile app like the web at phone width](#mobile-app-like-the-web-at-phone-width)                                  | 31 October 2026                                | Current; phase 1 delivered, phase 2 per company; eligibility brought forward, removed 2 November; company side from 3 November     |
 | [The account-data export](#the-account-data-export)                                                                | 23 September 2026                              | Current                                                                                                                            |
@@ -2249,7 +2249,10 @@ kept in its accessible name for screen readers
 ([#1702](https://github.com/Ledova/ledova/issues/1702)): Ledger setup and the share class first, then
 the rest of the app. The second step kept the wording that marks an irreversible, audited or unpaid
 step (**Permanently revoke appointment**, **Confirm and download inspection copy**, **Prepare a
-non-paid transfer**) until the owner decides on it.
+non-paid transfer**) until the owner decided on it. On 20 November 2026 the owner accepted the
+suggested short labels ("Proceed with your recommendations"): **Revoke**, whose dialog is titled
+"Revoke appointment permanently?", and **Download** and **Transfer**, which keep their objects in
+their accessible names.
 
 ## Mobile app for shareholders
 
