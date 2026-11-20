@@ -28,6 +28,7 @@ from tokens.models import (
     ShareToken,
     TokenDeployment,
 )
+from tokens.services.class_lifecycle import KEPT_ON_CHAIN as CLASS_ON_CHAIN
 from users.models import Notification, UserProfile
 from users.tasks.notifications import send_push_notification
 
@@ -141,12 +142,12 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
         self.assertFalse(private_storage().exists(stored))
         self.assertEqual({path: path.read_bytes() for path in foreign_files}, foreign_contents)
         with use_migrate():
-            receipt = CompanyDisposal.objects.get(company_id=self.company.pk)
+            receipt = CompanyDisposal.objects.get(company_id=self.company.pk, scope="company")
             self.assertEqual((receipt.actor_id, receipt.appointment_id), (self.owner.pk, self.appointment.pk))
             self.assertIsNotNone(receipt.database_disposed_at)
             self.assertEqual(receipt.manifest, {})
             self.assertFalse(Company.objects.filter(pk=self.company.pk).exists())
-            self.assertFalse(ShareToken.all_objects.filter(company_id=self.company.pk).exists())
+            self.assertFalse(ShareToken.objects.filter(company_id=self.company.pk).exists())
             self.assertFalse(Notification.objects.filter(pk=notice.pk).exists())
             self.assertTrue(Notification.objects.filter(pk=foreign_notice.pk).exists())
             self.assertFalse(LogEntry.objects.filter(pk=audit.pk).exists())
@@ -187,13 +188,18 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
                                 "DELETE FROM tokens_registerentry WHERE register_id = %s",
                                 [self.token.stored_register.pk],
                             )
-        with patch(
-            "companies.services.company_deletion.administrator_appointment",
-            return_value=(self.appointment.pk, timezone.now() - timedelta(seconds=1)),
-        ):
+        ended = (self.appointment.pk, timezone.now() - timedelta(seconds=1))
+        with patch("companies.services.company_deletion.current_appointment", return_value=ended):
             expired = self.client.delete(f"/api/v1/companies/{self.company.pk}/")
         self.assertEqual(expired.status_code, 400, expired.content)
         self.assertIn(EXPIRED, expired.content.decode())
+        with patch("tokens.services.class_lifecycle.current_appointment", return_value=ended):
+            expired_class = self.client.delete(
+                f"/api/v1/tokens/{self.token.pk}/?"
+                + urlencode({"expected_updated_at": self.token.updated_at.isoformat()})
+            )
+        self.assertEqual(expired_class.status_code, 400, expired_class.content)
+        self.assertIn(EXPIRED, expired_class.content.decode())
         with use_operator():
             self.assertTrue(RegisterEntry.objects.filter(register__token=self.token).exists())
             self.assertFalse(CompanyDisposal.objects.exists())
@@ -215,6 +221,11 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
                     "decimals": 0,
                 },
             )
+        refused_class = self.client.delete(
+            f"/api/v1/tokens/{self.token.pk}/?" + urlencode({"expected_updated_at": self.token.updated_at.isoformat()})
+        )
+        self.assertEqual(refused_class.status_code, 400, refused_class.content)
+        self.assertIn(CLASS_ON_CHAIN, refused_class.content.decode())
         refused = self.client.delete(f"/api/v1/companies/{self.company.pk}/")
         self.assertEqual(refused.status_code, 400, refused.content)
         self.assertIn(KEPT_ON_CHAIN, refused.content.decode())

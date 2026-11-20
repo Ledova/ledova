@@ -11,7 +11,7 @@ BEGIN
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     SELECT * INTO share_class FROM public.tokens_sharetoken WHERE uuid = NEW.token_id;
     IF pg_trigger_depth() <> 2 OR current_user NOT IN (__OPERATOR__, __MIGRATE__)
-        OR principal IS NULL OR share_class.uuid IS NULL OR share_class.deleted_at IS NOT NULL
+        OR principal IS NULL OR share_class.uuid IS NULL
         OR current_setting('app.company_id', true) IS DISTINCT FROM share_class.company_id::text
         OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_class_edit'
         OR NEW.recorded_by_id IS DISTINCT FROM principal

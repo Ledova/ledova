@@ -365,30 +365,26 @@ command; ownership and platform staff status supply no creation authority. Metad
 no ownership entry; the opening and each issue retain their own actor and appointment records.
 
 Class metadata changes use `PATCH /api/v1/tokens/{uuid}/` with only `name`, `symbol`, `tokenType`
-and the current `expectedUpdatedAt`; unused-class deletion uses `DELETE` on that detail route with
+and the current `expectedUpdatedAt`; class deletion uses `DELETE` on that detail route with
 `expected_updated_at` in the query. Detail responses expose `canEditDetails`, `canDelete` and
 `deletionBlockedReason` for the current actor; the reason is available only to current preparers.
 List responses include the same actor-scoped deletion eligibility, reasons and versions. The bounded commands in
 [class_lifecycle.py](../../backend/tokens/services/class_lifecycle.py) recheck personal preparation
 authority, lock the class and register, and refuse stale versions. The
 [SQL guard](../../backend/tokens/database_class_lifecycle.sql), installed by
-[database_class_lifecycle.py](../../backend/tokens/database_class_lifecycle.py) and
-[tokens/0008](../../backend/tokens/migrations/0008_class_lifecycle.py), requires the exact company
-command, checks actual foreign-key references and rechecks authority at commit. The
-[deletion-history migration](../../backend/tokens/migrations/0009_class_deletion_history.py) adds a
-one-way deletion marker and actor. Active reads and new work exclude deleted classes; retained
-history and company audit outputs keep their original class identity. Deletion accepts rejected setup
-drafts, a genuinely empty register stub or a confirmed empty opening, retaining their evidence,
-decisions and opening entry. It refuses any actual ownership activity, including an earlier holding
-whose current balance is zero. The
-[empty-opening refinement](../../backend/tokens/migrations/0010_empty_opening_deletion.py) installs
-the same history check for deletion and retained company-pack validation. Deletion automatically
-retires submitted or approved setup reviews in the same transaction, retaining their decisions and
-evidence. This narrow rejection uses preparation authority only inside class deletion; ordinary
-review permissions stay unchanged. A review retirement without the matching class deletion cannot
-commit. The [retirement refinement](../../backend/tokens/migrations/0011_class_review_retirement.py)
-installs these checks. Other dependencies still block deletion. Draft status alone
-does not establish eligibility; opened off-chain classes can remain Draft. The
+[database_class_lifecycle.py](../../backend/tokens/database_class_lifecycle.py), requires the exact
+company command for detail edits and rechecks authority at commit.
+
+Deleting a class follows the [company deletion](security.md#account-closure-and-export) path with a
+`share_class` receipt under the `register_class_delete` operation: it collects every row that
+depends on the class through its foreign keys, refuses on-chain and execution history and any
+unsupported relationship, and deletes the rows the receipt lists in one transaction. A person's
+recorded particulars that came from the class stay, detached from that source, so the person keeps
+their name and address. Files only those rows referenced go after the commit. The receipt's trigger
+admits only a current preparer or administrator of that company. The
+[hard-delete migration](../../backend/tokens/migrations/0015_hard_delete_classes.py) removed the
+earlier deletion marker and the classes it had hidden. Draft status alone does not establish
+eligibility; opened off-chain classes can remain Draft. The
 [business rules](../business/issuing-shares.md#share-classes) define the edit and deletion limits.
 [Staff admin](../../backend/tokens/admin/share_token.py) keeps existing class metadata read-only and
 disables deletion; its Add form and unrelated chain controls stay unchanged.

@@ -1,20 +1,27 @@
 CREATE OR REPLACE FUNCTION companies_disposal_allows(disposal_table text, disposal_row uuid)
 RETURNS boolean LANGUAGE plpgsql SECURITY INVOKER
 SET search_path = pg_catalog, public, pg_temp AS $$
-DECLARE receipt record; selected text; principal bigint;
+DECLARE receipt record; selected text; principal bigint; operation text;
 BEGIN
     IF current_user NOT IN (@OPERATOR_ROLE@, @MIGRATE_ROLE@) THEN RETURN false; END IF;
     selected := NULLIF(current_setting('app.company_disposal', true), '');
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
-    IF selected IS NULL OR principal IS NULL
-        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'company_delete'
-        OR to_regclass('public.companies_companydisposal') IS NULL THEN RETURN false; END IF;
+    operation := current_setting('app.company_operation', true);
+    IF selected IS NULL OR principal IS NULL OR to_regclass('public.companies_companydisposal') IS NULL THEN
+        RETURN false;
+    END IF;
     SELECT * INTO receipt FROM companies_companydisposal WHERE uuid = selected::uuid;
     IF NOT FOUND OR receipt.transaction_id IS DISTINCT FROM txid_current()
         OR receipt.database_disposed_at IS NOT NULL
         OR receipt.actor_id IS DISTINCT FROM principal
         OR current_setting('app.company_id', true) IS DISTINCT FROM receipt.company_id::text
-        OR receipt.manifest->'companies_company' IS DISTINCT FROM jsonb_build_array(receipt.company_id::text)
+        OR NOT ((current_user = @MIGRATE_ROLE@ AND operation = 'schema_migration')
+            OR operation IS NOT DISTINCT FROM CASE receipt.scope
+                WHEN 'company' THEN 'company_delete' WHEN 'share_class' THEN 'register_class_delete' END)
+        OR (receipt.scope = 'company'
+            AND receipt.manifest->'companies_company' IS DISTINCT FROM jsonb_build_array(receipt.company_id::text))
+        OR (receipt.scope = 'share_class' AND (receipt.manifest ? 'companies_company'
+            OR jsonb_array_length(COALESCE(receipt.manifest->'tokens_sharetoken', '[]'::jsonb)) <> 1))
     THEN RETURN false; END IF;
     RETURN COALESCE(receipt.manifest->disposal_table @> jsonb_build_array(disposal_row::text), false);
 END;
@@ -24,17 +31,36 @@ REVOKE ALL ON FUNCTION companies_disposal_allows(text, uuid) FROM PUBLIC;
 CREATE OR REPLACE FUNCTION companies_guard_disposal()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER
 SET search_path = pg_catalog, public, pg_temp AS $$
-DECLARE principal bigint;
+DECLARE principal bigint; operation text; migrating boolean;
 BEGIN
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
+    operation := current_setting('app.company_operation', true);
+    migrating := current_user = @MIGRATE_ROLE@ AND operation = 'schema_migration';
     IF TG_OP = 'DELETE' OR current_user NOT IN (@OPERATOR_ROLE@, @MIGRATE_ROLE@) OR principal IS NULL
         OR NEW.actor_id IS DISTINCT FROM principal OR NEW.transaction_id IS DISTINCT FROM txid_current()
-        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'company_delete'
+        OR NOT (migrating OR operation IS NOT DISTINCT FROM CASE NEW.scope
+            WHEN 'company' THEN 'company_delete' WHEN 'share_class' THEN 'register_class_delete' END)
         OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text THEN
         RAISE EXCEPTION 'Only the company''s own delete command records its deletion' USING ERRCODE = '23514';
     END IF;
     IF TG_OP = 'INSERT' THEN
-        IF NEW.database_disposed_at IS NOT NULL OR NOT (
+        IF NEW.database_disposed_at IS NOT NULL THEN
+            RAISE EXCEPTION 'A deletion receipt starts before its delete' USING ERRCODE = '23514';
+        END IF;
+        IF NEW.scope = 'share_class' AND (NEW.manifest ? 'companies_company'
+            OR jsonb_array_length(COALESCE(NEW.manifest->'tokens_sharetoken', '[]'::jsonb)) <> 1
+            OR NOT EXISTS (SELECT 1 FROM tokens_sharetoken token
+                WHERE token.uuid = (NEW.manifest->'tokens_sharetoken'->>0)::uuid AND token.company_id = NEW.company_id))
+        THEN
+            RAISE EXCEPTION 'A share class deletion names exactly one class of its company' USING ERRCODE = '23514';
+        END IF;
+        IF migrating THEN RETURN NEW; END IF;
+        IF NEW.scope = 'share_class' AND NOT (NEW.appointment_id IS NOT NULL
+            AND tokens_register_appointment_current(NEW.appointment_id, NEW.company_id, principal, 'prepare',
+                clock_timestamp())) THEN
+            RAISE EXCEPTION 'Deleting a share class requires current preparation authority' USING ERRCODE = '23514';
+        END IF;
+        IF NEW.scope = 'company' AND NOT (
             (NEW.appointment_id IS NOT NULL AND tokens_register_appointment_current(
                 NEW.appointment_id, NEW.company_id, principal, 'admin', clock_timestamp()))
             OR (NEW.appointment_id IS NULL AND EXISTS (SELECT 1 FROM companies_company issuer

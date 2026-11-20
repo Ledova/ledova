@@ -2984,7 +2984,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect((screen.getByRole('checkbox', { name: 'Select Protected records' }) as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Delete (selected share classes)' }));
   let bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
-  expect(bulkDialog.getByText(/their saved setup reviews are retired automatically/)).toBeTruthy();
+  expect(bulkDialog.getByText(/This deletes these classes and all their records for everyone/)).toBeTruthy();
   expect(bulkDialog.getByText('Will be kept')).toBeTruthy();
   expect(bulkDialog.getByText(/Protected records/)).toBeTruthy();
   expect(bulkDialog.getByText('This class has ownership history.')).toBeTruthy();

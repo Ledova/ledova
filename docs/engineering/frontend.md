@@ -682,24 +682,23 @@ gets no form: the page shows that the member keeps their particulars in their Le
 Non-paid and employee-award grants are prepared inline in Issue shares.
 
 The web and native class pages' `ClassDetails.tsx` use the shared `useClassDetails` hook to edit name, code and type
-or delete an unused class using the API's `canEditDetails`, `editBlockedReason`, `canDelete` and
+or delete a class using the API's `canEditDetails`, `editBlockedReason`, `canDelete` and
 `updatedAt`. On the web, a current preparer sees disabled Edit with `editBlockedReason` when details
 are locked; readers without preparation authority see no Edit action. An authorised
-preparer sees the API's `deletionBlockedReason` beside a disabled **Delete** action when records prevent
-deletion. The web confirmation explains that saved setup reviews are retired automatically and
-their records and audit history are kept. They pin the
+preparer sees the API's `deletionBlockedReason` beside a disabled **Delete** action when on-chain
+records prevent deletion. The confirmation says the class and all its records are deleted for
+everyone and that this can't be undone. They pin the
 original class, company and version when opening the action, preserve edits during source checks,
 and hold an uncertain request for explicit result checking rather than submitting a new target.
 Confirmed changes invalidate the related class and ownership reads; deletion does not refetch the
-removed class. Setup decisions refresh class availability, so retiring a review can expose editing
-without a reload. Deleting a class retires saved setup reviews and removes the unused class from
-active use atomically, retaining the reviews, their decisions and deletion attribution;
-it never deletes confirmed ownership. An applied genuinely empty opening permits metadata editing
+removed class. Setup decisions refresh class availability, so rejecting a review can expose editing
+without a reload. Deleting a class removes it with all its records in one transaction
+([class deletion](backend.md#company-workflow-api)). An applied genuinely empty opening permits metadata editing
 when no other dependent records exist. Each actual edit automatically retains an immutable
 before/after revision and current actor/appointment at the database boundary. The opening and its
 hash are unchanged. The existing inline editor stays unchanged; retained revisions add no history
-section, query or dedicated history API to the page. Company packs include the full attribution,
-including deleted classes. Past ownership activity still locks editing even if current supply is zero.
+section, query or dedicated history API to the page. Company packs include the full attribution.
+Past ownership activity still locks editing even if current supply is zero.
 Class rights retain their separate revision-based editor and permissions.
 The Class rights step owns an independent explicit save/cancel task, outside the opening HTML form
 on web; step navigation and the opening footer are unavailable while that task is held. New classes

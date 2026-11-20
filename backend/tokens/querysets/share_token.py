@@ -77,8 +77,3 @@ class ShareTokenQuerySet(QuerySet):
             | models.Q(symbol__icontains=query)
             | models.Q(contract_address__icontains=query)
         )
-
-
-class ActiveShareTokenManager(models.Manager.from_queryset(ShareTokenQuerySet)):
-    def get_queryset(self):
-        return super().get_queryset().filter(deleted_at__isnull=True)

@@ -59,7 +59,7 @@ from tokens.serializers.share_token import (
 )
 from tokens.services.class_lifecycle import (
     class_lifecycle_access,
-    delete_unused_class,
+    delete_share_class,
     update_class_details,
 )
 from tokens.services.class_rights import (
@@ -228,7 +228,7 @@ class ShareTokenViewSet(
         token = self.get_object()
         serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
-        delete_unused_class(actor=request.user, token=token, **serializer.validated_data)
+        delete_share_class(actor=request.user, token=token, **serializer.validated_data)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(

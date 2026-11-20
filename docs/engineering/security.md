@@ -327,9 +327,10 @@ company. Guards admit a DELETE only for a row in that manifest, in that transact
 and never ordinary history edits; the application role can neither read nor write receipts. Wallet,
 chain or execution history, running member notifications and any relationship outside the supported
 company graph refuse the delete, which then removes nothing. Sign-ins and other companies stay.
-The command builds the manifest from company-scoped queries; the database checks the receipt's
-company, person, transaction and authority, and does not re-derive each listed row's company, so
-keeping companies apart there rests on those queries.
+The command builds the manifest from company-scoped queries, or for a share class from that class's
+foreign-key dependants; the database checks the receipt's company, person, transaction and
+authority, and does not re-derive each listed row's company, so keeping companies apart there rests
+on those queries.
 
 Files under the company's private storage prefix are removed after the database commit, and any
 that fail go with the daily sweep of unreferenced uploads. Deleting a company does not erase support
@@ -351,7 +352,7 @@ company Terms and appointments are preserved. Public versions remain accessible.
 | Record                                                                 | Clock                                               | Purge                                               |
 | ---------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
 | Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below        |
-| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                 | Deleted with their company, above                   |
+| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                 | Deleted with their share class or company, above    |
 | Uncompleted signup without protected history or a provider follow-up   | Thirty days without signup/login activity           | Existing daily maintenance erases account-only data |
 | Expired JWT and Django session rows                                    | Token/session expiry                                | Existing daily maintenance removes expired rows     |
 | Successful / unsuccessful jobs                                         | Seven / thirty days                                 | Existing job maintenance                            |

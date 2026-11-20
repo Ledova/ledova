@@ -458,12 +458,11 @@ as **Class details**, **Class rights**, then **Summary**. **Edit** stays
 in Class details; **Delete** sits after Summary, aligned right, because it acts on the
 whole class. Unfinished setup stays first, and the native layout is unchanged.
 Hide deletion while the metadata or rights editor is open; keep its trigger mounted
-while the deletion confirmation is open. Deletion is available only for an unused class and asks
-for confirmation naming that class. Explain that saved setup reviews are retired
-automatically and their records and audit history are kept. When records prevent deletion, retain a disabled **Delete** action for authorised
-preparers with the API's plain reason visibly beside it and linked as its accessible description.
-A lost reply holds the original action for checking. Recorded ownership, rights revisions and
-documents are never erased by this control. After a deletion, from the class page or the Ledger's
+while the deletion confirmation is open. Deletion asks for confirmation naming that class and says
+the class and all its records are deleted for everyone and that this can't be undone. When on-chain
+records prevent deletion, retain a disabled **Delete** action for authorised preparers with the
+API's plain reason visibly beside it and linked as its accessible description. A lost reply holds
+the original action for checking. After a deletion, from the class page or the Ledger's
 **Delete**, the `Outcome` line ("Share class deleted.") sits at the top of Ledger's Share classes
 card, on web and app, and clears when another deletion starts or the app leaves Ledger.
 A shareholder's page owns their **Documents** section; do not duplicate it on the web class page.

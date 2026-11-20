@@ -3,8 +3,14 @@ from django.db import models
 from shared.models import BaseModel
 
 
+class DeletionScope(models.TextChoices):
+    COMPANY = "company", "Company"
+    SHARE_CLASS = "share_class", "Share class"
+
+
 class CompanyDisposal(BaseModel):
-    company_id = models.UUIDField(unique=True)
+    company_id = models.UUIDField()
+    scope = models.CharField(max_length=20, choices=DeletionScope.choices, default=DeletionScope.COMPANY)
     actor_id = models.BigIntegerField()
     appointment_id = models.UUIDField(null=True)
     manifest = models.JSONField()

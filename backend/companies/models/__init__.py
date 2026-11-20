@@ -10,7 +10,7 @@ from companies.models.authority_request import (
     CompanyCapability,
 )
 from companies.models.company import Company, CompanyStatus, CompanyType
-from companies.models.company_disposal import CompanyDisposal
+from companies.models.company_disposal import CompanyDisposal, DeletionScope
 from companies.models.legacy_owner import CompanyLegacyOwnerSource
 from companies.models.pack import CompanyPack
 from companies.models.signup_terms import CompanySignupTermsAcceptance
@@ -25,6 +25,7 @@ __all__ = [
     "CompanyAuthorityRequestWithdrawal",
     "CompanyCapability",
     "CompanyDisposal",
+    "DeletionScope",
     "CompanyLegacyOwnerSource",
     "CompanyTeamInvitation",
     "CompanySignupTermsAcceptance",

@@ -6,7 +6,12 @@ from django.utils import timezone
 from procrastinate.contrib.django.models import ProcrastinateJob
 from rest_framework.exceptions import ValidationError
 
-from companies.models import CompanyAppointment, CompanyCapability, CompanyDisposal
+from companies.models import (
+    CompanyAppointment,
+    CompanyCapability,
+    CompanyDisposal,
+    DeletionScope,
+)
 from companies.services.administration import (
     company_operation,
     lock_company_actor,
@@ -99,11 +104,72 @@ EXECUTION_MODELS = (
 )
 KEPT_ON_CHAIN = "This company has on-chain records, which Ledova keeps, so it can't be deleted here."
 SENDING = "Member notifications are still being sent. Try again in a minute."
-EXPIRED = "Your administrator appointment ended before the delete finished, so nothing was deleted."
+EXPIRED = "Your appointment ended before the delete finished, so nothing was deleted."
 NOT_SUPPORTED = "Some of this company's records can't be deleted here yet. Contact hello@ledova.io."
+DETACHED = "tokens_registermemberparticulars#detach"
+NOTIFY = "users.tasks.notifications.send_push_notification"
 
 
-def _rows(company):
+def chain_free(tokens, company_id, refusal, alias=None):
+    if any(token["status"] != "draft" or any(token[field] for field in CHAIN_FIELDS) for token in tokens):
+        raise ValidationError(refusal)
+    token_ids = [token["uuid"] for token in tokens]
+    for label in EXECUTION_MODELS:
+        model = apps.get_model(label)
+        scope = Q(company_id=company_id) if company_id is not None else Q(pk__in=[])
+        if any(field.name == "token_id" for field in model._meta.fields):
+            scope |= Q(token_id__in=token_ids)
+        if model.objects.using(alias or current_alias()).filter(scope).exists():
+            raise ValidationError(refusal)
+
+
+def chain_unreferenced(rows, refusal, alias=None):
+    identifiers = [row[model._meta.pk.attname] for model, records in rows.items() for row in records]
+    for label, field in (
+        ("blockchain.BlockchainTransaction", "related_uuid"),
+        ("blockchain.OutgoingHistoryEvidence", "source_uuid"),
+    ):
+        model = apps.get_model(label)
+        if model.objects.using(alias or current_alias()).filter(**{f"{field}__in": identifiers}).exists():
+            raise ValidationError(refusal)
+
+
+def follow_ups(rows, notified, alias=None):
+    alias = alias or current_alias()
+    notifications = apps.get_model("users.Notification")
+    rows[notifications] = list(
+        notifications.objects.using(alias)
+        .filter(notified("data"))
+        .exclude(pk__in=[row["uuid"] for row in rows.get(notifications, [])])
+        .order_by("pk")
+        .select_for_update()
+        .values()
+    )
+    audit = Q(pk__in=[])
+    for model, records in rows.items():
+        if records:
+            audit |= Q(
+                content_type__app_label=model._meta.app_label,
+                content_type__model=model._meta.model_name,
+                object_id__in=[str(row[model._meta.pk.attname]) for row in records],
+            )
+    rows[LogEntry] = list(LogEntry.objects.using(alias).filter(audit).order_by("pk").select_for_update().values())
+    try:
+        rows[ProcrastinateJob] = list(
+            ProcrastinateJob.objects.using(alias)
+            .filter(Q(task_name=NOTIFY) & notified("args__data"))
+            .order_by("pk")
+            .select_for_update(nowait=True)
+            .values()
+        )
+    except DatabaseError as error:
+        raise ValidationError(SENDING) from error
+    if any(row["status"] == "doing" for row in rows[ProcrastinateJob]):
+        raise ValidationError(SENDING)
+    return rows
+
+
+def _company_rows(company):
     if company.operator_wallet_id:
         raise ValidationError(KEPT_ON_CHAIN)
     rows = {
@@ -116,24 +182,8 @@ def _rows(company):
         )
         for label, scope in SCOPES.items()
     }
-    tokens = rows[apps.get_model("tokens.ShareToken")]
-    if any(token["status"] != "draft" or any(token[field] for field in CHAIN_FIELDS) for token in tokens):
-        raise ValidationError(KEPT_ON_CHAIN)
-    token_ids = [token["uuid"] for token in tokens]
-    for label in EXECUTION_MODELS:
-        model = apps.get_model(label)
-        scope = Q(company_id=company.pk)
-        if any(field.name == "token_id" for field in model._meta.fields):
-            scope |= Q(token_id__in=token_ids)
-        if model.objects.filter(scope).exists():
-            raise ValidationError(KEPT_ON_CHAIN)
-    identifiers = [row[model._meta.pk.attname] for model, records in rows.items() for row in records]
-    for label, field in (
-        ("blockchain.BlockchainTransaction", "related_uuid"),
-        ("blockchain.OutgoingHistoryEvidence", "source_uuid"),
-    ):
-        if apps.get_model(label).objects.filter(**{f"{field}__in": identifiers}).exists():
-            raise ValidationError(KEPT_ON_CHAIN)
+    chain_free(rows[apps.get_model("tokens.ShareToken")], company.pk, KEPT_ON_CHAIN)
+    chain_unreferenced(rows, KEPT_ON_CHAIN)
     for model, records in rows.items():
         selected = [row[model._meta.pk.attname] for row in records]
         for related in model._meta.related_objects:
@@ -143,52 +193,88 @@ def _rows(company):
             ):
                 raise ValidationError(NOT_SUPPORTED)
     associations = [str(row["uuid"]) for row in rows[apps.get_model("tokens.MemberAssociation")]]
-    notifications = apps.get_model("users.Notification")
-    rows[notifications] = list(
-        notifications.objects.filter(data__record__in=associations).order_by("pk").select_for_update().values()
-    )
-    audit = Q(pk__in=[])
-    for model, records in rows.items():
-        if records:
-            audit |= Q(
-                content_type__app_label=model._meta.app_label,
-                content_type__model=model._meta.model_name,
-                object_id__in=[str(row[model._meta.pk.attname]) for row in records],
-            )
-    rows[LogEntry] = list(LogEntry.objects.filter(audit).order_by("pk").select_for_update().values())
-    try:
-        rows[ProcrastinateJob] = list(
-            ProcrastinateJob.objects.filter(
-                task_name="users.tasks.notifications.send_push_notification",
-                args__data__record__in=associations,
-            )
-            .order_by("pk")
-            .select_for_update(nowait=True)
-            .values()
-        )
-    except DatabaseError as error:
-        raise ValidationError(SENDING) from error
-    if any(row["status"] == "doing" for row in rows[ProcrastinateJob]):
-        raise ValidationError(SENDING)
-    return rows
+    return follow_ups(rows, lambda data: Q(**{f"{data}__record__in": associations}))
 
 
-def _files(company, rows):
-    prefix = f"companies/{company.pk}/"
-    files = set(_walk(private_storage(), prefix.rstrip("/")))
+def stored_files(rows, prefix=None, alias=None):
+    alias = alias or current_alias()
+    files = set(_walk(private_storage(), prefix.rstrip("/"))) if prefix else set()
     for model, field in private_file_fields():
         files.update(row[field] for row in rows.get(model, []) if row.get(field))
+    kept = set()
     for model, field in private_file_fields():
         selected = [row[model._meta.pk.attname] for row in rows.get(model, [])]
-        if model._base_manager.filter(**{f"{field}__in": files}).exclude(pk__in=selected).exists():
-            raise ValidationError(NOT_SUPPORTED)
-    return sorted(name for name in files if name.startswith(prefix) and ".." not in name.split("/"))
+        kept.update(
+            model._base_manager.using(alias)
+            .filter(**{f"{field}__in": files})
+            .exclude(pk__in=selected)
+            .values_list(field, flat=True)
+        )
+    if prefix and kept:
+        raise ValidationError(NOT_SUPPORTED)
+    return sorted(
+        name for name in files - kept if (prefix is None or name.startswith(prefix)) and ".." not in name.split("/")
+    )
 
 
-def administrator_appointment(actor, company, operator):
+def remove(*, company_id, actor_id, appointment_id, scope, rows, detached=None, expires_at=None, alias=None):
+    alias = alias or current_alias()
+    quote = connections[alias].ops.quote_name
+    with connections[alias].cursor() as cursor:
+        cursor.execute("SELECT txid_current()")
+        transaction_id = cursor.fetchone()[0]
+    manifest = {
+        model._meta.db_table: [str(row[model._meta.pk.attname]) for row in records] for model, records in rows.items()
+    }
+    if detached:
+        manifest[DETACHED] = sorted(str(identifier) for identifier in detached)
+    receipt = CompanyDisposal.objects.using(alias).create(
+        company_id=company_id,
+        scope=scope,
+        actor_id=actor_id,
+        appointment_id=appointment_id,
+        manifest=manifest,
+        transaction_id=transaction_id,
+    )
+    with connections[alias].cursor() as cursor:
+        cursor.execute("SELECT set_config('app.company_disposal', %s, true)", [str(receipt.pk)])
+        cursor.execute("SET CONSTRAINTS ALL DEFERRED")
+        for identifier, fields in sorted((detached or {}).items()):
+            cleared = ", ".join(f"{quote(field)} = NULL" for field in sorted(fields))
+            cursor.execute(
+                f"UPDATE tokens_registermemberparticulars SET {cleared}, updated_at = clock_timestamp() "
+                "WHERE uuid = %s",
+                [identifier],
+            )
+        for model, records in reversed(rows.items()):
+            identifiers = [row[model._meta.pk.attname] for row in records]
+            if identifiers:
+                cursor.execute(
+                    f"DELETE FROM {quote(model._meta.db_table)} WHERE {quote(model._meta.pk.column)} = ANY(%s)",
+                    [identifiers],
+                )
+        cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
+        cursor.execute("SELECT clock_timestamp()")
+        receipt.database_disposed_at = cursor.fetchone()[0]
+    if expires_at is not None and expires_at <= receipt.database_disposed_at:
+        raise ValidationError(EXPIRED)
+    receipt.manifest = {}
+    receipt.save(using=alias, update_fields=["database_disposed_at", "manifest", "updated_at"])
+    return receipt
+
+
+def discard(files):
+    for name in files:
+        try:
+            private_storage().delete(name)
+        except Exception:
+            continue
+
+
+def current_appointment(actor, company_id, operator, capabilities):
     appointments = CompanyAppointment.objects.current_for(
-        actor, company.pk, at=timezone.now(), identity_required=operator.issuer_kyc_required
-    ).filter(capabilities__contains=[CompanyCapability.ADMIN])
+        actor, company_id, at=timezone.now(), identity_required=operator.issuer_kyc_required
+    ).holding_any(capabilities)
     return appointments.order_by("uuid").values_list("pk", "expires_at").first() or (None, None)
 
 
@@ -196,43 +282,16 @@ def delete_company(*, actor, company_id):
     with company_operation(actor, company_id, "company_delete"), atomic(durable=True):
         company, current_actor, profile, operator = lock_company_actor(actor, company_id)
         require_company_administration(company, current_actor, profile, operator)
-        appointment, expires_at = administrator_appointment(current_actor, company, operator)
-        rows = _rows(company)
-        files = _files(company, rows)
-        quote = connections[current_alias()].ops.quote_name
-        with connections[current_alias()].cursor() as cursor:
-            cursor.execute("SELECT txid_current()")
-            transaction_id = cursor.fetchone()[0]
-        receipt = CompanyDisposal.objects.create(
+        appointment, expires_at = current_appointment(current_actor, company.pk, operator, [CompanyCapability.ADMIN])
+        rows = _company_rows(company)
+        files = stored_files(rows, prefix=f"companies/{company.pk}/")
+        receipt = remove(
             company_id=company.pk,
             actor_id=current_actor.pk,
             appointment_id=appointment,
-            manifest={
-                model._meta.db_table: [str(row[model._meta.pk.attname]) for row in records]
-                for model, records in rows.items()
-            },
-            transaction_id=transaction_id,
+            scope=DeletionScope.COMPANY,
+            rows=rows,
+            expires_at=expires_at,
         )
-        with connections[current_alias()].cursor() as cursor:
-            cursor.execute("SELECT set_config('app.company_disposal', %s, true)", [str(receipt.pk)])
-            cursor.execute("SET CONSTRAINTS ALL DEFERRED")
-            for model, records in reversed(rows.items()):
-                identifiers = [row[model._meta.pk.attname] for row in records]
-                if identifiers:
-                    cursor.execute(
-                        f"DELETE FROM {quote(model._meta.db_table)} WHERE {quote(model._meta.pk.column)} = ANY(%s)",
-                        [identifiers],
-                    )
-            cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
-            cursor.execute("SELECT clock_timestamp()")
-            receipt.database_disposed_at = cursor.fetchone()[0]
-        if expires_at is not None and expires_at <= receipt.database_disposed_at:
-            raise ValidationError(EXPIRED)
-        receipt.manifest = {}
-        receipt.save(update_fields=["database_disposed_at", "manifest", "updated_at"])
-    for name in files:
-        try:
-            private_storage().delete(name)
-        except Exception:
-            continue
+    discard(files)
     return receipt
