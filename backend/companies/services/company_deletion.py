@@ -99,6 +99,7 @@ EXECUTION_MODELS = (
 )
 KEPT_ON_CHAIN = "This company has on-chain records, which Ledova keeps, so it can't be deleted here."
 SENDING = "Member notifications are still being sent. Try again in a minute."
+EXPIRED = "Your administrator appointment ended before the delete finished, so nothing was deleted."
 NOT_SUPPORTED = "Some of this company's records can't be deleted here yet. Contact hello@ledova.io."
 
 
@@ -184,19 +185,18 @@ def _files(company, rows):
     return sorted(name for name in files if name.startswith(prefix) and ".." not in name.split("/"))
 
 
+def administrator_appointment(actor, company, operator):
+    appointments = CompanyAppointment.objects.current_for(
+        actor, company.pk, at=timezone.now(), identity_required=operator.issuer_kyc_required
+    ).filter(capabilities__contains=[CompanyCapability.ADMIN])
+    return appointments.order_by("uuid").values_list("pk", "expires_at").first() or (None, None)
+
+
 def delete_company(*, actor, company_id):
     with company_operation(actor, company_id, "company_delete"), atomic(durable=True):
         company, current_actor, profile, operator = lock_company_actor(actor, company_id)
         require_company_administration(company, current_actor, profile, operator)
-        appointment = (
-            CompanyAppointment.objects.current_for(
-                current_actor, company.pk, at=timezone.now(), identity_required=operator.issuer_kyc_required
-            )
-            .filter(capabilities__contains=[CompanyCapability.ADMIN])
-            .order_by("uuid")
-            .values_list("pk", flat=True)
-            .first()
-        )
+        appointment, expires_at = administrator_appointment(current_actor, company, operator)
         rows = _rows(company)
         files = _files(company, rows)
         quote = connections[current_alias()].ops.quote_name
@@ -226,6 +226,8 @@ def delete_company(*, actor, company_id):
             cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
             cursor.execute("SELECT clock_timestamp()")
             receipt.database_disposed_at = cursor.fetchone()[0]
+        if expires_at is not None and expires_at <= receipt.database_disposed_at:
+            raise ValidationError(EXPIRED)
         receipt.manifest = {}
         receipt.save(update_fields=["database_disposed_at", "manifest", "updated_at"])
     for name in files:

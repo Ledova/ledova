@@ -1,3 +1,5 @@
+from datetime import timedelta
+from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -5,10 +7,11 @@ from django.conf import settings
 from django.contrib.admin.models import ADDITION, LogEntry
 from django.contrib.contenttypes.models import ContentType
 from django.db import DatabaseError, connections
+from django.utils import timezone
 from rest_framework.test import APIClient, APITransactionTestCase
 
 from companies.models import Company, CompanyDisposal
-from companies.services.company_deletion import KEPT_ON_CHAIN
+from companies.services.company_deletion import EXPIRED, KEPT_ON_CHAIN
 from shared.db import APP_ALIAS, OPERATOR_ALIAS, atomic, use_migrate, use_operator
 from shared.storage import private_storage
 from shared.tasks.queue import defer
@@ -184,6 +187,16 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
                                 "DELETE FROM tokens_registerentry WHERE register_id = %s",
                                 [self.token.stored_register.pk],
                             )
+        with patch(
+            "companies.services.company_deletion.administrator_appointment",
+            return_value=(self.appointment.pk, timezone.now() - timedelta(seconds=1)),
+        ):
+            expired = self.client.delete(f"/api/v1/companies/{self.company.pk}/")
+        self.assertEqual(expired.status_code, 400, expired.content)
+        self.assertIn(EXPIRED, expired.content.decode())
+        with use_operator():
+            self.assertTrue(RegisterEntry.objects.filter(register__token=self.token).exists())
+            self.assertFalse(CompanyDisposal.objects.exists())
         with use_operator():
             journal = TokenDeployment.objects.create(
                 token_id=self.token.pk,
