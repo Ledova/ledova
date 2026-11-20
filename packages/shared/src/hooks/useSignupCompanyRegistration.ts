@@ -320,9 +320,6 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
         const nameParts = fullName.trim().split(/\s+/);
         const firstName = nameParts[0] || '';
         const lastName = nameParts.slice(1).join(' ') || '';
-        const phone = userProfile?.phoneNumber
-          ? `${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()
-          : undefined;
 
         if (existingCompany) {
           await updateMutation.mutateAsync({
@@ -342,7 +339,7 @@ export function useSignupCompanyRegistration(session?: OrderSubmissionSession) {
             companyType: form.companyType as CompanyType,
             acn: form.acn.replace(/\s/g, ''),
             abn: form.abn ? form.abn.replace(/\s/g, '') : undefined,
-            primaryContact: { firstName, lastName, phone },
+            primaryContact: { firstName, lastName },
           };
           const response = await registerMutation.mutateAsync(data);
           registeredUuid = response.data.company.uuid;
