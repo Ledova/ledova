@@ -10,19 +10,20 @@ from tokens.serializers.register_person import (
     RegisterPersonCreateSerializer,
     RegisterPersonRegistrationSerializer,
 )
-from tokens.services.register_people import add_person, company_people
+from tokens.services.register_people import add_person, company_people, delete_person
 
 
 class RegisterPersonViewSet(AuthenticatedGenericViewSet):
     queryset = RegisterPersonRegistration.objects.none()
     serializer_class = RegisterPersonRegistrationSerializer
     scoped_model = RegisterPersonRegistration
-    operator_actions = frozenset({"list", "create"})
+    operator_actions = frozenset({"list", "create", "destroy"})
     operator_actions_because = (
-        "Private company people are read under exact company register authority, and adding one requires current "
-        "company preparation authority under the durable actor-bound company command."
+        "Private company people are read under exact company register authority, and adding or deleting one requires "
+        "current company preparation authority under the durable actor-bound company command."
     )
-    http_method_names = ["get", "post", "head", "options"]
+    http_method_names = ["get", "post", "delete", "head", "options"]
+    lookup_field = "uuid"
 
     def narrow(self, queryset):
         return queryset.none()
@@ -44,3 +45,13 @@ class RegisterPersonViewSet(AuthenticatedGenericViewSet):
         serializer.is_valid(raise_exception=True)
         person, created = add_person(actor=request.user, **serializer.validated_data)
         return Response(RegisterPersonRegistrationSerializer(person).data, status=201 if created else 200)
+
+    @extend_schema(
+        parameters=[OpenApiParameter("company", OpenApiTypes.UUID, required=True)],
+        responses={204: None},
+    )
+    def destroy(self, request, uuid=None):
+        company = serializers.UUIDField().run_validation(request.query_params.get("company"))
+        member = serializers.UUIDField().run_validation(uuid)
+        delete_person(actor=request.user, company_id=company, member_id=member)
+        return Response(status=204)

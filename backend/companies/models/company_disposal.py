@@ -9,6 +9,7 @@ class DeletionScope(models.TextChoices):
     PROPOSAL = "proposal", "Pending proposal"
     INVITATION = "invitation", "Pending invitation"
     DOCUMENT = "document", "Shareholder document"
+    PERSON = "person", "Person"
 
 
 class CompanyDisposal(BaseModel):

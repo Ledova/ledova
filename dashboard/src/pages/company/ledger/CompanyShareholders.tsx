@@ -10,7 +10,7 @@ import {
 } from '@ledova/shared';
 import { LinkRow, Section } from '@components/Ledger';
 import { ListSearch, Pager, Table, type Noun } from '@components/List';
-import { PageActions, PageLink } from '@components/Page';
+import { PageAction, PageActions, PageLink } from '@components/Page';
 import { useListParams } from '@hooks/useListParams';
 import { shareholderPath } from '@pages/company/ledger/shared/shareholders';
 
@@ -22,12 +22,16 @@ export function CompanyShareholders({
   visible,
   blocked = false,
   people = [],
+  onDelete,
+  deleting = false,
 }: {
   registers: TokenHoldersResponse[];
   company: string;
   visible: boolean;
   blocked?: boolean;
   people?: Person[];
+  onDelete?: (person: Person) => void;
+  deleting?: boolean;
 }) {
   const list = useListParams(['class']);
   const { shareholders, classFilter, count, visibleClasses, shownShareholders, shownPeople, unresolved } =
@@ -190,6 +194,18 @@ export function CompanyShareholders({
                   <li key={person.member} className="flex flex-col gap-1 py-3">
                     <span className="break-words text-sm text-text-primary">{person.name}</span>
                     <span className="break-words text-sm text-text-muted">{person.residentialAddress}</span>
+                    {onDelete && person.deletable && (
+                      <div className="flex justify-end">
+                        <PageAction
+                          compact
+                          destructive
+                          label="Delete"
+                          context={person.name}
+                          disabled={blocked || deleting}
+                          onClick={() => onDelete(person)}
+                        />
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -2607,6 +2607,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-people/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: ApiOperations['api_v1_tokens_register_people_destroy'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-reconciliations/': {
     parameters: {
       query?: never;
@@ -6417,6 +6433,7 @@ export interface ApiComponents {
     };
     RegisterMemberSelection: {
       currentShares: string;
+      deletable?: boolean;
       enteredOn: string | null;
       followsProfile?: boolean;
       hasAwards?: boolean;
@@ -12766,6 +12783,27 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['RegisterPersonRegistration'];
         };
+      };
+    };
+  };
+  api_v1_tokens_register_people_destroy: {
+    parameters: {
+      query: {
+        company: string;
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

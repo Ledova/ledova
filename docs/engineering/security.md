@@ -337,7 +337,10 @@ pending, with its decisions (and an allotment's agreement and contribution), and
 preparation authority for a proposal and administration for an invitation. Deleting a
 shareholder document uses a `document` receipt: one document of the company, with its stored
 evidence only when that evidence is the document's own and nothing else references it, under
-current preparation authority.
+current preparation authority. Deleting a person uses a `person` receipt: the database refuses a
+person with any holding, cessation, wallet, instruction, award, grant, allotment, transfer or
+opening record naming them, binds each listed row to that person, requires every invitation and
+access record of the person to be listed, and needs administration when any are.
 
 Files under the company's private storage prefix are removed after the database commit, and any
 that fail go with the daily sweep of unreferenced uploads. Deleting a company does not erase support

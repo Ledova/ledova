@@ -1,12 +1,36 @@
-from django.db import IntegrityError
-from django.utils import timezone
+from collections import deque
+from uuid import UUID
 
-from companies.models import CompanyCapability
+from django.apps import apps
+from django.db import IntegrityError
+from django.db.models import Q
+from django.utils import timezone
+from rest_framework.exceptions import NotFound, ValidationError
+
+from companies.models import CompanyCapability, DeletionScope
+from companies.services.company_deletion import (
+    current_appointment,
+    follow_ups,
+    remove,
+    reverse_relations,
+)
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
+    MemberAssociation,
+    MemberAssociationRevocation,
+    MemberInvitation,
+    RegisterAllotment,
+    RegisterAward,
+    RegisterGrant,
+    RegisterImport,
+    RegisterInstruction,
     RegisterMember,
+    RegisterMemberCessation,
     RegisterMemberParticulars,
+    RegisterMemberWallet,
     RegisterPersonRegistration,
+    RegisterPosition,
+    RegisterTransfer,
 )
 from tokens.services.register_authority import (
     current_register_reader,
@@ -15,11 +39,108 @@ from tokens.services.register_authority import (
 )
 from tokens.services.register_transfers import register_people
 
+PERSON_IN_USE = "Only a person with no shares and no register records naming them can be deleted."
+NO_PERSON_PREPARER = "A current company administrator or preparer is required to delete this person."
+NO_PERSON_ADMINISTRATOR = "A current company administrator is required to delete a person with record access."
+PERSON_PARTS = (
+    "RegisterMemberParticulars",
+    "RegisterPersonRegistration",
+    "RegisterParticularsChange",
+    "RegisterParticularsChangeDecision",
+)
+
+
+def used_people(company_id):
+    used = set(RegisterPosition.objects.filter(register__company_id=company_id).values_list("member_id", flat=True))
+    used |= set(
+        RegisterMemberCessation.objects.filter(member__company_id=company_id).values_list("member_id", flat=True)
+    )
+    used |= set(RegisterMemberWallet.objects.filter(company_id=company_id).values_list("member_id", flat=True))
+    used |= set(RegisterInstruction.objects.filter(member__company_id=company_id).values_list("member_id", flat=True))
+    for model in (RegisterAward, RegisterGrant, RegisterAllotment):
+        used |= set(model.objects.filter(company_id=company_id).values_list("member", flat=True))
+    for pair in RegisterTransfer.objects.filter(company_id=company_id).values_list("from_member", "to_member"):
+        used |= set(pair)
+    for members in RegisterImport.objects.filter(company_id=company_id).values_list("members", flat=True):
+        used |= {UUID(str(row["member"])) for row in members if isinstance(row, dict) and row.get("member")}
+    return used
+
 
 def company_people(*, actor, company_id):
     with register_command(actor, company_id, "register_people_read") as (company, actor, profile, operator):
         current_register_reader(company, actor, profile, operator)
-        return {"company": company.pk, "members": register_people(company.pk, actor)["members"]}
+        used = used_people(company.pk)
+        members = register_people(company.pk, actor)["members"]
+        for row in members:
+            row["deletable"] = row["member"] not in used
+        return {"company": company.pk, "members": members}
+
+
+def person_rows(member):
+    allowed = {apps.get_model("tokens", name) for name in PERSON_PARTS}
+    rows = {RegisterMember: list(RegisterMember._base_manager.filter(pk=member.pk).values())}
+    queue = deque([RegisterMember])
+    while queue:
+        owner = queue.popleft()
+        selected = [row["uuid"] for row in rows[owner]]
+        for related in reverse_relations(owner):
+            found = list(
+                related.related_model._base_manager.filter(**{f"{related.field.attname}__in": selected})
+                .order_by("pk")
+                .select_for_update()
+                .values()
+            )
+            known = {row["uuid"] for row in rows.get(related.related_model, [])}
+            extra = [row for row in found if row["uuid"] not in known]
+            if not extra:
+                continue
+            if related.many_to_many or related.related_model not in allowed:
+                raise ValidationError(PERSON_IN_USE)
+            rows.setdefault(related.related_model, []).extend(extra)
+            queue.append(related.related_model)
+    return rows
+
+
+def delete_person(*, actor, company_id, member_id):
+    with register_command(actor, company_id, "register_person_delete") as (company, current, _profile, operator):
+        member = RegisterMember.objects.select_for_update().filter(pk=member_id, company=company).first()
+        if member is None:
+            raise NotFound(NO_PERSON_PREPARER)
+        invitations = list(
+            MemberInvitation.objects.select_for_update()
+            .filter(company=company, member=member.pk)
+            .order_by("pk")
+            .values()
+        )
+        associations = list(
+            MemberAssociation.objects.select_for_update()
+            .filter(company=company, member=member.pk)
+            .order_by("pk")
+            .values()
+        )
+        access = bool(invitations or associations)
+        capabilities = [CompanyCapability.ADMIN] if access else [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
+        appointment, expires_at = current_appointment(current, company.pk, operator, capabilities)
+        if appointment is None:
+            raise NotFound(NO_PERSON_ADMINISTRATOR if access else NO_PERSON_PREPARER)
+        if member.pk in used_people(company.pk):
+            raise ValidationError(PERSON_IN_USE)
+        rows = person_rows(member)
+        linked = [row["uuid"] for row in associations]
+        rows[MemberInvitation] = invitations
+        rows[MemberAssociation] = associations
+        rows[MemberAssociationRevocation] = list(
+            MemberAssociationRevocation.objects.select_for_update().filter(association_id__in=linked).values()
+        )
+        records = [str(identifier) for identifier in linked]
+        remove(
+            company_id=company.pk,
+            actor_id=current.pk,
+            appointment_id=appointment,
+            scope=DeletionScope.PERSON,
+            rows=follow_ups(rows, lambda data: Q(**{f"{data}__record__in": records})),
+            expires_at=expires_at,
+        )
 
 
 def add_person(*, actor, operation_id, company, appointment, member, name, residential_address):

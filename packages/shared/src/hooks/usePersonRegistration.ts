@@ -2,10 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { READ_TIMING } from '../constants/api';
 import { FIELD_LIMITS } from '../constants/business/field-limits';
-import { getCompanyPeople, registerCompanyPerson } from '../services/register-people';
+import { deleteCompanyPerson, getCompanyPeople, registerCompanyPerson } from '../services/register-people';
 import type { RegisterPersonRegistrationRequest } from '../types';
 import { createUserFriendlyError, failureSentence, failureStatus } from '../utils/errors';
-import { peopleFrom } from '../utils/people';
+import { peopleFrom, type Person } from '../utils/people';
 import { appointmentForRegisterStep, hasCurrentRegisterReadAuthority } from '../utils/register-commands';
 import { isRegisterPersonRegistrationReceipt } from '../utils/register-people';
 import { useApiClient } from './useApiClient';
@@ -185,6 +185,32 @@ export function usePersonRegistration({
       }
     }
   };
+  const remove = async (person: Person) => {
+    if (running.current || !peopleReady) return;
+    running.current = true;
+    setBusy(true);
+    setError('');
+    setOutcome('');
+    try {
+      check();
+      const response = await deleteCompanyPerson(apiClient, company, person.member, config());
+      check();
+      if (response.status !== 204) throw createUserFriendlyError('The deletion could not be confirmed. Refresh first.');
+      await client.invalidateQueries({ queryKey: allPeopleKey(owner) });
+      setOutcome(`${person.name} deleted.`);
+    } catch (failure) {
+      try {
+        guard();
+        void client.invalidateQueries({ queryKey: allPeopleKey(owner) });
+        if (live.current) setError(failureSentence(failure, 'The person could not be deleted. Refresh and try again.'));
+      } catch {
+        return;
+      }
+    } finally {
+      running.current = false;
+      if (live.current) setBusy(false);
+    }
+  };
   return {
     query,
     readable,
@@ -204,5 +230,6 @@ export function usePersonRegistration({
     outcome,
     problems,
     save,
+    remove,
   };
 }
