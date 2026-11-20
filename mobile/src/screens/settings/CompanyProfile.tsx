@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
-import { usePreventRemove } from '@react-navigation/native';
+import { useNavigation, usePreventRemove } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   COMPANY_EDIT_FIELDS,
   REGISTER_QUERY_KEY,
+  failureSentence,
   ownCompaniesKey,
   readApiError,
+  useCompanyDeletion,
   useCompanySelection,
   useEditCompanyForm,
   type Company,
@@ -24,9 +27,11 @@ import {
   Rows,
   Section,
 } from '../../components/Ledger';
+import { CustomModal } from '../../components/modal';
 import { useMemberRecordsState, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
+import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 
 export function CompanyProfile() {
   const { company: selected } = useMemberRecordsState();
@@ -170,11 +175,59 @@ function CompanyDetails({
                   setEditing(company);
                 }}
               />
+              <DeleteCompany company={company} data={data} />
             </Actions>
           )}
         </>
       )}
     </Section>
+  );
+}
+
+function DeleteCompany({ company, data }: { company: Company; data: ReturnType<typeof useCompanySelection> }) {
+  const styles = useCompanyStyles();
+  const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
+  const [open, setOpen] = useState(false);
+  const removal = useCompanyDeletion({ company, read: data, onDeleted: () => navigation.popTo('Dashboard') });
+  usePreventRemove(removal.isPending, () => {});
+  return (
+    <>
+      <Action
+        compact
+        destructive
+        label="Delete"
+        accessibilityLabel="Delete (company)"
+        disabled={data.isRefreshing}
+        onPress={() => {
+          removal.reset();
+          setOpen(true);
+        }}
+      />
+      <CustomModal
+        visible={open}
+        title={`Delete ${company.name}?`}
+        busy={removal.isPending}
+        onClose={() => setOpen(false)}
+        actions={
+          <Action
+            label={removal.isPending ? 'Deleting…' : 'Delete'}
+            accessibilityLabel={`${removal.isPending ? 'Deleting…' : 'Delete'} (company)`}
+            destructive
+            disabled={removal.isPending}
+            onPress={() => removal.mutate()}
+          />
+        }
+      >
+        <Text style={styles.text}>
+          This deletes the company and all its records for everyone. This can’t be undone.
+        </Text>
+        {removal.isError && (
+          <Text accessibilityRole="alert" style={styles.error}>
+            {failureSentence(removal.error, 'The company was not deleted. Try again.')}
+          </Text>
+        )}
+      </CustomModal>
+    </>
   );
 }
 

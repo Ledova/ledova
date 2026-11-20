@@ -1,7 +1,17 @@
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { type Company, ownCompaniesKey, useCompanySelection, REGISTER_QUERY_KEY } from '@ledova/shared';
+import {
+  type Company,
+  DESTINATIONS,
+  failureSentence,
+  ownCompaniesKey,
+  useCompanyDeletion,
+  useCompanySelection,
+  REGISTER_QUERY_KEY,
+} from '@ledova/shared';
+import { Modal } from '@components/Modal';
 import { Actions, PageAction } from '@components/Page';
 import { Row, Rows, Section, Loading } from '@components/Ledger';
 import { CompanyReadNotice, CompanyStatusMark } from '@components/CompanyState';
@@ -113,6 +123,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                     onClick={() => setEditing(company)}
                     disabled={data.isRefreshing}
                   />
+                  <DeleteCompany company={company} data={data} />
                 </Actions>
               )}
             </>
@@ -120,5 +131,50 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
         </>
       )}
     </Section>
+  );
+}
+
+function DeleteCompany({ company, data }: { company: Company; data: ReturnType<typeof useCompanySelection> }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const removal = useCompanyDeletion({
+    company,
+    read: data,
+    onDeleted: () => void navigate(DESTINATIONS.home.path, { replace: true }),
+  });
+  return (
+    <>
+      <PageAction
+        compact
+        destructive
+        label="Delete"
+        context="company"
+        disabled={data.isRefreshing}
+        onClick={() => {
+          removal.reset();
+          setOpen(true);
+        }}
+      />
+      <Modal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        title={`Delete ${company.name}?`}
+        showFooter
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => removal.mutate()}
+        busy={removal.isPending}
+        busyLabel="Deleting…"
+      >
+        <p className="text-sm text-text-primary">
+          This deletes the company and all its records for everyone. This can’t be undone.
+        </p>
+        {removal.isError && (
+          <p role="alert" className="mt-3 text-sm text-error-light">
+            {failureSentence(removal.error, 'The company was not deleted. Try again.')}
+          </p>
+        )}
+      </Modal>
+    </>
   );
 }

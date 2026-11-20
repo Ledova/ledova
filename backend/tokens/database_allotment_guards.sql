@@ -26,7 +26,7 @@ CREATE FUNCTION tokens_guard_allotment_source() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; agreement tokens_registeragreement; at_time timestamptz;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -153,7 +153,7 @@ CREATE OR REPLACE FUNCTION tokens_guard_register_allotment() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP = 'DELETE' THEN
@@ -216,7 +216,7 @@ CREATE OR REPLACE FUNCTION tokens_guard_register_allotment_decision() RETURNS tr
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; at_time timestamptz; proposal tokens_registerallotment;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -404,7 +404,7 @@ DECLARE
     proposal tokens_registerparticularschange;
     source tokens_registerimport;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF current_user NOT IN (__OPERATOR__, __MIGRATE__) THEN
@@ -577,7 +577,7 @@ DECLARE
     opening tokens_registerentry;
     expected_changes jsonb;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP = 'DELETE' THEN

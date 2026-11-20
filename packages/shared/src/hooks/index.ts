@@ -24,6 +24,7 @@ export {
   COMPANY_QUERY_KEY,
   ownCompaniesKey,
 } from './useCompanySelection';
+export { useCompanyDeletion } from './useCompanyDeletion';
 export { COMPANY_EDIT_FIELDS, useEditCompanyForm } from './useEditCompanyForm';
 export type { CompanyActionRead, EditCompanyFormProps } from './useEditCompanyForm';
 export { useSignupUser } from './useSignupUser';

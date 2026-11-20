@@ -3244,7 +3244,7 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_member_cessation()
 AS $function$
 DECLARE held numeric; delta numeric;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP = 'DELETE' THEN
@@ -3323,7 +3323,7 @@ DECLARE
     issuer uuid;
     at_time timestamptz;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -3373,7 +3373,7 @@ DECLARE
     authority_copy tokens_registerevidence;
     inverse jsonb;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP = 'DELETE' THEN
@@ -3459,7 +3459,7 @@ DECLARE
     at_time timestamptz;
     proposal tokens_registercorrection;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -3585,7 +3585,7 @@ DECLARE
     inverse jsonb;
     maximum numeric := 115792089237316195423570985008687907853269984665640564039457584007913129639935;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -3702,7 +3702,7 @@ DECLARE
     principal bigint;
     at_time timestamptz;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -3746,7 +3746,7 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_grant()
 AS $function$
 DECLARE principal bigint;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP = 'DELETE' THEN
@@ -3814,7 +3814,7 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_grant_decision()
 AS $function$
 DECLARE principal bigint; at_time timestamptz; proposal tokens_registergrant;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -3861,7 +3861,7 @@ DECLARE
     opening tokens_registerentry;
     expected_changes jsonb;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP = 'DELETE' THEN
@@ -4025,7 +4025,7 @@ DECLARE
     proposal tokens_registerimport;
     retiring boolean;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -4230,7 +4230,7 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_member()
  LANGUAGE plpgsql
 AS $function$
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     RAISE EXCEPTION 'Register member references cannot be rewritten or deleted' USING ERRCODE = '23514';
@@ -4247,7 +4247,7 @@ DECLARE
     proposal tokens_registerparticularschange;
     source tokens_registerimport;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF current_user NOT IN (__OPERATOR__, __MIGRATE__) THEN
@@ -4689,7 +4689,7 @@ DECLARE
     previous jsonb;
     own users_userprofile;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -4784,7 +4784,7 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_particulars_decision()
  SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     RAISE EXCEPTION 'Retain register particulars decisions exactly as recorded' USING ERRCODE = '23514';
@@ -4796,7 +4796,7 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_position()
  LANGUAGE plpgsql
 AS $function$
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF pg_trigger_depth() < 2 THEN
@@ -4811,7 +4811,7 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_reconciliation()
  LANGUAGE plpgsql
 AS $function$
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -4840,7 +4840,7 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_transfer()
 AS $function$
 DECLARE principal bigint;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
@@ -4901,7 +4901,7 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_transfer_decision()
 AS $function$
 DECLARE principal bigint; at_time timestamptz; proposal tokens_registertransfer;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN RAISE EXCEPTION 'Register transfer decisions are append-only' USING ERRCODE = '23514'; END IF;
@@ -5040,7 +5040,7 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_share_register()
  LANGUAGE plpgsql
 AS $function$
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP = 'INSERT' THEN

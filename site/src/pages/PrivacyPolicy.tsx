@@ -139,14 +139,13 @@ export function PrivacyPolicy() {
             </p>
             <p>
               Company records are separate from your sign-in. Their particulars, documents, decisions and copied history
-              remain for the company’s identified recordkeeping purpose or a specific legal requirement or claim. The
-              company is responsible for its legal register. Seven-year former-member retention is not a universal
-              period for every copy Ledova holds. Authorised companies can obtain ledger exports and a company pack, and
-              contact {CONTACT} to arrange exit and a review of records to keep or dispose of. A reviewed maintenance
-              process can remove supported company records and current stored files. Retained execution history,
-              supplier copies, support correspondence, logs and archives need separate review and treatment; this is not
-              immediate erasure of every copy. Live data-handling acceptance remains pending. The preview may still be
-              reset; keep your own copies of useful test records.
+              remain until the company deletes them, or for a specific legal requirement or claim. The company is
+              responsible for its legal register. Seven-year former-member retention is not a universal period for every
+              copy Ledova holds. Authorised companies can obtain ledger exports and a company pack, and a company’s
+              administrator can delete the company with all its records and stored files in Settings. Retained execution
+              history, supplier copies, support correspondence, logs and archives need separate review and treatment;
+              this is not immediate erasure of every copy. Live data-handling acceptance remains pending. The preview
+              may still be reset; keep your own copies of useful test records.
             </p>
           </Section>
           <Section title="Access, correction and complaints">

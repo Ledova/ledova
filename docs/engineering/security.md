@@ -315,28 +315,26 @@ Identity providers accept missing account DOB and can collect their required det
 verification flow; verified extraction may populate the profile. No identity check is bypassed by
 reducing signup collection.
 
-Company exit is separate from account deletion. The maintenance-only
-[company-disposal command](../operations/operator-console.md#company-exit) requires verified
-company instruction, export handover and purpose/hold review. It supports the non-chain registry
-graph, including copied history and evidence, while preserving sign-ins and other companies.
-Runtime application/operator roles cannot use its private receipt or deletion admission. The
-schema-maintenance credential supplies a reviewed, exact-row manifest bound to one company and
-transaction; guards admit only those DELETEs, never ordinary history edits. Unknown relationships
-and retained execution history refuse disposal. Current authority is rechecked before deletion
-and expiry before commit; a stale preview or failed database-deletion transaction removes no
-company rows or files.
+Company deletion is separate from account deletion. A current company administrator, or the owner
+of a draft under the draft setup exception, deletes the company from Settings
+([Deleting a company](../business/companies.md#deleting-a-company)). The delete is one operator
+command bound to that person, the company and the `company_delete` operation. Inside one
+transaction it locks the company, rechecks that person's authority and records a receipt (company,
+person, appointment and transaction) whose exact-row manifest lists every company-scoped row. The
+receipt's own trigger admits it only for a current administrator, or the draft owner, of that
+company. Guards admit a DELETE only for a row in that manifest, in that transaction, by that person,
+and never ordinary history edits; the application role can neither read nor write receipts. Wallet,
+chain or execution history, running member notifications and any relationship outside the supported
+company graph refuse the delete, which then removes nothing. Sign-ins and other companies stay.
 
-Files are removed only after database commit, with a private retryable list. Database disposal and
-current-storage completion are separate states; neither proves delivery to the company or erasure
-of support mail, logs, supplier copies or retained archives. The operator must review those copies,
-record any lawful remaining purpose/expiry and drain in-flight company work before disposal.
-No command disables triggers or substitutes a universal seven-year period. The
+Files under the company's private storage prefix are removed after the database commit, and any
+that fail go with the daily sweep of unreferenced uploads. Deleting a company does not erase support
+mail, logs, supplier copies or retained archives, and no command disables triggers. The
 [supplier assessment](../legal/positions.md#registry-only-launch-preparation) records the current
 processing and copy limitations, including the 9 November support-mail and Vault verification.
 Support group history and mailbox copies have no automatic age expiry or applicable Vault
-retention/holds at that review. The operator rechecks holds for each actual disposal and removes
-unneeded copies when their recorded purpose ends; mailbox recovery and supplier deletion remain
-separate stages. Operational mail delivery and copy-lifecycle acceptance remain under
+retention/holds at that review; mailbox recovery and supplier deletion remain separate stages.
+Operational mail delivery and copy-lifecycle acceptance remain under
 [#1586](https://github.com/Ledova/ledova/issues/1586).
 
 Versioned Terms acceptance is recorded separately in immutable operator-only
@@ -349,7 +347,7 @@ company Terms and appointments are preserved. Public versions remain accessible.
 | Record                                                                 | Clock                                               | Purge                                               |
 | ---------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
 | Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below        |
-| Register decisions, uploads and copies; authority-request uploads      | Purpose/hold review; no automatic expiry            | Reviewed maintenance-only company exit, above       |
+| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                 | Deleted with their company, above                   |
 | Uncompleted signup without protected history or a provider follow-up   | Thirty days without signup/login activity           | Existing daily maintenance erases account-only data |
 | Expired JWT and Django session rows                                    | Token/session expiry                                | Existing daily maintenance removes expired rows     |
 | Successful / unsuccessful jobs                                         | Seven / thirty days                                 | Existing job maintenance                            |
@@ -382,9 +380,8 @@ preparation fall under the orphan sweep.
 The account periods and service Terms were accepted by the owner on 9 November under
 [#1589](https://github.com/Ledova/ledova/issues/1589). The former-member clock implements the
 company-register assumption; it does not erase older names/addresses embedded in immutable
-imports, decisions or evidence. Reviewed company exit can remove the supported company-scoped
-records and current storage separately; retained archives and supplier copies need their own
-reviewed treatment. The live supplier/retention assessment remains a release gate. No
+imports, decisions or evidence. Deleting a company removes its supported company-scoped records and
+current storage; retained archives and supplier copies need their own reviewed treatment. The live supplier/retention assessment remains a release gate. No
 implementation here authorises real-data use.
 
 ## Upload validation

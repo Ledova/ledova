@@ -35,6 +35,7 @@ export {
   registerCompany,
   getCompany,
   updateCompany,
+  deleteCompany,
   createCompanyPack,
   getCompanyPacks,
 } from './companies';

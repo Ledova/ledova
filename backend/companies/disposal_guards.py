@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 from django.conf import settings
@@ -67,21 +68,60 @@ def install(apps, schema_editor):
     if schema_editor.connection.vendor != "postgresql":
         return
     with schema_editor.connection.cursor() as cursor:
-        cursor.execute("SELECT quote_literal(%s)", [settings.RLS_ROLES["migrate"]])
-        migrate = cursor.fetchone()[0]
-        cursor.execute(Path(__file__).with_suffix(".sql").read_text().replace("@MIGRATE_ROLE@", migrate))
-        for role in (settings.RLS_ROLES["app"], settings.RLS_ROLES["operator"]):
-            cursor.execute("SELECT quote_ident(%s)", [role])
-            quoted = cursor.fetchone()[0]
-            cursor.execute(f"REVOKE ALL ON FUNCTION companies_disposal_allows(text, uuid) FROM {quoted}")
+        cursor.execute(
+            "SELECT quote_literal(%s), quote_literal(%s), quote_ident(%s), quote_ident(%s)",
+            [
+                settings.RLS_ROLES["operator"],
+                settings.RLS_ROLES["migrate"],
+                settings.RLS_ROLES["operator"],
+                settings.RLS_ROLES["app"],
+            ],
+        )
+        operator, migrate, operator_role, app_role = cursor.fetchone()
+        source = Path(__file__).with_suffix(".sql").read_text()
+        cursor.execute(source.replace("@OPERATOR_ROLE@", operator).replace("@MIGRATE_ROLE@", migrate))
+        cursor.execute(f"REVOKE ALL ON FUNCTION companies_disposal_allows(text, uuid) FROM {app_role}")
+        cursor.execute(f"GRANT EXECUTE ON FUNCTION companies_disposal_allows(text, uuid) TO {operator_role}")
         cursor.execute("SELECT to_regclass('public.companies_companydisposal') IS NOT NULL")
         if cursor.fetchone()[0]:
             cursor.execute("ALTER TABLE companies_companydisposal ENABLE ROW LEVEL SECURITY")
             cursor.execute("ALTER TABLE companies_companydisposal FORCE ROW LEVEL SECURITY")
-            for role in (settings.RLS_ROLES["app"], settings.RLS_ROLES["operator"]):
-                cursor.execute("SELECT quote_ident(%s)", [role])
-                quoted = cursor.fetchone()[0]
-                cursor.execute(f"REVOKE ALL ON companies_companydisposal FROM {quoted}")
+            cursor.execute("DROP TRIGGER IF EXISTS companies_disposal_receipt ON companies_companydisposal")
+            cursor.execute(
+                "CREATE TRIGGER companies_disposal_receipt BEFORE INSERT OR UPDATE OR DELETE "
+                "ON companies_companydisposal FOR EACH ROW EXECUTE FUNCTION companies_guard_disposal()"
+            )
+            cursor.execute(f"REVOKE ALL ON companies_companydisposal FROM {app_role}, {operator_role}")
+            cursor.execute(f"GRANT SELECT, INSERT, UPDATE ON companies_companydisposal TO {operator_role}")
+
+
+def widen_delete_gates(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute("SELECT quote_literal(%s)", [settings.RLS_ROLES["migrate"]])
+        migrate = cursor.fetchone()[0]
+        narrow = re.compile(
+            rf"IF TG_OP = 'DELETE' AND current_user = {re.escape(migrate)} THEN(?=\s+IF companies_disposal_allows\()"
+            rf"|IF current_user = {re.escape(migrate)} AND (?=companies_disposal_allows\()"
+        )
+        query = (
+            "SELECT function.oid, pg_get_functiondef(function.oid) FROM pg_proc function "
+            "JOIN pg_namespace space ON space.oid = function.pronamespace "
+            "WHERE space.nspname = 'public' AND function.proname <> 'companies_disposal_allows' "
+            "AND function.prosrc LIKE '%%companies_disposal_allows%%'"
+        )
+        cursor.execute(query)
+        for _, definition in cursor.fetchall():
+            widened = narrow.sub(
+                lambda gate: "IF TG_OP = 'DELETE' THEN" if "TG_OP" in gate.group() else "IF ", definition
+            )
+            if widened != definition:
+                cursor.execute(widened)
+        cursor.execute(query)
+        left = [str(oid) for oid, definition in cursor.fetchall() if narrow.search(definition)]
+    if left:
+        raise RuntimeError(f"{len(left)} delete gates still admit only the maintenance role.")
 
 
 def install_current_guards(apps, schema_editor):
