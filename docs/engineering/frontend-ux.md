@@ -900,8 +900,8 @@ company type is Headless UI's `Select` inside the field so the label names it.
 ## How the choice rules are enforced
 
 An ESLint rule in `dashboard/eslint.config.js` refuses a `select` element written in the dashboard's
-source, apart from `SelectField`, and names the three controls. It
-does not see Headless UI's `Select`, which only sign-up's company type uses, or test files. Which
+source and names the three controls. It does not see Headless UI's `Select`, which `SelectField` and
+sign-up's company type use, or test files. Which
 control fits which list is checked in review against this page.
 
 ## Lists, search, filters and paging

@@ -658,6 +658,10 @@ phone and DOB are not solicited. Existing values are preserved, and native colle
 unchanged pending its separate release work. This follows the APP 3 minimisation approach,
 not an assumption that every account holder needs to supply statutory register particulars.
 
+**App signup collection, 20 November 2026.** The app's signup now asks only for the name, as the
+web's does, and the app's Profile edits only the name and address
+([#1711](https://github.com/Ledova/ledova/issues/1711)). Existing values are preserved.
+
 Read-only operational evidence confirmed AWS hosting of current application records/files
 in Sydney and operator-controlled malware scanning. At that checkpoint, outgoing application
 mail was captured rather than delivered. No configured identity provider or stored applicant was found, and no push

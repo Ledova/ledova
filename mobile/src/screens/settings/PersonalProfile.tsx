@@ -105,7 +105,7 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
             onChange={setFullName}
           />
           <Field
-            label="Residential address"
+            label="Address"
             value={residentialAddress}
             multiline
             editable={!blocked}

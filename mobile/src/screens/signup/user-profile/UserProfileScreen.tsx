@@ -7,7 +7,7 @@ import { Field } from '../../../components/Field';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import { UserIcon, WarningCircleIcon } from 'phosphor-react-native';
-import { useRole, useSignupUserProfile } from '@ledova/shared';
+import { FIELD_LIMITS, useRole, useSignupUserProfile } from '@ledova/shared';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 
@@ -209,6 +209,7 @@ export function UserProfileScreen() {
                     />
                   }
                   placeholder="John Doe"
+                  maxLength={FIELD_LIMITS.PROFILE_NAME}
                   value={form.fullName}
                   onChange={(text) => setFieldValue('fullName', text)}
                   editable={!isSubmitting}
