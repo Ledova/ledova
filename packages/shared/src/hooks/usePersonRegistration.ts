@@ -186,11 +186,16 @@ export function usePersonRegistration({
     }
   };
   const remove = async (person: Person) => {
-    if (running.current || !peopleReady) return;
+    if (running.current) return;
+    if (!peopleReady) {
+      setError('Refresh the company people, then try again.');
+      return;
+    }
     running.current = true;
     setBusy(true);
     setError('');
     setOutcome('');
+    callback.current(true);
     try {
       check();
       const response = await deleteCompanyPerson(apiClient, company, person.member, config());
@@ -208,7 +213,10 @@ export function usePersonRegistration({
       }
     } finally {
       running.current = false;
-      if (live.current) setBusy(false);
+      if (live.current) {
+        setBusy(false);
+        callback.current(!!pending.current);
+      }
     }
   };
   return {

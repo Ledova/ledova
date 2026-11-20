@@ -31583,11 +31583,11 @@
             }
           },
           {
+            "description": "The person's member ID.",
             "in": "path",
             "name": "uuid",
             "required": true,
             "schema": {
-              "description": "Unique identifier (primary key)",
               "format": "uuid",
               "type": "string"
             }

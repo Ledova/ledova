@@ -5,14 +5,16 @@ from django.apps import apps
 from django.db import IntegrityError
 from django.db.models import Q
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from companies.models import CompanyCapability, DeletionScope
 from companies.services.company_deletion import (
     current_appointment,
+    discard,
     follow_ups,
     remove,
     reverse_relations,
+    stored_files,
 )
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
@@ -34,6 +36,7 @@ from tokens.models import (
     RegisterTransfer,
     RegisterWalletLink,
 )
+from tokens.services.pending_deletion import RECORD_GONE
 from tokens.services.register_authority import (
     current_register_reader,
     register_appointment,
@@ -77,6 +80,9 @@ def company_people(*, actor, company_id):
     with register_command(actor, company_id, "register_people_read") as (company, actor, profile, operator):
         current_register_reader(company, actor, profile, operator)
         used = used_people(company.pk)
+        if current_appointment(actor, company.pk, operator, [CompanyCapability.ADMIN])[0] is None:
+            used |= set(MemberInvitation.objects.filter(company=company).values_list("member", flat=True))
+            used |= set(MemberAssociation.objects.filter(company=company).values_list("member", flat=True))
         members = register_people(company.pk, actor)["members"]
         for row in members:
             row["deletable"] = row["member"] not in used
@@ -110,9 +116,14 @@ def person_rows(member):
 
 def delete_person(*, actor, company_id, member_id):
     with register_command(actor, company_id, "register_person_delete") as (company, current, _profile, operator):
+        appointment, expires_at = current_appointment(
+            current, company.pk, operator, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
+        )
+        if appointment is None:
+            raise NotFound(NO_PERSON_PREPARER)
         member = RegisterMember.objects.select_for_update().filter(pk=member_id, company=company).first()
         if member is None:
-            raise NotFound(NO_PERSON_PREPARER)
+            raise NotFound(RECORD_GONE)
         invitations = list(
             MemberInvitation.objects.select_for_update()
             .filter(company=company, member=member.pk)
@@ -125,11 +136,10 @@ def delete_person(*, actor, company_id, member_id):
             .order_by("pk")
             .values()
         )
-        access = bool(invitations or associations)
-        capabilities = [CompanyCapability.ADMIN] if access else [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
-        appointment, expires_at = current_appointment(current, company.pk, operator, capabilities)
-        if appointment is None:
-            raise NotFound(NO_PERSON_ADMINISTRATOR if access else NO_PERSON_PREPARER)
+        if invitations or associations:
+            appointment, expires_at = current_appointment(current, company.pk, operator, [CompanyCapability.ADMIN])
+            if appointment is None:
+                raise PermissionDenied(NO_PERSON_ADMINISTRATOR)
         if member.pk in used_people(company.pk):
             raise ValidationError(PERSON_IN_USE)
         rows = person_rows(member)
@@ -140,6 +150,7 @@ def delete_person(*, actor, company_id, member_id):
             MemberAssociationRevocation.objects.select_for_update().filter(association_id__in=linked).values()
         )
         records = [str(identifier) for identifier in linked]
+        files = stored_files(rows)
         remove(
             company_id=company.pk,
             actor_id=current.pk,
@@ -148,6 +159,7 @@ def delete_person(*, actor, company_id, member_id):
             rows=follow_ups(rows, lambda data: Q(**{f"{data}__record__in": records})),
             expires_at=expires_at,
         )
+    discard(files)
 
 
 def add_person(*, actor, operation_id, company, appointment, member, name, residential_address):

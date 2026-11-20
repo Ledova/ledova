@@ -765,7 +765,9 @@ On the web, both transfer parties are existing company people. A transferor hold
 class; a recipient may hold another class, be a former holder, have an award or have no shares yet.
 **Add person**, opened with **Add** on Shareholders, records only a name and residential address, before or after the first
 class is added. It uses the existing inline form and right-aligned collection action. People without
-shares are distinguished from current shareholders, with no invented holding or award. Initial
+shares are distinguished from current shareholders, with no invented holding or award. A person
+without shares whom nothing on the register names shows a compact red **Delete** to a current
+preparer (to an administrator when it would remove their access), with one confirmation. Initial
 ledger setup, investor and non-paid issues and employee awards keep their explicit new-person
 paths; invitations select existing records. A named director in external authority evidence is
 not automatically a shareholder or a Ledova user and remains a documentary field.

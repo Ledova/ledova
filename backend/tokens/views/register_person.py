@@ -20,7 +20,8 @@ class RegisterPersonViewSet(AuthenticatedGenericViewSet):
     operator_actions = frozenset({"list", "create", "destroy"})
     operator_actions_because = (
         "Private company people are read under exact company register authority, and adding or deleting one requires "
-        "current company preparation authority under the durable actor-bound company command."
+        "current company preparation authority under the durable actor-bound company command; deleting a person "
+        "with record access requires administration."
     )
     http_method_names = ["get", "post", "delete", "head", "options"]
     lookup_field = "uuid"
@@ -47,7 +48,10 @@ class RegisterPersonViewSet(AuthenticatedGenericViewSet):
         return Response(RegisterPersonRegistrationSerializer(person).data, status=201 if created else 200)
 
     @extend_schema(
-        parameters=[OpenApiParameter("company", OpenApiTypes.UUID, required=True)],
+        parameters=[
+            OpenApiParameter("company", OpenApiTypes.UUID, required=True),
+            OpenApiParameter("uuid", OpenApiTypes.UUID, OpenApiParameter.PATH, description="The person's member ID."),
+        ],
         responses={204: None},
     )
     def destroy(self, request, uuid=None):

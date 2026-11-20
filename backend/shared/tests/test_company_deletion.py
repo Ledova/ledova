@@ -240,7 +240,7 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
                     "set_config('app.user_id', %s, true)",
                     [str(self.company.pk), str(self.owner.pk)],
                 )
-            with self.assertRaises(DatabaseError), atomic(using=OPERATOR_ALIAS):
+            with self.assertRaisesMessage(DatabaseError, "Only a deletable record"), atomic(using=OPERATOR_ALIAS):
                 with connections[OPERATOR_ALIAS].cursor() as cursor:
                     cursor.execute(
                         "INSERT INTO companies_companydisposal (uuid, created_at, updated_at, company_id, "
@@ -251,7 +251,7 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
                             self.company.pk,
                             self.owner.pk,
                             self.appointment.pk,
-                            json.dumps({"tokens_registermember": [str(self.member.pk)]}),
+                            json.dumps({"tokens_registermember": [award["member"]]}),
                         ],
                     )
         self.assertEqual(self.client.delete(f"{people}{person}/?company={self.company.pk}").status_code, 204)

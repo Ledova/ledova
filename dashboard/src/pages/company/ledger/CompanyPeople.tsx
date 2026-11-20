@@ -150,7 +150,11 @@ export function CompanyPeople({
         busy={person.busy}
         busyLabel="Deleting…"
         onConfirm={() => {
-          if (deleting) void person.remove(deleting).finally(() => setDeleting(null));
+          if (deleting)
+            void person.remove(deleting).finally(() => {
+              setDeleting(null);
+              requestAnimationFrame(() => add.current?.focus());
+            });
         }}
       >
         <p className="break-words text-sm text-text-primary">
