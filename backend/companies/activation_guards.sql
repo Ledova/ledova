@@ -3,7 +3,7 @@ CREATE OR REPLACE FUNCTION public.companies_guard_activation()
  LANGUAGE plpgsql
 AS $function$
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF current_user = @MIGRATE_ROLE@ THEN

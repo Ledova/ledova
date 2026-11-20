@@ -61,10 +61,11 @@ Core off-chain registry workflows remain available.
 
 ## Remaining scope
 
-| Issue                                                 | Remaining                                                          | Current prerequisites          |
-| ----------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------ |
-| [#1586](https://github.com/Ledova/ledova/issues/1586) | Private operational acceptance, then the website launch            | The owner's direction          |
-| [#1590](https://github.com/Ledova/ledova/issues/1590) | TestFlight, App Review and the recorded physical iPhone acceptance | The website launch under #1586 |
+| Issue                                                 | Remaining                                                                                                                                                           | Current prerequisites          |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| [#1586](https://github.com/Ledova/ledova/issues/1586) | Private operational acceptance, then the website launch                                                                                                             | The owner's direction          |
+| [#1590](https://github.com/Ledova/ledova/issues/1590) | TestFlight, App Review and the recorded physical iPhone acceptance                                                                                                  | The website launch under #1586 |
+| [#1723](https://github.com/Ledova/ledova/issues/1723) | Deleting a share class, person, document, invitation, proposal or register entry; [deleting a company](../../business/companies.md#deleting-a-company) is delivered | None                           |
 
 The physical iPhone acceptance moved to #1590 when [#624](https://github.com/Ledova/ledova/issues/624) closed on
 17 November 2026.

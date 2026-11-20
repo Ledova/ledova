@@ -44,6 +44,7 @@ stay here as history and are marked where they appear.
 | [Sign-up wording after offerings were deferred](#sign-up-wording-after-offerings-were-deferred)                    | 8 November 2026                                | Superseded: financial-profile points 8 November (#1589), Eligibility check removed 9 November                                      |
 | [Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up)                                  | 9 November 2026                                | Current; #1567                                                                                                                     |
 | [App sign-up asks only for the full name](#app-sign-up-asks-only-for-the-full-name)                                | 20 November 2026                               | Current; #1711                                                                                                                     |
+| [Companies may delete what they record](#companies-may-delete-what-they-record)                                    | 20 November 2026                               | Current; #1723, delivered in steps                                                                                                 |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital)    | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                          | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
 | [Member particulars requests removed](#member-particulars-requests-removed)                                        | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed and linked members follow their profile (#1492)      |
@@ -342,6 +343,10 @@ account is left behind, and clears the account type, eligibility answers, and
 personal and financial details. Companies are never deleted by design, so a
 saved draft company stays with the account instead of being cleared; weakening
 that safeguard was not authorised.
+
+_Since 20 November 2026 an administrator can delete a company
+([Companies may delete what they record](#companies-may-delete-what-they-record)); restarting signup
+still keeps a saved draft company._
 
 _Since 9 November 2026 signup stores no eligibility answers, so a restart has none to clear
 ([Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up))._
@@ -1246,6 +1251,28 @@ with your recommendations". The app no longer asks for a birth date, phone numbe
 address at sign-up, and its Profile edits the name and address as the web's does. Details an account
 already holds stay, and Profile shows a retained phone number or birth date only where the account
 has one ([#1711](https://github.com/Ledova/ledova/issues/1711)).
+
+### Companies may delete what they record
+
+**Owner decision, 20 November 2026**, given in the session and tracked in
+[#1723](https://github.com/Ledova/ledova/issues/1723). The owner noted that Ledova is not the official
+registry, since the company still lodges everything with the government, and asked whether to
+"remove those restrictions and let the user delete" what they want. Offered a scope, the owner
+chose all of it: "All three steps".
+
+People with current authority in a company can delete, after one short confirmation, the company
+itself, a share class with all its records, a person with no shares, a document, an invitation, a
+pending proposal and a register entry. Three things stay: a delete that would leave a negative
+balance is refused; only current authority in that company can delete (a current appointment, or a
+draft company's owner under the existing draft setup exception), and no company can reach another's
+records; and on-chain history and Ledova's own records (account closure, Terms receipts and identity
+checks) keep their rules. The company remains responsible for its legal register and
+records, including former members' details for seven years under s169(7).
+
+This supersedes the rule that companies are never deleted
+([Verified email and email changes during signup](#verified-email-and-email-changes-during-signup))
+and the register's append-only history. It is delivered in steps under #1723; the
+[implementation index](plans/company-managed-registers/README.md) says which have landed.
 
 ### Member invitations and account association
 
@@ -2695,9 +2722,10 @@ erasure mechanics and periods. Account-only data is erased on closure, abandoned
 signups after thirty inactive days, expired sessions by daily maintenance, and
 provider permanent deletion has a thirty-day target with actual confirmation and
 specific reviewed holds. Company records remain separately purpose-bound; complete
-company disposal was not yet implemented at acceptance. The
-[maintenance-only company-exit path](operations/operator-console.md#company-exit) now implements
-scoped database/current-storage disposal; live supplier and retained-copy acceptance remains pending.
+company disposal was not yet implemented at acceptance. A maintenance-only company-exit command
+followed; since 20 November 2026 a company's administrator deletes the company instead
+([decision](#companies-may-delete-what-they-record)). Live supplier and retained-copy acceptance
+remains pending.
 
 The owner also accepted the operator-specific software permission in
 [LICENSE section 6](../LICENSE), without transferring copyright or granting rights

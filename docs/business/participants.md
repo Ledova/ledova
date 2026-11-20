@@ -47,8 +47,7 @@ have saved.
 To use a different email, enter the new address twice there with your current password. This starts
 signup again on the same account: Ledova sends a code to the new address, signs you out everywhere
 and clears your account type and your personal and financial details. A company you
-have already saved stays with your account, because companies are never deleted, and a completed
-identity check is kept too. Once you have chosen **Complete company setup**, or signup is complete,
+have already saved stays with your account, and a completed identity check is kept too. Once you have chosen **Complete company setup**, or signup is complete,
 the email can no longer be changed this way.
 
 ### Recovering your password
@@ -302,8 +301,8 @@ action and what it does on the left, with **Export** or **Delete** on the right.
   erasure is tracked separately, with confirmation and specific reviewed legal holds. Company
   particulars, documents, history and genuine retained transaction/case evidence remain separate.
   The confirmation explains this scope; the browser clears account data after success. See
-  [account erasure](../engineering/security.md#account-closure-and-export) for exact clocks and
-  the unresolved full-company disposal boundary.
+  [account erasure](../engineering/security.md#account-closure-and-export) for exact clocks.
+  Deleting a company is separate ([Deleting a company](companies.md#deleting-a-company)).
 
 On mobile, Settings has the same three pages for the selected company, then
 [Team](companies.md#team-invitations-and-appointments) where that company can be managed. Its current Account has **Security**, **Account details**,

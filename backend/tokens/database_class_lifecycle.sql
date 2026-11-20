@@ -130,7 +130,7 @@ BEGIN
         RETURN NEW;
     END IF;
     IF TG_OP = 'DELETE' THEN
-        IF current_user = __MIGRATE__ AND companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
         RAISE EXCEPTION 'Retain share classes and their audit history' USING ERRCODE = '23514';
     END IF;
     IF OLD.deleted_at IS NOT NULL THEN
@@ -182,7 +182,7 @@ RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, 
 DECLARE principal bigint;
 BEGIN
     IF TG_OP = 'DELETE' THEN
-        IF current_user = __MIGRATE__ AND companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN NULL; END IF;
+        IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN NULL; END IF;
         RAISE EXCEPTION 'Retain share class audit history' USING ERRCODE = '23514';
     END IF;
     IF (NEW.name, NEW.symbol, NEW.token_type, NEW.deleted_at, NEW.deleted_by_id) IS NOT DISTINCT FROM

@@ -125,8 +125,8 @@ Law guarantees and the unfair contract terms rules for standard-form contracts
 with consumers and small businesses, any licence that actual conduct requires,
 and s174 duties if the service in fact maintains a statutory register. The Terms
 apply their exclusions only as far as the law allows.
-The [launch position](#registry-only-launch-preparation) records remaining live
-supplier/legal assessment and complete company-disposal gates.
+The [launch position](#registry-only-launch-preparation) records the remaining live
+supplier and legal assessment.
 
 **The export trail.** Each register export is recorded durably: the
 requester, share class, register sequence, row counts, time and whether the
@@ -631,14 +631,13 @@ confirmation, with specific reviewed holds. Company particulars, immutable histo
 and document copies remain separate for their identified purpose. The former-member
 clock is not a universal legal basis for retaining every copy.
 
-Company exit first verifies authority and supplies existing exports/company pack.
-The [maintenance-only disposal path](../operations/operator-console.md#company-exit)
-supports a reviewed non-chain company scope, with atomic database deletion and separately
-retryable current-storage cleanup. It refuses retained execution history and preserves
-other companies and accounts. It does not itself verify instruction/handover, resolve holds
-or erase every supplier, support-mail, log or archive copy. Those require recorded treatment;
-do not promise immediate complete erasure, disable guards or silently keep unnecessary
-records indefinitely. Confirm actual supplier processing locations/agreements, identity-data necessity
+Since 20 November 2026 a company's administrator deletes the company
+([Deleting a company](../business/companies.md#deleting-a-company)), and the company remains
+responsible for keeping its own legal records. The delete removes the non-chain company scope in
+one database transaction and then its current storage. It refuses retained execution history and
+preserves other companies and accounts. It does not erase every supplier, support-mail, log or
+archive copy. Those require recorded treatment; do not promise immediate complete erasure, disable
+guards or silently keep unnecessary records indefinitely. Confirm actual supplier processing locations/agreements, identity-data necessity
 and any specific retention basis from the live configuration and current sources.
 The owner directs best-effort assessment without a compulsory paid adviser. No universal AML duty or AFSL exemption follows from being free
 or calling the service a mirror.
@@ -701,12 +700,12 @@ Google's [Gmail auto-deletion guidance](https://knowledge.workspace.google.com/a
 and [cross-matter hold reports](https://knowledge.workspace.google.com/vault/holds/review-all-holds-for-your-organization)
 explain the checks. Its [mail recovery guidance](https://knowledge.workspace.google.com/admin/support/troubleshooting/restore-a-users-permanently-deleted-email)
 and processing terms describe remaining recovery and deletion stages. Recheck actual copies
-for each disposal; this assessment is not proof that a particular person's copies were erased.
+when a company is deleted; this assessment is not proof that a particular person's copies were erased.
 
 Logs rotate by size, which proves no maximum age. Retired archives remain subject to their
 existing retention locks and expiry, not immediate erasure. A bounded server inventory does
-not prove every personal-device/export copy is absent. Exit must record each relevant copy's
-purpose, hold and disposal or expiry confirmation. Keep operational evidence private, and
+not prove every personal-device/export copy is absent. Copies outside the service need their own
+recorded purpose, hold and disposal or expiry confirmation. Keep operational evidence private, and
 working email and copy-lifecycle acceptance under [#1586](https://github.com/Ledova/ledova/issues/1586).
 This assessment itself changes no live settings and authorises no customer launch.
 
@@ -729,8 +728,8 @@ wrong; what could change is the date compliance stops being voluntary.
 
 **Trigger.** The first real member's personal information.
 
-**Status.** Policy and prepared Terms accepted 9 November 2026. Account erasure and
-versioned acceptance and scoped company-disposal software are implemented. Source minimisation
+**Status.** Policy and prepared Terms accepted 9 November 2026. Account erasure, versioned
+acceptance and company deletion by its administrator are implemented. Source minimisation
 and the supplier/copy assessment, including support-mail retention and hold verification, are
 complete for [#1589](https://github.com/Ledova/ledova/issues/1589). Operational acceptance and owner
 launch direction remain under [#1586](https://github.com/Ledova/ledova/issues/1586), without a

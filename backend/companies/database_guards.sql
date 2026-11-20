@@ -7,7 +7,7 @@ DECLARE
     appointment companies_companyappointment;
     principal bigint;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -70,7 +70,7 @@ DECLARE
     principal bigint;
     current_source boolean;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -183,7 +183,7 @@ CREATE OR REPLACE FUNCTION public.companies_guard_legacy_owner_source()
  LANGUAGE plpgsql
 AS $function$
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     RAISE EXCEPTION 'Retain immutable legacy owner sources' USING ERRCODE = '23514';
@@ -254,7 +254,7 @@ DECLARE
     wallet_account customer_accounts_account;
     wallet_profile users_userprofile;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF current_user = @MIGRATE_ROLE@ THEN

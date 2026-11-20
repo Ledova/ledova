@@ -633,7 +633,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_companies_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_companies_destroy'];
     options?: never;
     head?: never;
     patch: ApiOperations['api_v1_companies_partial_update'];
@@ -8838,6 +8838,25 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['CompanyDetail'];
         };
+      };
+    };
+  };
+  api_v1_companies_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

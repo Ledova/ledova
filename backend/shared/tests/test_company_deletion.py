@@ -1,5 +1,4 @@
-import json
-from io import StringIO
+from datetime import timedelta
 from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -7,17 +6,12 @@ from uuid import uuid4
 from django.conf import settings
 from django.contrib.admin.models import ADDITION, LogEntry
 from django.contrib.contenttypes.models import ContentType
-from django.core.management import call_command
-from django.core.management.base import CommandError
 from django.db import DatabaseError, connections
+from django.utils import timezone
 from rest_framework.test import APIClient, APITransactionTestCase
 
 from companies.models import Company, CompanyDisposal
-from companies.services.company_disposal import (
-    complete_company_disposal,
-    dispose_company,
-    preview_company_disposal,
-)
+from companies.services.company_deletion import EXPIRED, KEPT_ON_CHAIN
 from shared.db import APP_ALIAS, OPERATOR_ALIAS, atomic, use_migrate, use_operator
 from shared.storage import private_storage
 from shared.tasks.queue import defer
@@ -34,28 +28,14 @@ from tokens.models import (
     ShareToken,
     TokenDeployment,
 )
-from tokens.services.company_pack_outputs import prepare_company_pack
 from users.models import Notification, UserProfile
 from users.tasks.notifications import send_push_notification
 
 
-class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
+class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
     databases = {"default", "app", "operator"}
 
-    def pack(self):
-        archive, _ = prepare_company_pack(
-            actor=self.owner,
-            company_id=self.company.pk,
-            appointment=self.appointment.pk,
-            instruction="SYNTHETIC-EXIT",
-            recipient="Synthetic company representative",
-        )
-        self.addCleanup(archive.close)
-        path = self.root / "company-pack.zip"
-        path.write_bytes(archive.read())
-        return {"company_id": self.company.pk, "appointment_id": self.appointment.pk, "pack": path}
-
-    def test_reviewed_disposal_preserves_foreign_records_and_retries_failed_file_removal(self):
+    def test_admin_deletes_company_with_its_records_and_files_while_others_stay(self):
         retired = self.client.post(
             "/api/v1/tokens/",
             {"company": str(self.company.pk), "name": "Retired setup class", "symbol": "RET", "totalSupply": "1000"},
@@ -82,8 +62,6 @@ class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
             f"/api/v1/tokens/{retired_token.pk}/?" + urlencode({"expected_updated_at": retired.json()["updatedAt"]})
         )
         self.assertEqual(removed.status_code, 204, removed.content)
-        with use_operator():
-            self.assertTrue(ShareToken.all_objects.filter(pk=retired_token.pk, deleted_at__isnull=False).exists())
         foreign_token, _ = populated_register(self.foreign, self.foreign_company, self.foreign_appointment)
         award = self.award_payload()
         promised = self.client.post("/api/v1/tokens/register-awards/", award, format="json")
@@ -127,6 +105,7 @@ class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(accepted.status_code, 200, accepted.content)
+        self.assertEqual(member_client.delete(f"/api/v1/companies/{self.company.pk}/").status_code, 404)
         with use_operator():
             notice = Notification.objects.create(
                 user=self.foreign,
@@ -154,52 +133,20 @@ class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
             )
             foreign_contents = {path: path.read_bytes() for path in foreign_files}
             foreign_profile = UserProfile.objects.get(pk=self.foreign_profile.pk).full_name
-        fields = self.pack()
-        preview = preview_company_disposal(**fields)
         stored = document.file.name
-        storage, delete = private_storage(), private_storage().delete
-        save = CompanyDisposal.save
-
-        def fail_after_deletion(instance, *args, **kwargs):
-            if "database_disposed_at" in (kwargs.get("update_fields") or []):
-                self.assertFalse(Company.objects.filter(pk=self.company.pk).exists())
-                raise RuntimeError("Synthetic failure after row deletion")
-            return save(instance, *args, **kwargs)
-
-        with patch.object(CompanyDisposal, "save", autospec=True, side_effect=fail_after_deletion):
-            with self.assertRaises(RuntimeError):
-                dispose_company(
-                    **fields,
-                    digest=preview["digest"],
-                    authorisation_reference="EXIT-001",
-                    handover_reference="DELIVERED-001",
-                    purpose_review_reference="REVIEW-001",
-                )
+        self.assertTrue(private_storage().exists(stored))
+        deleted = self.client.delete(f"/api/v1/companies/{self.company.pk}/")
+        self.assertEqual(deleted.status_code, 204, deleted.content)
+        self.assertEqual(self.client.delete(f"/api/v1/companies/{self.company.pk}/").status_code, 404)
+        self.assertFalse(private_storage().exists(stored))
+        self.assertEqual({path: path.read_bytes() for path in foreign_files}, foreign_contents)
         with use_migrate():
-            self.assertTrue(Company.objects.filter(pk=self.company.pk).exists())
-            self.assertFalse(CompanyDisposal.objects.exists())
-        self.assertTrue(storage.exists(stored))
-
-        def remove(name):
-            if name == stored:
-                raise OSError("Synthetic storage refusal")
-            delete(name)
-
-        with patch.object(storage, "delete", side_effect=remove):
-            receipt = dispose_company(
-                **fields,
-                digest=preview["digest"],
-                authorisation_reference="EXIT-001",
-                handover_reference="DELIVERED-001",
-                purpose_review_reference="REVIEW-001",
-            )
-        self.assertIsNotNone(receipt.database_disposed_at)
-        with use_operator():
-            self.assertFalse(ShareToken.all_objects.filter(pk=retired_token.pk).exists())
-        self.assertIsNone(receipt.completed_at)
-        self.assertEqual(receipt.pending_files, [stored])
-        with use_migrate():
+            receipt = CompanyDisposal.objects.get(company_id=self.company.pk)
+            self.assertEqual((receipt.actor_id, receipt.appointment_id), (self.owner.pk, self.appointment.pk))
+            self.assertIsNotNone(receipt.database_disposed_at)
+            self.assertEqual(receipt.manifest, {})
             self.assertFalse(Company.objects.filter(pk=self.company.pk).exists())
+            self.assertFalse(ShareToken.all_objects.filter(company_id=self.company.pk).exists())
             self.assertFalse(Notification.objects.filter(pk=notice.pk).exists())
             self.assertTrue(Notification.objects.filter(pk=foreign_notice.pk).exists())
             self.assertFalse(LogEntry.objects.filter(pk=audit.pk).exists())
@@ -208,64 +155,31 @@ class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
                 100,
             )
             self.assertEqual(UserProfile.objects.get(pk=self.foreign_profile.pk).full_name, foreign_profile)
-            self.assertTrue(self.owner.is_active)
-            self.assertEqual(CompanyDisposal.objects.get(pk=receipt.pk).manifest, {})
+            self.assertTrue(type(self.owner).objects.get(pk=self.owner.pk).is_active)
             with connections["default"].cursor() as cursor:
                 cursor.execute("SELECT count(*) FROM procrastinate_jobs WHERE id = %s", [job])
                 self.assertEqual(cursor.fetchone()[0], 0)
-        with patch.object(storage, "listdir", side_effect=OSError("Synthetic listing failure")):
-            with self.assertRaises(OSError):
-                complete_company_disposal(receipt.pk)
-            status = StringIO()
-            call_command("company_disposal", "status", company=self.company.pk, stdout=status)
-            self.assertEqual(json.loads(status.getvalue())["receipt"], str(receipt.pk))
-        complete = complete_company_disposal(receipt.pk)
-        self.assertIsNotNone(complete.completed_at)
-        self.assertEqual(complete.pending_files, [])
-        self.assertFalse(storage.exists(stored))
-        self.assertEqual({path: path.read_bytes() for path in foreign_files}, foreign_contents)
-        self.assertIsNotNone(complete_company_disposal(receipt.pk).completed_at)
 
-    def test_runtime_roles_stale_reviews_and_missing_confirmations_cannot_dispose_company(self):
-        fields = self.pack()
-        preview = preview_company_disposal(**fields)
-        with self.assertRaises(CommandError):
-            call_command(
-                "company_disposal",
-                "dispose",
-                company=self.company.pk,
-                appointment=self.appointment.pk,
-                digest=preview["digest"],
-                stdout=StringIO(),
-            )
-        with self.assertRaises(ValueError):
-            preview_company_disposal(**{**fields, "appointment_id": self.foreign_appointment.pk})
-        with use_operator():
-            Company.objects.filter(pk=self.company.pk).update(description="Changed after review")
-        with self.assertRaises(ValueError):
-            dispose_company(
-                **fields,
-                digest=preview["digest"],
-                authorisation_reference="EXIT-002",
-                handover_reference="DELIVERED-002",
-                purpose_review_reference="REVIEW-002",
-            )
+    def test_only_a_current_admin_through_the_delete_command_removes_a_company(self):
         for alias in (APP_ALIAS, OPERATOR_ALIAS):
             with self.subTest(role=alias), atomic(using=alias):
                 with connections[alias].cursor() as cursor:
                     cursor.execute("SELECT current_user")
                     self.assertEqual(cursor.fetchone()[0], settings.RLS_ROLES[alias])
                     cursor.execute(
-                        "SELECT set_config('app.company_disposal', %s, true), "
-                        "set_config('app.company_id', %s, true)",
-                        [str(uuid4()), str(self.company.pk)],
+                        "SELECT set_config('app.company_disposal', %s, true), set_config('app.company_id', %s, true), "
+                        "set_config('app.company_operation', 'company_delete', true), "
+                        "set_config('app.user_id', %s, true)",
+                        [str(uuid4()), str(self.company.pk), str(self.foreign.pk)],
                     )
                 with self.assertRaises(DatabaseError), atomic(using=alias):
                     with connections[alias].cursor() as cursor:
-                        cursor.execute("SELECT companies_disposal_allows('companies_company', %s)", [self.company.pk])
-                with self.assertRaises(DatabaseError), atomic(using=alias):
-                    with connections[alias].cursor() as cursor:
-                        cursor.execute("SELECT * FROM companies_companydisposal")
+                        cursor.execute(
+                            "INSERT INTO companies_companydisposal (uuid, created_at, updated_at, company_id, "
+                            "actor_id, appointment_id, manifest, transaction_id) "
+                            "VALUES (%s, now(), now(), %s, %s, %s, '{}', txid_current())",
+                            [uuid4(), self.company.pk, self.foreign.pk, self.foreign_appointment.pk],
+                        )
                 if alias == OPERATOR_ALIAS:
                     with self.assertRaises(DatabaseError), atomic(using=alias):
                         with connections[alias].cursor() as cursor:
@@ -273,11 +187,17 @@ class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
                                 "DELETE FROM tokens_registerentry WHERE register_id = %s",
                                 [self.token.stored_register.pk],
                             )
-        with use_migrate():
-            self.assertTrue(Company.objects.filter(pk=self.company.pk).exists())
+        with patch(
+            "companies.services.company_deletion.administrator_appointment",
+            return_value=(self.appointment.pk, timezone.now() - timedelta(seconds=1)),
+        ):
+            expired = self.client.delete(f"/api/v1/companies/{self.company.pk}/")
+        self.assertEqual(expired.status_code, 400, expired.content)
+        self.assertIn(EXPIRED, expired.content.decode())
+        with use_operator():
+            self.assertTrue(RegisterEntry.objects.filter(register__token=self.token).exists())
             self.assertFalse(CompanyDisposal.objects.exists())
         with use_operator():
-            RegisterPosition.objects.get(register__token=self.token)
             journal = TokenDeployment.objects.create(
                 token_id=self.token.pk,
                 company_id=self.company.pk,
@@ -289,14 +209,17 @@ class CompanyDisposalTest(CoreFixtures, APITransactionTestCase):
                     "data": "0x1234",
                     "name": "Synthetic class",
                     "symbol": "ORD",
-                    "identifier": "synthetic-disposal",
+                    "identifier": "synthetic-deletion",
                     "authorized_shares": "100",
                     "issuer_wallet": str(uuid4()),
                     "decimals": 0,
                 },
             )
-        with self.assertRaisesRegex(ValueError, "Retained execution history"):
-            preview_company_disposal(**fields)
+        refused = self.client.delete(f"/api/v1/companies/{self.company.pk}/")
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertIn(KEPT_ON_CHAIN, refused.content.decode())
         with use_migrate():
+            self.assertTrue(Company.objects.filter(pk=self.company.pk).exists())
+            self.assertFalse(CompanyDisposal.objects.exists())
             self.assertTrue(TokenDeployment.objects.filter(pk=journal.pk).exists())
             self.assertTrue(RegisterEntry.objects.filter(register__token=self.token).exists())

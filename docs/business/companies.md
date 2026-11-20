@@ -187,8 +187,8 @@ An appointment has exactly one source: an admitted initial request, an accepted 
 retired owner upgrade. Besides its capabilities and expiry
 ([company capabilities](README.md#company-capabilities)), it records the appointee, their profile
 and the declaration they accepted. Appointments, requests, withdrawals, invitations
-and revocations cannot be edited or deleted
-([how company rows are protected](../engineering/security.md#company-rows)).
+and revocations cannot be edited or deleted on their own; they go only with the whole
+[company](#deleting-a-company) ([how company rows are protected](../engineering/security.md#company-rows)).
 
 - Signup admission records the 2026-11-15 authority and Terms declaration. Invitation acceptance
   keeps its own 2026-10-04 declaration, as do the receipts of companies activated before activation
@@ -246,6 +246,21 @@ Rules:
   does not confirm that a number belongs to a real company.
 - Changing the registered name, ACN, ABN, company type or officeholder declaration starts a new
   company revision.
+
+## Deleting a company
+
+A current company administrator, or the owner of a draft under the
+[draft setup exception](#the-draft-setup-exception), can delete the company with **Delete** on
+Company details in Settings, on the web and in the app
+([decision](../decisions.md#companies-may-delete-what-they-record)). One confirmation says that the
+company and all its records go for everyone and that this can't be undone; then you return to
+Dashboard.
+
+The delete removes the company with its share classes, register, people, awards, documents and
+their files, invitations, appointments and member access. People's own accounts stay. A company
+with on-chain records can't be deleted here, because Ledova keeps that history. The company remains
+responsible for its own legal records, so download the
+[company pack](member-records.md#outputs-at-a-glance) first if you need a copy.
 
 ## Company status
 

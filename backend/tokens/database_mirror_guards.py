@@ -32,11 +32,11 @@ def install(apps, schema_editor):
         return
     source = Path(__file__).with_name("database_guards.sql").read_text()
     guard = _function(source, "tokens_guard_register_import")
+    retained = "    IF TG_OP = 'DELETE' THEN\n        RAISE EXCEPTION 'Retain register imports"
     guard = guard.replace(
-        "    IF TG_OP = 'DELETE' THEN\n",
+        retained,
         "    IF (TG_OP = 'DELETE' AND OLD.source_reference <> '') OR NEW.source_reference <> '' THEN\n"
-        "        RETURN tokens_validate_mirror_import(NEW, OLD, TG_OP);\n    END IF;\n"
-        "    IF TG_OP = 'DELETE' THEN\n",
+        "        RETURN tokens_validate_mirror_import(NEW, OLD, TG_OP);\n    END IF;\n" + retained,
         1,
     )
     entry = _function(source, "tokens_guard_register_entry").replace(
