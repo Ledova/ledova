@@ -199,8 +199,8 @@ def delete_company(*, actor, company_id):
         )
         rows = _rows(company)
         files = _files(company, rows)
-        connection = connections[current_alias()]
-        with connection.cursor() as cursor:
+        quote = connections[current_alias()].ops.quote_name
+        with connections[current_alias()].cursor() as cursor:
             cursor.execute("SELECT txid_current()")
             transaction_id = cursor.fetchone()[0]
         receipt = CompanyDisposal.objects.create(
@@ -213,15 +213,14 @@ def delete_company(*, actor, company_id):
             },
             transaction_id=transaction_id,
         )
-        with connection.cursor() as cursor:
+        with connections[current_alias()].cursor() as cursor:
             cursor.execute("SELECT set_config('app.company_disposal', %s, true)", [str(receipt.pk)])
             cursor.execute("SET CONSTRAINTS ALL DEFERRED")
             for model, records in reversed(rows.items()):
                 identifiers = [row[model._meta.pk.attname] for row in records]
                 if identifiers:
                     cursor.execute(
-                        f"DELETE FROM {connection.ops.quote_name(model._meta.db_table)} "
-                        f"WHERE {connection.ops.quote_name(model._meta.pk.column)} = ANY(%s)",
+                        f"DELETE FROM {quote(model._meta.db_table)} WHERE {quote(model._meta.pk.column)} = ANY(%s)",
                         [identifiers],
                     )
             cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
