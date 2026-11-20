@@ -80,3 +80,6 @@ export const downloadRegisterTransferFile = (
         responseType: 'blob',
       });
 };
+
+export const deleteRegisterTransfer = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.delete<void>(`${COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFERS}${uuid}/`, config);

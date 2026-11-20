@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getOwnCompanyAppointments } from '../services/company-authority';
 import {
+  deleteMemberInvitation,
   sendMemberInvitationEmail,
   getMemberInvitations,
   getMemberAssociations,
@@ -18,7 +19,8 @@ import { useApiClient } from './useApiClient';
 
 type Command =
   | { kind: 'invite'; payload: MemberInvitationCreate }
-  | { kind: 'revoke'; uuid: string; payload: { appointment: string; idempotencyKey: string; reason: string } };
+  | { kind: 'revoke'; uuid: string; payload: { appointment: string; idempotencyKey: string; reason: string } }
+  | { kind: 'delete'; uuid: string; payload: { appointment: string } };
 
 function isCurrentAppointment(appointment: OwnCompanyAppointment) {
   return (
@@ -172,6 +174,11 @@ export function useCompanyMemberAccess(
           throw new Error('The invitation email could not be confirmed. Retry the original action.');
         setInvitationReceipt(data.uuid);
         setNotice('The invitation email was accepted for sending. Awaiting the recipient’s acceptance.');
+      } else if (command.kind === 'delete') {
+        const result = await deleteMemberInvitation(api, command.uuid, config(guardAccess));
+        guardAccess();
+        if (result.status !== 204) throw new Error('The invitation deletion could not be confirmed.');
+        setNotice('');
       } else {
         const { data } = await revokeMemberAssociation(api, command.uuid, command.payload, config(guardAccess));
         guardAccess();
@@ -218,6 +225,7 @@ export function useCompanyMemberAccess(
     revoke: (uuid: string, reason: string) =>
       admin &&
       execute({ kind: 'revoke', uuid, payload: { appointment: admin.uuid, idempotencyKey: newKey(), reason } }),
+    remove: (uuid: string) => admin && execute({ kind: 'delete', uuid, payload: { appointment: admin.uuid } }),
     recover: () => retry && execute(retry),
   };
 }

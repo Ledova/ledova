@@ -134,6 +134,7 @@ export function GrantRecord({
         steps={grant.stage === 'submitted' ? { ...steps, apply: undefined } : steps}
         guard={guard}
         newEffectGuard={newEffectGuard}
+        noun="non-paid grant"
         context={context}
         onDecided={onSettled}
         onRefused={onSettled}

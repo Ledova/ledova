@@ -11,6 +11,7 @@ from shared.views import AuthenticatedReadOnlyViewSet
 from tokens.models import MemberAssociation, MemberInvitation
 from tokens.serializers import member_access as schema
 from tokens.services import member_access as service
+from tokens.services.pending_deletion import delete_member_invitation
 
 FILTERS = [
     OpenApiParameter("company", OpenApiTypes.UUID),
@@ -53,9 +54,12 @@ class MemberInvitationViewSet(MemberAccessViewSet):
     scoped_model = MemberInvitation
     queryset = MemberInvitation.objects.none()
     serializer_class = schema.MemberInvitationSerializer
+    http_method_names = ["get", "post", "delete", "head", "options"]
+    operator_actions = MemberAccessViewSet.operator_actions | {"destroy"}
     operator_actions_because = (
         "Member invitations are private company administration. Current personal ADMIN appointments scope every "
-        "company read, issue and email send; preview requires the verified intended recipient. Accepting the "
+        "company read, issue, email send and delete of an invitation never accepted; preview requires the verified "
+        "intended recipient. Accepting the "
         "hidden credential checks its intended email and actual signed-in account under the company lock and "
         "database guards, and grants no company appointment."
     )
@@ -73,6 +77,10 @@ class MemberInvitationViewSet(MemberAccessViewSet):
         )
         invitation.code = code
         return Response(schema.MemberInvitationIssuedSerializer(invitation).data, status=201 if created else 200)
+
+    def destroy(self, request, *args, **kwargs):
+        delete_member_invitation(actor=request.user, invitation=self.get_object())
+        return Response(status=204)
 
     @extend_schema(
         request=schema.MemberInvitationCreateSerializer,

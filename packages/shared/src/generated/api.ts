@@ -751,6 +751,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/company-authority/invitations/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: ApiOperations['api_v1_company_authority_invitations_destroy'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/company-authority/invitations/accept/': {
     parameters: {
       query?: never;
@@ -1193,7 +1209,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_member_invitations_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_member_invitations_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1337,7 +1353,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_allotments_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_allotments_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1721,7 +1737,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_corrections_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_corrections_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1881,7 +1897,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_grants_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_grants_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1993,7 +2009,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_imports_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_imports_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -2473,7 +2489,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_particulars_changes_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_particulars_changes_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -2665,7 +2681,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_transfers_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_transfers_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -9086,6 +9102,25 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_company_authority_invitations_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_company_authority_invitations_accept_create: {
     parameters: {
       query?: never;
@@ -9981,6 +10016,25 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_member_invitations_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_tokens_member_invitations_accept_create: {
     parameters: {
       query?: never;
@@ -10230,6 +10284,25 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['RegisterAllotment'];
         };
+      };
+    };
+  };
+  api_v1_tokens_register_allotments_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -10979,6 +11052,25 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_corrections_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_tokens_register_corrections_decide_create: {
     parameters: {
       query?: never;
@@ -11292,6 +11384,25 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_grants_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_tokens_register_grants_acceptance_file_retrieve: {
     parameters: {
       query?: never;
@@ -11486,6 +11597,25 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['RegisterImport'];
         };
+      };
+    };
+  };
+  api_v1_tokens_register_imports_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -12376,6 +12506,25 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_particulars_changes_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_tokens_register_particulars_changes_file_retrieve: {
     parameters: {
       query?: never;
@@ -12761,6 +12910,25 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['RegisterTransfer'];
         };
+      };
+    };
+  };
+  api_v1_tokens_register_transfers_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

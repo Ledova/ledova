@@ -110,6 +110,14 @@ DETACHED = "tokens_registermemberparticulars#detach"
 NOTIFY = "users.tasks.notifications.send_push_notification"
 
 
+def reverse_relations(model):
+    return [
+        field
+        for field in model._meta.get_fields(include_hidden=True)
+        if field.auto_created and not field.concrete and field.is_relation
+    ]
+
+
 def chain_free(tokens, company_id, refusal, alias=None):
     if any(token["status"] != "draft" or any(token[field] for field in CHAIN_FIELDS) for token in tokens):
         raise ValidationError(refusal)
@@ -181,7 +189,7 @@ def _company_rows(company):
     chain_unreferenced(rows, KEPT_ON_CHAIN)
     for model, records in rows.items():
         selected = [row[model._meta.pk.attname] for row in records]
-        for related in model._meta.related_objects:
+        for related in reverse_relations(model):
             if (
                 related.related_model not in rows
                 and related.related_model._base_manager.filter(**{f"{related.field.attname}__in": selected}).exists()

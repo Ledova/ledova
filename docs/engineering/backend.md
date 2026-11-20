@@ -315,7 +315,12 @@ Each step needing company authority rechecks it after taking the company lock, s
 that commits first refuses the step and records nothing. Requests, decisions, withdrawals and
 revocations are append-only, keep their actual actor, appointment, retry key, digest and
 database-stamped time, and are checked by database triggers; customer requests reach them only
-through the bounded services. An uncertain reply is resolved by resending the exact original body
+through the bounded services. The one exception is `DELETE` on a proposal still awaiting a decision
+(allotments, transfers, grants, imports, corrections and particulars changes): the
+`register_proposal_delete` command, under a `proposal` receipt and current preparation authority,
+removes it with its decisions, and an allotment's agreement and contribution. `DELETE` on a member
+invitation or a team invitation that was never accepted runs `invitation_delete` under an
+`invitation` receipt and current administration. An uncertain reply is resolved by resending the exact original body
 and key: current read access recovers the retained receipt, even after the appointment has
 expired or the proposal has changed stage. No replay after process loss is promised, and a client
 never infers success from a lost response.
@@ -398,7 +403,7 @@ Shared requirement codes:
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs                                                |
 | `<subject>_decided`                     | The proposal is already applied or rejected, for example `correction_decided` or `paid_issue_decided`                      |
-| `company_provided_evidence_required`    | A retained staff-era proposal, which can only be rejected                                                                  |
+| `company_provided_evidence_required`    | A retained staff-era proposal, which can only be rejected, or deleted while pending                                        |
 | `already_approved`                      | A current approval exists                                                                                                  |
 | `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended                                              |
 | `evidence_unavailable`                  | A retained copy no longer matches its size or SHA-256; checked by each family that retains evidence                        |

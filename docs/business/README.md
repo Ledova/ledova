@@ -190,8 +190,10 @@ Decisions, withdrawals and revocations are kept with the actual person, appointm
 Register entries cannot be edited or deleted: a correction is a new entry that names the one it
 reverses ([compensating corrections](register.md#compensating-corrections);
 [how entries are protected](../engineering/records.md#entries-and-the-hash-chain)). A proposal
-submitted for the retired staff review and still waiting can only be rejected; the company
-prepares a new one.
+still awaiting a decision can be rejected, or deleted with its decisions by a current preparer or
+administrator after one confirmation
+([decision](../decisions.md#companies-may-delete-what-they-record)). An applied proposal stays
+with the register entry it made.
 
 ### When the outcome is uncertain
 

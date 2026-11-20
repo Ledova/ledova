@@ -24540,6 +24540,41 @@
         ]
       }
     },
+    "/api/v1/company-authority/invitations/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_company_authority_invitations_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/company-authority/requests/": {
       "get": {
         "operationId": "api_v1_company_authority_requests_list",
@@ -25666,6 +25701,39 @@
       }
     },
     "/api/v1/tokens/member-invitations/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_member_invitations_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_member_invitations_retrieve",
         "parameters": [
@@ -26042,6 +26110,39 @@
       }
     },
     "/api/v1/tokens/register-allotments/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_allotments_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_allotments_retrieve",
         "parameters": [
@@ -27674,6 +27775,39 @@
       }
     },
     "/api/v1/tokens/register-corrections/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_corrections_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_corrections_retrieve",
         "parameters": [
@@ -28377,6 +28511,39 @@
       }
     },
     "/api/v1/tokens/register-grants/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_grants_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_grants_retrieve",
         "parameters": [
@@ -28807,6 +28974,39 @@
       }
     },
     "/api/v1/tokens/register-imports/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_imports_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_imports_retrieve",
         "parameters": [
@@ -30757,6 +30957,39 @@
       }
     },
     "/api/v1/tokens/register-particulars-changes/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_particulars_changes_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_particulars_changes_retrieve",
         "parameters": [
@@ -31644,6 +31877,39 @@
       }
     },
     "/api/v1/tokens/register-transfers/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_transfers_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_transfers_retrieve",
         "parameters": [

@@ -17,6 +17,7 @@ import {
   type OwnCompanyAppointment,
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
+import { CustomModal } from '../../components/modal';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { Page } from '../../components/Page';
@@ -173,7 +174,11 @@ function OwnTeam({
     confirm,
     issueGuard,
     companyName,
+    removeInvitation,
+    withdrawing,
+    canDeleteInvitation,
   } = teamState;
+  const [withdrawn, setWithdrawn] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   useEffect(() => {
     if (!started && available && own.isSuccess && !own.isFetching && !directory.isLoading && !directory.isRefreshing) {
@@ -310,6 +315,18 @@ function OwnTeam({
                   <Text style={look.title}>{item.companyName}</Text>
                   <Text style={look.small}>{scopeFacts(item.capabilities, item.delegatableCapabilities)}</Text>
                   <Text style={look.small}>{issuedInvitationDates(item)}</Text>
+                  {!item.acceptedAt && canDeleteInvitation(item.company) && (
+                    <Actions>
+                      <Action
+                        compact
+                        destructive
+                        label="Delete"
+                        accessibilityLabel={`Delete invitation (${item.companyName} · ${scopeLabels(item.capabilities)} · ${issuedInvitationDates(item)})`}
+                        disabled={disabled}
+                        onPress={() => setWithdrawn(item.uuid)}
+                      />
+                    </Actions>
+                  )}
                 </View>
               ))}
             </Rows>
@@ -368,6 +385,25 @@ function OwnTeam({
         </Text>
       )}
       <RevokeAppointmentModal team={teamState} available={available} />
+      <CustomModal
+        visible={available && !!withdrawn}
+        title="Delete this invitation?"
+        busy={withdrawing}
+        onClose={() => setWithdrawn(null)}
+        actions={
+          <Action
+            label={withdrawing ? 'Deleting…' : 'Delete'}
+            accessibilityLabel={`${withdrawing ? 'Deleting…' : 'Delete'} (invitation)`}
+            destructive
+            disabled={withdrawing}
+            onPress={() => {
+              if (withdrawn) void removeInvitation(withdrawn).finally(() => setWithdrawn(null));
+            }}
+          />
+        }
+      >
+        <Text style={styles.text}>Its code stops working. This can’t be undone.</Text>
+      </CustomModal>
     </Page>
   );
 }

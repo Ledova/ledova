@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -10,8 +11,14 @@ from django.db import DatabaseError, connections
 from django.utils import timezone
 from rest_framework.test import APIClient, APITransactionTestCase
 
-from companies.models import Company, CompanyDisposal
+from companies.models import (
+    Company,
+    CompanyCapability,
+    CompanyDisposal,
+    CompanyTeamInvitation,
+)
 from companies.services.company_deletion import EXPIRED, KEPT_ON_CHAIN
+from companies.services.team import issue_team_invitation
 from shared.db import APP_ALIAS, OPERATOR_ALIAS, atomic, use_migrate, use_operator
 from shared.storage import private_storage
 from shared.tasks.queue import defer
@@ -22,6 +29,10 @@ from shared.tests.core_fixtures import (
     retained_evidence,
 )
 from tokens.models import (
+    RegisterAgreement,
+    RegisterAllotment,
+    RegisterAllotmentDecision,
+    RegisterContribution,
     RegisterEntry,
     RegisterEvidenceKind,
     RegisterPosition,
@@ -29,6 +40,7 @@ from tokens.models import (
     TokenDeployment,
 )
 from tokens.services.class_lifecycle import KEPT_ON_CHAIN as CLASS_ON_CHAIN
+from tokens.services.pending_deletion import ACCEPTED, NOT_PENDING
 from users.models import Notification, UserProfile
 from users.tasks.notifications import send_push_notification
 
@@ -79,6 +91,54 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(allotment.status_code, 201, allotment.content)
         self.decision("/api/v1/tokens/register-allotments/", allotment.json()["uuid"], "approve")
         self.decision("/api/v1/tokens/register-allotments/", allotment.json()["uuid"], "apply")
+        allotments = "/api/v1/tokens/register-allotments/"
+        applied = self.client.delete(f"{allotments}{allotment.json()['uuid']}/")
+        self.assertEqual(applied.status_code, 400, applied.content)
+        self.assertIn(NOT_PENDING, applied.content.decode())
+        pending = self.client.post(allotments, self.allotment_payload(), format="json")
+        self.assertEqual(pending.status_code, 201, pending.content)
+        self.decision(allotments, pending.json()["uuid"], "approve")
+        with use_migrate():
+            foreign = RegisterAllotmentDecision.objects.filter(register_allotment_id=allotment.json()["uuid"]).first()
+        with atomic(using=OPERATOR_ALIAS):
+            with connections[OPERATOR_ALIAS].cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config('app.company_id', %s, true), "
+                    "set_config('app.company_operation', 'register_proposal_delete', true), "
+                    "set_config('app.user_id', %s, true)",
+                    [str(self.company.pk), str(self.owner.pk)],
+                )
+            with self.assertRaises(DatabaseError), atomic(using=OPERATOR_ALIAS):
+                with connections[OPERATOR_ALIAS].cursor() as cursor:
+                    cursor.execute(
+                        "INSERT INTO companies_companydisposal (uuid, created_at, updated_at, company_id, "
+                        "scope, actor_id, appointment_id, manifest, transaction_id) "
+                        "VALUES (%s, now(), now(), %s, 'proposal', %s, %s, %s, txid_current())",
+                        [
+                            uuid4(),
+                            self.company.pk,
+                            self.owner.pk,
+                            self.appointment.pk,
+                            json.dumps(
+                                {
+                                    "tokens_registerallotment": [pending.json()["uuid"]],
+                                    "tokens_registerallotmentdecision": [str(foreign.pk)],
+                                }
+                            ),
+                        ],
+                    )
+        with use_migrate():
+            parts = (RegisterAgreement.objects.count(), RegisterContribution.objects.count())
+        self.assertEqual(self.client.delete(f"{allotments}{pending.json()['uuid']}/").status_code, 204)
+        with use_migrate():
+            self.assertFalse(RegisterAllotment.objects.filter(pk=pending.json()["uuid"]).exists())
+            self.assertFalse(
+                RegisterAllotmentDecision.objects.filter(register_allotment_id=pending.json()["uuid"]).exists()
+            )
+            self.assertEqual(
+                (RegisterAgreement.objects.count(), RegisterContribution.objects.count()), (parts[0] - 1, parts[1] - 1)
+            )
+            self.assertTrue(RegisterAllotment.objects.filter(pk=allotment.json()["uuid"]).exists())
         document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.CLASS_RIGHTS)
         rights = self.client.post(
             f"/api/v1/tokens/{self.token.pk}/class-rights/",
@@ -92,7 +152,20 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(rights.status_code, 201, rights.content)
-        invitation = self.client.post("/api/v1/tokens/member-invitations/", self.invitation_payload(), format="json")
+        invitations = "/api/v1/tokens/member-invitations/"
+        withdrawn = self.client.post(invitations, self.invitation_payload(), format="json")
+        self.assertEqual(withdrawn.status_code, 201, withdrawn.content)
+        self.assertEqual(self.client.delete(f"{invitations}{withdrawn.json()['uuid']}/").status_code, 204)
+        team_invitation, _, _ = issue_team_invitation(
+            requester=self.owner,
+            company_id=self.company.pk,
+            inviter_appointment_id=self.appointment.pk,
+            idempotency_key=uuid4(),
+            capabilities=[CompanyCapability.APPROVE],
+        )
+        team = self.client.delete(f"/api/v1/company-authority/invitations/{team_invitation.pk}/")
+        self.assertEqual(team.status_code, 204, team.content)
+        invitation = self.client.post(invitations, self.invitation_payload(), format="json")
         self.assertEqual(invitation.status_code, 201, invitation.content)
         member_client = APIClient()
         member_client.force_authenticate(self.foreign)
@@ -106,6 +179,15 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(accepted.status_code, 200, accepted.content)
+        kept = self.client.delete(f"{invitations}{invitation.json()['uuid']}/")
+        self.assertEqual(kept.status_code, 400, kept.content)
+        self.assertIn(ACCEPTED, kept.content.decode())
+        with use_migrate():
+            self.assertEqual(
+                sorted(CompanyDisposal.objects.filter(company_id=self.company.pk).values_list("scope", flat=True)),
+                ["invitation", "invitation", "proposal", "share_class"],
+            )
+            self.assertFalse(CompanyTeamInvitation.objects.filter(pk=team_invitation.pk).exists())
         self.assertEqual(member_client.delete(f"/api/v1/companies/{self.company.pk}/").status_code, 404)
         with use_operator():
             notice = Notification.objects.create(

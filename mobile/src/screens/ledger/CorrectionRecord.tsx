@@ -164,6 +164,7 @@ export function CorrectionRecord({
         proposal={proposal}
         steps={steps}
         guard={guard}
+        noun="correction"
         context={context}
         onDecided={onSettled}
         onRefused={onSettled}
