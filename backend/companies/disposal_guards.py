@@ -83,6 +83,9 @@ def install(apps, schema_editor):
         cursor.execute(
             f"GRANT EXECUTE ON FUNCTION companies_disposal_allows(text, uuid) TO {operator_role}, {app_role}"
         )
+        cursor.execute(
+            f"GRANT EXECUTE ON FUNCTION companies_class_receipt_listed(jsonb) TO {operator_role}, {app_role}"
+        )
         cursor.execute("SELECT to_regclass('public.companies_companydisposal') IS NOT NULL")
         if cursor.fetchone()[0]:
             cursor.execute("ALTER TABLE companies_companydisposal ENABLE ROW LEVEL SECURITY")

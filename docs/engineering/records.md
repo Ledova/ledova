@@ -237,22 +237,17 @@ application role writes them. The purge is in [retention clocks](security.md#ret
 
 The register spine `Company -> ShareToken -> {ShareIssuance, ShareIssuanceRequest,
 CapitalIncreaseRequest, TransferOrder}` and `SwapOrder.share_token` use `PROTECT`, which admin
-removal of test data still respects. Unused-class
-deletion requires current company authority, an unchanged version and no actual ownership activity
-or outstanding work. It removes the class from active use, retaining its identity, deletion actor/time
-and abandoned setup drafts with their decisions and evidence
-([class lifecycle](backend.md#company-workflow-api)). An empty register stub or confirmed empty opening
-is allowed, with the opening entry retained; a zero balance alone is not proof that a class is unused.
-Company audit outputs include these retained classes, and deleting the company removes them. Deleting a wallet cascades its whitelist entry and that entry's company approvals and
-leaves the approval on chain; durable [whitelist commands](chain.md#whitelist-changes) keep their
-own identity. Allotment identity stamps keep the identity resolved at issue, which treasury
-relabelling or a current profile guess must not replace. Retained activation receipts are application
-evidence, not membership rows.
-
-[Deleting a company](security.md#account-closure-and-export) is the one exception: its
-administrator's command removes the complete non-chain company scope. It keeps guards, foreign-key
-checks, a transaction-bound row manifest and a minimal private receipt. It grants no delete access to
-the admin and does not erase an account, another company or chain history.
+removal of test data still respects. The database guards refuse ordinary deletes. Two company
+commands are the exceptions, each through a receipt whose exact-row manifest the guards check: an
+administrator [deletes the company](security.md#account-closure-and-export), and a preparer deletes
+a share class with all its records ([class lifecycle](backend.md#company-workflow-api)). Both need
+current company authority, and a class delete also needs an unchanged version. They keep guards and
+foreign-key checks, refuse on-chain and execution history, grant no delete access to the admin and do
+not erase an account, another company or chain history. Deleting a wallet cascades its whitelist
+entry and that entry's company approvals and leaves the approval on chain; durable
+[whitelist commands](chain.md#whitelist-changes) keep their own identity. Allotment identity stamps
+keep the identity resolved at issue, which treasury relabelling or a current profile guess must not
+replace. Retained activation receipts are application evidence, not membership rows.
 
 ## Register commands
 

@@ -407,6 +407,19 @@ BEGIN
     IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
+    IF TG_OP = 'UPDATE' AND companies_disposal_allows('tokens_registermemberparticulars#detach', OLD.uuid) THEN
+        IF (to_jsonb(NEW) - ARRAY['source_import_id', 'source_change_id', 'source_grant_id', 'source_allotment_id',
+                'source_transfer_id', 'source_award_id', 'source_registration_id', 'updated_at'])
+            IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['source_import_id', 'source_change_id', 'source_grant_id',
+                'source_allotment_id', 'source_transfer_id', 'source_award_id', 'source_registration_id', 'updated_at'])
+            OR COALESCE(to_jsonb(NEW)->>'source_import_id', to_jsonb(NEW)->>'source_change_id',
+                to_jsonb(NEW)->>'source_grant_id', to_jsonb(NEW)->>'source_allotment_id',
+                to_jsonb(NEW)->>'source_transfer_id', to_jsonb(NEW)->>'source_award_id',
+                to_jsonb(NEW)->>'source_registration_id') IS NOT NULL THEN
+            RAISE EXCEPTION 'Deleting a share class only detaches the particulars it recorded' USING ERRCODE = '23514';
+        END IF;
+        RETURN NEW;
+    END IF;
     IF current_user NOT IN (__OPERATOR__, __MIGRATE__) THEN
         RAISE EXCEPTION 'Only the register''s own commands write member particulars' USING ERRCODE = '23514';
     END IF;

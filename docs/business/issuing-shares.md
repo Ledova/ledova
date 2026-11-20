@@ -36,7 +36,7 @@ setup: **Ledger**, **Add**, on the web or in the app.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
-Class codes are one to five ASCII letters, saved in uppercase, unique among the company's active classes, and may
+Class codes are one to five ASCII letters, saved in uppercase, unique among the company's classes, and may
 not reuse a reserved asset symbol. On the web, the same administrator or preparer can edit a
 class's name, code and type while it has no ownership activity or operational dependencies, including
 after a confirmed empty opening. Saved Class rights and their governing documents do not prevent
@@ -45,27 +45,22 @@ visible for current preparers when locked, disabled with the server's reason; re
 mandate get no Edit action. Reject any saved setup review first; the rejected draft stays recorded.
 Each saved change retains its previous and new name, code and type, the representative, appointment
 and time automatically, without adding a history section to the page. The original opening,
-decisions and hash remain unchanged. The company pack includes the full attributed details history,
-even after deletion.
+decisions and hash remain unchanged. The company pack includes the full attributed details history.
 A zero balance after actual ownership activity does not permit editing.
-A share class's **Delete** removes an unused
-class from active use and automatically retires any saved, unconfirmed setup reviews in the same
-transaction. Rejected setup drafts and a confirmed empty opening do not prevent deletion.
-The class must never have recorded actual ownership activity. It keeps the class,
-deletion actor and time, drafts, decisions and evidence as audit history. Its code can then be reused
-by a new class without changing the earlier record. An empty register stub alone does not prevent
-deletion. Class rights revisions and their governing documents also remain in the audit and company
-pack without preventing retirement. Actual ownership history and other operational dependencies
-still block deletion. The web shows the
-reason beside a disabled **Delete** action. On a completed class page, this action sits
-below the ownership, rights and document cards, while Edit stays with Class details. Deletion retirement records its actor, time and reason
-without granting ordinary review approval authority. If retirement or deletion fails, both roll back. These
-controls are also available in the native app. On the web, Share classes supports selecting classes
-individually or every visible class with **Select all**, including protected classes. **Delete**
-is available when at least one selected class is removable. Its confirmation names those classes and
-shows which selected classes will be kept and why. Each removal is checked
-separately, so a refusal or uncertain result stops the sequence and leaves unsent classes untouched.
-Confirmed removals and retained records are not undone by a later refusal. Company closure uses its separate
+A share class's **Delete** deletes the class with all its records: its register and ownership,
+setup reviews and their decisions, issues, transfers, awards and vesting, corrections, Class rights,
+the class's shareholder-document links and its outputs
+([decision](../decisions.md#companies-may-delete-what-they-record)). One confirmation names the class
+and says this can't be undone. People stay, keeping the name and address the class recorded for them,
+and uploaded documents stay. The class code can then be reused. A class with on-chain records can't be
+deleted here; the web and app show that reason beside a disabled **Delete**. On a completed class
+page, this action sits below the ownership, rights and document cards, while Edit stays with Class
+details. If any part of a delete fails, nothing is deleted. These controls are also available in the
+native app. On the web, Share classes supports selecting classes individually or every visible class
+with **Select all**. **Delete** is available when at least one selected class can be deleted. Its
+confirmation names those classes and shows which will be kept and why. Each class is deleted
+separately, so a refusal or uncertain result stops the sequence and leaves unsent classes untouched;
+classes already deleted stay deleted. Company closure uses its separate
 [status controls](companies.md#staff-company-controls). Deployment, capital increases and
 pausing are company decisions; earlier direct actions by the owner or platform staff are retired,
 and their records stay readable. The register API can confirm a zero-issued opening for a genuinely

@@ -455,7 +455,6 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         investor_endpoint = "/api/v1/tokens/register-allotments/"
         prepared = self.client.post(investor_endpoint, investor, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
-        self.assertFalse(self.client.get(f"/api/v1/tokens/{empty_token.pk}/").json()["canDelete"])
         reviewed = self.client.post(
             f"{investor_endpoint}{prepared.json()['uuid']}/decision-preview/",
             {"appointment": str(self.appointment.pk), "kind": "approve"},
@@ -476,7 +475,6 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual((opening.register.sequence, int(opening.register.issued_supply)), (2, 25))
         self.assertEqual(RegisterPosition.objects.get(register=opening.register).shares, 25)
         self.assertEqual(RegisterEntry.objects.filter(register=opening.register, kind="issue").count(), 1)
-        self.assertFalse(self.client.get(f"/api/v1/tokens/{empty_token.pk}/").json()["canDelete"])
         configuration = Operator.get()
         with use_operator():
             Operator.objects.filter(pk=configuration.pk).update(issuer_kyc_required=True)

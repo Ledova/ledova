@@ -38,7 +38,8 @@ parser's thirteen meaningful hostile-input rows and the Terms/retention checks w
 Two additional methods cover immutable Terms receipts and provider erasure/maintenance; the Terms
 case includes six explicit refusal/mutation rows. No existing core journey is removed.
 Company deletion keeps two methods and two runtime-role rows for tenant preservation, file removal,
-the on-chain refusal and privileged-boundary refusals; no cap increase is needed.
+a failed class delete's rollback, the on-chain refusals and privileged-boundary refusals; no cap
+increase is needed.
 
 | Suite               | Delivered cases | Maximum | Essential coverage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | ------------------- | --------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -133,17 +134,16 @@ record the member's dated changes, the company's edit is refused until the link 
 database refuses a member's change to another member's particulars. The tenant controls include
 foreign invitation and revoked association refusals. One
 output case covers real company certificate PDFs, a register reader who lists no member invitations
-or associations and whose access ends with their appointment, pack provenance, retained rights and governing documents after an unused class is retired, file integrity,
+or associations and whose access ends with their appointment, pack provenance, an empty class's rights, details history and governing documents, file integrity,
 and the purge of export records after the retention floor. Two mirror cases cover complete copied
 holdings and allotments, once-only opening corrections, retained earlier snapshots, stale and
 incomplete requests, and refusal after later ownership or member-access activity. They exercise
 the API and PostgreSQL guards; they establish no genuine legal register or source verification.
-The existing class journey also covers metadata editing and unused-class deletion, stale versions,
-invalid or duplicate codes, unexpected fields, and refusal once an opening or operational record
-prevents the change. Rejecting a setup permits an otherwise eligible edit or removal from active
-classes; an otherwise unused confirmed empty opening can also leave active use while its opening
-entry remains intact. Deletion retains audit history, rejects actual ownership activity even with
-a zero current balance, and prevents new work against the deleted class. The
+The existing class journey also covers metadata editing and class deletion, stale versions,
+invalid or duplicate codes, unexpected fields, and refusal of an edit once an opening or operational
+record prevents it. Deleting a class removes it with its setup reviews, decisions, register and
+ownership, including a class with recorded ownership, keeps the person's recorded name and address,
+and lets a preparer delete. A failed delete removes nothing, and on-chain history refuses it. The
 existing web journey also checks that a blocked Delete action displays its accessible reason.
 These checks extend existing cases: 37 methods plus 61 rows remains 98; Dashboard remains 20.
 
