@@ -16,8 +16,10 @@ before opening your first pull request.
   tests or docs that assume real funds, real securities, real personal data or a
   mainnet deployment target. Example phone numbers are ones that
   [ACMA reserves for creative works](https://www.acma.gov.au/phone-numbers-use-tv-shows-films-and-creative-works),
-  such as 0491 570 156. The chain guards that fail closed on unsupported chain
-  ids are intentional; do not weaken them.
+  such as 0491 570 156. Example email addresses use a reserved domain, such as
+  example.com or a .test name; the demo sign-ins are the exception, at the
+  owner's ledova.io and blueberry.money. The chain guards that fail closed on
+  unsupported chain ids are intentional; do not weaken them.
 - **No secrets, ever.** No `.env` files, private keys, seed phrases, API tokens,
   real personal data or internal infrastructure identifiers. Only `.env.example`
   templates with blank values belong in the repository.

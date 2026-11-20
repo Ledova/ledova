@@ -76,7 +76,7 @@ export function YourAccount() {
               maxLength={FIELD_LIMITS.EMAIL}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
+              placeholder="you@example.com"
               required
               invalid={!!emailField.error}
               disabled={isSubmitting}
@@ -101,7 +101,7 @@ export function YourAccount() {
                   maxLength={FIELD_LIMITS.EMAIL}
                   value={confirmEmail}
                   onChange={(e) => setConfirmEmail(e.target.value)}
-                  placeholder="your@email.com"
+                  placeholder="you@example.com"
                   required
                   invalid={!!confirmField.error}
                   disabled={isSubmitting}
