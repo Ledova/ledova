@@ -289,7 +289,11 @@ export function useMemberDocuments({
     }
   };
   const remove = async (document: RegisterMemberDocument) => {
-    if (running.current || !ready || !appointment) return;
+    if (running.current) return;
+    if (!ready || !appointment) {
+      setError('Refresh the documents and your preparation appointment, then try again.');
+      return;
+    }
     running.current = true;
     setBusy(true);
     setError('');

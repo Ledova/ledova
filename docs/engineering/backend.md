@@ -315,7 +315,7 @@ Each step needing company authority rechecks it after taking the company lock, s
 that commits first refuses the step and records nothing. Requests, decisions, withdrawals and
 revocations are append-only, keep their actual actor, appointment, retry key, digest and
 database-stamped time, and are checked by database triggers; customer requests reach them only
-through the bounded services. The one exception is `DELETE` on a proposal still awaiting a decision
+through the bounded services. The exceptions are `DELETE` on a proposal still awaiting a decision
 (allotments, transfers, grants, imports, corrections and particulars changes): the
 `register_proposal_delete` command, under a `proposal` receipt and current preparation authority,
 removes it with its decisions, and an allotment's agreement and contribution. `DELETE` on a member
@@ -358,7 +358,8 @@ members exist. This copies existing holdings without manufacturing an issuance.
 `/api/v1/tokens/register-member-documents/` lists attachments with pagination and optional `company`,
 `member` and `token` filters. POST adds one to an existing holding under a current preparation
 appointment, keeping its actor and retry key. Reads and `/{uuid}/file/` downloads require current
-exact-company register authority; the file route rechecks its size and SHA-256. These bounded
+exact-company register authority; the file route rechecks its size and SHA-256. DELETE removes one
+under current preparation authority, with its evidence when nothing else uses it. These bounded
 operator routes expose no files through member or public projections. Categories describe the
 company's files and grant no disclosure or certificate-verification status
 ([business rules](../business/register.md#shareholder-documents)).

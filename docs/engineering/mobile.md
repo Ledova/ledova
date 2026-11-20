@@ -250,7 +250,8 @@ retained, opens Issue shares for an opened draft class they hold, or else the co
 them chosen in an investor issue, as on the web. **Transfer**, on a holding without a linked
 wallet in an opened draft class for someone who can prepare the register, opens the transfer's
 preparation with them as transferor, as on the web. **Documents** lists that person's retained
-supporting files across classes, with category, class and **Download**. **Add**, for someone
+supporting files across classes, with category, class, **Download** and, for current preparers,
+**Delete**. **Add**, for someone
 who can prepare the register, keeps the person fixed and offers **Share class** when they hold more
 than one class. `screens/shareholders/ShareholderDocuments.tsx` uses
 `useMemberDocuments`, with the same appointment checks and uncertain-save recovery. Picking a file
