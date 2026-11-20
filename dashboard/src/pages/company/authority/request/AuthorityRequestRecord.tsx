@@ -42,6 +42,7 @@ export function AuthorityRequestRecord({
   const [confirmingWithdrawal, setConfirmingWithdrawal] = useState(false);
   const [declarationShown, setDeclarationShown] = useState(false);
   const declarationId = useId();
+  const keptId = useId();
   const [confirmingRevocation, setConfirmingRevocation] = useState<symbol | null>(null);
   const revocationConfirmation = useRef<symbol | null>(null);
   const appointment = request.appointment;
@@ -248,14 +249,20 @@ export function AuthorityRequestRecord({
             <PageAction
               label="Revoke"
               context={`appointment for ${request.companyIdentityRaw.name}`}
-              disabled={blocked}
+              describedBy={appointment.revocationBlockedReason ? keptId : undefined}
+              disabled={blocked || !!appointment.revocationBlockedReason}
               onClick={() => {
-                if (blocked || revocationConfirmation.current) return;
+                if (blocked || appointment.revocationBlockedReason || revocationConfirmation.current) return;
                 const confirmation = Symbol();
                 revocationConfirmation.current = confirmation;
                 setConfirmingRevocation(confirmation);
               }}
             />
+          )}
+          {appointment && appointment.status !== 'revoked' && appointment.revocationBlockedReason && (
+            <p id={keptId} className="order-last basis-full text-sm text-text-muted">
+              {appointment.revocationBlockedReason}
+            </p>
           )}
         </FormActions>
       )}

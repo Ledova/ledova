@@ -488,6 +488,7 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
             self.profile.is_id_verified = True
             self.profile.save(update_fields=["is_id_verified"])
         self.assertTrue(self.client.get(documents_endpoint).json()["results"])
+        self.appoint_admin()
         revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
         self.assertEqual(self.client.get(documents_endpoint).json()["results"], [])
         self.assertEqual(self.client.get(f"{documents_endpoint}{document['uuid']}/file/").status_code, 404)

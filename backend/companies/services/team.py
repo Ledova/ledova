@@ -22,6 +22,7 @@ from companies.models import (
     CompanyCapability,
     CompanyTeamInvitation,
 )
+from companies.services.administration import require_another_administrator
 from companies.services.authority import (
     DECLARATION_TEXT,
     DECLARATION_VERSION,
@@ -225,5 +226,6 @@ def revoke_company_appointment(*, requester, appointment_id):
         if target.appointee_id != actor.pk:
             _require_admin(actor, target.company_id)
         target = CompanyAppointment.objects.select_for_update().get(pk=target.pk)
+        require_another_administrator(target)
         CompanyAppointmentRevocation.objects.get_or_create(appointment=target, defaults={"revoked_by": actor})
         return CompanyAppointment.objects.select_related("appointee", "company", "revocation").get(pk=target.pk)

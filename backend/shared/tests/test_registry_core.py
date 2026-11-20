@@ -564,6 +564,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(latest.revision, 2)
             self.assertEqual(latest.before, revision.after)
             self.assertEqual(latest.after, {**revision.after, "name": "Final empty class"})
+        self.appoint_admin()
         save_token = ShareToken.save
 
         def revoke_during_edit(instance, *args, **kwargs):
@@ -741,6 +742,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 404)
         self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 404)
         self.client.force_authenticate(self.owner)
+        self.appoint_admin()
         revoke_company_appointment(
             requester=self.owner,
             appointment_id=self.appointment.pk,
@@ -1236,6 +1238,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             raced = self.client.post("/api/v1/tokens/", class_payload, format="json")
         self.assertEqual(raced.status_code, 404, raced.content)
         self.assertFalse(ShareToken.objects.filter(company=self.company, symbol="RACE").exists())
+        self.appoint_admin()
         revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
         self.client.force_authenticate(self.owner)
         owner_without_authority = self.client.post("/api/v1/tokens/", class_payload, format="json")

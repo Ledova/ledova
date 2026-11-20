@@ -385,14 +385,17 @@ function AuthorityRequestRecord({
             <Action
               label="Revoke"
               accessibilityLabel={`Revoke appointment (${name})`}
-              disabled={blocked}
+              disabled={blocked || !!appointment.revocationBlockedReason}
               onPress={() => {
-                if (blocked || revocationConfirmation.current) return;
+                if (blocked || appointment.revocationBlockedReason || revocationConfirmation.current) return;
                 const confirmation = Symbol();
                 revocationConfirmation.current = confirmation;
                 setConfirmingRevocation(confirmation);
               }}
             />
+          )}
+          {appointment && appointment.status !== 'revoked' && !!appointment.revocationBlockedReason && (
+            <Text style={styles.muted}>{appointment.revocationBlockedReason}</Text>
           )}
         </FormActions>
       )}

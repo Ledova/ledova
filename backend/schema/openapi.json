@@ -1746,6 +1746,11 @@
             "readOnly": true,
             "type": "boolean"
           },
+          "revocationBlockedReason": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "revokedAt": {
             "format": "date-time",
             "nullable": true,
@@ -1775,6 +1780,7 @@
           "delegatableCapabilities",
           "expiresAt",
           "isEffective",
+          "revocationBlockedReason",
           "revokedAt",
           "status",
           "uuid"
@@ -2619,6 +2625,11 @@
             "readOnly": true,
             "type": "string"
           },
+          "revocationBlockedReason": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "revokedAt": {
             "format": "date-time",
             "nullable": true,
@@ -2657,6 +2668,7 @@
           "expiresAt",
           "isEffective",
           "name",
+          "revocationBlockedReason",
           "revokedAt",
           "source",
           "status",
@@ -6687,6 +6699,11 @@
             "readOnly": true,
             "type": "boolean"
           },
+          "revocationBlockedReason": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "revokedAt": {
             "format": "date-time",
             "nullable": true,
@@ -6737,6 +6754,7 @@
           "delegatableCapabilities",
           "expiresAt",
           "isEffective",
+          "revocationBlockedReason",
           "revokedAt",
           "signupTerms",
           "source",

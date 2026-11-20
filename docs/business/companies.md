@@ -177,9 +177,11 @@ Revocation rules:
 - Revocation is permanent and keeps the full history. A replacement comes only through a new
   invitation; no self-declaration restores an initial or legacy-owner appointment.
 - You can revoke your own appointment even after losing identity verification.
-- Administrators may revoke an initial appointment or another administrator's appointment. There
-  is no last-administrator exception: revoking the last administrator leaves the company without
-  one.
+- Administrators may revoke an initial appointment or another administrator's appointment.
+- A company's only current administrator can't revoke their own appointment. They appoint another
+  administrator first, or [delete the company](#deleting-a-company). The web and app show that
+  reason beside a disabled **Revoke**. Closing their account, or an expiry, can still leave a
+  company without an administrator.
 
 ## What an appointment records
 

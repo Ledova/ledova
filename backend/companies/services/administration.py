@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db import connections
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 
 from companies.models import (
     Company,
@@ -80,6 +80,28 @@ def require_company_administration(company, actor, profile, operator):
     ):
         return
     raise NotFound("Company not found or permission denied")
+
+
+LAST_ADMINISTRATOR = (
+    "You're the company's only administrator. Appoint another administrator first, or delete the company."
+)
+
+
+def last_administrator(appointment):
+    with use_operator(), _requester_principal(appointment.appointee_id):
+        administrators = (
+            CompanyAppointment.objects.filter(company_id=appointment.company_id)
+            .current(at=timezone.now(), identity_required=Operator.get().issuer_kyc_required)
+            .holding_any([CompanyCapability.ADMIN])
+        )
+        return (
+            administrators.filter(pk=appointment.pk).exists() and not administrators.exclude(pk=appointment.pk).exists()
+        )
+
+
+def require_another_administrator(appointment):
+    if last_administrator(appointment):
+        raise ValidationError(LAST_ADMINISTRATOR)
 
 
 def company_administrative_access(company, actor):
