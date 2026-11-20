@@ -211,8 +211,8 @@ one, then the Prepared copies card read through the shared `useClassRegister`,
 `useInspectionCopies` and `useClassInspectionCopy`: each recipient, then one muted line with the
 short request date, any late delivery and who prepared it when, then the instruction. **Prepare**
 beneath the card opens the web's New inspection copy card. Its request date is typed as `YYYY-MM-DD` (Sydney), starting
-at today; **Preview** shows the request's rows and **Confirm and download inspection
-copy** shares the CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack page, through
+at today; **Preview** shows the request's rows and **Download** shares the
+CSV. Company pack (`CompanyPackScreen.tsx`) is the web's Company pack page, through
 the shared `useCompanyPackAuthority`, `useCompanyPacks` and `useCompanyPack`: for a current
 administrator, the Prepared packs card (each recipient, then who prepared it when and its share-class
 count, then the instruction) and **Prepare** beneath it, whose New company pack card takes the

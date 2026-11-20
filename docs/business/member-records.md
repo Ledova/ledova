@@ -215,8 +215,7 @@ extend a limit that ends on a weekend or public holiday, which also errs towards
 2. On the web or in the app, open **Documents** → **Inspection copies** for the selected company and
    choose the share class. Its prepared copies come first; choose **Prepare** below
    them and enter the reference, recipient and request date (typed as `YYYY-MM-DD` in the app).
-3. Choose **Preview**, check the request, then **Confirm and
-   download inspection copy**.
+3. Choose **Preview**, check the request, then **Download**.
 
 The file is `register-<symbol>-inspection-copy.csv`; the app hands it to the phone's share sheet.
 A register with no opening, a request date after today and a blank field are refused. If the

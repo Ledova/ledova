@@ -449,8 +449,8 @@ A company can record a genuine non-paid transfer between members of an imported 
 has no contract, when neither has a linked wallet anywhere in the company. It creates no wallet,
 account, payment, application or chain transaction.
 
-1. On the web or in the app, in Ledger choose Transfer shares, the class, then Prepare a non-paid
-   transfer, or open **Transfer** on a holding on the shareholder page, which chooses the
+1. On the web or in the app, in Ledger choose Transfer shares, the class, then **Transfer**, or
+   open **Transfer** on a holding on the shareholder page, which chooses the
    transferor. For a class that uses the chain, the task says its transfers aren’t available in the
    web app or in the app.
 2. In **People and shares**, choose the transferor, recipient and shares

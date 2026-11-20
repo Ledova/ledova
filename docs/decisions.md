@@ -2240,8 +2240,8 @@ the rest of the app. The second step kept the wording that marks an irreversible
 step (**Permanently revoke appointment**, **Confirm and download inspection copy**, **Prepare a
 non-paid transfer**) until the owner decided on it. On 20 November 2026 the owner accepted the
 suggested short labels ("Proceed with your recommendations"): **Revoke**, whose dialog is titled
-"Revoke appointment permanently?", **Download** and **Transfer**, each keeping its object in the
-accessible name.
+"Revoke appointment permanently?", and **Download** and **Transfer**, which keep their objects in
+their accessible names.
 
 ## Mobile app for shareholders
 
