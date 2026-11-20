@@ -75,3 +75,6 @@ export const downloadRegisterImportFile = (
       })
     : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORT_FILE(uuid), { ...config, responseType: 'blob' });
 };
+
+export const deleteRegisterImport = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.delete<void>(`${COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORTS}${uuid}/`, config);

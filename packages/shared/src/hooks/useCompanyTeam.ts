@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getCompanyTeam, getCompanyTeamInvitations, revokeCompanyAppointment } from '../services/company-authority';
+import {
+  deleteCompanyTeamInvitation,
+  getCompanyTeam,
+  getCompanyTeamInvitations,
+  revokeCompanyAppointment,
+} from '../services/company-authority';
 import type { CompanyTeamAppointment, OwnCompanyAppointment } from '../types';
 import { appointmentReceipt, currentAppointment, sameScope } from '../utils/appointments';
 import { failureSentence } from '../utils/errors';
@@ -61,6 +66,7 @@ export function useCompanyTeam({
   const [sourceId, setSourceId] = useState('');
   const [formBusy, setFormBusy] = useState(false);
   const [revoking, setRevoking] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
   const [error, setError] = useState('');
   const pending = useRef(false);
   type Confirmation = {
@@ -126,7 +132,7 @@ export function useCompanyTeam({
       return result.data;
     },
   });
-  const disabled = !available || formBusy || revoking;
+  const disabled = !available || formBusy || revoking || withdrawing;
   const close = () => {
     ticket.current = null;
     setConfirmation(null);
@@ -216,6 +222,32 @@ export function useCompanyTeam({
       if (mounted.current) setRevoking(false);
     }
   };
+  const removeInvitation = async (uuid: string) => {
+    if (pending.current) return;
+    pending.current = true;
+    setWithdrawing(true);
+    setError('');
+    try {
+      guard();
+      const result = await deleteCompanyTeamInvitation(apiClient, uuid, {
+        ...session?.requestConfig(),
+        ledovaSubmissionGuard: guard,
+      });
+      guard();
+      if (result.status !== 204) throw new Error('The invitation deletion could not be confirmed. Refresh first.');
+      await invitations.refetch();
+    } catch (failure) {
+      try {
+        guard();
+        setError(failureSentence(failure, 'The invitation was not deleted. Try again.'));
+      } catch {
+        return;
+      }
+    } finally {
+      pending.current = false;
+      if (mounted.current) setWithdrawing(false);
+    }
+  };
   const issueGuard = () => {
     guard();
     const latest = client.getQueryData<OwnCompanyAppointment[]>(ownKey) ?? [];
@@ -253,6 +285,8 @@ export function useCompanyTeam({
     team,
     disabled,
     revoking,
+    withdrawing,
+    removeInvitation,
     close,
     canRevoke,
     confirm,

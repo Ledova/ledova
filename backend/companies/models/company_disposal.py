@@ -6,6 +6,8 @@ from shared.models import BaseModel
 class DeletionScope(models.TextChoices):
     COMPANY = "company", "Company"
     SHARE_CLASS = "share_class", "Share class"
+    PROPOSAL = "proposal", "Pending proposal"
+    INVITATION = "invitation", "Pending invitation"
 
 
 class CompanyDisposal(BaseModel):

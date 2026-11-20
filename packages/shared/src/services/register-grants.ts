@@ -70,3 +70,6 @@ export const downloadRegisterGrantFile = (
         responseType: 'blob',
       });
 };
+
+export const deleteRegisterGrant = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.delete<void>(`${COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANTS}${uuid}/`, config);

@@ -2,6 +2,7 @@ import { SelectField } from '@components/SelectField';
 import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { Actions, FormActions, Page, PageAction } from '@components/Page';
+import { Modal } from '@components/Modal';
 import { useSettingsNavigation } from '@hooks/useSettingsNavigation';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { useEffect, useRef, useState } from 'react';
@@ -77,7 +78,10 @@ function OwnTeam({
     confirm,
     issueGuard,
     companyName,
+    removeInvitation,
+    withdrawing,
   } = teamState;
+  const [withdrawn, setWithdrawn] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   if (!started && own.isSuccess && !own.isFetching && !settings.isLoading) {
     setStarted(true);
@@ -186,6 +190,18 @@ function OwnTeam({
                     {scopeFacts(item.capabilities, item.delegatableCapabilities)}
                   </p>
                   <p className="break-words text-xs text-text-muted">{issuedInvitationDates(item)}</p>
+                  {!item.acceptedAt && (
+                    <div className="flex justify-end">
+                      <PageAction
+                        compact
+                        destructive
+                        label="Delete"
+                        context={`invitation, ${scopeLabels(item.capabilities)}`}
+                        disabled={disabled}
+                        onClick={() => setWithdrawn(item.uuid)}
+                      />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
@@ -254,6 +270,23 @@ function OwnTeam({
       </div>
       <Failure>{error}</Failure>
       <RevokeAppointmentDialog team={teamState} />
+      <Modal
+        isOpen={!!withdrawn}
+        onClose={() => {
+          if (!withdrawing) setWithdrawn(null);
+        }}
+        title="Delete this invitation?"
+        showFooter
+        confirmLabel="Delete"
+        destructive
+        busy={withdrawing}
+        busyLabel="Deleting…"
+        onConfirm={() => {
+          if (withdrawn) void removeInvitation(withdrawn).finally(() => setWithdrawn(null));
+        }}
+      >
+        <p className="text-sm text-text-primary">Its code stops working. This can’t be undone.</p>
+      </Modal>
     </Page>
   );
 }

@@ -87,3 +87,6 @@ export const downloadRegisterCorrectionFile = (
         responseType: 'arraybuffer',
       })
     : apiClient.get<Blob>(COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTION_FILE(uuid), { ...config, responseType: 'blob' });
+
+export const deleteRegisterCorrection = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.delete<void>(`${COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS}${uuid}/`, config);

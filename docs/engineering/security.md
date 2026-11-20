@@ -106,7 +106,8 @@ through the administration check and exclude private identity, financial and aut
 Triggers attached in `companies/database_guards.sql`, with functions there and in
 `companies/authority_guards.sql`, refuse any update or deletion of authority requests, withdrawals,
 appointments, invitations, revocations and legacy-owner sources, except when the whole company is
-deleted ([company deletion](#account-closure-and-export)), and check admission, withdrawal,
+deleted ([company deletion](#account-closure-and-export)) or an administrator deletes an invitation
+that was never accepted, and check admission, withdrawal,
 acceptance and revocation, including admission making the company Active; those in
 `companies/activation_guards.sql` keep earlier activation receipts read-only.
 
@@ -330,7 +331,10 @@ company graph refuse the delete, which then removes nothing. Sign-ins and other 
 The command builds the manifest from company-scoped queries, or for a share class from that class's
 foreign-key dependants; the database checks the receipt's company, person, transaction and
 authority, and does not re-derive each listed row's company, so keeping companies apart there rests
-on those queries.
+on those queries. Deleting a pending proposal or an unaccepted invitation uses the same path with a
+`proposal` or `invitation` receipt: the database admits only that one record of the company, still
+pending, with its decisions (and an allotment's agreement and contribution), and requires current
+preparation authority for a proposal and administration for an invitation.
 
 Files under the company's private storage prefix are removed after the database commit, and any
 that fail go with the daily sweep of unreferenced uploads. Deleting a company does not erase support
@@ -379,8 +383,10 @@ change also keeps its own copy of the recorded name and residential address and,
 step or from a linked member's Profile, of the particulars it replaced; and a staff-era proposal or
 retained instruction keeps its copy of the staff-verified company document, which was itself
 deleted when company documents were [removed](../decisions.md#company-documents-removed). The
-database refuses ordinary deletion of these rows; only copies left by a rolled-back or interrupted
-preparation fall under the orphan sweep.
+database refuses ordinary deletion of these rows. A current preparer or administrator can delete a
+proposal still awaiting a decision, with its decisions and its document copies, through a `proposal`
+receipt; the evidence uploads stay. Only copies left by a rolled-back or interrupted preparation fall
+under the orphan sweep.
 
 The account periods and service Terms were accepted by the owner on 9 November under
 [#1589](https://github.com/Ledova/ledova/issues/1589). The former-member clock implements the

@@ -42,7 +42,9 @@ class RegisterGrantViewSet(RegisterProposalViewSet):
     queryset = RegisterGrant.objects.none()
     serializer_class = RegisterGrantSerializer
     scoped_model = RegisterGrant
+    http_method_names = RegisterProposalViewSet.deletable_methods
     operator_actions = RegisterProposalViewSet.operator_actions | {
+        "destroy",
         "create",
         "terms_file",
         "acceptance_file",

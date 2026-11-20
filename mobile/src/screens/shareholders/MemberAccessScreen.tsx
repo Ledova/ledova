@@ -228,6 +228,7 @@ function MemberAccess({
     setInvitationView((current) => ({ ...current, open: next, receipt: access.invitationReceipt }));
   const [revokeMember, setRevokeMember] = useState('');
   const [revoking, setRevoking] = useState<{ uuid: string; name: string } | null>(null);
+  const [withdrawing, setWithdrawing] = useState<{ uuid: string; name: string } | null>(null);
   const shown = !!inviteMember && member?.uuid === inviteMember;
   const target = `${company}:${inviteMember}`;
   if (shown && invitationView.target !== target)
@@ -387,6 +388,18 @@ function MemberAccess({
                       {`${item.intendedEmail} · invited ${formatShortDate(item.createdAt)}`}
                     </Text>
                     {!!deadline(item) && <Text style={look.small}>{deadline(item)}</Text>}
+                    {item.status !== 'accepted' && item.status !== 'revoked' && (
+                      <Actions>
+                        <Action
+                          compact
+                          destructive
+                          label="Delete"
+                          accessibilityLabel={`Delete invitation (${memberName(item.member)}, ${item.intendedEmail})`}
+                          disabled={busy}
+                          onPress={() => setWithdrawing({ uuid: item.uuid, name: memberName(item.member) })}
+                        />
+                      </Actions>
+                    )}
                   </View>
                 ))}
               </Rows>
@@ -501,6 +514,25 @@ function MemberAccess({
         }
       >
         <Text style={styles.text}>They lose access to their own records. Relinking needs a new invitation.</Text>
+      </CustomModal>
+      <CustomModal
+        visible={available && !!withdrawing}
+        title={withdrawing ? `Delete the invitation for ${withdrawing.name}?` : 'Delete the invitation'}
+        busy={access.busy}
+        onClose={() => setWithdrawing(null)}
+        actions={
+          <Action
+            label={access.busy ? 'Deleting…' : 'Delete'}
+            destructive
+            disabled={held || !access.admin}
+            onPress={() => {
+              if (!withdrawing || held || !access.admin) return;
+              void Promise.resolve(access.remove(withdrawing.uuid)).finally(() => setWithdrawing(null));
+            }}
+          />
+        }
+      >
+        <Text style={styles.text}>The invitation link stops working. This can’t be undone.</Text>
       </CustomModal>
     </>
   );

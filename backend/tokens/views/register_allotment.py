@@ -41,7 +41,9 @@ class RegisterAllotmentViewSet(RegisterProposalViewSet):
     queryset = RegisterAllotment.objects.none()
     serializer_class = RegisterAllotmentSerializer
     scoped_model = RegisterAllotment
+    http_method_names = RegisterProposalViewSet.deletable_methods
     operator_actions = RegisterProposalViewSet.operator_actions | {
+        "destroy",
         "create",
         "agreement_file",
         "receipt_file",

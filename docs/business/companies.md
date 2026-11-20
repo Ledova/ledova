@@ -145,7 +145,8 @@ be managed, and the same Account rows and card; there you type the invitation's 
    declaration. Your own account, verified email and the identity requirement apply. Editing the
    code clears your agreement; a failed acceptance keeps the input for a deliberate retry.
 4. Read your appointments' source, capabilities, expiry and status on Account, and the invitations
-   you issued, with their acceptance outcome, on Team. Expired and revoked records stay in these histories. Current
+   you issued, with their acceptance outcome, on Team. Until it is accepted, a current company
+   administrator can delete an invitation there; its code then stops working. Expired and revoked records stay in these histories. Current
    company administrators can also read the selected company's team: name, email, capabilities and
    status.
 5. Revoke your own appointment on Account or, as a current company administrator, any appointment
@@ -182,18 +183,20 @@ Revocation rules:
 - A company's only administrator can't revoke their own appointment, even while their identity
   verification has lapsed: a revoked appointment can't be restored, so the company would have no one
   to manage or delete it. They appoint another administrator first, or
-  [delete the company](#deleting-a-company). The web and app show that reason beside a disabled
-  **Revoke**. Closing their account, or an expiry, can still leave a company without an
-  administrator.
+  [delete the company](#deleting-a-company); if their identity verification has lapsed, they verify
+  again first. Another administrator counts only while current. The web and app show that reason
+  beside a disabled **Revoke**. Closing their account, or an expiry, can still leave a company
+  without an administrator.
 
 ## What an appointment records
 
 An appointment has exactly one source: an admitted initial request, an accepted invitation, or the
 retired owner upgrade. Besides its capabilities and expiry
 ([company capabilities](README.md#company-capabilities)), it records the appointee, their profile
-and the declaration they accepted. Appointments, requests, withdrawals, invitations
+and the declaration they accepted. Appointments, requests, withdrawals, accepted invitations
 and revocations cannot be edited or deleted on their own; they go only with the whole
 [company](#deleting-a-company) ([how company rows are protected](../engineering/security.md#company-rows)).
+An invitation that was never accepted can be deleted on its own.
 
 - Signup admission records the 2026-11-15 authority and Terms declaration. Invitation acceptance
   keeps its own 2026-10-04 declaration, as do the receipts of companies activated before activation

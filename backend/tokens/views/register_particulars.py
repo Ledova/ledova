@@ -31,7 +31,8 @@ class RegisterParticularsChangeViewSet(RegisterProposalViewSet):
     queryset = RegisterParticularsChange.objects.none()
     serializer_class = RegisterParticularsChangeSerializer
     scoped_model = RegisterParticularsChange
-    operator_actions = RegisterProposalViewSet.operator_actions | {"create"}
+    http_method_names = RegisterProposalViewSet.deletable_methods
+    operator_actions = RegisterProposalViewSet.operator_actions | {"destroy", "create"}
     operator_actions_because = (
         "Retained particulars change reads require this request's company owner or a current appointment holding "
         "administration or a register capability. The queryset binds every change and file to those companies. "

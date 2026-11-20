@@ -21,8 +21,13 @@ from companies.models import (
     CompanyAppointmentRevocation,
     CompanyCapability,
     CompanyTeamInvitation,
+    DeletionScope,
 )
-from companies.services.administration import require_another_administrator
+from companies.services.administration import (
+    company_operation,
+    lock_company_actor,
+    require_another_administrator,
+)
 from companies.services.authority import (
     DECLARATION_TEXT,
     DECLARATION_VERSION,
@@ -33,6 +38,7 @@ from companies.services.authority_requests import (
     _requester_principal,
     _require_requester,
 )
+from companies.services.company_deletion import current_appointment, follow_ups, remove
 from operators.models import Operator
 from shared.db import atomic, current_alias, use_app, use_operator
 from users.models import UserProfile
@@ -229,3 +235,36 @@ def revoke_company_appointment(*, requester, appointment_id):
         require_another_administrator(target)
         CompanyAppointmentRevocation.objects.get_or_create(appointment=target, defaults={"revoked_by": actor})
         return CompanyAppointment.objects.select_related("appointee", "company", "revocation").get(pk=target.pk)
+
+
+TEAM_INVITATION_ACCEPTED = "This invitation was accepted. Revoke the appointment instead."
+
+
+def delete_team_invitation(*, requester, invitation_id):
+    _require_requester(requester)
+    with use_operator(), _requester_principal(requester.pk):
+        administered = (
+            CompanyAppointment.objects.current_of(
+                requester, at=timezone.now(), identity_required=Operator.get().issuer_kyc_required
+            )
+            .holding_any([CompanyCapability.ADMIN])
+            .values("company_id")
+        )
+        target = get_object_or_404(CompanyTeamInvitation, pk=invitation_id, company_id__in=administered)
+    with company_operation(requester, target.company_id, "invitation_delete"), atomic(durable=True):
+        company, actor, _profile, operator = lock_company_actor(requester, target.company_id)
+        invitation = CompanyTeamInvitation.objects.select_for_update().filter(pk=target.pk, company=company).first()
+        appointment, expires_at = current_appointment(actor, company.pk, operator, [CompanyCapability.ADMIN])
+        if invitation is None or appointment is None:
+            raise NotFound("No CompanyTeamInvitation matches the given query.")
+        if CompanyAppointment.objects.filter(invitation_id=invitation.pk).exists():
+            raise ValidationError(TEAM_INVITATION_ACCEPTED)
+        rows = {CompanyTeamInvitation: list(CompanyTeamInvitation.objects.filter(pk=invitation.pk).values())}
+        remove(
+            company_id=company.pk,
+            actor_id=actor.pk,
+            appointment_id=appointment,
+            scope=DeletionScope.INVITATION,
+            rows=follow_ups(rows, lambda data: Q(pk__in=[])),
+            expires_at=expires_at,
+        )

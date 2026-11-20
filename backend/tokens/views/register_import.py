@@ -41,7 +41,14 @@ class RegisterImportViewSet(RegisterProposalViewSet):
     queryset = RegisterImport.objects.none()
     serializer_class = RegisterImportSerializer
     scoped_model = RegisterImport
-    operator_actions = RegisterProposalViewSet.operator_actions | {"create", "asic_file", "decision_preview", "decide"}
+    http_method_names = RegisterProposalViewSet.deletable_methods
+    operator_actions = RegisterProposalViewSet.operator_actions | {
+        "destroy",
+        "create",
+        "asic_file",
+        "decision_preview",
+        "decide",
+    }
     operator_actions_because = (
         "Retained import reads require this request's company owner or a current appointment holding "
         "administration or a register capability. The queryset binds every proposal and file to those companies. "

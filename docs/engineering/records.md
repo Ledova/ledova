@@ -237,11 +237,12 @@ application role writes them. The purge is in [retention clocks](security.md#ret
 
 The register spine `Company -> ShareToken -> {ShareIssuance, ShareIssuanceRequest,
 CapitalIncreaseRequest, TransferOrder}` and `SwapOrder.share_token` use `PROTECT`, which admin
-removal of test data still respects. The database guards refuse ordinary deletes. Two company
+removal of test data still respects. The database guards refuse ordinary deletes. Company delete
 commands are the exceptions, each through a receipt whose exact-row manifest the guards check: an
-administrator [deletes the company](security.md#account-closure-and-export), and a preparer deletes
-a share class with all its records ([class lifecycle](backend.md#company-workflow-api)). Both need
-current company authority, and a class delete also needs an unchanged version. They keep guards and
+administrator [deletes the company](security.md#account-closure-and-export) or an invitation never
+accepted, and a preparer deletes a share class with all its records
+([class lifecycle](backend.md#company-workflow-api)) or a proposal still awaiting a decision. Each
+needs current company authority, and a class delete also needs an unchanged version. They keep guards and
 foreign-key checks, refuse on-chain and execution history, grant no delete access to the admin and do
 not erase an account, another company or chain history. Deleting a wallet cascades its whitelist
 entry and that entry's company approvals and leaves the approval on chain; durable
@@ -685,8 +686,9 @@ deltas. The register's member rows carry `follows_profile`, true while the membe
 association, without naming the account. Accepting brings the register up to the person's profile
 ([particulars changes API](#particulars-changes-api)).
 
-Fresh migrations install the association and the append-only invitation and revocation records with
-RLS forced and no application-role grants. Their guards require current company administration and
+Fresh migrations install the association and the invitation and revocation records with RLS forced
+and no application-role grants. Invitations and revocations are append-only, except that a current
+administrator can delete an invitation that was never accepted, through an `invitation` receipt. Their guards require current company administration and
 one exact recorded member and recipient for an invitation; the exact invited recipient, current
 source and an owned account for acceptance; and exact current company revocation to end an
 association. Constraint triggers recheck identity and authority at commit.

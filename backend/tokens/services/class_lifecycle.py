@@ -15,6 +15,7 @@ from companies.services.company_deletion import (
     discard,
     follow_ups,
     remove,
+    reverse_relations,
     stored_files,
 )
 from shared.db import current_alias
@@ -147,7 +148,7 @@ def share_class_rows(token, alias=None):
     queue = deque([(ShareToken, [token.pk])])
     while queue:
         model, identifiers = queue.popleft()
-        for related in model._meta.related_objects:
+        for related in reverse_relations(model):
             target = related.related_model
             found = list(
                 target._base_manager.using(alias)

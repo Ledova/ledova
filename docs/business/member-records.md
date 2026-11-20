@@ -82,7 +82,10 @@ read their own records without a wallet. It gives no company appointment, holdin
    accepted the email for sending. A sending failure offers a retry of the same invitation; a lost
    reply can result in another copy of the same email, without another invitation or access grant.
 
-The invitation expires at the displayed deadline, 7 days by default and never more than 30.
+The invitation expires at the displayed deadline, 7 days by default and never more than 30. Until
+it is accepted, a current company administrator can delete it from **Member access**; its link
+then stops working. An accepted invitation stays with the access it created, which is revoked
+instead.
 
 ### Accepting an invitation
 

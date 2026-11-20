@@ -76,6 +76,7 @@ export function CompanyMemberAccess({
     setInvitationView((current) => ({ ...current, open, receipt: access.invitationReceipt }));
   const [revokeMember, setRevokeMember] = useState('');
   const [revoking, setRevoking] = useState<{ uuid: string; name: string } | null>(null);
+  const [withdrawing, setWithdrawing] = useState<{ uuid: string; name: string } | null>(null);
   const invite = useRef<HTMLHeadingElement>(null);
   const inviteAction = useRef<HTMLButtonElement>(null);
   const restoreInviteFocus = useRef(false);
@@ -231,6 +232,7 @@ export function CompanyMemberAccess({
                 <span>Person</span>
                 <span>Invited</span>
                 <span>Status</span>
+                <span className="sr-only">Action</span>
               </div>
               <ul aria-label="Member invitations" className="divide-y divide-border-subtle">
                 {invitations.map((item) => (
@@ -254,6 +256,18 @@ export function CompanyMemberAccess({
                       {item.intendedEmail} · invited {formatShortDate(item.createdAt)}
                       {deadline(item) && <span className="block">{deadline(item)}</span>}
                     </span>
+                    {item.status !== 'accepted' && item.status !== 'revoked' && (
+                      <div className="col-span-2 flex items-start justify-end md:col-span-3 xl:col-span-1">
+                        <PageAction
+                          compact
+                          destructive
+                          label="Delete"
+                          context={`invitation for ${memberName(item.member)}, ${item.intendedEmail}`}
+                          disabled={held}
+                          onClick={() => setWithdrawing({ uuid: item.uuid, name: memberName(item.member) })}
+                        />
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -389,6 +403,20 @@ export function CompanyMemberAccess({
           }
         >
           They lose access to their own records. Relinking needs a new invitation.
+        </Confirmation>
+      )}
+      {withdrawing && (
+        <Confirmation
+          isOpen
+          title={`Delete the invitation for ${withdrawing.name}?`}
+          confirmLabel="Delete"
+          confirmDisabled={held || !access.admin}
+          busy={access.busy}
+          busyLabel="Deleting…"
+          onClose={() => setWithdrawing(null)}
+          onConfirm={() => void Promise.resolve(access.remove(withdrawing.uuid)).finally(() => setWithdrawing(null))}
+        >
+          The invitation link stops working. This can’t be undone.
         </Confirmation>
       )}
     </>

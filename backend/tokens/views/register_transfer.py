@@ -48,7 +48,9 @@ class RegisterTransferViewSet(RegisterProposalViewSet):
     queryset = RegisterTransfer.objects.none()
     serializer_class = RegisterTransferSerializer
     scoped_model = RegisterTransfer
+    http_method_names = RegisterProposalViewSet.deletable_methods
     operator_actions = RegisterProposalViewSet.operator_actions | {
+        "destroy",
         "create",
         "instrument_file",
         "decision_preview",

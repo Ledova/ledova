@@ -96,3 +96,6 @@ export const downloadRegisterAllotmentFile = (
         responseType: 'blob',
       });
 };
+
+export const deleteRegisterAllotment = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.delete<void>(`${COMPANY_TOKEN_ENDPOINTS.REGISTER_ALLOTMENTS}${uuid}/`, config);

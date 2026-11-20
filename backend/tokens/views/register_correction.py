@@ -40,7 +40,8 @@ class RegisterCorrectionViewSet(RegisterProposalViewSet):
     queryset = RegisterCorrection.objects.none()
     serializer_class = RegisterCorrectionSerializer
     scoped_model = RegisterCorrection
-    operator_actions = RegisterProposalViewSet.operator_actions | {"create", "decision_preview", "decide"}
+    http_method_names = RegisterProposalViewSet.deletable_methods
+    operator_actions = RegisterProposalViewSet.operator_actions | {"destroy", "create", "decision_preview", "decide"}
     operator_actions_because = (
         "Retained correction reads require this request's company owner or a current appointment holding "
         "administration or a register capability. The queryset binds every proposal and file to those companies. "
