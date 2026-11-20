@@ -14652,6 +14652,10 @@
           "currentShares": {
             "type": "string"
           },
+          "deletable": {
+            "description": "Whether the company can delete this person now: no shares and no register records naming them.",
+            "type": "boolean"
+          },
           "enteredOn": {
             "format": "date",
             "nullable": true,
@@ -31548,6 +31552,50 @@
               }
             },
             "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/register-people/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_people_destroy",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The person's member ID.",
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
           }
         },
         "security": [

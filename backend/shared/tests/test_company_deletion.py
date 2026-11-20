@@ -36,12 +36,14 @@ from tokens.models import (
     RegisterEntry,
     RegisterEvidence,
     RegisterEvidenceKind,
+    RegisterMember,
     RegisterPosition,
     ShareToken,
     TokenDeployment,
 )
 from tokens.services.class_lifecycle import KEPT_ON_CHAIN as CLASS_ON_CHAIN
 from tokens.services.pending_deletion import ACCEPTED, NOT_PENDING
+from tokens.services.register_people import PERSON_IN_USE
 from users.models import Notification, UserProfile
 from users.tasks.notifications import send_push_notification
 
@@ -207,12 +209,60 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
         self.assertTrue(private_storage().exists(evidence.file.name))
         self.assertEqual(self.client.delete(f"{documents}{shared.json()['uuid']}/").status_code, 204)
         self.assertFalse(private_storage().exists(evidence.file.name))
+        people = "/api/v1/tokens/register-people/"
+        person = str(uuid4())
+        added = self.client.post(
+            people,
+            {
+                "operation_id": str(uuid4()),
+                "company": str(self.company.pk),
+                "appointment": str(self.appointment.pk),
+                "member": person,
+                "name": "Riley Removed",
+                "residential_address": "1 Gone Street, Sydney NSW 2000",
+            },
+            format="json",
+        )
+        self.assertEqual(added.status_code, 201, added.content)
+        listed = {
+            row["member"]: row["deletable"]
+            for row in self.client.get(people, {"company": self.company.pk}).json()["members"]
+        }
+        self.assertEqual((listed[person], listed[str(self.member.pk)]), (True, False))
+        held = self.client.delete(f"{people}{self.member.pk}/?company={self.company.pk}")
+        self.assertEqual(held.status_code, 400, held.content)
+        self.assertIn(PERSON_IN_USE, held.content.decode())
+        with atomic(using=OPERATOR_ALIAS):
+            with connections[OPERATOR_ALIAS].cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config('app.company_id', %s, true), "
+                    "set_config('app.company_operation', 'register_person_delete', true), "
+                    "set_config('app.user_id', %s, true)",
+                    [str(self.company.pk), str(self.owner.pk)],
+                )
+            with self.assertRaisesMessage(DatabaseError, "Only a deletable record"), atomic(using=OPERATOR_ALIAS):
+                with connections[OPERATOR_ALIAS].cursor() as cursor:
+                    cursor.execute(
+                        "INSERT INTO companies_companydisposal (uuid, created_at, updated_at, company_id, "
+                        "scope, actor_id, appointment_id, manifest, transaction_id) "
+                        "VALUES (%s, now(), now(), %s, 'person', %s, %s, %s, txid_current())",
+                        [
+                            uuid4(),
+                            self.company.pk,
+                            self.owner.pk,
+                            self.appointment.pk,
+                            json.dumps({"tokens_registermember": [award["member"]]}),
+                        ],
+                    )
+        self.assertEqual(self.client.delete(f"{people}{person}/?company={self.company.pk}").status_code, 204)
         with use_migrate():
+            self.assertFalse(RegisterMember.objects.filter(pk=person).exists())
+            self.assertTrue(RegisterMember.objects.filter(pk=self.member.pk).exists())
             self.assertFalse(RegisterEvidence.objects.filter(pk=evidence.pk).exists())
             self.assertTrue(RegisterEvidence.objects.filter(pk=document.pk).exists())
             self.assertEqual(
                 sorted(CompanyDisposal.objects.filter(company_id=self.company.pk).values_list("scope", flat=True)),
-                ["document", "document", "invitation", "invitation", "proposal", "share_class"],
+                ["document", "document", "invitation", "invitation", "person", "proposal", "share_class"],
             )
             self.assertFalse(CompanyTeamInvitation.objects.filter(pk=team_invitation.pk).exists())
         self.assertEqual(member_client.delete(f"/api/v1/companies/{self.company.pk}/").status_code, 404)

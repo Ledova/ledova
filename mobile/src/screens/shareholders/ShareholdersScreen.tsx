@@ -25,6 +25,7 @@ import {
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { FilterPopover } from '../../components/FilterPopover';
+import { CustomModal } from '../../components/modal';
 import {
   Action,
   Actions,
@@ -121,6 +122,7 @@ function CompanyShareholders({
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const source = useCompanyRegisters(owner, currentOwner, company, 'Shareholders', available);
   const [held, setHeld] = useState(false);
+  const [deleting, setDeleting] = useState<Person | null>(null);
   usePreventRemove(held, () => {});
   const [refreshing, setRefreshing] = useState(false);
   const [typed, setTyped] = useState('');
@@ -328,6 +330,18 @@ function CompanyShareholders({
                           <View key={row.member} style={look.row}>
                             <Text style={look.text}>{row.name}</Text>
                             <Text style={look.muted}>{row.residentialAddress}</Text>
+                            {person.canPrepare && !person.editing && row.deletable && (
+                              <Actions>
+                                <Action
+                                  compact
+                                  destructive
+                                  label="Delete"
+                                  accessibilityLabel={`Delete (${row.name})`}
+                                  disabled={held || person.busy}
+                                  onPress={() => setDeleting(row)}
+                                />
+                              </Actions>
+                            )}
                           </View>
                         ))}
                       </Rows>
@@ -354,6 +368,11 @@ function CompanyShareholders({
             <Loading>Loading company people…</Loading>
           ) : null}
           {!!person.outcome && <Outcome>{person.outcome}</Outcome>}
+          {!person.editing && !!person.error && (
+            <Text accessibilityRole="alert" style={form.error}>
+              {person.error}
+            </Text>
+          )}
           {person.appointments.isError && (
             <LoadError retry={() => person.appointments.refetch()} busy={person.appointments.isFetching}>
               Your appointments could not be loaded.
@@ -374,6 +393,28 @@ function CompanyShareholders({
           ) : null}
         </>
       )}
+      <CustomModal
+        visible={!!deleting}
+        title="Delete this person?"
+        busy={person.busy}
+        onClose={() => setDeleting(null)}
+        actions={
+          <Action
+            label={person.busy ? 'Deleting…' : 'Delete'}
+            accessibilityLabel={`${person.busy ? 'Deleting…' : 'Delete'} (person)`}
+            destructive
+            disabled={person.busy}
+            onPress={() => {
+              if (deleting) void person.remove(deleting).finally(() => setDeleting(null));
+            }}
+          />
+        }
+      >
+        <Text style={form.text}>
+          {deleting?.name}’s particulars, and any access they have to their records, are removed for everyone. This
+          can’t be undone.
+        </Text>
+      </CustomModal>
     </Page>
   );
 }

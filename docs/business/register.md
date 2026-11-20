@@ -190,7 +190,7 @@ them, with residential addresses, in inspection copies. Particulars are
 kept while a person is a member and for the retention period after they last held shares, at least
 seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)). The
 clock runs from the person's recorded positions, so when the only class someone held is deleted,
-their particulars stay until the company is deleted. Deleting a person is planned under #1723.
+their particulars stay until the company deletes that person or the company.
 
 ## Opening a register
 
@@ -795,6 +795,11 @@ to the legal register; a later confirmed opening, share issue or transfer record
 The company's current preparation or administration appointment is required. A retry retrieves
 the original person registration instead of creating another identity. Names and addresses can
 coincide between different people; the stored member ID distinguishes them.
+
+A person without shares shows **Delete** to a current preparer when nothing on the register names
+them: no recorded holding, cessation, award, grant, allotment, transfer, opening record or on-chain
+record. One confirmation removes their particulars, registration and particulars changes, and any
+invitation or access they have to their records; removing access needs a current administrator.
 
 An award recipient without shares has a person record from their first award. Every flow uses
 their member ID and current particulars, so an issue, a transfer or another award reaches the same

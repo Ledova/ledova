@@ -322,7 +322,10 @@ removes it with its decisions, and an allotment's agreement and contribution. `D
 invitation or a team invitation that was never accepted runs `invitation_delete` under an
 `invitation` receipt and current administration. `DELETE` on a shareholder document runs
 `register_document_delete` under a `document` receipt and current preparation authority; it removes
-the document's stored file too when nothing else references it. An uncertain reply is resolved by resending the exact original body
+the document's stored file too when nothing else references it. `DELETE` on a person
+(`register-people/<member>/?company=`) runs `register_person_delete` under a `person` receipt when
+nothing on the register names them; it needs preparation, or administration when the person has
+member invitations or access. The people list reports `deletable`. An uncertain reply is resolved by resending the exact original body
 and key: current read access recovers the retained receipt, even after the appointment has
 expired or the proposal has changed stage. No replay after process loss is promised, and a client
 never infers success from a lost response.

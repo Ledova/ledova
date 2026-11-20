@@ -180,6 +180,10 @@ class RegisterMemberSelectionSerializer(serializers.Serializer):
         required=False,
         help_text="Whether a current Ledova account link keeps the person's particulars up to date from their profile.",
     )
+    deletable = serializers.BooleanField(
+        required=False,
+        help_text="Whether the company can delete this person now: no shares and no register records naming them.",
+    )
 
 
 class RegisterAwardRecipientSerializer(serializers.Serializer):

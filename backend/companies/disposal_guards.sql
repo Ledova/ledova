@@ -31,6 +31,11 @@ BEGIN
     ELSIF scope = 'document' THEN
         subjects := ARRAY['tokens_registermemberdocument'];
         allowed := subjects || ARRAY['tokens_registerevidence'];
+    ELSIF scope = 'person' THEN
+        subjects := ARRAY['tokens_registermember'];
+        allowed := subjects || ARRAY['tokens_registermemberparticulars', 'tokens_registerpersonregistration',
+            'tokens_registerparticularschange', 'tokens_registerparticularschangedecision', 'tokens_memberinvitation',
+            'tokens_memberassociation', 'tokens_memberassociationrevocation'];
     ELSE
         RETURN NULL;
     END IF;
@@ -68,9 +73,10 @@ BEGIN
             OR COALESCE(operation = CASE receipt.scope
                 WHEN 'company' THEN 'company_delete' WHEN 'share_class' THEN 'register_class_delete'
                 WHEN 'proposal' THEN 'register_proposal_delete' WHEN 'invitation' THEN 'invitation_delete'
-                WHEN 'document' THEN 'register_document_delete' END, false))
-        OR receipt.scope NOT IN ('company', 'share_class', 'proposal', 'invitation', 'document')
-        OR (receipt.scope IN ('proposal', 'invitation', 'document')
+                WHEN 'document' THEN 'register_document_delete' WHEN 'person' THEN 'register_person_delete' END,
+                false))
+        OR receipt.scope NOT IN ('company', 'share_class', 'proposal', 'invitation', 'document', 'person')
+        OR (receipt.scope IN ('proposal', 'invitation', 'document', 'person')
             AND companies_receipt_subject(receipt.scope, receipt.manifest) IS NULL)
         OR (receipt.scope = 'company'
             AND receipt.manifest->'companies_company' IS DISTINCT FROM jsonb_build_array(receipt.company_id::text))
@@ -93,11 +99,11 @@ BEGIN
     migrating := COALESCE(current_user = @MIGRATE_ROLE@ AND operation = 'schema_migration', false);
     IF TG_OP = 'DELETE' OR current_user NOT IN (@OPERATOR_ROLE@, @MIGRATE_ROLE@) OR principal IS NULL
         OR NEW.actor_id IS DISTINCT FROM principal OR NEW.transaction_id IS DISTINCT FROM txid_current()
-        OR NEW.scope IS NULL OR NEW.scope NOT IN ('company', 'share_class', 'proposal', 'invitation', 'document')
+        OR NEW.scope IS NULL OR NEW.scope NOT IN ('company', 'share_class', 'proposal', 'invitation', 'document', 'person')
         OR NOT (migrating OR COALESCE(operation = CASE NEW.scope
             WHEN 'company' THEN 'company_delete' WHEN 'share_class' THEN 'register_class_delete'
             WHEN 'proposal' THEN 'register_proposal_delete' WHEN 'invitation' THEN 'invitation_delete'
-            WHEN 'document' THEN 'register_document_delete' END, false))
+            WHEN 'document' THEN 'register_document_delete' WHEN 'person' THEN 'register_person_delete' END, false))
         OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text THEN
         RAISE EXCEPTION 'Only the company''s own delete command records its deletion' USING ERRCODE = '23514';
     END IF;
@@ -112,7 +118,7 @@ BEGIN
         THEN
             RAISE EXCEPTION 'A share class deletion names exactly one class of its company' USING ERRCODE = '23514';
         END IF;
-        IF NEW.scope IN ('proposal', 'invitation', 'document') THEN
+        IF NEW.scope IN ('proposal', 'invitation', 'document', 'person') THEN
             subject := companies_receipt_subject(NEW.scope, NEW.manifest);
             IF subject IS NULL THEN
                 RAISE EXCEPTION 'A record deletion names exactly one record of its scope' USING ERRCODE = '23514';
@@ -121,6 +127,50 @@ BEGIN
                 SELECT company_id, CASE WHEN COALESCE(NEW.manifest->'tokens_registerevidence', '[]'::jsonb)
                         IN ('[]'::jsonb, jsonb_build_array(evidence_id::text)) THEN 'submitted' END
                     INTO owner, state FROM tokens_registermemberdocument WHERE uuid = (NEW.manifest->subject->>0)::uuid;
+            ELSIF NEW.scope = 'person' THEN
+                target := (NEW.manifest->subject->>0)::uuid;
+                SELECT member.company_id, CASE WHEN EXISTS (SELECT 1 FROM tokens_registerposition WHERE member_id = target)
+                        OR EXISTS (SELECT 1 FROM tokens_registermembercessation WHERE member_id = target)
+                        OR EXISTS (SELECT 1 FROM tokens_registermemberwallet WHERE member_id = target)
+                        OR EXISTS (SELECT 1 FROM tokens_registerinstruction WHERE member_id = target)
+                        OR EXISTS (SELECT 1 FROM tokens_registeraward WHERE member = target)
+                        OR EXISTS (SELECT 1 FROM tokens_registergrant WHERE member = target)
+                        OR EXISTS (SELECT 1 FROM tokens_registerallotment WHERE member = target)
+                        OR EXISTS (SELECT 1 FROM tokens_registertransfer WHERE target IN (from_member, to_member))
+                        OR EXISTS (SELECT 1 FROM tokens_registerimport WHERE company_id = member.company_id
+                            AND members @> jsonb_build_array(jsonb_build_object('member', target::text)))
+                        OR EXISTS (SELECT 1 FROM tokens_registeropening WHERE company_id = member.company_id
+                            AND mapping @> jsonb_build_array(jsonb_build_object('member', target::text)))
+                        OR EXISTS (SELECT 1 FROM tokens_registerwalletlink WHERE company_id = member.company_id
+                            AND mapping @> jsonb_build_array(jsonb_build_object('member', target::text)))
+                        THEN 'used' ELSE 'submitted' END
+                    INTO owner, state FROM tokens_registermember member WHERE member.uuid = target;
+                IF EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(NEW.manifest->'tokens_registermemberparticulars', '[]'::jsonb)) listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registermemberparticulars item WHERE item.uuid = listed.id::uuid AND item.member_id = target))
+                    OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(NEW.manifest->'tokens_registerpersonregistration', '[]'::jsonb)) listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registerpersonregistration item WHERE item.uuid = listed.id::uuid AND item.member_id = target))
+                    OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(NEW.manifest->'tokens_registerparticularschange', '[]'::jsonb)) listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registerparticularschange item WHERE item.uuid = listed.id::uuid AND item.member_id = target))
+                    OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(NEW.manifest->'tokens_registerparticularschangedecision', '[]'::jsonb)) listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registerparticularschangedecision item
+                            WHERE item.uuid = listed.id::uuid AND COALESCE(NEW.manifest->'tokens_registerparticularschange', '[]'::jsonb)
+                                @> jsonb_build_array(item.register_particulars_change_id::text)))
+                    OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(NEW.manifest->'tokens_memberassociationrevocation', '[]'::jsonb)) listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_memberassociationrevocation item
+                            WHERE item.uuid = listed.id::uuid AND COALESCE(NEW.manifest->'tokens_memberassociation', '[]'::jsonb)
+                                @> jsonb_build_array(item.association_id::text)))
+                    OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(NEW.manifest->'tokens_memberinvitation', '[]'::jsonb)) listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_memberinvitation item
+                            WHERE item.uuid = listed.id::uuid AND item.member = target AND item.company_id = NEW.company_id))
+                    OR EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(NEW.manifest->'tokens_memberassociation', '[]'::jsonb)) listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_memberassociation item
+                            WHERE item.uuid = listed.id::uuid AND item.member = target AND item.company_id = NEW.company_id))
+                    OR EXISTS (SELECT 1 FROM tokens_memberinvitation item WHERE item.member = target
+                        AND NOT COALESCE(NEW.manifest->'tokens_memberinvitation', '[]'::jsonb) @> jsonb_build_array(item.uuid::text))
+                    OR EXISTS (SELECT 1 FROM tokens_memberassociation item WHERE item.member = target
+                        AND NOT COALESCE(NEW.manifest->'tokens_memberassociation', '[]'::jsonb) @> jsonb_build_array(item.uuid::text)) THEN
+                    RAISE EXCEPTION 'A person deletion lists exactly that person''s own records' USING ERRCODE = '23514';
+                END IF;
             ELSIF NEW.scope = 'proposal' THEN
                 target := (NEW.manifest->subject->>0)::uuid;
                 EXECUTE format('SELECT company_id, status FROM %I WHERE uuid = $1', subject)
@@ -180,6 +230,13 @@ BEGIN
             AND tokens_register_appointment_current(NEW.appointment_id, NEW.company_id, principal, 'admin',
                 clock_timestamp())) THEN
             RAISE EXCEPTION 'Deleting an invitation requires current administration' USING ERRCODE = '23514';
+        END IF;
+        IF NEW.scope = 'person' AND NOT (NEW.appointment_id IS NOT NULL
+            AND tokens_register_appointment_current(NEW.appointment_id, NEW.company_id, principal,
+                CASE WHEN jsonb_array_length(COALESCE(NEW.manifest->'tokens_memberinvitation', '[]'::jsonb))
+                    + jsonb_array_length(COALESCE(NEW.manifest->'tokens_memberassociation', '[]'::jsonb)) > 0
+                    THEN 'admin' ELSE 'prepare' END, clock_timestamp())) THEN
+            RAISE EXCEPTION 'Deleting this person requires current company authority' USING ERRCODE = '23514';
         END IF;
         IF NEW.scope = 'company' AND NOT (
             (NEW.appointment_id IS NOT NULL AND tokens_register_appointment_current(
