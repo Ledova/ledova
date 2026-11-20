@@ -28,6 +28,7 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
   const { company } = data;
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Company | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const editAction = useRef<HTMLButtonElement>(null);
   const closeEdit = () => {
     setEditing(null);
@@ -123,9 +124,17 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
                     onClick={() => setEditing(company)}
                     disabled={data.isRefreshing}
                   />
-                  <DeleteCompany company={company} data={data} />
+                  <PageAction
+                    compact
+                    destructive
+                    label="Delete"
+                    context="company"
+                    disabled={data.isRefreshing}
+                    onClick={() => setDeleting(true)}
+                  />
                 </Actions>
               )}
+              {deleting && <DeleteCompany company={company} data={data} onClose={() => setDeleting(false)} />}
             </>
           )}
         </>
@@ -134,47 +143,41 @@ function CompanyDetails({ data }: { data: ReturnType<typeof useCompanySelection>
   );
 }
 
-function DeleteCompany({ company, data }: { company: Company; data: ReturnType<typeof useCompanySelection> }) {
+function DeleteCompany({
+  company,
+  data,
+  onClose,
+}: {
+  company: Company;
+  data: ReturnType<typeof useCompanySelection>;
+  onClose: () => void;
+}) {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
   const removal = useCompanyDeletion({
     company,
     read: data,
     onDeleted: () => void navigate(DESTINATIONS.home.path, { replace: true }),
   });
   return (
-    <>
-      <PageAction
-        compact
-        destructive
-        label="Delete"
-        context="company"
-        disabled={data.isRefreshing}
-        onClick={() => {
-          removal.reset();
-          setOpen(true);
-        }}
-      />
-      <Modal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        title={`Delete ${company.name}?`}
-        showFooter
-        confirmLabel="Delete"
-        destructive
-        onConfirm={() => removal.mutate()}
-        busy={removal.isPending}
-        busyLabel="Deleting…"
-      >
-        <p className="text-sm text-text-primary">
-          This deletes the company and all its records for everyone. This can’t be undone.
+    <Modal
+      isOpen
+      onClose={onClose}
+      title={`Delete ${company.name}?`}
+      showFooter
+      confirmLabel="Delete"
+      destructive
+      onConfirm={() => removal.mutate()}
+      busy={removal.isPending}
+      busyLabel="Deleting…"
+    >
+      <p className="text-sm text-text-primary">
+        This deletes the company and all its records for everyone. This can’t be undone.
+      </p>
+      {removal.isError && (
+        <p role="alert" className="mt-3 text-sm text-error-light">
+          {failureSentence(removal.error, 'The company was not deleted. Try again.')}
         </p>
-        {removal.isError && (
-          <p role="alert" className="mt-3 text-sm text-error-light">
-            {failureSentence(removal.error, 'The company was not deleted. Try again.')}
-          </p>
-        )}
-      </Modal>
-    </>
+      )}
+    </Modal>
   );
 }

@@ -1,5 +1,3 @@
-import django.db.models.deletion
-from django.conf import settings
 from django.db import migrations, models
 
 from companies.disposal_guards import install, widen_delete_gates
@@ -14,7 +12,6 @@ class Migration(migrations.Migration):
     dependencies = [
         ("companies", "0009_remove_retired_review"),
         ("tokens", "0014_empty_class_rights"),
-        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
@@ -33,10 +30,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="companydisposal",
-            name="actor",
-            field=models.ForeignKey(
-                on_delete=django.db.models.deletion.PROTECT, related_name="+", to=settings.AUTH_USER_MODEL
-            ),
+            name="actor_id",
+            field=models.BigIntegerField(),
         ),
         migrations.AddField(
             model_name="companydisposal",

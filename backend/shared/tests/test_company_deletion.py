@@ -152,7 +152,7 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
                 100,
             )
             self.assertEqual(UserProfile.objects.get(pk=self.foreign_profile.pk).full_name, foreign_profile)
-            self.assertTrue(self.owner.is_active)
+            self.assertTrue(type(self.owner).objects.get(pk=self.owner.pk).is_active)
             with connections["default"].cursor() as cursor:
                 cursor.execute("SELECT count(*) FROM procrastinate_jobs WHERE id = %s", [job])
                 self.assertEqual(cursor.fetchone()[0], 0)

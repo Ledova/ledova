@@ -80,8 +80,9 @@ def install(apps, schema_editor):
         operator, migrate, operator_role, app_role = cursor.fetchone()
         source = Path(__file__).with_suffix(".sql").read_text()
         cursor.execute(source.replace("@OPERATOR_ROLE@", operator).replace("@MIGRATE_ROLE@", migrate))
-        cursor.execute(f"REVOKE ALL ON FUNCTION companies_disposal_allows(text, uuid) FROM {app_role}")
-        cursor.execute(f"GRANT EXECUTE ON FUNCTION companies_disposal_allows(text, uuid) TO {operator_role}")
+        cursor.execute(
+            f"GRANT EXECUTE ON FUNCTION companies_disposal_allows(text, uuid) TO {operator_role}, {app_role}"
+        )
         cursor.execute("SELECT to_regclass('public.companies_companydisposal') IS NOT NULL")
         if cursor.fetchone()[0]:
             cursor.execute("ALTER TABLE companies_companydisposal ENABLE ROW LEVEL SECURITY")

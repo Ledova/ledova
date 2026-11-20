@@ -77,6 +77,7 @@ function CompanyDetails({
   const styles = useCompanyStyles();
   const client = useQueryClient();
   const [saved, setSaved] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { company } = data;
   const refresh = () =>
     Promise.all([
@@ -175,59 +176,59 @@ function CompanyDetails({
                   setEditing(company);
                 }}
               />
-              <DeleteCompany company={company} data={data} />
+              <Action
+                compact
+                destructive
+                label="Delete"
+                accessibilityLabel="Delete (company)"
+                disabled={data.isRefreshing}
+                onPress={() => setDeleting(true)}
+              />
             </Actions>
           )}
+          {deleting && <DeleteCompany company={company} data={data} onClose={() => setDeleting(false)} />}
         </>
       )}
     </Section>
   );
 }
 
-function DeleteCompany({ company, data }: { company: Company; data: ReturnType<typeof useCompanySelection> }) {
+function DeleteCompany({
+  company,
+  data,
+  onClose,
+}: {
+  company: Company;
+  data: ReturnType<typeof useCompanySelection>;
+  onClose: () => void;
+}) {
   const styles = useCompanyStyles();
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
-  const [open, setOpen] = useState(false);
   const removal = useCompanyDeletion({ company, read: data, onDeleted: () => navigation.popTo('Dashboard') });
   usePreventRemove(removal.isPending, () => {});
   return (
-    <>
-      <Action
-        compact
-        destructive
-        label="Delete"
-        accessibilityLabel="Delete (company)"
-        disabled={data.isRefreshing}
-        onPress={() => {
-          removal.reset();
-          setOpen(true);
-        }}
-      />
-      <CustomModal
-        visible={open}
-        title={`Delete ${company.name}?`}
-        busy={removal.isPending}
-        onClose={() => setOpen(false)}
-        actions={
-          <Action
-            label={removal.isPending ? 'Deleting…' : 'Delete'}
-            accessibilityLabel={`${removal.isPending ? 'Deleting…' : 'Delete'} (company)`}
-            destructive
-            disabled={removal.isPending}
-            onPress={() => removal.mutate()}
-          />
-        }
-      >
-        <Text style={styles.text}>
-          This deletes the company and all its records for everyone. This can’t be undone.
+    <CustomModal
+      visible
+      title={`Delete ${company.name}?`}
+      busy={removal.isPending}
+      onClose={onClose}
+      actions={
+        <Action
+          label={removal.isPending ? 'Deleting…' : 'Delete'}
+          accessibilityLabel={`${removal.isPending ? 'Deleting…' : 'Delete'} (company)`}
+          destructive
+          disabled={removal.isPending}
+          onPress={() => removal.mutate()}
+        />
+      }
+    >
+      <Text style={styles.text}>This deletes the company and all its records for everyone. This can’t be undone.</Text>
+      {removal.isError && (
+        <Text accessibilityRole="alert" style={styles.error}>
+          {failureSentence(removal.error, 'The company was not deleted. Try again.')}
         </Text>
-        {removal.isError && (
-          <Text accessibilityRole="alert" style={styles.error}>
-            {failureSentence(removal.error, 'The company was not deleted. Try again.')}
-          </Text>
-        )}
-      </CustomModal>
-    </>
+      )}
+    </CustomModal>
   );
 }
 

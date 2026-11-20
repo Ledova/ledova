@@ -309,9 +309,10 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
-    "companies_companydisposal": "Company-exit review receipts and retryable private-file disposal. Only the "
-    "schema-maintenance credential reads or writes them; both runtime roles lack grants. Exact transaction-bound "
-    "manifests admit reviewed company DELETE operations only, never ordinary history edits.",
+    "companies_companydisposal": "Company deletion receipts. The company's own delete command writes them on the "
+    "operator connection, and their trigger admits a receipt only for a current administrator, or the owner of a "
+    "draft company, in the same transaction; the app role has no grants. An exact transaction-bound manifest admits "
+    "that delete's rows only, never ordinary history edits.",
     "users_accounterasureworkitem": "Provider-erasure follow-up for closed accounts or unused duplicate provider "
     "profiles. The bounded account "
     "closure service records the minimum applicant identifier and completion contact on the operator connection; "

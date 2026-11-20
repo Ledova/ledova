@@ -205,7 +205,7 @@ def delete_company(*, actor, company_id):
             transaction_id = cursor.fetchone()[0]
         receipt = CompanyDisposal.objects.create(
             company_id=company.pk,
-            actor=current_actor,
+            actor_id=current_actor.pk,
             appointment_id=appointment,
             manifest={
                 model._meta.db_table: [str(row[model._meta.pk.attname]) for row in records]

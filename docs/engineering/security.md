@@ -105,7 +105,8 @@ requester, appointments to their appointee and invitations to their inviter; tea
 through the administration check and exclude private identity, financial and authority evidence.
 Triggers attached in `companies/database_guards.sql`, with functions there and in
 `companies/authority_guards.sql`, refuse any update or deletion of authority requests, withdrawals,
-appointments, invitations, revocations and legacy-owner sources, and check admission, withdrawal,
+appointments, invitations, revocations and legacy-owner sources, except when the whole company is
+deleted ([company deletion](#account-closure-and-export)), and check admission, withdrawal,
 acceptance and revocation, including admission making the company Active; those in
 `companies/activation_guards.sql` keep earlier activation receipts read-only.
 
@@ -326,6 +327,9 @@ company. Guards admit a DELETE only for a row in that manifest, in that transact
 and never ordinary history edits; the application role can neither read nor write receipts. Wallet,
 chain or execution history, running member notifications and any relationship outside the supported
 company graph refuse the delete, which then removes nothing. Sign-ins and other companies stay.
+The command builds the manifest from company-scoped queries; the database checks the receipt's
+company, person, transaction and authority, and does not re-derive each listed row's company, so
+keeping companies apart there rests on those queries.
 
 Files under the company's private storage prefix are removed after the database commit, and any
 that fail go with the daily sweep of unreferenced uploads. Deleting a company does not erase support

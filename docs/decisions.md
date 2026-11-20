@@ -1263,9 +1263,10 @@ chose all of it: "All three steps".
 People with current authority in a company can delete, after one short confirmation, the company
 itself, a share class with all its records, a person with no shares, a document, an invitation, a
 pending proposal and a register entry. Three things stay: a delete that would leave a negative
-balance is refused; only a current appointment in that company can delete, and no company can reach
-another's records; and on-chain history and Ledova's own records (account closure, Terms receipts
-and identity checks) keep their rules. The company remains responsible for its legal register and
+balance is refused; only current authority in that company can delete (a current appointment, or a
+draft company's owner under the existing draft setup exception), and no company can reach another's
+records; and on-chain history and Ledova's own records (account closure, Terms receipts and identity
+checks) keep their rules. The company remains responsible for its legal register and
 records, including former members' details for seven years under s169(7).
 
 This supersedes the rule that companies are never deleted
