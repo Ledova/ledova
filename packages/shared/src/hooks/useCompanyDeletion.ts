@@ -28,14 +28,14 @@ export function useCompanyDeletion({
       if (result.status !== 204) throw createUserFriendlyError('The deletion could not be confirmed. Refresh first.');
     },
     onSuccess: async () => {
-      client.removeQueries({ queryKey: read.companyKey, exact: true });
+      onDeleted();
       await Promise.all([
         client.invalidateQueries({ queryKey: ownCompaniesKey(read.owner) }),
         client.invalidateQueries({ queryKey: OWN_APPOINTMENTS_QUERY_KEY }),
         client.invalidateQueries({ queryKey: REGISTER_QUERY_KEY }),
         client.invalidateQueries({ queryKey: ['member-records'] }),
       ]);
-      onDeleted();
+      client.removeQueries({ queryKey: read.companyKey, exact: true });
     },
   });
 }

@@ -205,7 +205,6 @@ function DeleteCompany({
   const styles = useCompanyStyles();
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const removal = useCompanyDeletion({ company, read: data, onDeleted: () => navigation.popTo('Dashboard') });
-  usePreventRemove(removal.isPending, () => {});
   return (
     <CustomModal
       visible
