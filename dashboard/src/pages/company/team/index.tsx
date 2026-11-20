@@ -80,6 +80,7 @@ function OwnTeam({
     companyName,
     removeInvitation,
     withdrawing,
+    canDeleteInvitation,
   } = teamState;
   const [withdrawn, setWithdrawn] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
@@ -190,13 +191,13 @@ function OwnTeam({
                     {scopeFacts(item.capabilities, item.delegatableCapabilities)}
                   </p>
                   <p className="break-words text-xs text-text-muted">{issuedInvitationDates(item)}</p>
-                  {!item.acceptedAt && (
+                  {!item.acceptedAt && canDeleteInvitation(item.company) && (
                     <div className="flex justify-end">
                       <PageAction
                         compact
                         destructive
                         label="Delete"
-                        context={`invitation, ${scopeLabels(item.capabilities)}`}
+                        context={`invitation, ${item.companyName} · ${scopeLabels(item.capabilities)} · ${issuedInvitationDates(item)}`}
                         disabled={disabled}
                         onClick={() => setWithdrawn(item.uuid)}
                       />

@@ -178,6 +178,7 @@ export function useCompanyMemberAccess(
         const result = await deleteMemberInvitation(api, command.uuid, config(guardAccess));
         guardAccess();
         if (result.status !== 204) throw new Error('The invitation deletion could not be confirmed.');
+        setNotice('');
       } else {
         const { data } = await revokeMemberAssociation(api, command.uuid, command.payload, config(guardAccess));
         guardAccess();

@@ -416,7 +416,7 @@ export function CompanyMemberAccess({
           onClose={() => setWithdrawing(null)}
           onConfirm={() => void Promise.resolve(access.remove(withdrawing.uuid)).finally(() => setWithdrawing(null))}
         >
-          The invitation link stops working. This can’t be undone.
+          The invitation is deleted for everyone. This can’t be undone.
         </Confirmation>
       )}
     </>

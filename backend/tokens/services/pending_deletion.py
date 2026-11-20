@@ -30,6 +30,7 @@ NOT_PENDING = "Only a proposal awaiting a decision can be deleted."
 NO_PREPARER = "A current company administrator or preparer is required to delete this proposal."
 ACCEPTED = "This invitation was accepted. Revoke the access instead."
 NO_ADMINISTRATOR = "A current company administrator is required to delete this invitation."
+RECORD_GONE = "This record no longer exists. Refresh first."
 
 
 def _unnotified(data):
@@ -80,7 +81,7 @@ def delete_proposal(*, actor, proposal):
     ):
         proposal = model.objects.select_for_update().filter(pk=proposal.pk, company_id=company.pk).first()
         if proposal is None:
-            raise NotFound(NO_PREPARER)
+            raise NotFound(RECORD_GONE)
         appointment, expires_at = current_appointment(
             current, company.pk, operator, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
         )
@@ -107,7 +108,9 @@ def delete_member_invitation(*, actor, invitation):
             MemberInvitation.objects.select_for_update().filter(pk=invitation.pk, company_id=company.pk).first()
         )
         appointment, expires_at = current_appointment(current, company.pk, operator, [CompanyCapability.ADMIN])
-        if invitation is None or appointment is None:
+        if invitation is None:
+            raise NotFound(RECORD_GONE)
+        if appointment is None:
             raise NotFound(NO_ADMINISTRATOR)
         if MemberAssociation.objects.filter(invitation_id=invitation.pk).exists():
             raise ValidationError(ACCEPTED)

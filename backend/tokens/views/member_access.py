@@ -58,7 +58,8 @@ class MemberInvitationViewSet(MemberAccessViewSet):
     operator_actions = MemberAccessViewSet.operator_actions | {"destroy"}
     operator_actions_because = (
         "Member invitations are private company administration. Current personal ADMIN appointments scope every "
-        "company read, issue and email send; preview requires the verified intended recipient. Accepting the "
+        "company read, issue, email send and delete of an invitation never accepted; preview requires the verified "
+        "intended recipient. Accepting the "
         "hidden credential checks its intended email and actual signed-in account under the company lock and "
         "database guards, and grants no company appointment."
     )

@@ -114,6 +114,12 @@ export function useCompanyTeam({
     appointments.some(
       (item) => item.company === company && currentAppointment(item) && item.capabilities.includes('admin'),
     );
+  const canDeleteInvitation = (target: string) =>
+    !own.isError &&
+    !own.isFetching &&
+    appointments.some(
+      (item) => item.company === target && currentAppointment(item) && item.capabilities.includes('admin'),
+    );
   const teamKey = companyTeamKey(owner, company);
   const team = useQuery({
     queryKey: teamKey,
@@ -239,6 +245,7 @@ export function useCompanyTeam({
     } catch (failure) {
       try {
         guard();
+        void invitations.refetch();
         setError(failureSentence(failure, 'The invitation was not deleted. Try again.'));
       } catch {
         return;
@@ -287,6 +294,7 @@ export function useCompanyTeam({
     revoking,
     withdrawing,
     removeInvitation,
+    canDeleteInvitation,
     close,
     canRevoke,
     confirm,

@@ -59,7 +59,8 @@ class RegisterTransferViewSet(RegisterProposalViewSet):
     operator_actions_because = (
         "Retained direct transfers and private files are read only through the exact-company register queryset. "
         "Bounded preparation and decisions check current company appointments under the company lock; "
-        "the operator connection performs the exact approved ledger effect and reads append-only decisions."
+        "the operator connection performs the exact approved ledger effect and reads append-only decisions. "
+        "A delete of one still awaiting a decision runs the bounded delete command under current preparation authority."
     )
 
     def filter_queryset(self, queryset):

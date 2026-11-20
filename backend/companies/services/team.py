@@ -238,6 +238,8 @@ def revoke_company_appointment(*, requester, appointment_id):
 
 
 TEAM_INVITATION_ACCEPTED = "This invitation was accepted. Revoke the appointment instead."
+TEAM_INVITATION_NO_ADMINISTRATOR = "A current company administrator is required to delete this invitation."
+RECORD_GONE = "This record no longer exists. Refresh first."
 
 
 def delete_team_invitation(*, requester, invitation_id):
@@ -250,13 +252,17 @@ def delete_team_invitation(*, requester, invitation_id):
             .holding_any([CompanyCapability.ADMIN])
             .values("company_id")
         )
-        target = get_object_or_404(CompanyTeamInvitation, pk=invitation_id, company_id__in=administered)
+        target = CompanyTeamInvitation.objects.filter(pk=invitation_id, company_id__in=administered).first()
+        if target is None:
+            raise NotFound(TEAM_INVITATION_NO_ADMINISTRATOR)
     with company_operation(requester, target.company_id, "invitation_delete"), atomic(durable=True):
         company, actor, _profile, operator = lock_company_actor(requester, target.company_id)
         invitation = CompanyTeamInvitation.objects.select_for_update().filter(pk=target.pk, company=company).first()
         appointment, expires_at = current_appointment(actor, company.pk, operator, [CompanyCapability.ADMIN])
-        if invitation is None or appointment is None:
-            raise NotFound("No CompanyTeamInvitation matches the given query.")
+        if invitation is None:
+            raise NotFound(RECORD_GONE)
+        if appointment is None:
+            raise NotFound(TEAM_INVITATION_NO_ADMINISTRATOR)
         if CompanyAppointment.objects.filter(invitation_id=invitation.pk).exists():
             raise ValidationError(TEAM_INVITATION_ACCEPTED)
         rows = {CompanyTeamInvitation: list(CompanyTeamInvitation.objects.filter(pk=invitation.pk).values())}

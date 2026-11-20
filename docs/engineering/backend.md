@@ -403,7 +403,7 @@ Shared requirement codes:
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `appointment_capability_required`       | The appointment holds neither `admin` nor the capability the decision needs                                                |
 | `<subject>_decided`                     | The proposal is already applied or rejected, for example `correction_decided` or `paid_issue_decided`                      |
-| `company_provided_evidence_required`    | A retained staff-era proposal, which can only be rejected                                                                  |
+| `company_provided_evidence_required`    | A retained staff-era proposal, which can only be rejected, or deleted while pending                                        |
 | `already_approved`                      | A current approval exists                                                                                                  |
 | `approval_required`, `approval_lapsed`  | Application needs a current approval; an earlier approver's appointment ended                                              |
 | `evidence_unavailable`                  | A retained copy no longer matches its size or SHA-256; checked by each family that retains evidence                        |

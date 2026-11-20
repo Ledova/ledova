@@ -53,7 +53,8 @@ class RegisterAllotmentViewSet(RegisterProposalViewSet):
     operator_actions_because = (
         "Private external agreements, company receipt attestations and allotted capital are read only through "
         "current personal appointments for this exact company. Preparation and exact decisions lock the company; "
-        "the operator records the sole approved ISSUE and retains append-only sources and decisions."
+        "the operator records the sole approved ISSUE and retains append-only sources and decisions. "
+        "A delete of one still awaiting a decision runs the bounded delete command under current preparation authority."
     )
 
     def filter_queryset(self, queryset):

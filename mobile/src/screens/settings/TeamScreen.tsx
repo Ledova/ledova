@@ -176,6 +176,7 @@ function OwnTeam({
     companyName,
     removeInvitation,
     withdrawing,
+    canDeleteInvitation,
   } = teamState;
   const [withdrawn, setWithdrawn] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
@@ -314,13 +315,13 @@ function OwnTeam({
                   <Text style={look.title}>{item.companyName}</Text>
                   <Text style={look.small}>{scopeFacts(item.capabilities, item.delegatableCapabilities)}</Text>
                   <Text style={look.small}>{issuedInvitationDates(item)}</Text>
-                  {!item.acceptedAt && (
+                  {!item.acceptedAt && canDeleteInvitation(item.company) && (
                     <Actions>
                       <Action
                         compact
                         destructive
                         label="Delete"
-                        accessibilityLabel={`Delete invitation (${scopeLabels(item.capabilities)})`}
+                        accessibilityLabel={`Delete invitation (${item.companyName} · ${scopeLabels(item.capabilities)} · ${issuedInvitationDates(item)})`}
                         disabled={disabled}
                         onPress={() => setWithdrawn(item.uuid)}
                       />

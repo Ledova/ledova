@@ -532,7 +532,7 @@ function MemberAccess({
           />
         }
       >
-        <Text style={styles.text}>The invitation link stops working. This can’t be undone.</Text>
+        <Text style={styles.text}>The invitation is deleted for everyone. This can’t be undone.</Text>
       </CustomModal>
     </>
   );

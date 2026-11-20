@@ -309,11 +309,12 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
-    "companies_companydisposal": "Deletion receipts for a company or one of its share classes. The company's own "
-    "delete commands write them on the operator connection, and their trigger admits a company receipt only for a "
-    "current administrator or a draft company's owner, and a class receipt only for a current preparer, in the same "
-    "transaction; the app role has no grants. An exact transaction-bound manifest admits that delete's rows only, "
-    "never ordinary history edits.",
+    "companies_companydisposal": "Deletion receipts for a company, one of its share classes, a pending proposal or "
+    "an unaccepted invitation. The company's own delete commands write them on the operator connection, and their "
+    "trigger admits a company receipt only for a current administrator or a draft company's owner, a class or "
+    "proposal receipt only for a current preparer, and an invitation receipt only for a current administrator, in "
+    "the same transaction; the app role has no grants. An exact transaction-bound manifest admits that delete's "
+    "rows only, never ordinary history edits.",
     "users_accounterasureworkitem": "Provider-erasure follow-up for closed accounts or unused duplicate provider "
     "profiles. The bounded account "
     "closure service records the minimum applicant identifier and completion contact on the operator connection; "
