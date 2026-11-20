@@ -58,29 +58,16 @@ CLASS_RECORDS = (
 CHAIN_RECORDS = {
     f"tokens.{name}"
     for name in (
-        "CapitalIncreaseExecution",
         "CapitalIncreaseRequest",
-        "OrderActionSubmission",
-        "OrderModificationLog",
-        "OrderSubmission",
-        "PauseChange",
-        "ShareIssuance",
-        "ShareIssuanceExecution",
-        "ShareIssuanceRequest",
-        "SigningChallenge",
-        "SwapApprovalSubmission",
-        "SwapOrder",
-        "TokenDeployment",
-        "TransferOrder",
         "FormerHolder",
-        "RegisterDeployment",
-        "RegisterDeploymentDecision",
         "RegisterCapitalIncrease",
-        "RegisterCapitalIncreaseDecision",
-        "RegisterPauseChange",
-        "RegisterPauseChangeDecision",
+        "RegisterDeployment",
         "RegisterInstruction",
-        "RegisterInstructionDecision",
+        "RegisterPauseChange",
+        "ShareIssuance",
+        "ShareIssuanceRequest",
+        "SwapOrder",
+        "TransferOrder",
     )
 }
 

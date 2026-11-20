@@ -349,14 +349,14 @@ company Terms and appointments are preserved. Public versions remain accessible.
 
 ### Retention clocks
 
-| Record                                                                 | Clock                                               | Purge                                               |
-| ---------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
-| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below        |
-| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                 | Deleted with their share class or company, above    |
-| Uncompleted signup without protected history or a provider follow-up   | Thirty days without signup/login activity           | Existing daily maintenance erases account-only data |
-| Expired JWT and Django session rows                                    | Token/session expiry                                | Existing daily maintenance removes expired rows     |
-| Successful / unsuccessful jobs                                         | Seven / thirty days                                 | Existing job maintenance                            |
-| Unreferenced private uploads                                           | At least 24 hours unchanged                         | Existing orphan sweep                               |
+| Record                                                                 | Clock                                               | Purge                                                                               |
+| ---------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below                                        |
+| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                 | Deleted with their company; decisions and copies also with their share class, above |
+| Uncompleted signup without protected history or a provider follow-up   | Thirty days without signup/login activity           | Existing daily maintenance erases account-only data                                 |
+| Expired JWT and Django session rows                                    | Token/session expiry                                | Existing daily maintenance removes expired rows                                     |
+| Successful / unsuccessful jobs                                         | Seven / thirty days                                 | Existing job maintenance                                                            |
+| Unreferenced private uploads                                           | At least 24 hours unchanged                         | Existing orphan sweep                                                               |
 
 2,557 days is seven years including two leap days. `FORMER_MEMBER_RETENTION_DAYS` has a floor:
 `retention_cutoff` raises `ImproperlyConfigured` below 2,557 days, so the floor cannot be

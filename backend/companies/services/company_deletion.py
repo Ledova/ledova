@@ -138,12 +138,7 @@ def follow_ups(rows, notified, alias=None):
     alias = alias or current_alias()
     notifications = apps.get_model("users.Notification")
     rows[notifications] = list(
-        notifications.objects.using(alias)
-        .filter(notified("data"))
-        .exclude(pk__in=[row["uuid"] for row in rows.get(notifications, [])])
-        .order_by("pk")
-        .select_for_update()
-        .values()
+        notifications.objects.using(alias).filter(notified("data")).order_by("pk").select_for_update().values()
     )
     audit = Q(pk__in=[])
     for model, records in rows.items():

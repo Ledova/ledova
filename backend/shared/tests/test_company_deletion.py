@@ -177,8 +177,8 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
                     with connections[alias].cursor() as cursor:
                         cursor.execute(
                             "INSERT INTO companies_companydisposal (uuid, created_at, updated_at, company_id, "
-                            "actor_id, appointment_id, manifest, transaction_id) "
-                            "VALUES (%s, now(), now(), %s, %s, %s, '{}', txid_current())",
+                            "scope, actor_id, appointment_id, manifest, transaction_id) "
+                            "VALUES (%s, now(), now(), %s, 'company', %s, %s, '{}', txid_current())",
                             [uuid4(), self.company.pk, self.foreign.pk, self.foreign_appointment.pk],
                         )
                 if alias == OPERATOR_ALIAS:

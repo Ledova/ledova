@@ -16,3 +16,11 @@ class CompanyDisposal(BaseModel):
     manifest = models.JSONField()
     transaction_id = models.BigIntegerField(null=True)
     database_disposed_at = models.DateTimeField(null=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(scope__in=DeletionScope.values),
+                name="company_disposal_scope_known",
+            ),
+        ]

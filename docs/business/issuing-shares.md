@@ -36,7 +36,7 @@ setup: **Ledger**, **Add**, on the web or in the app.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
-Class codes are one to five ASCII letters, saved in uppercase, unique among the company's active classes, and may
+Class codes are one to five ASCII letters, saved in uppercase, unique among the company's classes, and may
 not reuse a reserved asset symbol. On the web, the same administrator or preparer can edit a
 class's name, code and type while it has no ownership activity or operational dependencies, including
 after a confirmed empty opening. Saved Class rights and their governing documents do not prevent

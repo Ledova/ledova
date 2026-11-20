@@ -19,5 +19,12 @@ class Migration(migrations.Migration):
             name="company_id",
             field=models.UUIDField(),
         ),
+        migrations.AddConstraint(
+            model_name="companydisposal",
+            constraint=models.CheckConstraint(
+                condition=models.Q(("scope__in", ["company", "share_class"])),
+                name="company_disposal_scope_known",
+            ),
+        ),
         migrations.RunPython(install, migrations.RunPython.noop),
     ]

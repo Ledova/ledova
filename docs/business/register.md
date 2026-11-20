@@ -188,7 +188,9 @@ Only the company owner, current register appointees and the operator read former
 Former shareholders on Shareholders and on a former member's own page; register appointees also see
 them, with residential addresses, in inspection copies. Particulars are
 kept while a person is a member and for the retention period after they last held shares, at least
-seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)).
+seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)). The
+clock runs from the person's recorded positions, so when the only class someone held is deleted,
+their particulars stay until the company deletes that person or the company.
 
 ## Opening a register
 

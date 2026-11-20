@@ -95,9 +95,7 @@ awkwardly: do not add one.
   deleted the row. A cascade delete never reaches a service, so an explicit call in each delete path
   cannot cover it.
 - No new manager packages; querysets use `as_manager()`. `CustomUserManager` handles account
-  creation. `ActiveShareTokenManager` has only the default active-class filter; the explicit
-  `all_objects` base manager preserves retained audit and maintenance access. Product selectors
-  remain on the queryset.
+  creation. Product selectors remain on the queryset.
 - Keep raised exceptions in the app's `exceptions.py` and use DRF's standard exceptions for
   ordinary validation, permission and not-found errors. Preserve actionable API messages.
 - Never return raw provider exception text

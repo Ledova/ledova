@@ -40,7 +40,8 @@ BEGIN
     IF share_class.status <> 'draft' OR NULLIF(share_class.contract_address, '') IS NOT NULL
         OR NULLIF(share_class.chain, '') IS NOT NULL OR share_class.deployment_id IS NOT NULL
         OR share_class.deployment_transaction_id IS NOT NULL OR NULLIF(share_class.deployment_tx_hash, '') IS NOT NULL
-        OR share_class.deployed_at IS NOT NULL
+        OR share_class.deployed_at IS NOT NULL OR share_class.former_holders_folded_at IS NOT NULL
+        OR share_class.former_holders_block IS NOT NULL
         OR EXISTS (SELECT 1 FROM public.tokens_registerdeployment WHERE token_id = token_uuid)
         OR EXISTS (SELECT 1 FROM public.tokens_registerinstruction WHERE token_id = token_uuid)
         OR EXISTS (SELECT 1 FROM public.tokens_registercapitalincrease WHERE token_id = token_uuid)

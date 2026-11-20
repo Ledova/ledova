@@ -124,8 +124,8 @@ class ShareTokenViewSet(
     operator_actions_because = (
         "Share-class creation requires current personal company administration or prepare authority; its company "
         "selector and insertion recheck that authority inside the locked company operation. Owned reads remain "
-        "separately scoped. Class-detail edits and unused-class deletion use the same personal authority, "
-        "locked company and class, fresh version and database-enforced activity restrictions. "
+        "separately scoped. Class-detail edits and class deletion use the same personal authority, locked "
+        "company and class, and fresh version; a class delete runs through its receipt-bound delete command. "
         "a members' register has to carry each holder's name and residential address, and those "
         "belong to the issuer's investors rather than to the issuer, so no policy admits them to the "
         "principal reading it. Without the operator connection the register does not fail - it prints "
