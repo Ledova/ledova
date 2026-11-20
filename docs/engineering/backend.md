@@ -315,12 +315,14 @@ Each step needing company authority rechecks it after taking the company lock, s
 that commits first refuses the step and records nothing. Requests, decisions, withdrawals and
 revocations are append-only, keep their actual actor, appointment, retry key, digest and
 database-stamped time, and are checked by database triggers; customer requests reach them only
-through the bounded services. The one exception is `DELETE` on a proposal still awaiting a decision
+through the bounded services. The exceptions are `DELETE` on a proposal still awaiting a decision
 (allotments, transfers, grants, imports, corrections and particulars changes): the
 `register_proposal_delete` command, under a `proposal` receipt and current preparation authority,
 removes it with its decisions, and an allotment's agreement and contribution. `DELETE` on a member
 invitation or a team invitation that was never accepted runs `invitation_delete` under an
-`invitation` receipt and current administration. An uncertain reply is resolved by resending the exact original body
+`invitation` receipt and current administration. `DELETE` on a shareholder document runs
+`register_document_delete` under a `document` receipt and current preparation authority; it removes
+the document's stored file too when nothing else references it. An uncertain reply is resolved by resending the exact original body
 and key: current read access recovers the retained receipt, even after the appointment has
 expired or the proposal has changed stage. No replay after process loss is promised, and a client
 never infers success from a lost response.
@@ -353,7 +355,8 @@ members exist. This copies existing holdings without manufacturing an issuance.
 `/api/v1/tokens/register-member-documents/` lists attachments with pagination and optional `company`,
 `member` and `token` filters. POST adds one to an existing holding under a current preparation
 appointment, keeping its actor and retry key. Reads and `/{uuid}/file/` downloads require current
-exact-company register authority; the file route rechecks its size and SHA-256. These bounded
+exact-company register authority; the file route rechecks its size and SHA-256. DELETE removes one
+under current preparation authority, with its evidence when nothing else uses it. These bounded
 operator routes expose no files through member or public projections. Categories describe the
 company's files and grant no disclosure or certificate-verification status
 ([business rules](../business/register.md#shareholder-documents)).

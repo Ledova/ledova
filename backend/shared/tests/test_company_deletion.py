@@ -34,6 +34,7 @@ from tokens.models import (
     RegisterAllotmentDecision,
     RegisterContribution,
     RegisterEntry,
+    RegisterEvidence,
     RegisterEvidenceKind,
     RegisterPosition,
     ShareToken,
@@ -182,10 +183,36 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
         kept = self.client.delete(f"{invitations}{invitation.json()['uuid']}/")
         self.assertEqual(kept.status_code, 400, kept.content)
         self.assertIn(ACCEPTED, kept.content.decode())
+        evidence = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.SUPPORTING)
+        documents = "/api/v1/tokens/register-member-documents/"
+        second_token, second_member = populated_register(self.owner, self.company, self.appointment, symbol="TWO")
+        attached, shared = [
+            self.client.post(
+                documents,
+                {
+                    "company_id": str(self.company.pk),
+                    "member": str(member.pk),
+                    "token": str(token.pk),
+                    "evidence": str(evidence.pk),
+                    "category": "share_certificate",
+                    "appointment": str(self.appointment.pk),
+                    "idempotency_key": str(uuid4()),
+                },
+                format="json",
+            )
+            for token, member in ((self.token, self.member), (second_token, second_member))
+        ]
+        self.assertEqual((attached.status_code, shared.status_code), (201, 201), shared.content)
+        self.assertEqual(self.client.delete(f"{documents}{attached.json()['uuid']}/").status_code, 204)
+        self.assertTrue(private_storage().exists(evidence.file.name))
+        self.assertEqual(self.client.delete(f"{documents}{shared.json()['uuid']}/").status_code, 204)
+        self.assertFalse(private_storage().exists(evidence.file.name))
         with use_migrate():
+            self.assertFalse(RegisterEvidence.objects.filter(pk=evidence.pk).exists())
+            self.assertTrue(RegisterEvidence.objects.filter(pk=document.pk).exists())
             self.assertEqual(
                 sorted(CompanyDisposal.objects.filter(company_id=self.company.pk).values_list("scope", flat=True)),
-                ["invitation", "invitation", "proposal", "share_class"],
+                ["document", "document", "invitation", "invitation", "proposal", "share_class"],
             )
             self.assertFalse(CompanyTeamInvitation.objects.filter(pk=team_invitation.pk).exists())
         self.assertEqual(member_client.delete(f"/api/v1/companies/{self.company.pk}/").status_code, 404)

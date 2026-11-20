@@ -30385,6 +30385,39 @@
       }
     },
     "/api/v1/tokens/register-member-documents/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_member_documents_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_member_documents_retrieve",
         "parameters": [

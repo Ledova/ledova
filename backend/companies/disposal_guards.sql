@@ -28,6 +28,9 @@ BEGIN
     ELSIF scope = 'invitation' THEN
         subjects := ARRAY['tokens_memberinvitation', 'companies_companyteaminvitation'];
         allowed := subjects;
+    ELSIF scope = 'document' THEN
+        subjects := ARRAY['tokens_registermemberdocument'];
+        allowed := subjects || ARRAY['tokens_registerevidence'];
     ELSE
         RETURN NULL;
     END IF;
@@ -64,9 +67,10 @@ BEGIN
         OR NOT (COALESCE(current_user = @MIGRATE_ROLE@ AND operation = 'schema_migration', false)
             OR COALESCE(operation = CASE receipt.scope
                 WHEN 'company' THEN 'company_delete' WHEN 'share_class' THEN 'register_class_delete'
-                WHEN 'proposal' THEN 'register_proposal_delete' WHEN 'invitation' THEN 'invitation_delete' END, false))
-        OR receipt.scope NOT IN ('company', 'share_class', 'proposal', 'invitation')
-        OR (receipt.scope IN ('proposal', 'invitation')
+                WHEN 'proposal' THEN 'register_proposal_delete' WHEN 'invitation' THEN 'invitation_delete'
+                WHEN 'document' THEN 'register_document_delete' END, false))
+        OR receipt.scope NOT IN ('company', 'share_class', 'proposal', 'invitation', 'document')
+        OR (receipt.scope IN ('proposal', 'invitation', 'document')
             AND companies_receipt_subject(receipt.scope, receipt.manifest) IS NULL)
         OR (receipt.scope = 'company'
             AND receipt.manifest->'companies_company' IS DISTINCT FROM jsonb_build_array(receipt.company_id::text))
@@ -89,10 +93,11 @@ BEGIN
     migrating := COALESCE(current_user = @MIGRATE_ROLE@ AND operation = 'schema_migration', false);
     IF TG_OP = 'DELETE' OR current_user NOT IN (@OPERATOR_ROLE@, @MIGRATE_ROLE@) OR principal IS NULL
         OR NEW.actor_id IS DISTINCT FROM principal OR NEW.transaction_id IS DISTINCT FROM txid_current()
-        OR NEW.scope IS NULL OR NEW.scope NOT IN ('company', 'share_class', 'proposal', 'invitation')
+        OR NEW.scope IS NULL OR NEW.scope NOT IN ('company', 'share_class', 'proposal', 'invitation', 'document')
         OR NOT (migrating OR COALESCE(operation = CASE NEW.scope
             WHEN 'company' THEN 'company_delete' WHEN 'share_class' THEN 'register_class_delete'
-            WHEN 'proposal' THEN 'register_proposal_delete' WHEN 'invitation' THEN 'invitation_delete' END, false))
+            WHEN 'proposal' THEN 'register_proposal_delete' WHEN 'invitation' THEN 'invitation_delete'
+            WHEN 'document' THEN 'register_document_delete' END, false))
         OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text THEN
         RAISE EXCEPTION 'Only the company''s own delete command records its deletion' USING ERRCODE = '23514';
     END IF;
@@ -107,12 +112,16 @@ BEGIN
         THEN
             RAISE EXCEPTION 'A share class deletion names exactly one class of its company' USING ERRCODE = '23514';
         END IF;
-        IF NEW.scope IN ('proposal', 'invitation') THEN
+        IF NEW.scope IN ('proposal', 'invitation', 'document') THEN
             subject := companies_receipt_subject(NEW.scope, NEW.manifest);
             IF subject IS NULL THEN
-                RAISE EXCEPTION 'A pending record deletion names exactly one record' USING ERRCODE = '23514';
+                RAISE EXCEPTION 'A record deletion names exactly one record of its scope' USING ERRCODE = '23514';
             END IF;
-            IF NEW.scope = 'proposal' THEN
+            IF NEW.scope = 'document' THEN
+                SELECT company_id, CASE WHEN COALESCE(NEW.manifest->'tokens_registerevidence', '[]'::jsonb)
+                        IN ('[]'::jsonb, jsonb_build_array(evidence_id::text)) THEN 'submitted' END
+                    INTO owner, state FROM tokens_registermemberdocument WHERE uuid = (NEW.manifest->subject->>0)::uuid;
+            ELSIF NEW.scope = 'proposal' THEN
                 target := (NEW.manifest->subject->>0)::uuid;
                 EXECUTE format('SELECT company_id, status FROM %I WHERE uuid = $1', subject)
                     INTO owner, state USING target;
@@ -158,11 +167,11 @@ BEGIN
                     THEN 'accepted' ELSE 'submitted' END;
             END IF;
             IF owner IS DISTINCT FROM NEW.company_id OR state IS DISTINCT FROM 'submitted' THEN
-                RAISE EXCEPTION 'Only a pending record of this company can be deleted' USING ERRCODE = '23514';
+                RAISE EXCEPTION 'Only a deletable record of this company can be deleted' USING ERRCODE = '23514';
             END IF;
         END IF;
         IF migrating THEN RETURN NEW; END IF;
-        IF NEW.scope IN ('share_class', 'proposal') AND NOT (NEW.appointment_id IS NOT NULL
+        IF NEW.scope IN ('share_class', 'proposal', 'document') AND NOT (NEW.appointment_id IS NOT NULL
             AND tokens_register_appointment_current(NEW.appointment_id, NEW.company_id, principal, 'prepare',
                 clock_timestamp())) THEN
             RAISE EXCEPTION 'Deleting this record requires current preparation authority' USING ERRCODE = '23514';
