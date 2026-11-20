@@ -67,12 +67,11 @@ updates:
       - dependency-name: metro-*
       # The same reason as the block above, for names the `react-native-*` glob
       # misses. Expo pins these to an exact version per SDK in its own
-      # bundledNativeModules.json - SDK 54 wants async-storage 2.2.0 and
-      # datetimepicker 8.4.4, which is what package.json holds - and jest-expo's
-      # major tracks the SDK, so jest-expo 57 is an SDK 57 preset. Dependabot
-      # proposed all three in #138 while `expo` itself stayed on 54.
+      # bundledNativeModules.json - SDK 54 wants async-storage 2.2.0, which is
+      # what package.json holds - and jest-expo's major tracks the SDK, so
+      # jest-expo 57 is an SDK 57 preset. Dependabot proposed them in #138 while
+      # `expo` itself stayed on 54.
       - dependency-name: "@react-native-async-storage/*"
-      - dependency-name: "@react-native-community/*"
       - dependency-name: jest-expo
       # The ESLint 10 block from the root entry applies here too, and the root
       # entry does not reach this directory: `directory: /` covers packages/shared

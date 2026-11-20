@@ -66,9 +66,6 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
     );
 
   const blocked = isFetching || isUpdating;
-  const phone = userProfile.phoneNumber
-    ? `${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()
-    : 'Not provided';
 
   return (
     <>
@@ -82,14 +79,16 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
           <Row label="Email" inline>
             <span className="break-all">{userProfile.email || 'Not provided'}</span>
           </Row>
-          {!isEditing && (
+          {userProfile.phoneNumber && (
             <Row label="Phone" inline>
-              {phone}
+              {`${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()}
             </Row>
           )}
-          <Row label="Date of birth" inline>
-            {formatDate(userProfile.dateOfBirth, 'Not provided')}
-          </Row>
+          {userProfile.dateOfBirth && (
+            <Row label="Date of birth" inline>
+              {formatDate(userProfile.dateOfBirth)}
+            </Row>
+          )}
           {!isEditing && (
             <Row label="Address" inline>
               <span className="break-words">{userProfile.residentialAddress || 'Not provided'}</span>

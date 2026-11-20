@@ -80,6 +80,11 @@ Each data type is linked to the user's account, used only to run the app and not
 | User ID              | The account                                                                |
 | Other Data Types     | The date of birth the app's sign-up asks for                               |
 
+Once a build with the name-only sign-up ([#1711](https://github.com/Ledova/ledova/issues/1711)) is attached,
+the app no longer asks for a birth date, a personal phone number or an address at sign-up. Other Data Types can
+then come off, Phone Number covers only the phone in a company's details, and Physical Address covers the
+Profile address and recorded addresses.
+
 ## Screenshots
 
 App Store Connect requires iPhone screenshots for its "iPhone with Dynamic Island (medium display)" slot, which

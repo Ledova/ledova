@@ -61,9 +61,13 @@ Core off-chain registry workflows remain available.
 
 ## Remaining scope
 
-| Issue                                               | Remaining                                         | Current prerequisites                              |
-| --------------------------------------------------- | ------------------------------------------------- | -------------------------------------------------- |
-| [#624](https://github.com/Ledova/ledova/issues/624) | Physical-device and live human release acceptance | Genuine device/human and configured-chain evidence |
+| Issue                                                 | Remaining                                                          | Current prerequisites          |
+| ----------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------ |
+| [#1586](https://github.com/Ledova/ledova/issues/1586) | Private operational acceptance, then the website launch            | The owner's direction          |
+| [#1590](https://github.com/Ledova/ledova/issues/1590) | TestFlight, App Review and the recorded physical iPhone acceptance | The website launch under #1586 |
+
+The physical iPhone acceptance moved to #1590 when [#624](https://github.com/Ledova/ledova/issues/624) closed on
+17 November 2026.
 
 Programme [#860](https://github.com/Ledova/ledova/issues/860), now closed, tracked the transition to one registry
 product; closed [#645](https://github.com/Ledova/ledova/issues/645) delivered the earlier foundation and

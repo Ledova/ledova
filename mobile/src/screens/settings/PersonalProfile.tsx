@@ -22,8 +22,6 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
   const [savedFor, setSavedFor] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [residentialAddress, setResidentialAddress] = useState('');
-  const [phoneCode, setPhoneCode] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const blocked = state.isFetching || state.isError || !userProfile || update.isPending;
   const isEditing =
     !!editing &&
@@ -55,16 +53,16 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
             <Fact label="Email" inline>
               {userProfile.email || 'Not provided'}
             </Fact>
-            {!isEditing && (
+            {userProfile.phoneNumber ? (
               <Fact label="Phone" inline>
-                {userProfile.phoneNumber
-                  ? `${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()
-                  : 'Not provided'}
+                {`${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()}
               </Fact>
-            )}
-            <Fact label="Date of birth" inline>
-              {formatDate(userProfile.dateOfBirth, 'Not provided')}
-            </Fact>
+            ) : null}
+            {userProfile.dateOfBirth ? (
+              <Fact label="Date of birth" inline>
+                {formatDate(userProfile.dateOfBirth)}
+              </Fact>
+            ) : null}
             {!isEditing && (
               <Fact label="Address" inline>
                 {userProfile.residentialAddress || 'Not provided'}
@@ -85,8 +83,6 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
                 onPress={() => {
                   setFullName(userProfile.fullName || '');
                   setResidentialAddress(userProfile.residentialAddress || '');
-                  setPhoneCode(userProfile.phoneCountryCode || '');
-                  setPhoneNumber(userProfile.phoneNumber || '');
                   update.reset();
                   setSavedFor(null);
                   setEditing({ source: sourceKey, owner: ownerKey });
@@ -115,22 +111,6 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
             editable={!blocked}
             onChange={setResidentialAddress}
           />
-          <Field
-            label="Country code"
-            value={phoneCode}
-            keyboardType="phone-pad"
-            maxLength={FIELD_LIMITS.PHONE_COUNTRY_CODE}
-            editable={!blocked}
-            onChange={setPhoneCode}
-          />
-          <Field
-            label="Phone number"
-            value={phoneNumber}
-            keyboardType="phone-pad"
-            maxLength={FIELD_LIMITS.PHONE}
-            editable={!blocked}
-            onChange={setPhoneNumber}
-          />
           {state.isFetching && <Text style={styles.muted}>Refreshing profile information…</Text>}
           {update.isError && (
             <Text accessibilityRole="alert" style={styles.error}>
@@ -149,8 +129,6 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
                   {
                     fullName: fullName.trim(),
                     residentialAddress: residentialAddress.trim(),
-                    phoneCountryCode: phoneCode,
-                    phoneNumber,
                   },
                   () => {
                     setEditing(null);

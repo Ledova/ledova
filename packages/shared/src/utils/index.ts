@@ -4,8 +4,6 @@ export {
   formatDateTime,
   formatShortDate,
   isCalendarDate,
-  parseDateString,
-  formatDateToString,
   sydneyToday,
   utcToday,
 } from './date';
@@ -26,11 +24,8 @@ export {
   formatVerificationToken,
   validateEmailConfirmation,
   isValidFullName,
-  isValidPhoneFormat,
-  formatPhoneNumber,
   isUuid,
 } from './validation';
-export { formatPhoneForDisplay, formatPhoneWithCountryCode, cleanPhoneNumber } from './phoneFormatting';
 export { validateUserProfileField } from './user-validation';
 export { getUserVerificationStatus } from './user-verification';
 export { assertNextPageAdvances, firstOfEach, getNextPageParam, readEveryPage } from './pagination';

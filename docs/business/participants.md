@@ -244,14 +244,15 @@ risk assessment, transaction and any company decision stay as they are.
 
 ### Member profile
 
-Web signup collects a full name after email verification. It does not request a birth date,
-phone or address. The native signup still requests those fields; its minimisation is deferred.
-Optional identity checks can collect the provider's required information separately.
+Signup, on the web and in the app, collects a full name after email verification. It does not
+request a birth date, phone or address. Optional identity checks can collect the provider's
+required information separately.
 
-Profile shows Personal information (full name, email, retained phone and date of birth, address
-and citizenship). Personal-details editing opens inline, with aligned Cancel and save actions.
+Profile shows Personal information: full name, email, address and citizenship, with a phone number
+or date of birth only where the account already holds one. Personal-details editing opens inline,
+with aligned Cancel and save actions.
 
-On web, to change your full name or address, choose **Edit**, change
+To change your full name or address, choose **Edit**, change
 them and choose **Save**. These details are self-reported: editing them verifies
 nothing and leaves existing identity results unchanged. A Profile save creates no company
 appointment, member association or register instruction. While your account is linked to a member of

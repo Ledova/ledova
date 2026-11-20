@@ -79,7 +79,7 @@ export default tseslint.config(
   },
   {
     files: ['src/**/*.tsx'],
-    ignores: ['src/**/*.test.tsx', 'src/pages/signup/user-profile/CountrySelector.tsx'],
+    ignores: ['src/**/*.test.tsx'],
     rules: {
       'no-restricted-syntax': [
         'error',

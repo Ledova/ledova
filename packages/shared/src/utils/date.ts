@@ -57,18 +57,3 @@ export function formatDateTime(dateString: string | null | undefined, fallback: 
   const time = `${hours % 12 || 12}:${String(at.getMinutes()).padStart(2, '0')} ${hours < 12 ? 'am' : 'pm'}`;
   return `${formatShortDate(dateString)}, ${time}`;
 }
-
-export function parseDateString(dateString: string): Date | undefined {
-  if (!dateString) return undefined;
-  const [year, month, day] = dateString.split('-').map(Number);
-  if (!year || !month || !day) return undefined;
-  return new Date(year, month - 1, day);
-}
-
-export function formatDateToString(date: Date | undefined): string {
-  if (!date) return '';
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}

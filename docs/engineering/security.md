@@ -306,14 +306,14 @@ caller's retained records. It accepts no new POST or PATCH collection; the retir
 is absent. Existing model/admin records, compliance reads, account summary and account erasure
 remain. No web or native signup sends financial-profile answers.
 
-Web signup submits only the full name through the shared profile hook; birth date, phone and
-address are not requested or sent, including when resuming a profile that already holds them.
-Web Profile edits only name and address, preserving historical phone and identity data for their
-existing display/export and erasure paths. Address supports linked member particulars and can be
-postal; it is not required of every company administrator. Native signup's existing fields are
-unchanged pending its separate release work. Identity providers accept missing account DOB and
-can collect their required details in their own verification flow; verified extraction may populate
-the profile. No identity check is bypassed by reducing signup collection.
+Signup, on the web and in the app, submits only the full name through the shared profile hook;
+birth date, phone and address are not requested or sent, including when resuming a profile that
+already holds them. Profile edits only name and address on both clients, preserving historical
+phone and identity data for their existing display/export and erasure paths. Address supports
+linked member particulars and can be postal; it is not required of every company administrator.
+Identity providers accept missing account DOB and can collect their required details in their own
+verification flow; verified extraction may populate the profile. No identity check is bypassed by
+reducing signup collection.
 
 Company exit is separate from account deletion. The maintenance-only
 [company-disposal command](../operations/operator-console.md#company-exit) requires verified
