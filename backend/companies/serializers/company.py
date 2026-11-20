@@ -25,7 +25,6 @@ class _CompanyUserProfileCreateSerializer(serializers.Serializer):
 
     first_name = serializers.CharField(max_length=100, required=True)
     last_name = serializers.CharField(max_length=100, required=True)
-    phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
 
 
 class CompanyAdministrativeAccessSerializer(serializers.Serializer):

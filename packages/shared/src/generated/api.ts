@@ -3513,7 +3513,6 @@ export interface ApiComponents {
     _CompanyUserProfileCreateRequest: {
       firstName: string;
       lastName: string;
-      phone?: string;
     };
     AccountExportData: {
       account: ApiComponents['schemas']['ExportedAccount'] | null;

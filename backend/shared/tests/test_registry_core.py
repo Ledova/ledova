@@ -839,7 +839,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
                 "name": "Synthetic New Pty Ltd",
                 "acn": "987654320",
                 "companyType": "pty",
-                "primaryContact": {"firstName": "Ada", "lastName": "Example", "phone": "+61 0491570159"},
+                "primaryContact": {"firstName": "Ada", "lastName": "Example"},
             },
             format="json",
         )
