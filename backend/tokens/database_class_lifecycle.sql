@@ -40,7 +40,21 @@ BEGIN
     IF share_class.status <> 'draft' OR NULLIF(share_class.contract_address, '') IS NOT NULL
         OR NULLIF(share_class.chain, '') IS NOT NULL OR share_class.deployment_id IS NOT NULL
         OR share_class.deployment_transaction_id IS NOT NULL OR NULLIF(share_class.deployment_tx_hash, '') IS NOT NULL
-        OR share_class.deployed_at IS NOT NULL THEN
+        OR share_class.deployed_at IS NOT NULL
+        OR EXISTS (SELECT 1 FROM public.tokens_registerdeployment WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_registerinstruction WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_registercapitalincrease WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_registerpausechange WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_tokendeployment WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_shareissuance WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_shareissuancerequest WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_shareissuanceexecution WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_capitalincreaserequest WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_capitalincreaseexecution WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_pausechange WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_transferorder WHERE token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_swaporder WHERE share_token_id = token_uuid)
+        OR EXISTS (SELECT 1 FROM public.tokens_formerholder WHERE token_id = token_uuid) THEN
         RETURN 'This class has on-chain records, which Ledova keeps, so it can''t be deleted here.';
     END IF;
     RETURN NULL;

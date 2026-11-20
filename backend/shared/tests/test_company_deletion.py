@@ -221,10 +221,12 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
                     "decimals": 0,
                 },
             )
+        offered = self.client.get(f"/api/v1/tokens/{self.token.pk}/").json()
+        self.assertEqual((offered["canDelete"], offered["deletionBlockedReason"]), (False, CLASS_ON_CHAIN))
         refused_class = self.client.delete(
             f"/api/v1/tokens/{self.token.pk}/?" + urlencode({"expected_updated_at": self.token.updated_at.isoformat()})
         )
-        self.assertEqual(refused_class.status_code, 400, refused_class.content)
+        self.assertEqual(refused_class.status_code, 409, refused_class.content)
         self.assertIn(CLASS_ON_CHAIN, refused_class.content.decode())
         refused = self.client.delete(f"/api/v1/companies/{self.company.pk}/")
         self.assertEqual(refused.status_code, 400, refused.content)
