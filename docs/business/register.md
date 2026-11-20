@@ -324,7 +324,9 @@ Files and their record links are kept, with the uploader, appointment, category 
 fingerprint, until a current preparer deletes the attachment. Later uploads add attachments without
 overwriting stored files. One stored file can support several linked people without duplicating its
 bytes. **Delete** on an attachment, after one confirmation, removes that link for everyone; the
-stored file goes too unless another attachment, class document or record still uses it.
+stored file goes too unless another attachment or record still uses it. An attachment added while
+bringing records in stays in that opening record, so correcting the copied opening offers it again;
+remove it from the correction to keep it deleted.
 Current company register readers can download them; they are not shared automatically with members
 or published. A category describes the company's attachment: uploading a Share certificate neither
 generates nor verifies one, and an attachment does not replace an issue's required approval,
@@ -338,7 +340,8 @@ each member ID, with a current source and a reason. Applying keeps the earlier s
 opening entry, adds a Copied opening correction entry for the exact difference (none when only
 particulars change) and records the new particulars. It is refused once the class has later share
 activity, a deployment, or member-access or particulars activity; the company then resolves its
-records and uses the supported workflow.
+records and uses the supported workflow. The correction starts from the copied rows, including
+attachments deleted since; remove any that should stay deleted.
 
 ### Opening from the chain
 

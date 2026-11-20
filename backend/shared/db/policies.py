@@ -323,10 +323,11 @@ OPERATOR_ONLY = {
     "tokens_registerpersonregistration": "Append-only company-person registration provenance, with no share effect. "
     "Exact-company reader and prepare commands retain current personal authority, actor and initial particulars; "
     "the app role receives no direct table grant.",
-    "tokens_registermemberdocument": "Append-only company-private shareholder and share-class document links. "
-    "Current exact-company register readers list and download them through register_member_document views on the "
-    "operator connection. Bounded prepare commands add links, and exact applied opening records retain their links; "
-    "neither public nor member projections expose the files.",
+    "tokens_registermemberdocument": "Company-private shareholder and share-class document links. Current "
+    "exact-company register readers list and download them through register_member_document views on the operator "
+    "connection. Bounded prepare commands add links, exact applied opening records create theirs, and the bounded "
+    "document delete command removes one under a document receipt; neither public nor member projections expose "
+    "the files.",
     "tokens_classdetailsrevision": "Append-only class-detail changes, generated atomically by the database with "
     "exact before and after values, personal actor, appointment and timestamp. Permitted company-pack exports "
     "read them on the operator connection; the app role has no direct table grant.",
@@ -427,7 +428,7 @@ OPERATOR_ONLY = {
     "uploader's own prepare commands accept them through own_evidence_bytes, as does the company owner's retained "
     "register instruction, submitted while a current administrator, and grant preparation also accepts an "
     "award's retained agreement evidence. Action-specific proposals, agreements, receipts, awards, vestings, endings "
-    "and reversals keep their own copies; shareholder attachments retain immutable links to the original file. "
+    "and reversals keep their own copies; shareholder attachments link to the original file until deleted. "
     "The pause and capital _state checks, run for their proposals "
     "and execution workers, re-read the original, and the company pack and staff admin pages read the rows through "
     "the records that cite them, all on the operator connection.",

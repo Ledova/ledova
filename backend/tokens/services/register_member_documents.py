@@ -15,7 +15,6 @@ from companies.services.company_deletion import (
 )
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
-    ClassRightsRevision,
     RegisterEvidence,
     RegisterEvidenceKind,
     RegisterImport,
@@ -23,6 +22,7 @@ from tokens.models import (
     RegisterMemberDocumentCategory,
     RegisterPosition,
 )
+from tokens.services.pending_deletion import RECORD_GONE
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_evidence import evidence_snapshot, matching_bytes
 
@@ -173,11 +173,9 @@ def evidence_kept(evidence_id, document_id):
             rows = rows.exclude(pk=document_id)
         if rows.exists():
             return True
-    identifier = str(evidence_id)
-    return (
-        ClassRightsRevision._base_manager.filter(documents__contains=[{"evidence": identifier}]).exists()
-        or RegisterImport._base_manager.filter(members__contains=[{"documents": [{"evidence": identifier}]}]).exists()
-    )
+    return RegisterImport._base_manager.filter(
+        members__contains=[{"documents": [{"evidence": str(evidence_id)}]}]
+    ).exists()
 
 
 def delete_member_document(*, actor, document):
@@ -191,7 +189,9 @@ def delete_member_document(*, actor, document):
         appointment, expires_at = current_appointment(
             current, company.pk, operator, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
         )
-        if document is None or appointment is None:
+        if document is None:
+            raise NotFound(RECORD_GONE)
+        if appointment is None:
             raise NotFound(NO_DOCUMENT_PREPARER)
         rows = {RegisterMemberDocument: list(RegisterMemberDocument._base_manager.filter(pk=document.pk).values())}
         evidence = RegisterEvidence._base_manager.select_for_update().filter(pk=document.evidence_id).first()

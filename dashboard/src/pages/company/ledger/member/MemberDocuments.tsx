@@ -11,7 +11,7 @@ import {
 } from '@ledova/shared';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { DocumentAttachments } from '@pages/company/ledger/shared/DocumentAttachments';
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 export function MemberDocuments(props: {
   owner: OrderSubmissionOwner;
@@ -34,6 +34,7 @@ function OwnMemberDocuments(props: Parameters<typeof MemberDocuments>[0]) {
   const targetReasonId = useId();
   const editor = documents.editor;
   const [deleting, setDeleting] = useState<RegisterMemberDocument | null>(null);
+  const add = useRef<HTMLButtonElement>(null);
   return (
     <Section title="Documents">
       {documents.appointments.isError ? (
@@ -92,6 +93,7 @@ function OwnMemberDocuments(props: Parameters<typeof MemberDocuments>[0]) {
           {!editor && documents.appointment && (
             <FormActions>
               <PageAction
+                ref={add}
                 label="Add"
                 context="documents"
                 onClick={documents.open}
@@ -171,7 +173,11 @@ function OwnMemberDocuments(props: Parameters<typeof MemberDocuments>[0]) {
         busy={documents.busy}
         busyLabel="Deleting…"
         onConfirm={() => {
-          if (deleting) void documents.remove(deleting).finally(() => setDeleting(null));
+          if (deleting)
+            void documents.remove(deleting).finally(() => {
+              setDeleting(null);
+              requestAnimationFrame(() => add.current?.focus());
+            });
         }}
       >
         <p className="break-words text-sm text-text-primary">
