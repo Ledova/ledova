@@ -237,7 +237,7 @@ application role writes them. The purge is in [retention clocks](security.md#ret
 
 The register spine `Company -> ShareToken -> {ShareIssuance, ShareIssuanceRequest,
 CapitalIncreaseRequest, TransferOrder}` and `SwapOrder.share_token` use `PROTECT`, which admin
-removal of test data still respects. The API refuses company deletion (405), and unused-class
+removal of test data still respects. Unused-class
 deletion requires current company authority, an unchanged version and no actual ownership activity
 or outstanding work. It removes the class from active use, retaining its identity, deletion actor/time
 and abandoned setup drafts with their decisions and evidence
