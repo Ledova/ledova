@@ -3,13 +3,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GradientBackground } from '../../../components/GradientBackground';
 import { PrimaryButton } from '../../../components/buttons';
 import { ScreenHeader, SignOutLink } from '../../../components/header';
-import { DatePickerField } from '../../../components/date-picker';
 import { Field } from '../../../components/Field';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
-import { UserIcon, WarningCircleIcon, HouseIcon, PhoneIcon } from 'phosphor-react-native';
-import { CountrySelector } from './components/CountrySelector';
-import { useRole, parseDateString, formatDateToString, useSignupUserProfile } from '@ledova/shared';
+import { UserIcon, WarningCircleIcon } from 'phosphor-react-native';
+import { FIELD_LIMITS, useRole, useSignupUserProfile } from '@ledova/shared';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 
@@ -123,19 +121,8 @@ export function UserProfileScreen() {
     },
   }));
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const {
-    form,
-    errors,
-    generalError,
-    isLoading,
-    isSubmitting,
-    selectedCountry,
-    countries,
-    setFieldValue,
-    handleCountryChange,
-    handleSubmit,
-    retryLoad,
-  } = useSignupUserProfile();
+  const { form, errors, generalError, isLoading, isSubmitting, setFieldValue, handleSubmit, retryLoad } =
+    useSignupUserProfile();
 
   const handleContinue = async () => {
     await handleSubmit(() => {
@@ -222,73 +209,11 @@ export function UserProfileScreen() {
                     />
                   }
                   placeholder="John Doe"
+                  maxLength={FIELD_LIMITS.PROFILE_NAME}
                   value={form.fullName}
                   onChange={(text) => setFieldValue('fullName', text)}
                   editable={!isSubmitting}
                   error={errors.fullName?.join(' ')}
-                />
-              </View>
-
-              <View style={styles.fieldContainer}>
-                <DatePickerField
-                  label="Date of birth"
-                  value={parseDateString(form.dateOfBirth)}
-                  onChange={(date) => setFieldValue('dateOfBirth', formatDateToString(date))}
-                  placeholder="DD/MM/YYYY"
-                  maximumDate={new Date()}
-                  minimumDate={new Date(1900, 0, 1)}
-                  disabled={isSubmitting}
-                  error={errors.dateOfBirth?.join(' ')}
-                />
-              </View>
-
-              <View style={styles.fieldContainer}>
-                <Field
-                  filled
-                  label="Phone number"
-                  icon={
-                    <>
-                      <PhoneIcon
-                        size={theme.icon.sizes.md}
-                        color={theme.colors.text.subtle}
-                        weight={theme.icon.weights.regular}
-                      />
-                      <CountrySelector
-                        countries={countries}
-                        selectedCountry={selectedCountry}
-                        onCountryChange={handleCountryChange}
-                        disabled={isSubmitting}
-                      />
-                    </>
-                  }
-                  placeholder="491 570 156"
-                  value={form.phoneNumber}
-                  onChange={(text) => setFieldValue('phoneNumber', text)}
-                  keyboardType="phone-pad"
-                  editable={!isSubmitting}
-                  error={errors.phoneNumber?.join(' ')}
-                />
-              </View>
-
-              <View style={styles.fieldContainer}>
-                <Field
-                  filled
-                  label="Residential address"
-                  hint="Include street number, city, state and postcode"
-                  icon={
-                    <HouseIcon
-                      size={theme.icon.sizes.md}
-                      color={theme.colors.text.subtle}
-                      weight={theme.icon.weights.regular}
-                    />
-                  }
-                  placeholder={'123 Main Street\nSydney NSW 2000'}
-                  value={form.residentialAddress}
-                  onChange={(text) => setFieldValue('residentialAddress', text)}
-                  multiline
-                  rows={3}
-                  editable={!isSubmitting}
-                  error={errors.residentialAddress?.join(' ')}
                 />
               </View>
 

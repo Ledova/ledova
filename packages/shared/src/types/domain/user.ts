@@ -8,8 +8,4 @@ export type CompleteUserProfile = Pick<UpdateUserProfile, 'termsAndConditions' |
 
 export interface UserProfileFormData {
   fullName: string;
-  dateOfBirth: string;
-  phoneCountryCode: string;
-  phoneNumber: string;
-  residentialAddress: string;
 }

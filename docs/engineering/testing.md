@@ -53,8 +53,8 @@ Type-check and lint are outside the case caps. Build, probe and device results b
 release are separate evidence
 ([mobile releases](mobile-releases.md)).
 
-The shared package has ten cases: the additional signup case verifies that web saves omit
-uncollected fields without erasing retained details, while native's required fields stay unchanged.
+The shared package has ten cases: the additional signup case verifies that signup, on the web and in
+the app, requires and saves only the full name, without erasing details an account already holds.
 
 ## Commands
 

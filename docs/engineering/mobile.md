@@ -44,13 +44,13 @@ searchable list that a person or a shareholder is chosen from is `components/Sea
 which Shareholders' `PersonSelect.tsx` wraps.
 
 Every text field goes through `components/Input.tsx`, and a lint rule keeps React Native's
-`TextInput` there. `Input` draws the frame, the text, a leading slot (an icon, or the phone number's
-country picker) and a trailing slot (`PasswordToggle`), multi-line rows, and the in-app look or the
+`TextInput` there. `Input` draws the frame, the text, a leading slot (an icon) and a trailing slot
+(`PasswordToggle`), multi-line rows, and the in-app look or the
 `filled` sign-in and sign-up card look with its error frame, as on the web. Its frame has a minimum
 height, never a fixed one: iOS confines the text being edited to the input's own box, so a fixed
 height with vertical padding cuts off letters such as "g" while the keyboard is up. `Field`
 (`components/Field.tsx`) adds the label, hint and error and passes input props through, and
-`useControlFrame()` gives selects and the date field the same frame. A `Field` with `date` takes
+`useControlFrame()` gives selects the same frame. A `Field` with `date` takes
 digits only, on a number pad, and adds the dashes itself (`YYYY-MM-DD`, ten characters at most), so
 a typed date can't hold letters or symbols; the web uses the browser's date control.
 
@@ -560,8 +560,8 @@ use `brand.default` or `brand.mid` (`interactive.defaultSubtle`); error text use
 
 With `userInterfaceStyle` `automatic` in `mobile/app.json`, the provider sets React Native's colour
 scheme and the root view's background (the page ground) when the look is first known, before the
-screens mount, and on every change, so alerts, switches, date pickers and, on iOS, the keyboard and
-share sheet follow the in-app choice; the generated-project checks verify the Android `automatic`
+screens mount, and on every change, so alerts, switches and, on iOS, the keyboard and share sheet
+follow the in-app choice; the generated-project checks verify the Android `automatic`
 resource and both iOS `Automatic` settings. The status bar is dark on Paper and light on Dark;
 navigation uses React Navigation's light or dark theme with the token colours; the app-lock screen
 draws the logo mark in `text.primary` and `brand.light`. Before JavaScript runs everything is Paper (splash

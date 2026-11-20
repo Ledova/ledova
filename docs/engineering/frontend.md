@@ -1071,10 +1071,10 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   stay focused pages. Signup and mobile
   Settings keep their own navigation.
 - Data and privacy on web: account deletion clears cached account data after the server confirms.
-- Web signup selects only `fullName` in `useSignupUserProfile`; the hook validates and PATCHes
-  selected fields and omits uncollected values, preserving existing identity and contact details.
-  Native's no-argument call keeps its current field set. Web Profile edits name and address;
-  retained phone and birth date remain readable without new phone collection.
+- Signup on both clients collects only `fullName` through `useSignupUserProfile`, which validates
+  and PATCHes that field alone, preserving existing identity and contact details. Profile edits the
+  name and address on both clients, and shows a retained phone number or birth date only where the
+  account holds one.
 
 Next: [frontend UX standards](frontend-ux.md), [mobile](mobile.md), [authentication](security.md#authentication-and-sessions),
 [company workflow API](backend.md#company-workflow-api) and [testing](testing.md).

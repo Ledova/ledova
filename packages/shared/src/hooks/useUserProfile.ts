@@ -10,7 +10,7 @@ import { useSubmissionOwner } from './useSubmissionOwner';
 import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { useApiClient } from './useApiClient';
 
-type PersonalDetails = Pick<UpdateUserProfile, 'fullName' | 'residentialAddress' | 'phoneCountryCode' | 'phoneNumber'>;
+type PersonalDetails = Pick<UpdateUserProfile, 'fullName' | 'residentialAddress'>;
 type ProfileChanges = PersonalDetails | Pick<UpdateUserProfile, 'termsVersion' | 'termsAndConditions'>;
 
 export function useUserProfile({ session }: { session?: OrderSubmissionSession } = {}) {

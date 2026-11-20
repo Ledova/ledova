@@ -50,24 +50,6 @@ export function isValidFullName(fullName: string, minParts = 2): boolean {
   return nameParts.length >= minParts && nameParts.every((part) => part.length > 0);
 }
 
-export function isValidPhoneFormat(phoneNumber: string, minLength = 8): boolean {
-  const trimmedPhone = phoneNumber.trim();
-  return trimmedPhone.length >= minLength && /^[+\-\s\d()]+$/.test(trimmedPhone);
-}
-
-export function formatPhoneNumber(phoneNumber: string): string {
-  if (!phoneNumber) return '';
-  const cleaned = phoneNumber.replace(/\D/g, '');
-  if (cleaned.startsWith('61') && cleaned.length === 11) {
-    const mobile = cleaned.slice(2);
-    return `+61 ${mobile.slice(0, 3)} ${mobile.slice(3, 6)} ${mobile.slice(6)}`;
-  }
-  if (cleaned.length === 10) {
-    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-  }
-  return phoneNumber.trim();
-}
-
 export function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }

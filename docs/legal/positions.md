@@ -682,6 +682,10 @@ automatically erase provider copies or prove immediate complete deletion. This a
 the published terms, without claiming a particular executed agreement version. Delivery evidence
 and account details remain private under [#1586](https://github.com/Ledova/ledova/issues/1586).
 
+**App signup collection, 20 November 2026.** The app's signup now asks only for the name, as the
+web's does, and the app's Profile edits only the name and address
+([#1711](https://github.com/Ledova/ledova/issues/1711)). Existing values are preserved.
+
 The final read-only Admin and Vault review on 9 November resolved support-mail treatment:
 the support group keeps conversation history, the recipient's effective Gmail setting has no
 automatic age expiry, and Vault has no default Gmail/Groups retention rules, custom rules or

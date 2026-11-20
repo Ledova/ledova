@@ -27,7 +27,7 @@ export function PrivacyPolicy() {
     <>
       <PageHeader
         title="Privacy policy"
-        lead="For the ledova.io preview and the public source code · Updated 10&nbsp;November&nbsp;2026"
+        lead="For the ledova.io preview and the public source code · Updated 20&nbsp;November&nbsp;2026"
       />
       <section className="border-t border-border-subtle">
         <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
@@ -53,12 +53,11 @@ export function PrivacyPolicy() {
             <ul className={LIST}>
               <li>
                 <strong className={LABEL}>When you register:</strong> your email address, a password (kept only as a
-                one-way hash), and your full name. Web signup does not ask for a birth date, phone number or address.
-                You can add or update an address in Profile for linked shareholder particulars. The native app still
-                asks for a birth date, phone number and residential address; reducing that collection is deferred to its
-                release work. Neither signup asks for occupation, source of funds or intended use. Earlier preview
-                records can retain these details. A configured identity check can collect identity details separately;
-                these do not determine company ownership.
+                one-way hash), and your full name. Signup, on the web or in the app, doesn&apos;t ask for a birth date,
+                phone number, address, occupation, source of funds or intended use. You can add or update an address in
+                Profile for linked shareholder particulars. Earlier preview records can retain these details. A
+                configured identity check can collect identity details separately; these do not determine company
+                ownership.
               </li>
               <li>
                 <strong className={LABEL}>What you record:</strong> company details, share classes, holdings and awards,

@@ -9,7 +9,7 @@ import { ClipboardIcon } from 'phosphor-react-native';
 import { layout } from '../../../styles';
 import { useAppTheme, useThemedStyles } from '../../../contexts';
 import { useReview } from './useReview';
-import { COMPANY_TYPES, formatPhoneWithCountryCode } from '@ledova/shared';
+import { COMPANY_TYPES } from '@ledova/shared';
 import { PUBLIC_LINKS } from '../../../config/publicLinks';
 import { Fact, Rows, Section, useCardStyles } from '../../../components/Ledger';
 
@@ -220,12 +220,11 @@ export function ReviewScreen() {
                 <Fact label="Full name" inline>
                   {userProfile.fullName ?? ''}
                 </Fact>
-                <Fact label="Phone" inline>
-                  {formatPhoneWithCountryCode(userProfile.phoneCountryCode, userProfile.phoneNumber)}
-                </Fact>
-                <Fact label="Residential address" inline>
-                  {userProfile.residentialAddress || 'Not provided'}
-                </Fact>
+                {userProfile.residentialAddress ? (
+                  <Fact label="Address" inline>
+                    {userProfile.residentialAddress}
+                  </Fact>
+                ) : null}
               </Rows>
             ) : (
               <Text style={styles.errorText}>No personal information found.</Text>

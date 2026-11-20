@@ -74,23 +74,14 @@ jest.mock('@ledova/shared', () => {
     useAuth: () => ({ isAuthenticated: true, isLoading: false, isFetching: mockRereading, refetch: jest.fn() }),
     useUserPreferences: () => ({ isFetching: mockRereading, isError: mockPreferencesError, refetch: jest.fn() }),
     useSignupUserProfile: () => {
-      const [form, setForm] = useState({
-        fullName: mockFullName,
-        dateOfBirth: '1990-01-01',
-        residentialAddress: mockResidentialAddress,
-        phoneCountryCode: '+61',
-        phoneNumber: '491570156',
-      });
+      const [form, setForm] = useState({ fullName: mockFullName });
       return {
         form,
         errors: {},
         generalError: null,
         isLoading: false,
         isSubmitting: false,
-        selectedCountry: { code: 'AU', name: 'Australia', flag: '🇦🇺', phoneCode: '+61' },
-        countries: [],
         setFieldValue: (field: string, value: string) => setForm((current) => ({ ...current, [field]: value })),
-        handleCountryChange: jest.fn(),
         handleSubmit: async (onSaved: () => void) => {
           mockSaveProfile(form);
           mockFullName = form.fullName;
@@ -186,7 +177,7 @@ it('completes individual signup only through explicit Terms acceptance, resumes 
   );
   const first = await render(<ReviewScreen />, { wrapper });
   expect(first.getByRole('button', { name: 'Complete signup' })).toBeEnabled();
-  expect(first.getByText('Residential address')).toBeTruthy();
+  expect(first.getByText('Address')).toBeTruthy();
   expect(first.getByText(mockResidentialAddress, { normalizer: (value) => value }).props.children).toBe(
     mockResidentialAddress,
   );

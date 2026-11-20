@@ -43,6 +43,7 @@ stay here as history and are marked where they appear.
 | [Wallets removed from the web app](#wallets-removed-from-the-web-app)                                              | 31 October 2026                                | Current; #1452; backend and data kept                                                                                              |
 | [Sign-up wording after offerings were deferred](#sign-up-wording-after-offerings-were-deferred)                    | 8 November 2026                                | Superseded: financial-profile points 8 November (#1589), Eligibility check removed 9 November                                      |
 | [Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up)                                  | 9 November 2026                                | Current; #1567                                                                                                                     |
+| [App sign-up asks only for the full name](#app-sign-up-asks-only-for-the-full-name)                                | 20 November 2026                               | Current; #1711                                                                                                                     |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital)    | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                          | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
 | [Member particulars requests removed](#member-particulars-requests-removed)                                        | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed and linked members follow their profile (#1492)      |
@@ -1235,6 +1236,16 @@ fields with their stored answers.
 
 The same day the owner asked to remove "© 2026 Ledova contributors" from the dashboard and website
 footers. "Operated by …" and the licence name stay.
+
+### App sign-up asks only for the full name
+
+**Owner decision, 20 November 2026**, given in the session. Asked what should follow the App Store
+listing's preparation, the owner accepted the recommendation that the app's sign-up ask only for the
+full name, as the web's has since [#1589](https://github.com/Ledova/ledova/issues/1589): "Proceed
+with your recommendations". The app no longer asks for a birth date, phone number or residential
+address at sign-up, and its Profile edits the name and address as the web's does. Details an account
+already holds stay, and Profile shows a retained phone number or birth date only where the account
+has one ([#1711](https://github.com/Ledova/ledova/issues/1711)).
 
 ### Member invitations and account association
 

@@ -895,16 +895,13 @@ Creation keeps links to unfinished classes as recovery if an existing code is ch
 continuation uses the class row. The app still offers classes already started but not opened as
 links in a sentence. Both clients offer the new class's kind as radio buttons, so choosing never
 moves the page by itself. Sign-up keeps its own presentation: its
-company type is Headless UI's `Select` inside the field so the label names it, and the phone number's
-country code is a native select named "Country code" beside the number. The select is transparent
-over the flag and dialling code, so the field keeps its width while the open list names each
-country.
+company type is Headless UI's `Select` inside the field so the label names it.
 
 ## How the choice rules are enforced
 
 An ESLint rule in `dashboard/eslint.config.js` refuses a `select` element written in the dashboard's
-source, apart from `SelectField` and the sign-up country code, and names the three controls. It
-does not see Headless UI's `Select`, which only sign-up's company type uses, or test files. Which
+source and names the three controls. It does not see Headless UI's `Select`, which `SelectField` and
+sign-up's company type use, or test files. Which
 control fits which list is checked in review against this page.
 
 ## Lists, search, filters and paging
