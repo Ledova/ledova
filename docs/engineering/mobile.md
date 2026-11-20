@@ -387,7 +387,7 @@ or hides the details and the documents' downloads to the share sheet; an unfinis
 status and **Reject** and **Review and approve**, only for the steps the person's appointments hold.
 Review share transfer replaces the records, and **Approve** records the approval and
 the transfer together, as on the web. An unopened draft class offers **Set up your ledger**, as on Issue
-shares. **Prepare a non-paid transfer**, beneath the card,
+shares. **Transfer**, beneath the card,
 opens the web's three-step form on its own page (`TransferPreparationScreen.tsx`, through the shared
 `useTransferPreparation`, keeping its retry of an uncertain preparation). Preparing or Cancel returns to
 the class's transfers, with a prepared transfer in view and marked as prepared, as on the web. A

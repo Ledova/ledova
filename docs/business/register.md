@@ -479,7 +479,7 @@ account, payment, application or chain transaction.
    earlier approval is reused; an approved transfer awaiting its entry shows **Ready to complete**.
    Success moves the transfer under **Transferred**, without a separate Apply action. A failed
    transaction records no new approval or movement; retrying the same request cannot move the shares
-   twice. Rejection also uses page review. **Prepare a non-paid transfer** sits beneath the card. The
+   twice. Rejection also uses page review. **Transfer** sits beneath the card. The
    API keeps its separate decision steps.
 
 The mobile app's Transfer shares has the same card, groups, rows, form, reviews and decisions at phone

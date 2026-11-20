@@ -30,7 +30,7 @@ export const REGISTER_TRANSFER_UNMET_COPY: Record<string, string> = {
 };
 
 export const REGISTER_TRANSFER_COPY = {
-  PREPARE: 'Prepare a non-paid transfer',
+  PREPARE: 'Transfer',
   SUBMIT: 'Prepare transfer',
   PREPARED: 'Non-paid transfer prepared.',
   EMPTY: 'No non-paid transfer has been prepared for this share class.',

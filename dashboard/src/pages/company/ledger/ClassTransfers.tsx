@@ -120,6 +120,7 @@ export function ClassTransfers({
         primary
         to={generatePath(DESTINATIONS.companyRegisterTransfer.path, { uuid: token })}
         label={COPY.PREPARE}
+        context="non-paid"
       />
     ) : null;
   const status = (

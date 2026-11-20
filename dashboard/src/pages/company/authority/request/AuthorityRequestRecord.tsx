@@ -183,7 +183,7 @@ export function AuthorityRequestRecord({
             onClose={closeRevocationConfirmation}
             title="Revoke appointment permanently?"
             showFooter
-            confirmLabel="Permanently revoke appointment"
+            confirmLabel="Revoke"
             destructive
             busy={action === 'revoke'}
             busyLabel="Revoking…"

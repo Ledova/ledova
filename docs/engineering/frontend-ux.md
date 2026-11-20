@@ -668,9 +668,8 @@ feed's **Load more …** ([Feeds](#lists-search-filters-and-paging)); the regist
 name what they prepare or record (**Prepare allotment**, **Prepare transfer**, **Prepare grant**,
 **Prepare issue**, **Prepare correction**, **Record award**, **Record vesting**, setup's **Record
 review**); a register decision's confirm, which names the decision (**Reject transfer**, **Record
-issue**, **Apply correction**, **Confirm import** and the like); and **Permanently
-revoke appointment**, **Confirm and download inspection copy** and **Prepare a non-paid transfer**,
-whose extra words mark an irreversible, audited or unpaid step.
+issue**, **Apply correction**, **Confirm import** and the like). An irreversible step says so in its
+dialog's title, not its button: **Revoke** answers "Revoke appointment permanently?".
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
 "Saving…". Every page form's submit button uses them, and so does every action that starts a
