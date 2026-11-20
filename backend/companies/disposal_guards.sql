@@ -139,6 +139,10 @@ BEGIN
                         OR EXISTS (SELECT 1 FROM tokens_registertransfer WHERE target IN (from_member, to_member))
                         OR EXISTS (SELECT 1 FROM tokens_registerimport WHERE company_id = member.company_id
                             AND members @> jsonb_build_array(jsonb_build_object('member', target::text)))
+                        OR EXISTS (SELECT 1 FROM tokens_registeropening WHERE company_id = member.company_id
+                            AND mapping @> jsonb_build_array(jsonb_build_object('member', target::text)))
+                        OR EXISTS (SELECT 1 FROM tokens_registerwalletlink WHERE company_id = member.company_id
+                            AND mapping @> jsonb_build_array(jsonb_build_object('member', target::text)))
                         THEN 'used' ELSE 'submitted' END
                     INTO owner, state FROM tokens_registermember member WHERE member.uuid = target;
                 IF EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(NEW.manifest->'tokens_registermemberparticulars', '[]'::jsonb)) listed(id)

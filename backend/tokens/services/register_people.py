@@ -28,9 +28,11 @@ from tokens.models import (
     RegisterMemberCessation,
     RegisterMemberParticulars,
     RegisterMemberWallet,
+    RegisterOpening,
     RegisterPersonRegistration,
     RegisterPosition,
     RegisterTransfer,
+    RegisterWalletLink,
 )
 from tokens.services.register_authority import (
     current_register_reader,
@@ -63,6 +65,11 @@ def used_people(company_id):
         used |= set(pair)
     for members in RegisterImport.objects.filter(company_id=company_id).values_list("members", flat=True):
         used |= {UUID(str(row["member"])) for row in members if isinstance(row, dict) and row.get("member")}
+    for model in (RegisterOpening, RegisterWalletLink):
+        for mapping in model.objects.filter(company_id=company_id).values_list("mapping", flat=True):
+            used |= {
+                UUID(str(link["member"])) for link in mapping or [] if isinstance(link, dict) and link.get("member")
+            }
     return used
 
 
