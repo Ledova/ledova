@@ -320,9 +320,11 @@ with **Record a shareholding before adding documents.** Class-wide governing doc
 [Class rights](issuing-shares.md#class-rights); company source copies belong to the whole opening
 and remain separate.
 
-Files and their record links are retained, with the uploader, appointment, category and file
-fingerprint. Later uploads add attachments without overwriting stored files. One stored file can
-support several linked people without duplicating its bytes.
+Files and their record links are kept, with the uploader, appointment, category and file
+fingerprint, until a current preparer deletes the attachment. Later uploads add attachments without
+overwriting stored files. One stored file can support several linked people without duplicating its
+bytes. **Delete** on an attachment, after one confirmation, removes that link for everyone; the
+stored file goes too unless another attachment, class document or record still uses it.
 Current company register readers can download them; they are not shared automatically with members
 or published. A category describes the company's attachment: uploading a Share certificate neither
 generates nor verifies one, and an attachment does not replace an issue's required approval,

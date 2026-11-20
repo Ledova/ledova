@@ -4,6 +4,7 @@ import { READ_TIMING } from '../constants/api';
 import { uploadRegisterEvidence } from '../services/register-commands';
 import {
   createRegisterMemberDocument,
+  deleteRegisterMemberDocument,
   downloadRegisterMemberDocumentFile,
   getRegisterMemberDocuments,
 } from '../services/register-member-documents';
@@ -33,6 +34,7 @@ type Pending = Editor & { appointment: string };
 type Upload = { file: RegisterDocumentFile; appointment: string; key: string; receipt?: RegisterEvidence };
 
 const DOWNLOAD_FAILED = 'The document could not be downloaded. Try again.';
+const DELETE_FAILED = 'The document could not be deleted. Refresh and try again.';
 
 export function memberDocumentsKey(owner: OrderSubmissionOwner, company: string) {
   return ['register-member-documents', owner.userUuid, owner.ownerAccountUuid, company];
@@ -286,6 +288,37 @@ export function useMemberDocuments({
       if (mounted.current) setBusy(false);
     }
   };
+  const remove = async (document: RegisterMemberDocument) => {
+    if (running.current || !ready || !appointment) return;
+    running.current = true;
+    setBusy(true);
+    setError('');
+    const expected = appointment.uuid;
+    const checkDeletion = () => {
+      check();
+      const current = client.getQueryData<NonNullable<typeof appointments.data>>(ownAppointmentsKey(owner)) ?? [];
+      if (appointmentForRegisterStep(current, company, 'prepare')?.uuid !== expected)
+        throw createUserFriendlyError('Refresh your preparation appointment before deleting documents.');
+    };
+    try {
+      checkDeletion();
+      const response = await deleteRegisterMemberDocument(apiClient, document.uuid, config(checkDeletion));
+      check();
+      if (response.status !== 204) throw createUserFriendlyError(DELETE_FAILED);
+      await client.invalidateQueries({ queryKey: memberDocumentsKey(owner, company) });
+    } catch (failure) {
+      try {
+        guard();
+        void client.invalidateQueries({ queryKey: memberDocumentsKey(owner, company) });
+        if (mounted.current) setError(failureSentence(failure, DELETE_FAILED));
+      } catch {
+        return;
+      }
+    } finally {
+      running.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  };
   return {
     query,
     appointments,
@@ -301,5 +334,6 @@ export function useMemberDocuments({
     close,
     save,
     download,
+    remove,
   };
 }

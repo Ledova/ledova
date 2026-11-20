@@ -241,7 +241,8 @@ removal of test data still respects. The database guards refuse ordinary deletes
 commands are the exceptions, each through a receipt whose exact-row manifest the guards check: an
 administrator [deletes the company](security.md#account-closure-and-export) or an invitation never
 accepted, and a preparer deletes a share class with all its records
-([class lifecycle](backend.md#company-workflow-api)) or a proposal still awaiting a decision. Each
+([class lifecycle](backend.md#company-workflow-api)), a proposal still awaiting a decision or a
+shareholder document. Each
 needs current company authority, and a class delete also needs an unchanged version. They keep guards and
 foreign-key checks, refuse on-chain and execution history, grant no delete access to the admin and do
 not erase an account, another company or chain history. Deleting a wallet cascades its whitelist

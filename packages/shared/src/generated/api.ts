@@ -2361,7 +2361,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_member_documents_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_member_documents_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -12247,6 +12247,25 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['RegisterMemberDocument'];
         };
+      };
+    };
+  };
+  api_v1_tokens_register_member_documents_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

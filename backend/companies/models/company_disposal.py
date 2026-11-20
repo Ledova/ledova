@@ -8,6 +8,7 @@ class DeletionScope(models.TextChoices):
     SHARE_CLASS = "share_class", "Share class"
     PROPOSAL = "proposal", "Pending proposal"
     INVITATION = "invitation", "Pending invitation"
+    DOCUMENT = "document", "Shareholder document"
 
 
 class CompanyDisposal(BaseModel):

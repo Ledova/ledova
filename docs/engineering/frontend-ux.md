@@ -467,7 +467,9 @@ the original action for checking. After a deletion, from the class page or the L
 card, on web and app, and clears when another deletion starts or the app leaves Ledger.
 A shareholder's page owns their **Documents** section; do not duplicate it on the web class page.
 Use **Add**, not Edit: uploads append linked attachments rather than overwrite stored
-files. Keep the action visible to current preparers when no holding exists, disabled with
+files. Each attachment shows **Download** and, for current preparers, **Delete** with one
+confirmation ("This can’t be undone"). Keep **Add** visible to current preparers when no holding
+exists, disabled with
 **Record a shareholding before adding documents.** Class-wide governing documents stay with
 Class rights.
 Class rights follows this pattern: **Add**, or **Edit** once rights are recorded, replaces its read view and previous versions with six

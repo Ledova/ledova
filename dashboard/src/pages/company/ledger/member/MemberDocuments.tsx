@@ -1,15 +1,17 @@
 import { LoadError, Loading, Section, Failure } from '@components/Ledger';
-import { FormActions, PageAction } from '@components/Page';
+import { Modal } from '@components/Modal';
+import { Actions, FormActions, PageAction } from '@components/Page';
 import { SearchSelect } from '@components/SearchSelect';
 import {
   REGISTER_MEMBER_DOCUMENT_CATEGORIES,
   useMemberDocuments,
   type DocumentHolding,
   type OrderSubmissionOwner,
+  type RegisterMemberDocument,
 } from '@ledova/shared';
 import { BROWSER_FILES } from '@utils/saveFile';
 import { DocumentAttachments } from '@pages/company/ledger/shared/DocumentAttachments';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 
 export function MemberDocuments(props: {
   owner: OrderSubmissionOwner;
@@ -31,6 +33,7 @@ function OwnMemberDocuments(props: Parameters<typeof MemberDocuments>[0]) {
   const documents = useMemberDocuments({ ...props, files: BROWSER_FILES, newKey: () => crypto.randomUUID() });
   const targetReasonId = useId();
   const editor = documents.editor;
+  const [deleting, setDeleting] = useState<RegisterMemberDocument | null>(null);
   return (
     <Section title="Documents">
       {documents.appointments.isError ? (
@@ -63,12 +66,23 @@ function OwnMemberDocuments(props: Parameters<typeof MemberDocuments>[0]) {
                         ` · ${props.holdings.find((holding) => holding.member === document.member && holding.token === document.token)!.label}`}
                     </p>
                   </div>
-                  <PageAction
-                    label="Download"
-                    context={document.snapshot.name}
-                    disabled={documents.busy}
-                    onClick={() => void documents.download(document)}
-                  />
+                  <Actions>
+                    <PageAction
+                      label="Download"
+                      context={document.snapshot.name}
+                      disabled={documents.busy}
+                      onClick={() => void documents.download(document)}
+                    />
+                    {documents.appointment && (
+                      <PageAction
+                        destructive
+                        label="Delete"
+                        context={document.snapshot.name}
+                        disabled={documents.busy}
+                        onClick={() => setDeleting(document)}
+                      />
+                    )}
+                  </Actions>
                 </li>
               ))}
             </ul>
@@ -145,6 +159,25 @@ function OwnMemberDocuments(props: Parameters<typeof MemberDocuments>[0]) {
         </form>
       )}
       <Failure>{documents.error}</Failure>
+      <Modal
+        isOpen={!!deleting}
+        onClose={() => {
+          if (!documents.busy) setDeleting(null);
+        }}
+        title="Delete this document?"
+        showFooter
+        confirmLabel="Delete"
+        destructive
+        busy={documents.busy}
+        busyLabel="Deleting…"
+        onConfirm={() => {
+          if (deleting) void documents.remove(deleting).finally(() => setDeleting(null));
+        }}
+      >
+        <p className="break-words text-sm text-text-primary">
+          {deleting?.snapshot.name} is removed for everyone. This can’t be undone.
+        </p>
+      </Modal>
     </Section>
   );
 }

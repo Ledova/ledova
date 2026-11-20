@@ -334,7 +334,10 @@ authority, and does not re-derive each listed row's company, so keeping companie
 on those queries. Deleting a pending proposal or an unaccepted invitation uses the same path with a
 `proposal` or `invitation` receipt: the database admits only that one record of the company, still
 pending, with its decisions (and an allotment's agreement and contribution), and requires current
-preparation authority for a proposal and administration for an invitation.
+preparation authority for a proposal and administration for an invitation. Deleting a
+shareholder document uses a `document` receipt: one document of the company, with its stored
+evidence only when that evidence is the document's own and nothing else references it, under
+current preparation authority.
 
 Files under the company's private storage prefix are removed after the database commit, and any
 that fail go with the daily sweep of unreferenced uploads. Deleting a company does not erase support
