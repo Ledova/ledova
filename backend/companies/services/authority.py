@@ -18,7 +18,10 @@ from companies.models import (
     CompanyCapability,
     CompanyStatus,
 )
-from companies.services.administration import company_operation
+from companies.services.administration import (
+    company_operation,
+    require_another_administrator,
+)
 from companies.services.authority_requests import (
     _requester_principal,
     _require_requester,
@@ -153,5 +156,6 @@ def revoke_authority_request(*, requester, request_id):
         appointment = CompanyAppointment.objects.select_for_update().filter(request=proposal).first()
         if appointment is None:
             raise ValidationError({"request": "This request has no admitted appointment to revoke."})
+        require_another_administrator(appointment)
         CompanyAppointmentRevocation.objects.get_or_create(appointment=appointment, defaults={"revoked_by": actor})
         return _retained_request(proposal.pk)

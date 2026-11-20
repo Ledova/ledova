@@ -1274,6 +1274,10 @@ This supersedes the rule that companies are never deleted
 and the register's append-only history. It is delivered in steps under #1723; the
 [implementation index](plans/company-managed-registers/README.md) says which have landed.
 
+So that someone can still manage or delete a company, its only administrator can't revoke their
+appointment. Asked on 20 November 2026 about account closure, the owner chose to keep it as it
+is: closing the only administrator's account still leaves the company without one.
+
 ### Member invitations and account association
 
 **Owner decision, 11 October 2026**, supplied directly in the active Codex

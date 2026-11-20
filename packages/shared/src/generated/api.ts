@@ -3880,6 +3880,7 @@ export interface ApiComponents {
       delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       expiresAt: string | null;
       isEffective: boolean;
+      revocationBlockedReason: string | null;
       revokedAt: string | null;
       status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
       uuid: string;
@@ -4037,6 +4038,7 @@ export interface ApiComponents {
       expiresAt: string | null;
       isEffective: boolean;
       name: string;
+      revocationBlockedReason: string | null;
       revokedAt: string | null;
       source: ApiComponents['schemas']['CompanyAppointmentSourceEnum'];
       status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
@@ -4821,6 +4823,7 @@ export interface ApiComponents {
       delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       expiresAt: string | null;
       isEffective: boolean;
+      revocationBlockedReason: string | null;
       revokedAt: string | null;
       signupTerms: ApiComponents['schemas']['CompanySignupTermsReceipt'] | null;
       source: ApiComponents['schemas']['CompanyAppointmentSourceEnum'];
