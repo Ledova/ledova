@@ -82,6 +82,7 @@ CREATE OR REPLACE FUNCTION companies_guard_disposal()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER
 SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; operation text; migrating boolean; subject text; owner uuid; state text;
+    target uuid; link text; listed text; stray integer; agreement uuid; contribution uuid;
 BEGIN
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     operation := current_setting('app.company_operation', true);
@@ -112,8 +113,41 @@ BEGIN
                 RAISE EXCEPTION 'A pending record deletion names exactly one record' USING ERRCODE = '23514';
             END IF;
             IF NEW.scope = 'proposal' THEN
+                target := (NEW.manifest->subject->>0)::uuid;
                 EXECUTE format('SELECT company_id, status FROM %I WHERE uuid = $1', subject)
-                    INTO owner, state USING (NEW.manifest->subject->>0)::uuid;
+                    INTO owner, state USING target;
+                link := CASE subject
+                    WHEN 'tokens_registerallotment' THEN 'register_allotment_id'
+                    WHEN 'tokens_registertransfer' THEN 'register_transfer_id'
+                    WHEN 'tokens_registergrant' THEN 'register_grant_id'
+                    WHEN 'tokens_registerimport' THEN 'register_import_id'
+                    WHEN 'tokens_registercorrection' THEN 'register_correction_id'
+                    WHEN 'tokens_registerparticularschange' THEN 'register_particulars_change_id' END;
+                FOR listed IN SELECT jsonb_object_keys(NEW.manifest) LOOP
+                    IF (listed LIKE '%decision' AND listed <> subject || 'decision')
+                        OR (listed IN ('tokens_registeragreement', 'tokens_registercontribution')
+                            AND subject <> 'tokens_registerallotment') THEN
+                        RAISE EXCEPTION 'A proposal deletion lists only that proposal''s own records'
+                            USING ERRCODE = '23514';
+                    END IF;
+                END LOOP;
+                EXECUTE format('SELECT count(*) FROM jsonb_array_elements_text($1) AS listed(id) WHERE NOT EXISTS '
+                    '(SELECT 1 FROM %I decision WHERE decision.uuid = listed.id::uuid AND decision.%I = $2)',
+                    subject || 'decision', link)
+                    INTO stray USING COALESCE(NEW.manifest->(subject || 'decision'), '[]'::jsonb), target;
+                IF subject = 'tokens_registerallotment' THEN
+                    SELECT allotment.agreement_id, allotment.contribution_id INTO agreement, contribution
+                        FROM tokens_registerallotment allotment WHERE allotment.uuid = target;
+                    IF COALESCE(NEW.manifest->'tokens_registeragreement', '[]'::jsonb)
+                            NOT IN ('[]'::jsonb, jsonb_build_array(agreement::text))
+                        OR COALESCE(NEW.manifest->'tokens_registercontribution', '[]'::jsonb)
+                            NOT IN ('[]'::jsonb, jsonb_build_array(contribution::text)) THEN
+                        stray := stray + 1;
+                    END IF;
+                END IF;
+                IF stray > 0 THEN
+                    RAISE EXCEPTION 'A proposal deletion lists only that proposal''s own records' USING ERRCODE = '23514';
+                END IF;
             ELSE
                 EXECUTE format('SELECT company_id FROM %I WHERE uuid = $1', subject)
                     INTO owner USING (NEW.manifest->subject->>0)::uuid;

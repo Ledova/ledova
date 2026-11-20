@@ -1,3 +1,4 @@
+import json
 from datetime import timedelta
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -97,6 +98,35 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
         pending = self.client.post(allotments, self.allotment_payload(), format="json")
         self.assertEqual(pending.status_code, 201, pending.content)
         self.decision(allotments, pending.json()["uuid"], "approve")
+        with use_migrate():
+            foreign = RegisterAllotmentDecision.objects.filter(register_allotment_id=allotment.json()["uuid"]).first()
+        with atomic(using=OPERATOR_ALIAS):
+            with connections[OPERATOR_ALIAS].cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config('app.company_id', %s, true), "
+                    "set_config('app.company_operation', 'register_proposal_delete', true), "
+                    "set_config('app.user_id', %s, true)",
+                    [str(self.company.pk), str(self.owner.pk)],
+                )
+            with self.assertRaises(DatabaseError), atomic(using=OPERATOR_ALIAS):
+                with connections[OPERATOR_ALIAS].cursor() as cursor:
+                    cursor.execute(
+                        "INSERT INTO companies_companydisposal (uuid, created_at, updated_at, company_id, "
+                        "scope, actor_id, appointment_id, manifest, transaction_id) "
+                        "VALUES (%s, now(), now(), %s, 'proposal', %s, %s, %s, txid_current())",
+                        [
+                            uuid4(),
+                            self.company.pk,
+                            self.owner.pk,
+                            self.appointment.pk,
+                            json.dumps(
+                                {
+                                    "tokens_registerallotment": [pending.json()["uuid"]],
+                                    "tokens_registerallotmentdecision": [str(foreign.pk)],
+                                }
+                            ),
+                        ],
+                    )
         with use_migrate():
             parts = (RegisterAgreement.objects.count(), RegisterContribution.objects.count())
         self.assertEqual(self.client.delete(f"{allotments}{pending.json()['uuid']}/").status_code, 204)
