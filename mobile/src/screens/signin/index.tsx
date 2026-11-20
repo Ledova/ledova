@@ -233,7 +233,7 @@ export function SignInScreen() {
                   filled
                   label="Email"
                   icon={<EnvelopeSimpleIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
-                  placeholder="your@email.com"
+                  placeholder="you@example.com"
                   value={form.email}
                   onChange={(text) => setFieldValue('email', text)}
                   keyboardType="email-address"

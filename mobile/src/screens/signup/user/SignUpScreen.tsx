@@ -225,7 +225,7 @@ export function SignUpScreen() {
                       filled
                       label="Email"
                       icon={<EnvelopeSimpleIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
-                      placeholder="your@email.com"
+                      placeholder="you@example.com"
                       value={account.email}
                       onChange={account.setEmail}
                       keyboardType="email-address"
@@ -250,7 +250,7 @@ export function SignUpScreen() {
                           filled
                           label="Confirm new email"
                           icon={<EnvelopeSimpleIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
-                          placeholder="your@email.com"
+                          placeholder="you@example.com"
                           value={account.confirmEmail}
                           onChange={account.setConfirmEmail}
                           keyboardType="email-address"
@@ -303,7 +303,7 @@ export function SignUpScreen() {
                       filled
                       label="Email"
                       icon={<EnvelopeSimpleIcon size={theme.icon.sizes.md} color={theme.colors.text.subtle} />}
-                      placeholder="your@email.com"
+                      placeholder="you@example.com"
                       value={form.email}
                       onChange={(text) => setFieldValue('email', text)}
                       keyboardType="email-address"

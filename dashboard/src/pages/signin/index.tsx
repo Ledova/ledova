@@ -58,7 +58,7 @@ function SignInPage() {
               maxLength={FIELD_LIMITS.EMAIL}
               value={form.email}
               onChange={(e) => setFieldValue('email', e.target.value)}
-              placeholder="your@email.com"
+              placeholder="you@example.com"
               required
               invalid={!!email.error}
               disabled={isLoading}
