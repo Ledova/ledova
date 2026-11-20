@@ -154,9 +154,10 @@ function InspectionForm({
             <PageAction
               key="download"
               primary
-              label="Confirm and download inspection copy"
+              label="Download"
+              context="inspection copy"
               busy={busy === 'download'}
-              busyLabel="Downloading inspection copy…"
+              busyLabel="Downloading…"
               disabled={blocked}
               onClick={() => void download()}
             />

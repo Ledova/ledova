@@ -387,7 +387,12 @@ function ClassTransfers({
   const browsing = !reviewing;
   const prepareAction =
     privateReady && steps?.prepare && supported ? (
-      <Action label={COPY.PREPARE} disabled={held} onPress={onPrepare} />
+      <Action
+        label={COPY.PREPARE}
+        accessibilityLabel={`${COPY.PREPARE} (non-paid)`}
+        disabled={held}
+        onPress={onPrepare}
+      />
     ) : null;
   return (
     <>

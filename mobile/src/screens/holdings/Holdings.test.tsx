@@ -1701,10 +1701,10 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const revocations = () => api.post.mock.calls.filter(([url]) => url.endsWith('/revoke/'));
   expect(revocations()).toHaveLength(0);
   const restoreTeam = await pauseAccountRead();
-  await waitFor(() => expect(screen.queryByRole('button', { name: 'Permanently revoke appointment' })).toBeNull());
+  await waitFor(() => expect(screen.queryByRole('button', { name: 'Revoke (appointment)' })).toBeNull());
   await restoreTeam();
-  await screen.findByRole('button', { name: 'Permanently revoke appointment', disabled: false });
-  await fireEvent.press(screen.getByRole('button', { name: 'Permanently revoke appointment' }));
+  await screen.findByRole('button', { name: 'Revoke (appointment)', disabled: false });
+  await fireEvent.press(screen.getByRole('button', { name: 'Revoke (appointment)' }));
   expect(revocations()).toEqual([[`${APPOINTMENTS}${READER.uuid}/revoke/`, {}, expect.anything()]]);
   expect(await screen.findByText('Revoked')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Revoke appointment \(Synthetic Register Reader/ })).toBeNull();
@@ -1728,7 +1728,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   );
   const authorityPosts = () => api.post.mock.calls.filter(([url]) => url.startsWith(AUTHORITY_REQUESTS));
   expect(authorityPosts()).toHaveLength(0);
-  await fireEvent.press(screen.getByRole('button', { name: 'Permanently revoke appointment' }));
+  await fireEvent.press(screen.getByRole('button', { name: 'Revoke (appointment)' }));
   expect(authorityPosts()).toEqual([[`${AUTHORITY_REQUESTS}${ADMITTED.uuid}/revoke/`, {}, expect.anything()]]);
   expect(await screen.findByText('Appointment revoked')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^Revoke appointment/ })).toBeNull();
@@ -2160,7 +2160,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByText('Needs a decision · 1')).toBeTruthy();
   expect(screen.getByLabelText('Status: Prepared')).toBeTruthy();
   await settled();
-  await fireEvent.press(screen.getByRole('button', { name: REGISTER_TRANSFER_COPY.PREPARE }));
+  await fireEvent.press(screen.getByRole('button', { name: `${REGISTER_TRANSFER_COPY.PREPARE} (non-paid)` }));
   expect(mockNavigate).toHaveBeenLastCalledWith('TransferPreparation', founders);
   await fireEvent.press(
     screen.getByRole('button', {
@@ -2339,7 +2339,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await act(async () => screen.getByTestId('transfer-shares-scroll').props.refreshControl.props.onRefresh());
   expect(await screen.findByLabelText('Status: Prepared')).toBeTruthy();
   expect(screen.getByText('Transferred · 1')).toBeTruthy();
-  expect(screen.queryByRole('button', { name: /^(Prepare a non-paid transfer|Review and approve|Reject)/ })).toBeNull();
+  expect(screen.queryByRole('button', { name: /^(Transfer \(non-paid\)|Review and approve|Reject)/ })).toBeNull();
   await view.rerender(<ShareholderScreen route={{ key: 'read-only', name: 'Shareholder', params: shareholder }} />);
   expect(await screen.findByText('Founders · FND')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /^(Transfer shares \(|Issue shares$)/ })).toBeNull();
@@ -2922,7 +2922,7 @@ it('records an accepted officer invitation without changing the chosen company, 
   expect((await screen.findByLabelText('Written instruction reference')).props.value).toBe('Synthetic instruction');
   expect(screen.getByLabelText('Recipient').props.value).toBe('Synthetic recipient');
   await fireEvent.press(screen.getByRole('button', { name: 'Preview (inspection copy)' }));
-  const copy = { name: 'Confirm and download inspection copy', disabled: false };
+  const copy = { name: 'Download (inspection copy)', disabled: false };
   await fireEvent.press(await screen.findByRole('button', copy));
   expect(await screen.findByText('The inspection copy was downloaded.')).toBeTruthy();
   await view.rerender(<CompanyPackScreen />);

@@ -323,7 +323,8 @@ function AuthorityRequestRecord({
             onClose={closeRevocationConfirmation}
             actions={
               <Action
-                label={action === 'revoke' ? 'Revoking…' : 'Permanently revoke appointment'}
+                label={action === 'revoke' ? 'Revoking…' : 'Revoke'}
+                accessibilityLabel={`${action === 'revoke' ? 'Revoking…' : 'Revoke'} (appointment)`}
                 destructive
                 disabled={!confirmingRevocation || blocked || appointment.status === 'revoked'}
                 onPress={() => {
