@@ -7,17 +7,14 @@ import {
   readApiError,
   formatDateTime,
   formatShortDate,
-  getUserVerificationStatus,
-  VERIFICATION_TONES,
   TERMS_VERSION,
 } from '@ledova/shared';
 import { useSettings } from './useSettings';
 import { Modal } from '@components/Modal';
 import { PageAction, PageLink } from '@components/Page';
-import { Outcome, Section, Status, Failure } from '@components/Ledger';
+import { Outcome, Section, Failure } from '@components/Ledger';
 import { useErrorSummary } from '@hooks/useErrorSummary';
 import { ErrorSummary } from '@components/ErrorSummary';
-import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 import { useUserProfile } from '@hooks/useUserProfile';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { MEMBER_INVITATION_PATH, SITE_PATHS } from '@utils/paths';
@@ -83,8 +80,6 @@ function PasswordInput({
 export function AccountSettings() {
   const profile = useUserProfile();
   const context = useCompanyContext();
-  const [verificationOpen, setVerificationOpen] = useState(false);
-  const verification = getUserVerificationStatus(profile.userProfile);
   const {
     modal,
     setModal,
@@ -117,23 +112,6 @@ export function AccountSettings() {
     <>
       <Section title="Security">
         <div className="divide-y divide-border-subtle">
-          {profile.userProfile && (
-            <SettingRow
-              label="Identity check"
-              action={
-                <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-sm text-text-muted">
-                  <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'}>{verification.label}</Status>
-                  <PageAction
-                    compact
-                    label="Review"
-                    context="identity check"
-                    disabled={profile.isFetching}
-                    onClick={() => setVerificationOpen(true)}
-                  />
-                </div>
-              }
-            />
-          )}
           <SettingRow
             label="Password"
             action={
@@ -232,15 +210,6 @@ export function AccountSettings() {
         </div>
       </Section>
       <YourAppointments />
-      {verificationOpen && profile.userProfile && (
-        <IdentityVerificationModal
-          isOpen={verificationOpen}
-          onClose={() => {
-            setVerificationOpen(false);
-            profile.refreshProfile();
-          }}
-        />
-      )}
       <Modal
         isOpen={modal === 'password'}
         onClose={() => {

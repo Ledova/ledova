@@ -1,5 +1,4 @@
 export * from './auth';
-export * from './identity-verification';
 export * from './notifications';
 export * from './user';
 export * from './user-preferences';

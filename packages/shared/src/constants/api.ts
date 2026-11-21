@@ -44,10 +44,6 @@ export const USER_ACCOUNT_ENDPOINTS = {
   BASE: '/api/user-accounts/',
   DETAIL: (uuid: string) => `/api/user-accounts/${uuid}/` as const,
 } as const;
-export const IDENTITY_VERIFICATION_ENDPOINTS = {
-  TOKEN: '/api/users/identity-verification/token/',
-  STATUS: '/api/users/identity-verification/status/',
-} as const;
 export const DEVICE_TOKEN_ENDPOINTS = {
   REGISTER: '/api/device-tokens/register/',
   UNREGISTER: '/api/device-tokens/unregister/',

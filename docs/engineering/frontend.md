@@ -370,7 +370,7 @@ page.
 Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
 Team where permitted. Its default is Profile (`/settings#profile`), combining personal
 details and permitted company information. Account
-(`/settings#account`) has Security (identity status with Review, the password with Change), Account
+(`/settings#account`) has Security (the password with Change), Account
 details, Invitations and Your appointments cards, and Data and privacy (`/settings#data`) holds Export data and
 Delete account in the same rows, with **Export** and **Delete**. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
 sections keep their separate records, editors and authority checks. Existing `/user-profile`,
@@ -818,8 +818,8 @@ Its screenshot provenance and update procedure are in the
 
 The dashboard stylesheet defines a `dark:` variant that follows `data-theme`, never the operating-system
 setting, for theme-specific adjustments: the
-active sidebar item's `bg-brand-tint`, and signed-out primary buttons without their green glow. The
-identity check's widget opens in its dark theme on Dark. Both web clients bundle Newsreader for
+active sidebar item's `bg-brand-tint`, and signed-out primary buttons without their green glow. Both
+web clients bundle Newsreader for
 display text and Instrument Sans for everything else (`@fontsource-variable`).
 
 The logo keeps its rounded-square outline and green L. Its editable drawing is
@@ -1064,7 +1064,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
   personal and company sections, keeping each editor's data and authority separate. Account's
-  Security, Account details, Invitations and Your appointments cards hold identity status, password,
+  Security, Account details, Invitations and Your appointments cards hold the password,
   account dates, invitation acceptance and the person's appointments; Data and privacy holds export and deletion. Documents and Team
   stay focused pages. Signup and mobile
   Settings keep their own navigation.

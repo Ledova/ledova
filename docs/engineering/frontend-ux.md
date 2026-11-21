@@ -554,9 +554,8 @@ under it, is shown; under a group's overview, such as on a share class or a shar
 overview is marked. A group with only one permitted page, such as Documents with only Certificates,
 is a plain link to that page, marked current there. Profile always holds personal information. Team and
 Company details follow current company access. Personal edits never change company-recorded particulars.
-Account has four cards: **Security** (the identity check's status with **Review**, which the app
-leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
-switches), **Account details** (**Member since** and **Last login**), **Invitations** (a
+Account has four cards: **Security** (the password with **Change** and, in the app, the biometric
+sign-in and App lock switches), **Account details** (**Member since** and **Last login**), **Invitations** (a
 **Shareholder invitation** row and a **Company officer invitation** row, each with **Accept**; the
 second opens Team's accept task) and **Your appointments**: your appointments across companies in
 Team's rows, with a compact **Representative authority** at its foot for a company's owner. Each row

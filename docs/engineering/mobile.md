@@ -469,8 +469,7 @@ ownership-sharing choice (`CompanyProfile.tsx`). Both clients save through the s
 `useEditCompanyForm`, which sends only changed fields under the current administration check.
 Without that authority the card is absent and the app reads no company details. Pulling down
 refreshes the profile. Account (`Account`) has the web's four cards. Security
-shows the identity check status from the profile (the app has no identity check flow, so there is no
-**Review**), **Change** for the password, whose form applies the web's rules and shows the server's reply in the
+has **Change** for the password, whose form applies the web's rules and shows the server's reply in the
 form, and the app's biometric sign-in and App lock switches, with
 **Biometric security is not available on this device.** beneath them only where that applies; Account
 details shows member since and last login in the same one-line rows; and Invitations' **Shareholder invitation** row has

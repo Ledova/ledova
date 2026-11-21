@@ -27,7 +27,6 @@ export {
   isUuid,
 } from './validation';
 export { validateUserProfileField } from './user-validation';
-export { getUserVerificationStatus } from './user-verification';
 export { assertNextPageAdvances, firstOfEach, getNextPageParam, readEveryPage } from './pagination';
 export {
   createUserFriendlyError,
@@ -41,7 +40,6 @@ export {
   refusalSentence,
   refusalSentences,
 } from './errors';
-export { readIdentityVerification } from './identity-verification';
 export {
   appointmentDates,
   appointmentReceipt,
