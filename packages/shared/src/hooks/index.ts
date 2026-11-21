@@ -15,29 +15,18 @@ export {
   useRegisterDecision,
 } from './useRegisterDecision';
 export type { RegisterDecisionFamily } from './useRegisterDecision';
-export {
-  canAdministerCompany,
-  canPersonallyAdministerCompany,
-  useCompanySelection,
-  COMPANY_QUERY_KEY,
-  ownCompaniesKey,
-} from './useCompanySelection';
+export { canAdministerCompany, useCompanySelection, ownCompaniesKey } from './useCompanySelection';
 export { useCompanyDeletion } from './useCompanyDeletion';
 export { useConfirmedDeletion } from './useConfirmedDeletion';
 export { COMPANY_EDIT_FIELDS, useEditCompanyForm } from './useEditCompanyForm';
-export type { CompanyActionRead, EditCompanyFormProps } from './useEditCompanyForm';
+export type { EditCompanyFormProps } from './useEditCompanyForm';
 export { useSignupUser } from './useSignupUser';
 export { useSignupRestart } from './useSignupRestart';
 export { useEmailVerification } from './useEmailVerification';
 export { useSignupAccountType } from './useSignupAccountType';
 export { useSignupUserProfile } from './useSignupUserProfile';
 export { useSignupCompanyRegistration } from './useSignupCompanyRegistration';
-export {
-  useSignupReview,
-  USER_PROFILES_QUERY_KEY,
-  SIGNUP_COMPANY_QUERY_KEY,
-  SIGNUP_COMPANY_DETAIL_QUERY_KEY,
-} from './useSignupReview';
+export { useSignupReview, USER_PROFILES_QUERY_KEY, SIGNUP_COMPANY_QUERY_KEY } from './useSignupReview';
 export { useLaterPages } from './useLaterPages';
 export { REGISTER_ALLOTMENT_DECISIONS } from './useRegisterDecision';
 
@@ -48,10 +37,10 @@ export { useCompanyMemberAccess } from './useCompanyMemberAccess';
 export { SIGNUP_AUTHORITY_QUERY_KEY } from './useSignupCompanyAuthority';
 
 export { OWN_APPOINTMENTS_QUERY_KEY, ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
-export { companyTeamKey, teamInvitationsKey, useCompanyTeam } from './useCompanyTeam';
+export { useCompanyTeam } from './useCompanyTeam';
 export { useTeamInvitationForm } from './useTeamInvitationForm';
 export { useAcceptInvitationForm } from './useAcceptInvitationForm';
-export { authorityRequestsKey, authorityRequestStatus, useAuthorityRequests } from './useAuthorityRequests';
+export { authorityRequestStatus, useAuthorityRequests } from './useAuthorityRequests';
 export { useAuthorityRequestForm } from './useAuthorityRequestForm';
 export { ownershipCompaniesKey, useOwnershipCompanies } from './useOwnershipCompanies';
 export type { OwnershipCompany } from './useOwnershipCompanies';
@@ -76,7 +65,7 @@ export { useUserProfile } from './useUserProfile';
 export { useOperator } from './useOperator';
 export { readRegister, registersKey, registersQuery, useRegisters } from './useRegisters';
 export { allPeopleKey, peopleKey, readPeople, usePeople } from './usePeople';
-export { entriesKey, registerEntriesKey, useShareholder } from './useShareholder';
+export { entriesKey, useShareholder } from './useShareholder';
 export { usePersonRegistration } from './usePersonRegistration';
 export { INVITATION_FIELDS, useMemberAccessForm } from './useMemberAccessForm';
 export { particularsKey, useParticularsEdit } from './useParticularsEdit';
@@ -100,7 +89,7 @@ export { useAwardRecordDownload } from './useAwardRecordDownload';
 export { useShareClass, shareClassKey } from './useShareClass';
 export { useClassDetails } from './useClassDetails';
 export { classRightsKey, useClassRights } from './useClassRights';
-export { useClassRightsWriter, type ClassRightsDraft, type ClassRightsTarget } from './useClassRightsWriter';
+export { useClassRightsWriter } from './useClassRightsWriter';
 export { memberDocumentsKey, useMemberDocuments } from './useMemberDocuments';
 export type { DocumentHolding } from './useMemberDocuments';
 export { allotmentsKey, useRegisterAllotments } from './useRegisterAllotments';

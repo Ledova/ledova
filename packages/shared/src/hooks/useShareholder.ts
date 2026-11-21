@@ -12,7 +12,7 @@ import { useRegisterClasses } from './useRegisterClasses';
 import { useRegisters } from './useRegisters';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
-export function registerEntriesKey(owner: OrderSubmissionOwner) {
+function registerEntriesKey(owner: OrderSubmissionOwner) {
   return [...registerKey(owner), 'entries'];
 }
 

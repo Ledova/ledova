@@ -1,7 +1,6 @@
 import { useContext, useId, useState, type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
 import { CaretRightIcon } from '@phosphor-icons/react';
-import { formatShortDate } from '@ledova/shared';
 import { InSignedInFrame } from './InSignedInFrame';
 import { PageAction } from './Page';
 
@@ -252,26 +251,5 @@ export function LoadError({
         <PageAction label="Try again" describedBy={sentence} onClick={() => void retry()} disabled={busy} />
       </div>
     </div>
-  );
-}
-
-export interface TimelineEvent {
-  label: string;
-  at: string;
-}
-
-export function Timeline({ events }: { events: TimelineEvent[] }) {
-  return (
-    <ol className="flex flex-col">
-      {events.map((event) => (
-        <li key={`${event.label}-${event.at}`} className="flex items-baseline gap-3 py-2">
-          <span aria-hidden="true" className="h-2 w-2 flex-shrink-0 translate-y-[-1px] rounded-full bg-brand-mid" />
-          <span className="flex-1 text-sm text-text-primary">{event.label}</span>
-          <time dateTime={event.at} className="text-sm tabular-nums text-text-muted">
-            {formatShortDate(event.at)}
-          </time>
-        </li>
-      ))}
-    </ol>
   );
 }
