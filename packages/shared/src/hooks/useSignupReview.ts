@@ -17,7 +17,7 @@ import { useSignupCompanyAuthority, SIGNUP_AUTHORITY_QUERY_KEY } from './useSign
 
 export const USER_PROFILES_QUERY_KEY = ['userProfiles'] as const;
 export const SIGNUP_COMPANY_QUERY_KEY = ['signup', 'company'] as const;
-export const SIGNUP_COMPANY_DETAIL_QUERY_KEY = ['signup', 'company-detail'] as const;
+const SIGNUP_COMPANY_DETAIL_QUERY_KEY = ['signup', 'company-detail'] as const;
 
 export function signupCompanyDetailKey(uuid: string | null | undefined) {
   return [...SIGNUP_COMPANY_DETAIL_QUERY_KEY, uuid];

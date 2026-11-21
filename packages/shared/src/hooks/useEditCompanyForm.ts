@@ -7,7 +7,7 @@ import { createUserFriendlyError } from '../utils/errors';
 import { useApiClient } from './useApiClient';
 import type { useCompanySelection } from './useCompanySelection';
 
-export type CompanyActionRead = Pick<
+type CompanyActionRead = Pick<
   ReturnType<typeof useCompanySelection>,
   | 'assertCurrent'
   | 'requestConfig'

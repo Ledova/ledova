@@ -11,7 +11,7 @@ SCHEMA_COMPARISON ?= /tmp/ledova-schema-comparison.json
 CLIENT_OPERATIONS_REPORT ?= /tmp/ledova-client-operations.json
 
 .PHONY: help install install-backend init-local check-local-env build generate-tokens check check-comments check-layers \
-	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-api-types check-self-imports check-frontend-imports check-mobile-test-awaits test-gates audit audit-node audit-backend test preflight backend-test ci-checks \
+	check-logging check-connection-binding check-error-bodies check-schema-responses check-test-shadowing check-docs check-dead-code check-api-types check-self-imports check-frontend-imports check-mobile-test-awaits test-gates audit audit-node audit-backend test preflight backend-test ci-checks \
 	dev-up dev-down dev-logs dev-seed dev-clean docker-prune contracts-deploy-local \
 	contracts-deploy-testnet chain-test smoke lint check-type-check \
 	install-schema-environment generate-api-schema check-api-schema update-api-schema update-api-types check-client-operations
@@ -50,6 +50,7 @@ help:
 	@echo "  make check-schema-responses   Fail on a view whose response the schema does not know"
 	@echo "  make check-test-shadowing     Fail on a test helper that shadows a TestCase method"
 	@echo "  make check-docs               Fail when a document disagrees with the tree it describes"
+	@echo "  make check-dead-code          Report unused frontend files/exports and backend modules"
 	@echo "  make preflight                Run every CI check except manual Native builds"
 	@echo "  make backend-test             Run core backend and fresh schema checks"
 	@echo "  make check-connection-binding  Fail on a transaction or cursor bound to the default connection"
@@ -101,7 +102,7 @@ build:
 generate-tokens:
 	$(NPM) exec -- tsx packages/scripts/generate-css-tokens.mjs
 
-check: check-comments check-layers check-logging check-connection-binding check-error-bodies check-type-check check-schema-responses check-test-shadowing check-docs
+check: check-comments check-layers check-logging check-connection-binding check-error-bodies check-type-check check-schema-responses check-test-shadowing check-docs check-dead-code
 	$(MAKE) check-self-imports check-frontend-imports check-api-types check-client-operations
 	$(NPM) run typecheck
 	$(NPM) --prefix mobile run check:resolution
@@ -147,6 +148,10 @@ check-test-shadowing:
 check-docs:
 	$(PYTHON) scripts/check-docs.py
 
+check-dead-code:
+	node scripts/check-dead-code.mjs
+	$(PYTHON) scripts/check-backend-modules.py
+
 preflight:
 	env DYLD_FALLBACK_LIBRARY_PATH="$(DYLD_FALLBACK_LIBRARY_PATH)" "$(PYTHON)" scripts/preflight.py
 
@@ -188,7 +193,7 @@ check-mobile-test-awaits:
 
 test-gates:
 	$(PYTHON) -m unittest discover --start-directory scripts/tests --top-level-directory scripts/tests
-	node --test scripts/tests/check-api-types.test.mjs scripts/tests/check-client-operations.test.mjs scripts/tests/check-self-imports.test.mjs
+	node --test scripts/tests/check-api-types.test.mjs scripts/tests/check-client-operations.test.mjs scripts/tests/check-self-imports.test.mjs scripts/tests/check-dead-code.test.mjs
 
 audit: audit-node audit-backend
 
