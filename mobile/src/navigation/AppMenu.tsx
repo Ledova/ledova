@@ -49,8 +49,7 @@ type MenuChild = {
 };
 
 type MenuItem = { name: Section; label: string; icon: ComponentType<IconProps> } & (
-  | { route: MenuRoute; items?: never }
-  | { route?: never; items: MenuChild[] }
+  { route: MenuRoute; items?: never } | { route?: never; items: MenuChild[] }
 );
 
 const sections = (canReadRegister: boolean): MenuItem[] => [
