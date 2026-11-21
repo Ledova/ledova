@@ -61,7 +61,7 @@ check, company notice and register access notice that several areas show (`Accou
 while access is rechecked, and the notice
 only once the check settles. Ledger and Shareholders read the selected company's classes and
 holders through `hooks/useCompanyRegisters.ts`. Production screens import no other area's internals.
-Profile, operator, member, company list, appointment and company ownership reads, Team's reads
+Profile, member, company list, appointment and company ownership reads, Team's reads
 and forms, representative authority's reads, actions
 and request form, Documents' class source, certificate records, preparations and prepared
 outputs, Shareholders' register, people and shareholder reads, list, Add person, particulars change

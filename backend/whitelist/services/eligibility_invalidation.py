@@ -101,7 +101,7 @@ def record_invalidation(account_id, cause, *, actor=None, wallet_id=None, addres
     if current_alias() == APP_ALIAS or not selected_db.in_atomic_block:
         raise WhitelistChangeConflict("Record invalidation in the original bounded operator transaction.")
     if cause not in RETAINED:
-        raise WhitelistChangeConflict("Only a standing, identity or wallet loss is recorded.")
+        raise WhitelistChangeConflict("Only a standing or wallet loss is recorded.")
     if (principal_of() or "") != (str(actor.pk) if actor is not None else ""):
         raise PermissionDenied("Retain the actual human principal or explicit automation.")
     with selected_db.cursor() as cursor:

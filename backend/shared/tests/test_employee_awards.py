@@ -125,6 +125,16 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
         with use_operator():
             self.assertEqual(RegisterMember.objects.filter(pk=award["member"]).count(), 1)
             self.assertFalse(RegisterPosition.objects.filter(member_id=award["member"]).exists())
+        self.appoint_admin()
+        revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
+        unawarded = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/").json()
+        self.assertNotIn(award["member"], json.dumps(unawarded))
+        self.assertIn(str(self.member.pk), [row["member"] for row in unawarded["members"]])
+        self.assertEqual(
+            {row["member"]: row["onRegister"] for row in unawarded["members"]},
+            {str(self.member.pk): True, str(awaiting.pk): False},
+        )
+        self.assertFalse(any(row["hasAwards"] for row in unawarded["members"]))
 
     def test_vesting_cannot_exceed_the_promise_and_transfers_do_not_recycle_issued_entitlement(self):
         yesterday = (timezone.now().date() - timedelta(days=1)).isoformat()
