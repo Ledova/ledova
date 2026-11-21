@@ -15,7 +15,6 @@ def remove_identity_guard(apps, schema_editor):
     if schema_editor.connection.vendor != "postgresql":
         return
     with schema_editor.connection.cursor() as cursor:
-        # The function keeps its name because tokens/0007 replays it by name from current source.
         cursor.execute(_function(users_guards.SQL, "users_guard_provider_identity"))
         cursor.execute("DROP TRIGGER IF EXISTS users_provider_identity ON users_userprofile")
         cursor.execute("DROP TRIGGER IF EXISTS users_profile_save ON users_userprofile")

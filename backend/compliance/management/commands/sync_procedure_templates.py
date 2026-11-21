@@ -42,7 +42,6 @@ class Command(BaseCommand):
                     self.stdout.write(f"    Deleted step {step.order}: {step.description[:50]}")
             obsolete_steps.delete()
 
-        # A template no longer seeded stays while a checklist item, which is case evidence, uses its steps.
         obsolete = AlertProcedureTemplate.objects.exclude(
             alert_type__in=[template["alert_type"] for template in PROCEDURE_TEMPLATES]
         ).exclude(steps__checklist_items__isnull=False)

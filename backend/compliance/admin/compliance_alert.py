@@ -120,7 +120,6 @@ class ComplianceAlertAdmin(admin.ModelAdmin):
     def get_fieldsets(self, request, obj=None):
         if obj is None or obj.alert_type in dict(ALERT_TYPE_CHOICES):
             return self.fieldsets
-        # A retained case can keep a type new alerts no longer take: it shows read-only so the case still saves.
         (name, options), *rest = self.fieldsets
         fields = tuple("alert_type_label" if field == "alert_type" else field for field in options["fields"])
         return ((name, {**options, "fields": fields}), *rest)
