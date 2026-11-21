@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin
 from django.utils import timezone
 
@@ -17,6 +18,17 @@ from compliance.models import AlertChecklistItem, ComplianceAlert
 from shared.utils.admin_display import admin_link
 
 ALERT_STATUS_COLOURS = {"new": TEAL, "reviewing": YELLOW, "escalated": ORANGE, "closed": GREY}
+
+
+class ComplianceAlertForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "alert_data" in self.fields:
+            self.fields["alert_data"].required = False
+
+    def clean_alert_data(self):
+        data = self.cleaned_data["alert_data"]
+        return {} if data is None else data
 
 
 class AlertChecklistItemInline(admin.TabularInline):
@@ -68,6 +80,7 @@ class AlertChecklistItemInline(admin.TabularInline):
 
 @admin.register(ComplianceAlert)
 class ComplianceAlertAdmin(admin.ModelAdmin):
+    form = ComplianceAlertForm
     list_display = [
         "triggered_rule",
         "user_account",
