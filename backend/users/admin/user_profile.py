@@ -21,17 +21,11 @@ class UserProfileAdmin(admin.ModelAdmin):
         "email",
         "citizenship_country",
         "date_of_birth",
-        "is_id_verified",
-        "kyc_provider",
-        "review_result",
         "terms_and_conditions",
         "created_at",
     )
     search_fields = ("user__email", "full_name", "phone_country_code", "phone_number", "residential_address")
     list_filter = (
-        "is_id_verified",
-        "kyc_provider",
-        "review_result",
         "terms_and_conditions",
         "created_at",
         "is_signup_completed",

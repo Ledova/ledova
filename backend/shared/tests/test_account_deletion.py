@@ -1,17 +1,14 @@
 from datetime import date, timedelta
-from io import StringIO
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sessions.models import Session
-from django.core.management import call_command
-from django.core.management.base import CommandError
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient, APITransactionTestCase
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from rest_framework_simplejwt.tokens import AccessToken
@@ -22,12 +19,6 @@ from authentication.services.sessions import SessionService
 from authentication.services.terms import TERMS_STATEMENT, TERMS_VERSION
 from authentication.services.tokens import TokenService
 from companies.models import Company
-from compliance.constants import IDENTITY_SCREENING_RULE
-from compliance.models import ComplianceAlert, CustomerRiskAssessment
-from compliance.services.identity_screening import raise_screening_alert
-from compliance.services.risk_assessment import RiskAssessmentService
-from compliance.tasks import check_periodic_reviews
-from integrations.kyc.base import NormalizedVerificationResult
 from shared.db import reset_principal, use_operator
 from shared.models import Country
 from shared.tasks.job_retention import remove_old_jobs
@@ -42,18 +33,13 @@ from tokens.models import (
     RegisterParticularsChange,
     RegisterPosition,
 )
-from users.exceptions import VerificationTokenGenerationException
 from users.models import (
-    AccountErasureWorkItem,
     DeviceToken,
     FinancialProfile,
     Notification,
     UserPreferences,
     UserProfile,
 )
-from users.services import identity
-from users.services.erasure import complete_provider_erasure
-from users.services.identity import populate_profile
 from users.services.lifecycle import delete_account
 from users.services.notifications import NotificationService
 
@@ -70,10 +56,6 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             profile.phone_number = "491570157"
             profile.citizenship_country = country
             profile.residence_country = country
-            profile.kycaid_applicant_id = "synthetic-retained-verification"
-            profile.sumsub_applicant_id = "synthetic-sumsub-verification"
-            profile.id_document_type = "PASSPORT"
-            profile.rejection_labels = ["Private provider result"]
             profile.save()
             subject.email_verification_token = "synthetic-unused-verification-code"
             subject.email_verification_sent_at = timezone.now()
@@ -87,17 +69,6 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             )
             Notification.objects.create(user=subject, title="Private account notice", body="Synthetic inbox data")
             foreign_notice = Notification.objects.create(user=self.foreign, title="Unrelated", body="Keep")
-            CustomerRiskAssessment.objects.filter(user_account=profile.user_account).update(
-                pep_details={"name": "Erase"}
-            )
-            ComplianceAlert.objects.create(
-                user_account=profile.user_account,
-                alert_type="pep_match",
-                severity="high",
-                triggered_rule=IDENTITY_SCREENING_RULE,
-                description="Erase this account-only screening result",
-                alert_data={"document_id": "private-document"},
-            )
             access, refresh = TokenService.issue(subject)
             foreign_access, _ = TokenService.issue(self.foreign)
             reset = {
@@ -254,18 +225,6 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
                 self.assertRaises(ValidationError),
             ):
                 SessionService.signup(subject.email, PASSWORD, PASSWORD)
-            profile.refresh_from_db()
-            self.assertFalse(
-                populate_profile(
-                    profile,
-                    {
-                        "fullName": "Restored",
-                        "address": "Restored address",
-                        "dateOfBirth": "1990-01-01",
-                        "residenceCountry": "AU",
-                    },
-                )
-            )
             skipped = NotificationService().notify_user(subject, "Late notice", "Must not recreate inbox data")
             self.assertEqual(skipped["status"], "skipped")
             subject.refresh_from_db()
@@ -290,28 +249,6 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
                 "residence_country",
             ):
                 self.assertIsNone(getattr(profile, field), field)
-            self.assertFalse(profile.is_id_verified)
-            self.assertIsNone(profile.kycaid_applicant_id)
-            self.assertIsNone(profile.sumsub_applicant_id)
-            self.assertIsNone(profile.id_document_type)
-            self.assertIsNone(profile.rejection_labels)
-            self.assertFalse(CustomerRiskAssessment.objects.filter(user_account=profile.user_account).exists())
-            self.assertFalse(ComplianceAlert.objects.filter(user_account=profile.user_account).exists())
-            self.assertEqual(AccountErasureWorkItem.objects.filter(user=subject, completed_at__isnull=True).count(), 2)
-            with patch("users.services.identity.get_kyc_provider") as provider:
-                for operation in (identity.get_verification_session, identity.get_verification_status):
-                    with self.assertRaises(NotFound):
-                        operation(profile)
-                provider.assert_not_called()
-            self.assertFalse(
-                identity.update_status_from_normalized(
-                    profile, NormalizedVerificationResult("completed", "GREEN", True)
-                )
-            )
-            self.assertIsNone(RiskAssessmentService.calculate_and_create(profile.user_account, {"name": "Restored"}))
-            self.assertIsNone(
-                raise_screening_alert(profile.user_account, {"provider": "kycaid", "applicant_id": "Restored"})
-            )
             self.assertFalse(FinancialProfile.objects.filter(user_profile=profile).exists())
             self.assertFalse(UserPreferences.objects.filter(user_profile=profile).exists())
             self.assertFalse(DeviceToken.objects.filter(user=subject).exists())
@@ -329,55 +266,13 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             for model, rows in before.items():
                 self.assertEqual(list(model.objects.order_by("pk").values()), rows, model.__name__)
         self.assertEqual({path: path.read_bytes() for path in self.root.rglob("*") if path.is_file()}, files)
-        with patch("integrations.sumsub.webhook.SumSubService.verify_webhook_signature", return_value=True):
-            response = APIClient().post(
-                "/webhooks/sumsub/",
-                {"type": "applicantPending", "applicantId": "Restored", "externalUserId": str(profile.pk)},
-                format="json",
-            )
-            self.assertEqual(response.status_code, 200, response.content)
-        with patch("integrations.kycaid.webhook.KYCAIDService.verify_webhook_signature", return_value=True):
-            response = APIClient().post(
-                "/webhooks/kycaid/",
-                {"type": "database_screening", "applicant_id": "synthetic-retained-verification"},
-                format="json",
-            )
-            self.assertEqual(response.status_code, 200, response.content)
-        with use_operator():
-            profile.refresh_from_db()
-            self.assertIsNone(profile.sumsub_applicant_id)
-            self.assertFalse(profile.is_id_verified)
-            self.assertFalse(CustomerRiskAssessment.objects.filter(user_account=profile.user_account).exists())
-            self.assertFalse(ComplianceAlert.objects.filter(user_account=profile.user_account).exists())
 
-    def test_provider_follow_up_and_maintenance_preserve_holds_and_used_accounts(self):
-        subject, profile = person("held-erasure")
+    def test_maintenance_purges_abandoned_signups_and_expired_access(self):
+        subject, _ = person("closed-account")
         abandoned, abandoned_profile = person("abandoned-signup")
-        original_email = subject.email
         old = timezone.now() - timedelta(days=31)
         with use_operator():
             reset_principal()
-            profile.kycaid_applicant_id = "provider-held-applicant"
-            profile.save(update_fields=["kycaid_applicant_id"])
-            provider = Mock()
-            provider.generate_session.side_effect = RuntimeError("transient timeout")
-            with patch("users.services.identity.get_kyc_provider", return_value=provider):
-                with self.assertRaises(VerificationTokenGenerationException):
-                    identity.get_verification_session(profile)
-                provider.create_applicant.assert_not_called()
-            profile.refresh_from_db()
-            self.assertEqual(profile.kycaid_applicant_id, "provider-held-applicant")
-            held = ComplianceAlert.objects.create(
-                user_account=profile.user_account,
-                alert_type="manual",
-                severity="high",
-                triggered_rule="case",
-                description="Retain this specific case",
-                smr_required=True,
-            )
-            CustomerRiskAssessment.objects.filter(user_account=profile.user_account).update(
-                assessment_status="complete", next_review_date=old
-            )
             for user, candidate in ((abandoned, abandoned_profile), (self.owner, self.profile)):
                 get_user_model().objects.filter(pk=user.pk).update(date_joined=old, last_login=old)
                 UserProfile.objects.filter(pk=candidate.pk).update(is_signup_completed=False, updated_at=old)
@@ -394,46 +289,6 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
                 email_verification_token="fresh-code", email_verification_sent_at=timezone.now()
             )
             delete_account(subject, automated=True)
-            item = AccountErasureWorkItem.objects.get(user=subject)
-            self.assertIn(str(held.pk), item.hold_reason)
-            self.assertIsNotNone(item.review_due_at)
-            self.assertTrue(CustomerRiskAssessment.objects.filter(user_account=profile.user_account).exists())
-            self.assertTrue(ComplianceAlert.objects.filter(pk=held.pk).exists())
-            self.assertEqual(check_periodic_reviews(timestamp=0), "Flagged 0 assessments for periodic review")
-            with self.assertRaises(CommandError):
-                call_command(
-                    "provider_erasure",
-                    "complete",
-                    work_item=item.pk,
-                    reference="provider-receipt",
-                    stdout=StringIO(),
-                )
-            with patch(
-                "users.services.erasure.sendgrid_client.send_email", return_value={"success": False}
-            ) as delivery:
-                with self.assertRaises(ValueError):
-                    complete_provider_erasure(item.pk, "provider-receipt")
-                delivery.assert_not_called()
-                with self.assertRaises(ValueError):
-                    complete_provider_erasure(item.pk, "provider-receipt", "case-release")
-            item.refresh_from_db()
-            self.assertIsNone(item.completed_at)
-            self.assertEqual(item.completion_email, original_email)
-            with patch("users.services.erasure.sendgrid_client.send_email", return_value={"success": True}) as delivery:
-                call_command(
-                    "provider_erasure",
-                    "complete",
-                    work_item=item.pk,
-                    reference="provider-receipt",
-                    confirm_permanent_deletion=True,
-                    release_hold_reference="case-release",
-                    stdout=StringIO(),
-                )
-                self.assertEqual(delivery.call_args.kwargs["to_email"], original_email)
-            item.refresh_from_db()
-            self.assertIsNotNone(item.completed_at)
-            self.assertEqual(item.applicant_id, "")
-            self.assertEqual(item.completion_email, "")
             inactive = get_user_model().objects.bulk_create(
                 [
                     get_user_model()(
@@ -460,69 +315,3 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(self.owner.email_verification_token, "fresh-code")
             self.assertIsNone(self.foreign.email_verification_token)
             self.assertTrue(Company.objects.filter(pk=self.company.pk, owner=self.owner).exists())
-
-        late_user, late_profile = person("late-provider-erasure")
-        with use_operator():
-            reset_principal()
-            late_case = ComplianceAlert.objects.create(
-                user_account=late_profile.user_account,
-                alert_type="manual",
-                severity="high",
-                triggered_rule="late-case",
-                description="Specific held case",
-                smr_required=True,
-            )
-        provider = Mock()
-        provider.get_provider_name.return_value = "kycaid"
-
-        def respond_after_closure(*args, **kwargs):
-            with use_operator():
-                delete_account(late_user, automated=True)
-            return {"applicant_id": "late-held-applicant"}
-
-        provider.create_applicant.side_effect = respond_after_closure
-        with self.assertRaises(NotFound):
-            identity.create_applicant(provider, late_profile)
-        with use_operator():
-            late_item = AccountErasureWorkItem.objects.get(user=late_user)
-            self.assertIn(str(late_case.pk), late_item.hold_reason)
-            self.assertIsNotNone(late_item.review_due_at)
-            with self.assertRaises(ValueError):
-                complete_provider_erasure(late_item.pk, "provider-confirmation")
-
-        duplicate_user, duplicate_profile = person("duplicate-provider")
-        with use_operator():
-            duplicate_profile.sumsub_applicant_id = "current-sumsub-profile"
-            duplicate_profile.save(update_fields=["sumsub_applicant_id"])
-        reused_provider = Mock()
-        reused_provider.get_provider_name.return_value = "sumsub"
-        self.assertEqual(
-            identity.create_applicant(reused_provider, duplicate_profile),
-            {"applicant_id": "current-sumsub-profile"},
-        )
-        reused_provider.create_applicant.assert_not_called()
-        with use_operator():
-            duplicate_profile.refresh_from_db()
-            self.assertEqual(duplicate_profile.kyc_provider, "sumsub")
-        with patch("integrations.sumsub.webhook.SumSubService.verify_webhook_signature", return_value=True):
-            response = APIClient().post(
-                "/webhooks/sumsub/",
-                {
-                    "type": "applicantPending",
-                    "applicantId": "duplicate-sumsub-profile",
-                    "externalUserId": str(duplicate_profile.pk),
-                },
-                format="json",
-            )
-            self.assertEqual(response.status_code, 200, response.content)
-        with use_operator():
-            duplicate_profile.refresh_from_db()
-            self.assertEqual(duplicate_profile.sumsub_applicant_id, "current-sumsub-profile")
-            duplicate = AccountErasureWorkItem.objects.get(user=duplicate_user)
-            self.assertEqual(duplicate.applicant_id, "duplicate-sumsub-profile")
-            with self.assertRaises(ValueError):
-                complete_provider_erasure(duplicate.pk, "duplicate-erased")
-            with patch("users.services.erasure.sendgrid_client.send_email", return_value={"success": True}):
-                complete_provider_erasure(duplicate.pk, "duplicate-erased", confirm_unused_profile=True)
-            duplicate_profile.refresh_from_db()
-            self.assertEqual(duplicate_profile.sumsub_applicant_id, "current-sumsub-profile")

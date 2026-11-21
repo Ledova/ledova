@@ -35,7 +35,6 @@ from shared.seeds.synthetic.plan import DEFAULT_INVESTORS, MINIMUM_INVESTORS
 from shared.seeds.synthetic.story import STAFF
 from tokens.models import RegisterCorrectionStatus, ShareToken
 from tokens.models.choices import ShareTokenStatus
-from users.constants import ACCOUNT_STATUS_ACTIVE
 from users.models import UserProfile
 from users.models.user_account import AccountRole
 from users.services.setup import ensure_defaults
@@ -165,12 +164,10 @@ class Command(BaseCommand):
         UserProfile.objects.filter(pk=profile.pk).update(
             full_name=full_name,
             is_signup_completed=True,
-            is_id_verified=True,
             terms_and_conditions=True,
         )
         account.role = role
-        account.account_status = ACCOUNT_STATUS_ACTIVE
-        account.save(update_fields=["role", "account_status"])
+        account.save(update_fields=["role"])
         return account
 
     def _seed_wallet(self, account, address):
@@ -252,9 +249,8 @@ class Command(BaseCommand):
         alerts = ", ".join(f"{count} {status}" for status, count in counts["alert_statuses"].items())
         lines = [
             f"Synthetic population added in {elapsed:.1f}s, six months of history:",
-            f"  investors   {counts['investors']}: {counts['active']} verified and active, {counts['suspended']} "
-            f"suspended, {counts['terminated']} terminated, {counts['rejected']} rejected, {counts['checking']} "
-            f"in identity checks, {counts['unfinished']} not finished signing up",
+            f"  investors   {counts['investors']}: {counts['pending']} signed up, {counts['suspended']} "
+            f"suspended, {counts['terminated']} terminated, {counts['unfinished']} not finished signing up",
             f"  companies   {sum(counts['companies'].values())} ({companies}), {counts['owners']} synthetic owners",
             f"  staff       {counts['staff']} (one deactivated); {counts['alerts']} compliance alerts ({alerts})",
             f"  activity    {counts['wallets']} wallets, {counts['transactions']} wallet transactions, "

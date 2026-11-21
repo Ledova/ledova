@@ -21,7 +21,7 @@ class MonitoringRule(BaseModel):
     rule_type = models.CharField(
         max_length=30,
         choices=RULE_TYPE_CHOICES,
-        help_text="Type of check: threshold, velocity, pattern, address, etc.",
+        help_text="Type of check: threshold, velocity, pattern, etc.",
     )
 
     parameters = models.JSONField(

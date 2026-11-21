@@ -146,7 +146,6 @@ POLICIES = {
     ),
     "tokens_ordersubmission": (_owned("owner_account_id"), _owned("owner_account_id")),
     "tokens_swaporder": (A_PARTY_TO_THE_SWAP, "false"),
-    "compliance_customerriskassessment": (_owned("user_account_id"), _owned("user_account_id")),
     "holdings": (THROUGH_ITS_WALLET, THROUGH_ITS_WALLET),
     "tokens_ordermodificationlog": (THROUGH_THE_ORDER_IT_MODIFIED, THROUGH_THE_ORDER_IT_MODIFIED),
     "tokens_shareissuance": (THROUGH_ITS_TOKEN, "false"),
@@ -315,11 +314,6 @@ OPERATOR_ONLY = {
     "preparer, or an administrator when it removes access, in the same transaction; the app role has no grants. An "
     "exact transaction-bound manifest admits that delete's rows only, and an entry receipt lets the register's own "
     "triggers re-link its later entries and recompute its holdings, never ordinary history edits.",
-    "users_accounterasureworkitem": "Provider-erasure follow-up for closed accounts or unused duplicate provider "
-    "profiles. The bounded account "
-    "closure service records the minimum applicant identifier and completion contact on the operator connection; "
-    "the operator command confirms permanent provider deletion, delivers confirmation and clears both fields. "
-    "The app role has no grants or direct rows.",
     "tokens_registerpersonregistration": "Append-only company-person registration provenance, with no share effect. "
     "Exact-company reader and prepare commands retain current personal authority, actor and initial particulars; "
     "the app role receives no direct table grant.",
@@ -496,12 +490,10 @@ OPERATOR_ONLY = {
     "register readers or administrators only the inspection copies and packs whose produced_through records the "
     "company's own pages, never one produced in platform admin. Only tokens/services/former_holders.py "
     "purge_register_exports deletes them, on the retention clock.",
-    "compliance_compliancealert": "Raised automatically by the screening, monitoring and periodic review tasks and "
-    "the KYCAID webhooks, or by compliance staff, and worked by staff in admin, all on the operator connection. It "
+    "compliance_compliancealert": "Raised automatically by the monitoring tasks or by compliance staff, and worked "
+    "by staff in admin, all on the operator connection. It "
     "carries user_account_id but no queryset scopes it, so a policy would be a new rule rather than a "
     "translation of one.",
-    "compliance_transactionscreening": "Created by the screening worker and updated by the KYCAID crypto webhook "
-    "and staff in admin: the same connection and the same reason.",
     "compliance_alertproceduretemplate": "Operator-authored procedure text, the same for every tenant.",
     "compliance_alertprocedurestep": "A step of that operator-authored text, reached through its template.",
     "compliance_alertchecklistitem": "A checklist item staff add and work against an alert in admin, with no tenant "

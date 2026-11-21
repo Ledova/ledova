@@ -1,6 +1,5 @@
 from users.views.device_token import DeviceTokenViewSet
 from users.views.financial_profile import FinancialProfileViewSet
-from users.views.identity_verification import IdentityVerificationViewSet
 from users.views.notification import NotificationViewSet
 from users.views.user_account import UserAccountViewSet
 from users.views.user_preferences import UserPreferencesViewSet
@@ -10,7 +9,6 @@ __all__ = [
     "DeviceTokenViewSet",
     "FinancialProfileViewSet",
     "NotificationViewSet",
-    "IdentityVerificationViewSet",
     "UserAccountViewSet",
     "UserPreferencesViewSet",
     "UserProfileViewSet",
