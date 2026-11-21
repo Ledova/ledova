@@ -23,7 +23,8 @@ ALERT_STATUS_COLOURS = {"new": TEAL, "reviewing": YELLOW, "escalated": ORANGE, "
 class ComplianceAlertForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["alert_data"].required = False
+        if "alert_data" in self.fields:
+            self.fields["alert_data"].required = False
 
     def clean_alert_data(self):
         data = self.cleaned_data["alert_data"]

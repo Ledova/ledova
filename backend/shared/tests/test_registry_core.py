@@ -947,6 +947,8 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             invalid = form_type({**data, "alert_data": "not JSON"}, instance=alert)
             self.assertFalse(invalid.is_valid())
             self.assertIn("alert_data", invalid.errors)
+            read_only = admin.site._registry[ComplianceAlert].get_form(request, alert, change=True)
+            self.assertNotIn("alert_data", read_only(instance=alert).fields)
 
     def test_company_team_invitation_records_the_invitees_exact_capability(self):
         response = self.client.post(
