@@ -484,7 +484,8 @@ reconnection. Web query defaults enforce that page-data policy. Another person's
 entry read or browser reload; the interface does not promise live synchronisation. Keep loaded
 content stable until a relevant read is needed, without mounting another workflow's reads behind
 an overview. Certificates re-reads the member list on entry and reads only while open; Profile
-reads no member records.
+reads no member records. Ledger pages wait for the company appointment read to settle before showing
+an unavailable company when no share class confirms that access.
 
 `dashboard/src/pages/company/ledger/useIssueEntryRead.ts` confirms settled account, class and
 appointment reads before refreshing issue records. `dashboard/src/pages/company/ledger/ClassAwards.tsx`

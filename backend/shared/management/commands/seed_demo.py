@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from companies.models import Company, CompanyStatus, CompanyType
 from operators.models import Operator
-from shared.db import atomic
+from shared.db import atomic, use_migrate
 from shared.seeds.demo import (
     DEMO_ACN,
     DEMO_ADMIN_EMAIL,
@@ -93,14 +93,15 @@ class Command(BaseCommand):
         password = options["password"] or os.environ.get(DEMO_PASSWORD_ENV_VAR) or secrets.token_urlsafe(12)
         self.created = 0
 
-        with atomic():
+        with use_migrate(), atomic():
             company, token = self._seed_testers(password)
 
         started = time.monotonic()
         disabled = logging.root.manager.disable
         logging.disable(max(disabled, logging.INFO))
         try:
-            outcome = seed_population(timezone.now(), options["investors"])
+            with use_migrate():
+                outcome = seed_population(timezone.now(), options["investors"])
             elapsed = time.monotonic() - started
             chain = chain_layer.seed_issuance(timezone.now()) if outcome.state == PRESENT else None
             chain_elapsed = time.monotonic() - started - elapsed

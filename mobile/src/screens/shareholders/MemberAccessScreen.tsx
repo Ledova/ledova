@@ -39,17 +39,13 @@ export function MemberAccessScreen({ route }: { route: RouteProp<SignedInStackPa
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
   const { directory, companies, company, companySelection } = useMemberRecordsState();
   const preferences = useUserPreferences();
-  const choosing = directory.isLoading || (!company && companies.length > 0);
+  const choosing =
+    directory.isLoading || directory.isRefreshing || preferences.isFetching || (!company && companies.length > 0);
   const scope = useRetainedScope(
     owner,
     boundary.get,
     company?.uuid,
-    !preferences.isError &&
-      !preferences.isFetching &&
-      !!company?.canReadRegister &&
-      !directory.hasError &&
-      !choosing &&
-      !directory.isRefreshing,
+    !preferences.isError && !!company?.canReadRegister && !directory.hasError && !choosing,
     companySelection,
   );
   if (owner && scope.scope) {
