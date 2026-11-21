@@ -306,9 +306,6 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(verify_register(token.stored_register.pk)["issued_supply"], "90")
             with self.assertRaises(DatabaseError), atomic():
                 RegisterImport.objects.filter(pk=identifier).update(members=correction["members"])
-        self.assertEqual(self.client.delete(f"{documents_endpoint}{document['uuid']}/").status_code, 204)
-        deleted = self.client.get(f"{endpoint}{corrected_id}/").json()["members"][0]["documents"][0]
-        self.assertIs(deleted["attached"], False)
         metadata = deepcopy(correction)
         metadata.update(
             operation_id=str(uuid4()),
@@ -319,6 +316,17 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         metadata["members"][0]["name"] = "Corrected Synthetic Founder"
         metadata["members"][0]["entered_on"] = "2018-01-01"
         metadata["former_members"][0]["name"] = "Corrected synthetic former member"
+        waiting = self.client.post(endpoint, {**metadata, "operation_id": str(uuid4())}, format="json")
+        self.assertEqual(waiting.status_code, 201, waiting.content)
+        self.assertEqual(self.client.delete(f"{documents_endpoint}{document['uuid']}/").status_code, 204)
+        deleted = self.client.get(f"{endpoint}{corrected_id}/").json()["members"][0]["documents"][0]
+        self.assertIs(deleted["attached"], False)
+        stale = self.client.post(
+            f"{endpoint}{waiting.json()['uuid']}/decision-preview/",
+            {"appointment": str(self.appointment.pk), "kind": "approve"},
+            format="json",
+        )
+        self.assertIn("document_deleted", stale.json()["unmetRequirements"])
         refused = self.client.post(endpoint, metadata, format="json")
         self.assertEqual(refused.status_code, 400, refused.content)
         self.assertIn(DELETED_DOCUMENT, refused.content.decode())
@@ -407,7 +415,7 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         member_record = self.client.get(f"/api/v1/tokens/member-records/{accepted.json()['uuid']}/")
         self.assertEqual(member_record.status_code, 200, member_record.content)
         self.assertEqual(self.client.get(documents_endpoint).json()["results"], [])
-        self.assertEqual(self.client.get(f"{documents_endpoint}{document['uuid']}/file/").status_code, 404)
+        self.assertEqual(self.client.get(f"{documents_endpoint}{added.json()['uuid']}/file/").status_code, 404)
         self.assertEqual(member_record.json()["classes"][0]["enteredOn"], "2018-01-01")
         self.client.force_authenticate(self.owner)
         self.assertEqual(
@@ -487,7 +495,7 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.appoint_admin()
         revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
         self.assertEqual(self.client.get(documents_endpoint).json()["results"], [])
-        self.assertEqual(self.client.get(f"{documents_endpoint}{document['uuid']}/file/").status_code, 404)
+        self.assertEqual(self.client.get(f"{documents_endpoint}{added.json()['uuid']}/file/").status_code, 404)
 
     def test_mirror_refuses_incomplete_records_stale_heads_and_later_member_or_share_activity(self):
         endpoint = "/api/v1/tokens/register-imports/"

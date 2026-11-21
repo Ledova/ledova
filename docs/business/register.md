@@ -328,8 +328,8 @@ overwriting stored files. One stored file can support several linked people with
 bytes. **Delete** on an attachment, after one confirmation, removes that link for everyone; the
 stored file goes too unless another attachment or record still uses it. An attachment added while
 bringing records in stays listed in that opening record, but correcting the copied opening leaves it
-out once deleted, and records naming a deleted attachment are refused; upload the file again to
-re-attach it.
+out once deleted. Records naming a deleted attachment can't be prepared, approved or applied; upload
+the file again to re-attach it.
 Current company register readers can download them; they are not shared automatically with members
 or published. A category describes the company's attachment: uploading a Share certificate neither
 generates nor verifies one, and an attachment does not replace an issue's required approval,

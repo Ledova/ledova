@@ -79,6 +79,16 @@ def deleted_attachment(*, company, token, member, evidence_id):
     )
 
 
+def deleted_import_documents(proposal):
+    return any(
+        deleted_attachment(
+            company=proposal.company_id, token=proposal.token_id, member=member["member"], evidence_id=row["evidence"]
+        )
+        for member in proposal.members
+        for row in member.get("documents", [])
+    )
+
+
 def retain_import_documents(members, company, token, actor):
     for member in members:
         if "documents" not in member:
