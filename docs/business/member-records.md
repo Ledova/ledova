@@ -159,8 +159,7 @@ ends, by revocation or because the account is deleted or loses its verified emai
 keeps the last particulars and the company changes them again with an ordinary [particulars
 change](register.md#changing-a-members-particulars).
 
-The register follows a Profile save, not every change to the Profile. Identity verification that fills
-an empty Profile name or address reaches the register only at the member's next Profile save. A link
+The register follows a Profile save, not every change to the Profile. A link
 that lapses because the account's email is no longer verified, and later becomes current again, keeps
 any particulars change the company made meanwhile until the member next saves their Profile. Like a
 company's change, a member's change makes the company's pending grants, allotments and transfers that
@@ -411,7 +410,6 @@ and identity source.
 | Excluded                                                                | Why                                                                                                                                                                                                                |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Members' email, phone, date of birth, citizenship and financial profile | What members gave Ledova, not the register's particulars ([position 10](../legal/positions.md#10-privacy))                                                                                                         |
-| Identity checks                                                         | The person's records with Ledova, which the company never reads                                                                                                                                                    |
 | Unmatched orders                                                        | Investors' private orders                                                                                                                                                                                          |
 | Records of who took register outputs                                    | Ledova's audit; the company sees records of its own inspection copies and packs only, never of an output produced in admin ([position 2](../legal/positions.md#2-section-168-who-is-obliged-to-keep-the-register)) |
 | Signed transaction bytes                                                | They could still be broadcast                                                                                                                                                                                      |

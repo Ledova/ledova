@@ -29,7 +29,7 @@ classification, company revocation or holder withdrawal record the behaviour as 
 | Bind approvals to the correct participant, company, wallet and action; enforce expiry, revocation and protection against reuse | The factory keys one registry per ACN; a change carries its company, address, action and expiry, bound into the exact `setExpiry` calldata by a database trigger; `isWhitelisted` is `expiresAt > block.timestamp`                                                                                                                    | [#701](https://github.com/Ledova/ledova/pull/701)                                                                                                       |
 | Enforce rules on direct contract calls and delegated transfers; check administrative and recovery paths for bypasses           | `_update` is the single enforcement point, so a direct call, a delegated transfer and a swap settlement all meet it; fresh company instructions check the exact company mandates and sources; technical removal retains its actual loss cause; see [the bypass review](#the-bypass-review)                                             | [#701](https://github.com/Ledova/ledova/pull/701), [#703](https://github.com/Ledova/ledova/pull/703)                                                    |
 | Refresh affected permissions when evidence or restrictions change, with documented update delays                               | Company revocation, holder withdrawal, expiry and actual standing/wallet losses retain their original decision or loss before removal; refresh cannot add or renew authority. The approval sweep covers surviving rows; removal jobs retry every five minutes after their rows disappear. The normal update window is fifteen minutes | [#702](https://github.com/Ledova/ledova/pull/702), removal recovery under [#648](https://github.com/Ledova/ledova/issues/648)                           |
-| Hold affected actions when required checks are stale, unavailable or unresolved, with review and recovery procedures           | A screening result without a valid risk score leaves the screening pending rather than approving it; a failed removal reads as not approved and is resubmitted; an unreadable registry reads `unknown`, never `whitelisted`; an unresolved change blocks the opposite command until recovery finishes                                 | [#700](https://github.com/Ledova/ledova/pull/700), [#701](https://github.com/Ledova/ledova/pull/701), [#702](https://github.com/Ledova/ledova/pull/702) |
+| Hold affected actions when required checks are stale, unavailable or unresolved, with review and recovery procedures           | A failed removal reads as not approved and is resubmitted; an unreadable registry reads `unknown`, never `whitelisted`; an unresolved change blocks the opposite command until recovery finishes                                 | [#700](https://github.com/Ledova/ledova/pull/700), [#701](https://github.com/Ledova/ledova/pull/701), [#702](https://github.com/Ledova/ledova/pull/702) |
 | Resolve mistaken identity matches and expired restrictions through an accountable correction process                           | Every change retains its original authority and actor; company changes also retain their exact applied source, and the database refuses forged or mutable authority; a removal retains its genuine decision or loss actor, and a legacy change without a retained cause is reported without fabricating one                           | [#701](https://github.com/Ledova/ledova/pull/701), [#702](https://github.com/Ledova/ledova/pull/702), [#703](https://github.com/Ledova/ledova/pull/703) |
 
 The original Mocha and Django cases are in those pull requests and in commit
@@ -38,10 +38,9 @@ eligibility cutover; the current suites are smaller
 ([backend verification](../engineering/testing.md#backend-verification)).
 
 §5 also asks that screening providers be replaceable while effective
-restrictions are preserved. Only the KYCAID adapter implements crypto
-screening; the base adapter raises. [#700](https://github.com/Ledova/ledova/pull/700)
-made a provider that cannot screen fail the screening and raise the monitoring
-flag rather than approve it, which is what replaceability has to preserve.
+restrictions are preserved. No provider screens addresses since the identity
+providers were removed on 21 November 2026
+([decision](../decisions.md#identity-verification-removed)).
 
 ## The bypass review
 

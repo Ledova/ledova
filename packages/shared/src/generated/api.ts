@@ -575,38 +575,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/users/identity-verification/status/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_users_identity_verification_status_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/users/identity-verification/token/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_users_identity_verification_token_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/companies/': {
     parameters: {
       query?: never;
@@ -4246,7 +4214,6 @@ export interface ApiComponents {
       createdAt: string;
       dateOfBirth: string | null;
       fullName: string | null;
-      isIdVerified: boolean;
       phoneCountryCode: string | null;
       phoneNumber: string | null;
       residentialAddress: string | null;
@@ -4288,12 +4255,6 @@ export interface ApiComponents {
       name: string | null;
       nativeBalance: string;
       uuid: string;
-    };
-    ExtractedApplicantData: {
-      address: string | null;
-      dateOfBirth: string | null;
-      fullName: string | null;
-      residenceCountry?: string | null;
     };
     FeatureFlag: {
       description?: string;
@@ -4377,27 +4338,8 @@ export interface ApiComponents {
       walletUuid: string;
     };
     HttpStatusEnum: 400 | 403 | 409;
-    IdentityVerificationSession: {
-      accessToken: string | null;
-      applicantId: string | null;
-      formUrl: string | null;
-      provider: string;
-    };
-    IdentityVerificationStatus: {
-      applicantId: string | null;
-      extractedData: ApiComponents['schemas']['ExtractedApplicantData'] | null;
-      isVerified: boolean;
-      needsRetry: boolean;
-      provider: string;
-      rejectionLabels: string[];
-      reviewAnswer: string | null;
-      reviewResult: string | null;
-      status: string | null;
-      verifiedAt: string | null;
-    };
     IntendedUseEnum: 'long_term_investment' | 'trading_crypto' | 'savings' | 'other';
     IssuanceTypeEnum: 'initial' | 'additional' | 'bonus' | 'dividend' | 'transfer';
-    KycProviderEnum: 'sumsub' | 'kycaid';
     MarkAllReadResponse: {
       marked: number;
     };
@@ -6805,7 +6747,6 @@ export interface ApiComponents {
     ResendVerificationRequest: {
       email?: string;
     };
-    ReviewResultEnum: 'GREEN' | 'RED' | 'YELLOW';
     RoleEnum: 'investor' | 'company' | 'both';
     ServiceTermsVersionEnum: '2026-11-21';
     SettlementApprovalBroadcastRequest: {
@@ -7385,28 +7326,17 @@ export interface ApiComponents {
       email: string;
       fullName?: string | null;
       isActive: boolean;
-      isIdVerified: boolean;
       isSignupCompleted?: boolean;
       isStaff: boolean;
-      kycaidApplicantId: string | null;
-      kycProvider: ApiComponents['schemas']['KycProviderEnum'];
       lastLogin: string | null;
       phoneCountryCode?: string | null;
       phoneNumber?: string | null;
-      rejectionLabels: string[] | null;
       residenceCountry?: string | null;
       residenceCountryName: string | null;
       residentialAddress?: string | null;
-      reviewResult: (ApiComponents['schemas']['ReviewResultEnum'] | ApiComponents['schemas']['NullEnum']) | null;
-      sumsubApplicantId: string | null;
-      sumsubVerificationStatus:
-        (ApiComponents['schemas']['UserVerificationStatusEnum'] | ApiComponents['schemas']['NullEnum']) | null;
       termsAcceptance: ApiComponents['schemas']['TermsAcceptance'] | null;
       termsAndConditions?: boolean;
       uuid: string;
-      verificationStatus:
-        (ApiComponents['schemas']['UserVerificationStatusEnum'] | ApiComponents['schemas']['NullEnum']) | null;
-      verifiedAt: string | null;
     };
     UserProfileRequest: {
       citizenshipCountry: string;
@@ -7430,7 +7360,6 @@ export interface ApiComponents {
       password: string;
       passwordConfirm: string;
     };
-    UserVerificationStatusEnum: 'init' | 'pending' | 'queued' | 'completed' | 'onHold' | 'prechecked';
     ValueSourceEnum: 'market' | 'nav' | 'par' | 'unpriced';
     VersionEnum: '1';
     Wallet: {
@@ -8611,44 +8540,6 @@ export interface ApiOperations {
         };
         content: {
           'application/json': ApiComponents['schemas']['AccountExportData'];
-        };
-      };
-    };
-  };
-  api_users_identity_verification_status_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['IdentityVerificationStatus'];
-        };
-      };
-    };
-  };
-  api_users_identity_verification_token_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['IdentityVerificationSession'];
         };
       };
     };

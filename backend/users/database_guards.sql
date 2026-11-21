@@ -15,34 +15,10 @@ AS $function$
 DECLARE
     saver text := NULLIF(current_setting('app.profile_save', true), '');
 BEGIN
-    IF current_user <> @APP_ROLE@ AND saver IS NULL THEN
-        RETURN NEW;
-    END IF;
-    IF saver IS NOT NULL THEN
-        IF TG_OP <> 'UPDATE' THEN
-            RAISE EXCEPTION 'A profile save changes only the saving person''s own profile' USING ERRCODE = '23514';
-        END IF;
-        IF NEW.user_id::text IS DISTINCT FROM saver OR OLD.user_id IS DISTINCT FROM NEW.user_id THEN
-            RAISE EXCEPTION 'A profile save changes only the saving person''s own profile' USING ERRCODE = '23514';
-        END IF;
-    END IF;
-    IF TG_OP = 'INSERT' THEN
-        IF NEW.is_id_verified OR NEW.verified_at IS NOT NULL OR NEW.review_result IS NOT NULL
-            OR NEW.verification_status IS NOT NULL OR NEW.rejection_labels IS NOT NULL
-            OR NEW.kyc_provider IS DISTINCT FROM 'kycaid' OR NEW.kycaid_applicant_id IS NOT NULL
-            OR NEW.sumsub_applicant_id IS NOT NULL OR NEW.sumsub_verification_status IS NOT NULL
-        THEN
-            RAISE EXCEPTION 'Provider identity results are recorded by the bounded verification service'
-                USING ERRCODE = '23514';
-        END IF;
-    ELSIF ROW(NEW.is_id_verified, NEW.verified_at, NEW.review_result, NEW.verification_status,
-        NEW.rejection_labels, NEW.kyc_provider, NEW.kycaid_applicant_id, NEW.sumsub_applicant_id,
-        NEW.sumsub_verification_status) IS DISTINCT FROM ROW(OLD.is_id_verified, OLD.verified_at,
-        OLD.review_result, OLD.verification_status, OLD.rejection_labels, OLD.kyc_provider,
-        OLD.kycaid_applicant_id, OLD.sumsub_applicant_id, OLD.sumsub_verification_status)
+    IF saver IS NOT NULL AND (TG_OP <> 'UPDATE' OR NEW.user_id::text IS DISTINCT FROM saver
+        OR OLD.user_id IS DISTINCT FROM NEW.user_id)
     THEN
-        RAISE EXCEPTION 'Provider identity results are recorded by the bounded verification service'
-            USING ERRCODE = '23514';
+        RAISE EXCEPTION 'A profile save changes only the saving person''s own profile' USING ERRCODE = '23514';
     END IF;
     RETURN NEW;
 END;
@@ -78,6 +54,6 @@ $function$;
 
 CREATE TRIGGER users_keep_first_activation BEFORE UPDATE OF activation_date ON customer_accounts_account FOR EACH ROW EXECUTE FUNCTION users_keep_first_activation();
 
-CREATE TRIGGER users_provider_identity BEFORE INSERT OR UPDATE ON users_userprofile FOR EACH ROW EXECUTE FUNCTION users_guard_provider_identity();
+CREATE TRIGGER users_profile_save BEFORE INSERT OR UPDATE ON users_userprofile FOR EACH ROW EXECUTE FUNCTION users_guard_provider_identity();
 
 CREATE TRIGGER users_account_standing BEFORE INSERT OR UPDATE ON customer_accounts_account FOR EACH ROW EXECUTE FUNCTION users_guard_account_standing();

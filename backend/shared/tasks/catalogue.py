@@ -34,10 +34,9 @@ SYSTEM_WIDE = {
     "compliance.tasks.run_batch_monitoring": "Screens every account with a transaction in the last two hours "
     "against the operator's pattern rules, which is the operator's question rather than any customer's.",
     "compliance.tasks.screen_transaction": "Applies the operator's monitoring rules to a recorded transaction "
-    "and its account history, writing operator-only alerts and screening records. The transaction and job "
+    "and its account history, writing operator-only alerts. The transaction and job "
     "commit together on the producer's connection; the task explicitly uses the operator role and records "
     "completion with its alert writes so a retried delivery cannot duplicate them.",
-    "compliance.tasks.check_periodic_reviews": "Finds which reviews are due across every account.",
     "shared.tasks.orphaned_files.sweep_private_uploads": "Compares every private file under the swept prefixes "
     "with every row that references a file, so it has to see both in full.",
     "tokens.tasks.deployment.check_pending_token_deployments": "Polls every deployment this operator started.",

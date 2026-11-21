@@ -65,7 +65,6 @@ SPECTACULAR_SETTINGS = {
         "SwapOrderStatusEnum": "tokens.models.choices.SwapOrderStatus",
         "TransferOrderStatusEnum": "tokens.models.choices.TransferOrderStatus",
         "TransferOrderTypeEnum": "tokens.models.choices.TransferOrderType",
-        "UserVerificationStatusEnum": "integrations.kyc.constants.VERIFICATION_STATUS_CHOICES",
         "WalletSigningPreferenceEnum": "wallets.models.wallet.WalletSigningPreference.choices",
         "WhitelistActionEnum": "whitelist.models.change.WhitelistAction.choices",
         "WhitelistChangeStatusEnum": "whitelist.models.change.WhitelistChangeStatus.choices",

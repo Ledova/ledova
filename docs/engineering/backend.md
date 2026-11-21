@@ -3,7 +3,7 @@
 [Engineering](README.md) · [Documentation](../README.md)
 
 Where backend code belongs, the rules it follows, and how the Django API implements company
-workflows, identity providers and notifications, for engineers changing `backend/`.
+workflows and notifications, for engineers changing `backend/`.
 Request and response shapes are in the [OpenAPI schema](../../backend/schema/openapi.json); this
 page keeps what the schema cannot express and links each business rule.
 
@@ -15,7 +15,6 @@ page keeps what the schema cannot express and links each business rule.
 - [Migrations](#migrations)
 - [Company workflow API](#company-workflow-api)
 - [Company identifiers](#company-identifiers)
-- [Identity providers](#identity-providers)
 - [Notifications](#notifications)
 
 The [registry-only execution boundary](chain.md#registry-only-execution-boundary) overrides the
@@ -41,9 +40,9 @@ modules re-exported by `settings/__init__.py`.
 | `assets`         | `Asset`, `AssetChainDeployment`, `AssetSnapshot`, `ExchangeRate`, price sync, asset identity                                                                                                                                                                                                                |
 | `portfolios`     | `Portfolio` and its owner-scoped routes                                                                                                                                                                                                                                                                     |
 | `blockchain`     | `BlockchainTransaction` and transaction monitoring; the durable outgoing-signing foundation (`SigningAccount`, `OutgoingOperation`, `SignedAttempt`) and its immutable history inventory (`OutgoingHistoryCapture`, `OutgoingHistoryEvidence`, `OutgoingCutoverHold`)                                       |
-| `compliance`     | Monitoring rules, alerts, procedure templates, risk assessments                                                                                                                                                                                                                                             |
+| `compliance`     | Monitoring rules, alerts and procedure templates                                                                                                                                                                                                                                                           |
 | `documents`      | Nothing: since investor eligibility was removed it stays installed only for its migrations ([migrations](#migrations))                                                                                                                                                                                      |
-| `integrations`   | Chain client, KYC providers, Alchemy, CoinGecko, Blockstream, SendGrid, Expo push, Transak                                                                                                                                                                                                                  |
+| `integrations`   | Chain client, Alchemy, CoinGecko, Blockstream, SendGrid, Expo push, Transak                                                                                                                                                                                                                  |
 | `feature_flags`  | `FeatureFlag` and the trading middleware                                                                                                                                                                                                                                                                    |
 | `shared`         | Base model, country lookup, health-check middleware, PostgreSQL connection and principal helpers, the policy catalogue and database setup, private storage and upload validation, the task catalogue, seeds and the backend test suite                                                                      |
 
@@ -63,7 +62,7 @@ the backlog. [The layer gate](gates.md#the-layer-gate) enforces the table.
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------- |
 | `models/`      | Fields, `TextChoices`, constraints, `__str__`, properties over own fields, single-row transitions (guard, set fields, `save(update_fields=...)`, at most about ten lines, raising the app's `APIException` on a bad state) | Queries on other models, multi-step workflows, external I/O                                           | `users/models/notification.py`      |
 | `querysets/`   | Every reusable query: product selectors, status filters, `select_related` bundles, annotations, aggregates; wired with `objects = XQuerySet.as_manager()`                                                                  | Saves, side effects, calls into services                                                              | `users/querysets/notification.py`   |
-| `services/`    | Orchestration across models, external I/O (chain, KYC, email), `shared.db.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun      | HTTP objects, serializers, `Response`                                                                 | `users/services/preferences.py`     |
+| `services/`    | Orchestration across models, external I/O (chain, email), `shared.db.atomic` and `select_for_update`; the one place a multi-model workflow lives. Plain module-level `verb_noun` functions, named after the noun      | HTTP objects, serializers, `Response`                                                                 | `users/services/preferences.py`     |
 | `serializers/` | JSON shape and input validation; writable FKs constrained in `get_fields()` by policies and product selectors                                                                                                              | Business rules, locking, queries beyond FK scoping                                                    | `users/serializers/user_profile.py` |
 | `views/`       | Permissions, `scoped_model` plus product filtering in `narrow()`, serializer choice, one service call, `Response`                                                                                                          | Raw `.objects.filter`, try/except that re-wraps an `APIException`, log lines that restate the request | `users/views/notification.py`       |
 | `tasks/`       | `@app.task` / `@app.periodic`: load the row by uuid, call one service, return a dict                                                                                                                                       | Orchestration, state machines                                                                         | `users/tasks/notifications.py`      |
@@ -479,7 +478,7 @@ Legacy-owner appointments return null declaration fields. Capabilities are six i
 Wallet nominations, company wallet instructions, non-paid chain grants, orders, order changes and
 swap signatures check the participant at the time of each action, in the service and again in the
 database guards after lock waits: an active login with a verified email, an investor or both
-account, standing Active or Pending Verification, and an active company
+account, standing Active or Pending, and an active company
 ([rules](../business/participants.md#account-standing)). Since
 [#1491](https://github.com/Ledova/ledova/issues/1491) no classification source, document or company
 eligibility decision is involved, and orders, submissions and swaps no longer record one. A company
@@ -503,146 +502,6 @@ needing both fields, `abn_carries_acn`
 ([rules](../business/companies.md#company-information)). The ABN check is a modulus of
 89 and catches every single-digit error; the ACN check is a weighted modulus of 10 and does not.
 
-## Identity providers
-
-How a KYC provider's result reaches the profile. Settings are in
-[provider configuration](../operations/configuration.md#identity-verification-providers); the
-rules the results feed are in
-[identity check results](../business/participants.md#identity-check-results).
-
-### Profile fields
-
-Both providers write `verification_status`; `review_result`, null while there is no result (never
-an empty string); `rejection_labels`, which keeps every reason; the identity document's type and
-country; and, for an approval, the PEP type the risk policy reads. The applicant-facing serializer
-(`users/serializers/identity_verification.py`) shows any label in `SCREENING_REJECTION_LABELS`
-(`integrations/kyc/constants.py`: Sum&Sub's `PEP`, `SANCTIONS`, `COMPROMISED_PERSONS`,
-`ADVERSE_MEDIA`, `CRIMINAL`, `BLOCKLIST` and `RESTRICTED_PERSON`, and KYCAID's
-`COMPROMISED_PERSON`) once as `NEUTRAL_REJECTION_LABEL` (`UNABLE_TO_VERIFY`)
-([what applicants see](../business/participants.md#what-applicants-see)).
-
-| The provider reports   | KYCAID                                                                                                               | Sum&Sub                                                                                  |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Not started            | `unused`, recorded as `init`                                                                                         | `init`, from the created webhook                                                         |
-| In progress, no result | `pending`                                                                                                            | `pending`, `queued`, `prechecked` or `onHold`, from the pending and on-hold webhooks too |
-| Finished               | `completed`: `verified` true is `GREEN`, false is `RED`, null is no result                                           | `completed` with its `reviewAnswer`                                                      |
-| A status poll          | the applicant's last verification: `pending`; `valid` is `completed` and `GREEN`; `invalid` is `completed` and `RED` | the review status, normalised through the same mapping as a webhook                      |
-| Reasons                | each check's `decline_reasons` and the applicant's, once each                                                        | `reviewResult.rejectLabels`                                                              |
-| Identity document      | the type of the applicant's latest valid identity document; no country                                               | approved `IDENTITY` steps from `requiredIdDocsStatus`, including the issuing country     |
-| PEP evidence           | the applicant's `pep` flag, or a failed `pep` check                                                                  | with `RED`, the `PEP` label or `pep` button; with `GREEN`, the fetched AML case          |
-
-### When a result counts
-
-A result counts only once the provider reports the check completed. Sum&Sub says so of
-`reviewAnswer`, so an answer beside another status (a provisional `GREEN` while `awaitingService`)
-or with no `reviewStatus` is not recorded, and a poll that brings no result writes nothing.
-KYCAID's `verified` is read as a JSON boolean or the string `true` or `false`; anything else is no
-result. An undocumented KYCAID verification status is recorded as `pending` with no result, and a
-status-changed callback carrying one changes nothing; both are logged. Callbacks and applicant
-records are read by separate mappings. Sum&Sub's created, pending and on-hold webhooks record their
-status in `verification_status`, the field the apps read, as well as in
-`sumsub_verification_status`, unless the profile has since moved to KYCAID.
-
-Every result is applied with the profile's row locked, so a callback and a poll arriving together
-activate the account, assess its risk and notify the person once; no provider is called while that
-lock is held.
-
-### Identity documents
-
-KYCAID's document objects carry a type, number, dates and issuing authority but no country, so the
-foreign-passport factor stays unset; neither provider's applicant country or nationality is
-inferred as an issuing country. On a Sum&Sub approval the integration reads
-[verification step results](https://docs.sumsub.com/reference/get-status-of-verification-steps)
-and records an approved identity document, preferring a passport, converting its alpha-3 issuing
-country to alpha-2 where ISO defines it. A completed `GREEN` result with no current identity
-document clears the stored type and country; a pending one keeps earlier verified evidence. A valid
-KYCAID document records its type with no country, even when an earlier result supplied one.
-
-### The Sum&Sub AML case
-
-A completed `GREEN` Sum&Sub approval then reads
-[the applicant's AML case](https://docs.sumsub.com/reference/get-aml-case-data), which needs the
-View applicants and View AML screening permissions; a shared Redis window applies the endpoint's
-ten requests per minute across applicants and workers. Exhaustion, unavailable Redis, a failed
-request or malformed evidence leaves the approval unapplied: the webhook answers 500 for Sum&Sub
-to resend, and a poll keeps the cached pending result to retry. Provider calls happen before the
-apply transaction; rejections and unfinished reviews make neither extra read.
-
-A PEP hit counts unless marked `false_positive` or `no_match`; a case that omits its hits can
-supply the `pep` case label. Only the hit ID, match status and labels are retained, without names
-or source URLs. Sum&Sub gives no PEP locality or category here, so the risk assessment records
-category `unknown` with `approved_by_provider` and applies the `provider_approved_pep` adjustment
-([PEP rules](../business/participants.md#pep-rules)); `integrations/kyc/pep.py` classifies rejected
-PEP evidence. The authenticated callback always replaces any supplied AML or document fields with
-fetched evidence; unsigned callbacks never cause a read.
-
-### KYCAID approvals and screening callbacks
-
-A KYCAID approval is recorded only once the applicant's `pep` flag reads as true or false (a JSON
-boolean or those strings); the
-[Get applicant reference](https://docs.kycaid.com/objects/applicants/applicant-get) allows null,
-which does not establish that the person is not a PEP. When the callback's applicant is missing,
-not an object, or has no interpretable `pep` flag, the applicant record is read first; if that read
-fails the callback answers 500, KYCAID retries, and the next status poll applies the result too. An
-approval whose record still supplies no interpretable flag is recorded as `pending` with no result
-and logged.
-
-KYCAID's `DATABASE_SCREENING` callback reports a monitoring match on a sanctions, PEP, wanted,
-lost-or-stolen-document or internal list. Each raises a compliance alert under rule `KYC-SCREEN`:
-`sanctions_match`, `pep_match`, or `watchlist_match` for a wanted-list or any other match
-([severities and what the alert leaves unchanged](../business/participants.md#transaction-monitoring));
-`sync_procedure_templates` loads a staff procedure for each type. The alert keeps the list types,
-databases, accuracy, verification and document ids and the matched person's details. The account
-is locked while an existing alert is looked for, so a repeated, retried or concurrent delivery of a
-match already raised, whatever that alert's status, raises nothing. The callback is authenticated
-as every KYCAID callback is.
-
-### Crypto address screening
-
-A provider result counts only when it is a JSON object whose risk score (`riskScore`, or in a
-`/webhooks/kycaid/crypto/` callback `result.risk_score`, which KYCAID's reference table spells
-`result.riskscore`; both are read) is a finite, non-negative number
-([screening rules](../business/participants.md#transaction-monitoring)). Anything else, including
-a result without a score that KYCAID documents as no risk found, stays on the screening's raw
-response and leaves it pending; a submission reply that is not an object fails it, and the callback
-refuses one with HTTP 400. A KYCAID submission reply without a score therefore waits for the
-callback, whose score meets `CRYPTO_RISK_THRESHOLD_MEDIUM` and `CRYPTO_RISK_THRESHOLD_HIGH`. A
-completed result is final: a repeated or late callback, a retry or a provider error leaves it
-unchanged.
-
-A screening records the provider that screens it: one recorded while
-`KYCAID_CRYPTO_MONITORING_ENABLED` is off is sent nowhere and names `KYC_PROVIDER` or `disabled`,
-and an admin retry ([operating note](../operations/configuration.md#identity-verification-providers))
-records the provider it is sent to. KYCAID answers an address check with `data.service_request_id` and delivers the result in a later
-`SERVICE_RESULT` callback with the same id
-([address verification](https://docs.kycaid.com/risks-check/crypto),
-[result callback](https://docs-v1.kycaid.com/#crypto-result-callback)), which the screening records
-as its provider id to find it by. The result's `signals` are shares by category; only a sanctions
-share above zero makes the alert a sanctioned-address one.
-
-### Provider documentation
-
-KYCAID's documentation disagrees with itself twice. The current reference types the applicant's
-`verification_status` as `any`; only the [legacy reference](https://docs-v1.kycaid.com/) lists the
-`pending`, `valid` and `invalid` the poll reads. The current
-[Verification completed](https://docs.kycaid.com/callbacks/verification-completed) and
-[Verification status changed](https://docs.kycaid.com/callbacks/verification-status-changed) pages
-say they are sent, respectively, with `pending` on form submission and with `completed` when a
-status is set; the
-[callbacks overview](https://docs.kycaid.com/callbacks/overview) and legacy reference say the
-opposite. The mapping depends on neither: each callback is read by the status it carries.
-
-Other sources, read on 2 October 2026: KYCAID's
-[Database screening](https://docs.kycaid.com/callbacks/database-screening),
-[form integration](https://docs.kycaid.com/guides/form-integration) and
-[decline reasons](https://docs.kycaid.com/decline-reasons); Sum&Sub's
-[Get applicant review status](https://docs.sumsub.com/reference/get-applicant-review-status),
-[applicant statuses](https://docs.sumsub.com/docs/applicant-statuses),
-[rejection labels](https://docs.sumsub.com/docs/rejection-labels),
-[rejection explanatory buttons](https://docs.sumsub.com/reference/rejected),
-[AML screening](https://docs.sumsub.com/docs/aml-how-it-works) and
-[applicant risk labels](https://docs.sumsub.com/docs/applicant-risk-labels).
-
 ## Notifications
 
 Every `Notification` row is written through `NotificationService.notify_user`
@@ -661,12 +520,11 @@ Each notice names its kind as `data.type`, and the dashboard bell opens that kin
 | `company`          | Retained history only: the sender is retired, and no company status change sends one     | Profile        |
 | `publication`      | Retained history only: the sender went with shareholder publications                     | Nothing        |
 | `transaction`      | `wallets/services/transaction_confirmation.py`, when a transaction is confirmed or fails | Nothing        |
-| `identity`         | `users/services/identity.py`, when the identity check's result changes                   | Profile        |
 | `certificate`      | Retained history only: the sender went with members' certificate requests                | Nothing        |
 | `award`            | `tokens/services/member_events.py`, when shares vest under a member's award              | Nothing        |
 | `holding`          | `tokens/services/member_events.py`, when a grant or allotment issues shares to a member  | Nothing        |
 
-A notice of any other kind, including identity notices sent before they carried a type,
+A notice of any other kind, including a notice sent before notices carried a type,
 `particulars` notices sent before members' particulars requests were removed and eligibility
 notices sent before investor eligibility was removed, stays in the inbox and opens nothing.
 The two member kinds go only to the member's current association and name the company, with the

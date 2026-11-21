@@ -10,7 +10,6 @@ import { LoadError, Loading } from './Ledger';
 
 const NOTICE_PAGES: Record<string, DestinationKey> = {
   company: 'company',
-  identity: 'userProfile',
 };
 
 function destinationOf(notification: Notification): string | undefined {

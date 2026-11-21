@@ -85,7 +85,8 @@ The last command admits the operator signer for the local chain (31337) and refu
 chain id; outside Docker, run it only when the backend points at a local chain
 ([local chain admission](../engineering/chain.md#local-chain-admission)). The seed commands are
 idempotent. `sync_monitoring_rules` seeds the monitoring rules, whose amounts are AUD; without them
-no rule raises an alert. `sync_procedure_templates` seeds the alert procedure templates. The public
+no rule raises an alert. `sync_procedure_templates` seeds the alert procedure templates and deletes
+those the seed no longer has, except a template whose steps a case checklist uses. The public
 compliance seed is not a deployment's private monitoring policy. Run them before the demo seed,
 whose alerts link to the monitoring rules when they exist.
 

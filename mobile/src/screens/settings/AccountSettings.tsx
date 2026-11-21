@@ -345,8 +345,8 @@ export function AccountData() {
         <Text style={styles.text}>This action cannot be undone.</Text>
         <Text style={styles.text}>
           This ends sign-in and removes your personal profile answers, financial answers, preferences, device tokens and
-          inbox notifications. Company records and documents, wallet, verification, compliance and session-security
-          records remain. Contact hello@ledova.io for other privacy requests.
+          inbox notifications. Company records and documents, wallet, compliance and session-security records remain.
+          Contact hello@ledova.io for other privacy requests.
         </Text>
         {error && (
           <Text accessibilityRole="alert" style={styles.error}>

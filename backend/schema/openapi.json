@@ -3870,9 +3870,6 @@
             "nullable": true,
             "type": "string"
           },
-          "isIdVerified": {
-            "type": "boolean"
-          },
           "phoneCountryCode": {
             "nullable": true,
             "type": "string"
@@ -3891,7 +3888,6 @@
           "createdAt",
           "dateOfBirth",
           "fullName",
-          "isIdVerified",
           "phoneCountryCode",
           "phoneNumber",
           "residentialAddress"
@@ -4064,32 +4060,6 @@
           "name",
           "nativeBalance",
           "uuid"
-        ],
-        "type": "object"
-      },
-      "ExtractedApplicantData": {
-        "properties": {
-          "address": {
-            "nullable": true,
-            "type": "string"
-          },
-          "dateOfBirth": {
-            "nullable": true,
-            "type": "string"
-          },
-          "fullName": {
-            "nullable": true,
-            "type": "string"
-          },
-          "residenceCountry": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "address",
-          "dateOfBirth",
-          "fullName"
         ],
         "type": "object"
       },
@@ -4646,93 +4616,6 @@
         ],
         "type": "integer"
       },
-      "IdentityVerificationSession": {
-        "properties": {
-          "accessToken": {
-            "nullable": true,
-            "type": "string"
-          },
-          "applicantId": {
-            "nullable": true,
-            "type": "string"
-          },
-          "formUrl": {
-            "nullable": true,
-            "type": "string"
-          },
-          "provider": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "accessToken",
-          "applicantId",
-          "formUrl",
-          "provider"
-        ],
-        "type": "object"
-      },
-      "IdentityVerificationStatus": {
-        "properties": {
-          "applicantId": {
-            "nullable": true,
-            "type": "string"
-          },
-          "extractedData": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ExtractedApplicantData"
-              }
-            ],
-            "nullable": true
-          },
-          "isVerified": {
-            "type": "boolean"
-          },
-          "needsRetry": {
-            "type": "boolean"
-          },
-          "provider": {
-            "type": "string"
-          },
-          "rejectionLabels": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "reviewAnswer": {
-            "nullable": true,
-            "type": "string"
-          },
-          "reviewResult": {
-            "nullable": true,
-            "type": "string"
-          },
-          "status": {
-            "nullable": true,
-            "type": "string"
-          },
-          "verifiedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "applicantId",
-          "extractedData",
-          "isVerified",
-          "needsRetry",
-          "provider",
-          "rejectionLabels",
-          "reviewAnswer",
-          "reviewResult",
-          "status",
-          "verifiedAt"
-        ],
-        "type": "object"
-      },
       "IntendedUseEnum": {
         "description": "* `long_term_investment` - Long-term investment\n* `trading_crypto` - Trading crypto currencies\n* `savings` - Savings\n* `other` - Other",
         "enum": [
@@ -4751,14 +4634,6 @@
           "bonus",
           "dividend",
           "transfer"
-        ],
-        "type": "string"
-      },
-      "KycProviderEnum": {
-        "description": "* `sumsub` - Sumsub\n* `kycaid` - KYCAID",
-        "enum": [
-          "sumsub",
-          "kycaid"
         ],
         "type": "string"
       },
@@ -16923,15 +16798,6 @@
         },
         "type": "object"
       },
-      "ReviewResultEnum": {
-        "description": "* `GREEN` - Approved\n* `RED` - Rejected\n* `YELLOW` - Retry",
-        "enum": [
-          "GREEN",
-          "RED",
-          "YELLOW"
-        ],
-        "type": "string"
-      },
       "RoleEnum": {
         "description": "* `investor` - Investor\n* `company` - Company\n* `both` - Both",
         "enum": [
@@ -19952,29 +19818,12 @@
             "readOnly": true,
             "type": "boolean"
           },
-          "isIdVerified": {
-            "readOnly": true,
-            "type": "boolean"
-          },
           "isSignupCompleted": {
             "type": "boolean"
           },
           "isStaff": {
             "readOnly": true,
             "type": "boolean"
-          },
-          "kycProvider": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/KycProviderEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "kycaidApplicantId": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
           },
           "lastLogin": {
             "format": "date-time",
@@ -19992,14 +19841,6 @@
             "nullable": true,
             "type": "string"
           },
-          "rejectionLabels": {
-            "items": {
-              "type": "string"
-            },
-            "nullable": true,
-            "readOnly": true,
-            "type": "array"
-          },
           "residenceCountry": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
@@ -20014,35 +19855,6 @@
           "residentialAddress": {
             "nullable": true,
             "type": "string"
-          },
-          "reviewResult": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ReviewResultEnum"
-              },
-              {
-                "$ref": "#/components/schemas/NullEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "sumsubApplicantId": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "sumsubVerificationStatus": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/UserVerificationStatusEnum"
-              },
-              {
-                "$ref": "#/components/schemas/NullEnum"
-              }
-            ],
-            "readOnly": true
           },
           "termsAcceptance": {
             "allOf": [
@@ -20059,24 +19871,6 @@
           "uuid": {
             "readOnly": true,
             "type": "string"
-          },
-          "verificationStatus": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/UserVerificationStatusEnum"
-              },
-              {
-                "$ref": "#/components/schemas/NullEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "verifiedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
           }
         },
         "required": [
@@ -20085,20 +19879,11 @@
           "dateJoined",
           "email",
           "isActive",
-          "isIdVerified",
           "isStaff",
-          "kycProvider",
-          "kycaidApplicantId",
           "lastLogin",
-          "rejectionLabels",
           "residenceCountryName",
-          "reviewResult",
-          "sumsubApplicantId",
-          "sumsubVerificationStatus",
           "termsAcceptance",
-          "uuid",
-          "verificationStatus",
-          "verifiedAt"
+          "uuid"
         ],
         "type": "object"
       },
@@ -20215,18 +20000,6 @@
           "passwordConfirm"
         ],
         "type": "object"
-      },
-      "UserVerificationStatusEnum": {
-        "description": "* `init` - Initialized\n* `pending` - Pending Review\n* `queued` - Queued for Review\n* `completed` - Review Completed\n* `onHold` - On Hold\n* `prechecked` - Pre-checked",
-        "enum": [
-          "init",
-          "pending",
-          "queued",
-          "completed",
-          "onHold",
-          "prechecked"
-        ],
-        "type": "string"
       },
       "ValueSourceEnum": {
         "description": "* `market` - Market price\n* `nav` - NAV\n* `par` - Par\n* `unpriced` - Unpriced",
@@ -23268,64 +23041,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserProfile"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/users/identity-verification/status/": {
-      "get": {
-        "operationId": "api_users_identity_verification_status_retrieve",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IdentityVerificationStatus"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/users/identity-verification/token/": {
-      "post": {
-        "operationId": "api_users_identity_verification_token_create",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IdentityVerificationSession"
                 }
               }
             },
