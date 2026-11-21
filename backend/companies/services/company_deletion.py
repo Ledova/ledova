@@ -107,6 +107,7 @@ SENDING = "Member notifications are still being sent. Try again in a minute."
 EXPIRED = "Your appointment ended before the delete finished, so nothing was deleted."
 NOT_SUPPORTED = "Some of this company's records can't be deleted here yet. Contact hello@ledova.io."
 DETACHED = "tokens_registermemberparticulars#detach"
+RECHAIN = "tokens_shareregister#rechain"
 NOTIFY = "users.tasks.notifications.send_push_notification"
 
 
@@ -220,7 +221,9 @@ def stored_files(rows, prefix=None, alias=None):
     )
 
 
-def remove(*, company_id, actor_id, appointment_id, scope, rows, detached=None, expires_at=None, alias=None):
+def remove(
+    *, company_id, actor_id, appointment_id, scope, rows, detached=None, rechain=None, expires_at=None, alias=None
+):
     alias = alias or current_alias()
     quote = connections[alias].ops.quote_name
     with connections[alias].cursor() as cursor:
@@ -231,6 +234,8 @@ def remove(*, company_id, actor_id, appointment_id, scope, rows, detached=None, 
     }
     if detached:
         manifest[DETACHED] = sorted(str(identifier) for identifier in detached)
+    if rechain:
+        manifest[RECHAIN] = [str(rechain)]
     receipt = CompanyDisposal.objects.using(alias).create(
         company_id=company_id,
         scope=scope,

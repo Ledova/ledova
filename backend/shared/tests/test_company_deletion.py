@@ -36,13 +36,19 @@ from tokens.models import (
     RegisterEntry,
     RegisterEvidence,
     RegisterEvidenceKind,
+    RegisterGrant,
     RegisterMember,
+    RegisterMemberCessation,
+    RegisterMemberParticulars,
     RegisterPosition,
+    RegisterTransfer,
     ShareToken,
     TokenDeployment,
 )
 from tokens.services.class_lifecycle import KEPT_ON_CHAIN as CLASS_ON_CHAIN
 from tokens.services.pending_deletion import ACCEPTED, NOT_PENDING
+from tokens.services.register_entry_deletion import OPENING_KEPT
+from tokens.services.register_events import verify_register
 from tokens.services.register_people import PERSON_IN_USE
 from users.models import Notification, UserProfile
 from users.tasks.notifications import send_push_notification
@@ -142,6 +148,94 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
                 (RegisterAgreement.objects.count(), RegisterContribution.objects.count()), (parts[0] - 1, parts[1] - 1)
             )
             self.assertTrue(RegisterAllotment.objects.filter(pk=allotment.json()["uuid"]).exists())
+            investor = RegisterAllotment.objects.get(pk=allotment.json()["uuid"]).member
+        transfers = "/api/v1/tokens/register-transfers/"
+        evidence = self.grant_payload()
+        transfer = self.client.post(
+            transfers,
+            {
+                "operation_id": str(uuid4()),
+                "appointment": str(self.appointment.pk),
+                "token_id": str(self.token.pk),
+                "from_member": str(investor),
+                "to_member": str(self.member.pk),
+                "new_member": False,
+                "name": "Synthetic Member",
+                "residential_address": "1 Example Street, Sydney NSW 2000",
+                "shares": "25",
+                "company_event_on": timezone.now().date().isoformat(),
+                "signed_on": timezone.now().date().isoformat(),
+                "lodged_on": timezone.now().date().isoformat(),
+                "terms": "Synthetic signed instrument",
+                "approving_director": "Synthetic Independent Director",
+                "authority_reference": "SYNTHETIC-DELETED-TRANSFER",
+                "reason": "Record the company-approved transfer",
+                "authority_evidence": evidence["authority_evidence"],
+                "instrument_evidence": evidence["terms_evidence"],
+            },
+            format="json",
+        )
+        self.assertEqual(transfer.status_code, 201, transfer.content)
+        self.decision(transfers, transfer.json()["uuid"], "approve")
+        self.decision(transfers, transfer.json()["uuid"], "apply")
+        with use_operator():
+            issued = RegisterAllotment.objects.get(pk=allotment.json()["uuid"]).register_entry_id
+            granted = RegisterGrant.objects.get(pk=grant.json()["uuid"]).register_entry_id
+            moved = RegisterTransfer.objects.get(pk=transfer.json()["uuid"]).register_entry_id
+            opening = RegisterEntry.objects.get(register__token=self.token, kind="opening").pk
+            self.assertTrue(RegisterMemberCessation.objects.filter(member_id=investor, entry_id=moved).exists())
+        entries = f"/api/v1/tokens/{self.token.pk}/register/entries/"
+        flags = {row["uuid"]: row["deletable"] for row in self.client.get(entries).json()["results"]}
+        self.assertEqual((flags[str(opening)], flags[str(moved)], flags[str(issued)]), (False, True, True))
+        with atomic(using=OPERATOR_ALIAS):
+            with connections[OPERATOR_ALIAS].cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config('app.company_id', %s, true), "
+                    "set_config('app.company_operation', 'register_entry_delete', true), "
+                    "set_config('app.user_id', %s, true)",
+                    [str(self.company.pk), str(self.owner.pk)],
+                )
+            with self.assertRaisesMessage(DatabaseError, "lists only that entry"), atomic(using=OPERATOR_ALIAS):
+                with connections[OPERATOR_ALIAS].cursor() as cursor:
+                    cursor.execute(
+                        "INSERT INTO companies_companydisposal (uuid, created_at, updated_at, company_id, "
+                        "scope, actor_id, appointment_id, manifest, transaction_id) "
+                        "VALUES (%s, now(), now(), %s, 'entry', %s, %s, %s, txid_current())",
+                        [
+                            uuid4(),
+                            self.company.pk,
+                            self.owner.pk,
+                            self.appointment.pk,
+                            json.dumps(
+                                {
+                                    "tokens_registerentry": [str(granted)],
+                                    "tokens_registerallotment": [allotment.json()["uuid"]],
+                                    "tokens_shareregister#rechain": [str(self.token.stored_register.pk)],
+                                }
+                            ),
+                        ],
+                    )
+        dependent = self.client.delete(f"{entries}{issued}/")
+        self.assertEqual(dependent.status_code, 400, dependent.content)
+        self.assertIn("Delete the transfer of", dependent.content.decode())
+        self.assertIn(OPENING_KEPT, self.client.delete(f"{entries}{opening}/").content.decode())
+        self.assertEqual(self.client.delete(f"{entries}{granted}/").status_code, 204)
+        with use_operator():
+            self.assertEqual(verify_register(self.token.stored_register.pk)["issued_supply"], "125")
+            self.assertEqual(RegisterEntry.objects.get(pk=moved).sequence, 3)
+        self.assertEqual(self.client.delete(f"{entries}{moved}/").status_code, 204)
+        self.assertEqual(self.client.delete(f"{entries}{issued}/").status_code, 204)
+        with use_operator():
+            self.assertEqual(verify_register(self.token.stored_register.pk)["issued_supply"], "100")
+            self.assertFalse(RegisterGrant.objects.filter(pk=grant.json()["uuid"]).exists())
+            self.assertFalse(RegisterTransfer.objects.filter(pk=transfer.json()["uuid"]).exists())
+            self.assertFalse(RegisterMemberCessation.objects.filter(member_id=investor).exists())
+            self.assertFalse(RegisterAllotment.objects.filter(pk=allotment.json()["uuid"]).exists())
+            self.assertFalse(RegisterPosition.objects.filter(member_id=investor).exists())
+            self.assertEqual(RegisterPosition.objects.get(member=self.member).shares, 100)
+            self.assertTrue(
+                RegisterMemberParticulars.objects.filter(member_id=investor, source_allotment=None).exists()
+            )
         document = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.CLASS_RIGHTS)
         rights = self.client.post(
             f"/api/v1/tokens/{self.token.pk}/class-rights/",
@@ -262,7 +356,18 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
             self.assertTrue(RegisterEvidence.objects.filter(pk=document.pk).exists())
             self.assertEqual(
                 sorted(CompanyDisposal.objects.filter(company_id=self.company.pk).values_list("scope", flat=True)),
-                ["document", "document", "invitation", "invitation", "person", "proposal", "share_class"],
+                [
+                    "document",
+                    "document",
+                    "entry",
+                    "entry",
+                    "entry",
+                    "invitation",
+                    "invitation",
+                    "person",
+                    "proposal",
+                    "share_class",
+                ],
             )
             self.assertFalse(CompanyTeamInvitation.objects.filter(pk=team_invitation.pk).exists())
         self.assertEqual(member_client.delete(f"/api/v1/companies/{self.company.pk}/").status_code, 404)

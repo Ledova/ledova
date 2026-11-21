@@ -135,4 +135,5 @@ export { useNewShareClass } from './useNewShareClass';
 export { useImportPreparation } from './useImportPreparation';
 export type { ImportPreparationOptions } from './useImportPreparation';
 export { useClassDeletion } from './useClassDeletion';
+export { useRegisterEntryDeletion } from './useRegisterEntryDeletion';
 export { useNewClassRights } from './useNewClassRights';

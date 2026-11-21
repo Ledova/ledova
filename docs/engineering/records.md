@@ -98,7 +98,13 @@ date uses the actual entry recording day in UTC. `tokens_register_transition_on`
 both projection and verification; older entries keep their prior projection convention.
 Triggers refuse entry and member rewrites and deletes, position and head writes outside
 the projection (`tokens_guard_register_position`, `tokens_guard_share_register`) and moving a
-registered class to another company. Entries carry member UUIDs and share changes, never names or
+registered class to another company. The exception is an `entry` deletion receipt
+([deletion protection](#deletion-protection)): after its one listed entry is deleted,
+`tokens_reproject_register` renumbers each later entry, recomputes its `previous_hash` and
+`entry_hash`, recalculates every position (dropping one no entry names any more), clears a cessation
+return the entry recorded and resets the head. The guards admit only those writes, at trigger depth,
+for that receipt's register, and the trigger refuses any later running balance below zero, a
+cessation entry that no longer empties a holding or a recorded cessation that no longer holds. Entries carry member UUIDs and share changes, never names or
 residential addresses.
 
 A `mirror_correction` is written only by an applied import correction. `tokens_guard_mirror_entry`
@@ -241,9 +247,9 @@ removal of test data still respects. The database guards refuse ordinary deletes
 commands are the exceptions, each through a receipt whose exact-row manifest the guards check: an
 administrator [deletes the company](security.md#account-closure-and-export) or an invitation never
 accepted, and a preparer deletes a share class with all its records
-([class lifecycle](backend.md#company-workflow-api)), a proposal still awaiting a decision or a
-shareholder document or a person nothing on the register names (administration when it removes
-their access). Each
+([class lifecycle](backend.md#company-workflow-api)), a proposal still awaiting a decision, a
+shareholder document, a person nothing on the register names (administration when it removes
+their access) or an issue, transfer or correction entry with the record behind it. Each
 needs current company authority, and a class delete also needs an unchanged version. They keep guards and
 foreign-key checks, refuse on-chain and execution history, grant no delete access to the admin and do
 not erase an account, another company or chain history. Deleting a wallet cascades its whitelist

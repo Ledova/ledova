@@ -1,12 +1,11 @@
-import { useCallback, useState, type ReactNode } from 'react';
-import { generatePath } from 'react-router-dom';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   CORRECTION_GROUPS,
-  DESTINATIONS,
   REGISTER_CORRECTION_COPY,
   hasCurrentRegisterReadAuthority,
   type RecordRow,
+  type RegisterEntry,
   type TokenHoldersResponse,
   type OrderSubmissionOwner,
   registerHoldersKey,
@@ -17,10 +16,13 @@ import {
   entriesKey,
   correctionsKey,
   entryLabel,
+  entryWithPeople,
   useClassCorrections,
+  useRegisterEntryDeletion,
 } from '@ledova/shared';
-import { LoadError, Loading } from '@components/Ledger';
-import { PageLink } from '@components/Page';
+import { Failure, LoadError, Loading, Outcome } from '@components/Ledger';
+import { Modal } from '@components/Modal';
+import { PageAction } from '@components/Page';
 
 import { CorrectionRecord } from './CorrectionRecord';
 import { ClassEntries } from './ClassEntries';
@@ -53,6 +55,9 @@ export function ClassCorrections({
   const client = useQueryClient();
   const appointments = useOwnAppointments(owner, guard);
   const corrections = useClassCorrections(owner, token, guard);
+  const removal = useRegisterEntryDeletion({ owner, token, guard });
+  const [deleting, setDeleting] = useState<RegisterEntry | null>(null);
+  const changes = useRef<HTMLDivElement>(null);
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
   const privateReady =
     visible &&
@@ -116,24 +121,54 @@ export function ClassCorrections({
   }));
   return (
     <>
-      <ClassEntries
-        owner={owner}
-        guard={guard}
-        company={company}
-        register={register}
-        sourceReady={sourceReady}
-        visible={visible}
-        renderAction={(entry, ready) =>
-          ready && privateReady && steps?.prepare && entry.correctable ? (
-            <PageLink
-              compact
-              to={generatePath(DESTINATIONS.companyRegisterCorrection.path, { uuid: token, entry: entry.uuid })}
-              label="Correct"
-              context={entryLabel(entry)}
-            />
-          ) : null
-        }
-      />
+      <div ref={changes} tabIndex={-1} className="flex flex-col gap-3 focus:outline-none">
+        <ClassEntries
+          owner={owner}
+          guard={guard}
+          company={company}
+          register={register}
+          sourceReady={sourceReady}
+          visible={visible}
+          renderAction={(entry, ready) =>
+            ready && privateReady && steps?.prepare && entry.deletable ? (
+              <PageAction
+                compact
+                destructive
+                label="Delete"
+                context={entryLabel(entry)}
+                disabled={removal.busy}
+                onClick={() => setDeleting(entry)}
+              />
+            ) : null
+          }
+        />
+        {visible && <Outcome>{removal.outcome}</Outcome>}
+        {visible && <Failure>{removal.error}</Failure>}
+      </div>
+      <Modal
+        isOpen={!!deleting}
+        onClose={() => {
+          if (!removal.busy) setDeleting(null);
+        }}
+        title={`Delete this ${deleting ? (COPY.ENTRY_KINDS[deleting.kind] ?? 'entry').toLowerCase() : 'entry'}?`}
+        showFooter
+        confirmLabel="Delete"
+        destructive
+        busy={removal.busy}
+        busyLabel="Deleting…"
+        onConfirm={() => {
+          if (deleting)
+            void removal.remove(deleting).finally(() => {
+              setDeleting(null);
+              requestAnimationFrame(() => changes.current?.focus());
+            });
+        }}
+      >
+        <p className="break-words text-sm text-text-primary">
+          The {deleting ? entryWithPeople(deleting) : 'entry'} is removed for everyone, with the records behind it. This
+          can’t be undone.
+        </p>
+      </Modal>
       <div
         hidden={!visible || (corrections.isSuccess && corrections.data.length === 0)}
         className="flex flex-col gap-3 border-t border-border-subtle pt-4"

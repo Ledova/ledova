@@ -325,7 +325,14 @@ invitation or a team invitation that was never accepted runs `invitation_delete`
 the document's stored file too when nothing else references it. `DELETE` on a person
 (`register-people/<member>/?company=`) runs `register_person_delete` under a `person` receipt when
 nothing on the register names them; it needs preparation, or administration when the person has
-member invitations or access. The people list reports `deletable`. An uncertain reply is resolved by resending the exact original body
+member invitations or access. The people list reports `deletable`. `DELETE` on a register entry
+(`tokens/<class>/register/entries/<entry>/`) runs `register_entry_delete` under an `entry` receipt
+and current preparation authority for an issue, transfer or correction of a class without on-chain
+records. It removes the record behind the entry with its approvals (and an allotment's agreement and
+contribution) and any cessation the entry recorded, detaches particulars it captured, and refuses,
+naming the later entry to delete first, when a later entry would go below zero or no longer end or
+bring back a holding as recorded; the database then links the later entries again. The entries list
+reports `deletable` per reader. An uncertain reply is resolved by resending the exact original body
 and key: current read access recovers the retained receipt, even after the appointment has
 expired or the proposal has changed stage. No replay after process loss is promised, and a client
 never infers success from a lost response.

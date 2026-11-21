@@ -80,9 +80,10 @@ Every change is an entry:
 | Compensating correction    | Exactly reverses every change of one earlier entry                               |
 | Copied opening correction  | Records the exact difference when the company corrects the opening's records     |
 
-Entries are never edited or deleted ([nothing is overwritten](README.md#nothing-is-overwritten)),
-and each is linked to the one before, so altered history is detected when the register is verified
-([the entry chain](../engineering/records.md#entries-and-the-hash-chain)). Shares are whole numbers,
+Entries are never edited, and each is linked to the one before, so altered history is detected when
+the register is verified ([the entry chain](../engineering/records.md#entries-and-the-hash-chain)).
+A company can [delete an issue, transfer or correction](#deleting-a-register-entry); the later
+entries are then linked again. Shares are whole numbers,
 no change takes a holding below zero, and emptying a holding leaves a zero position. A cessation
 covers this class only; recording a cessation or correction burns, seizes or transfers nothing on
 chain. Entries name members by member ID, keeping names and residential addresses as particulars.
@@ -371,24 +372,25 @@ mapped wallet was linked elsewhere since, reject it and prepare another.
 
 ## Changing the register after the opening
 
-### Compensating corrections
+### Deleting a register entry
 
-A correction exactly reverses one entry, which stays and is named by it. An entry can be corrected
-once, and a correction can itself be corrected; partial corrections and replacement transactions are
-not built.
+A mistaken issue, transfer or correction is deleted rather than reversed. On the web or in the app,
+in Ledger's Corrections view, a current preparer chooses **Delete** at the end of the entry's row and
+confirms once; it can't be undone. The entry goes with the record behind it: the allotment with its
+agreement and receipt, the grant, the transfer or the correction, with their approvals and any
+cessation the entry recorded. Particulars it recorded stay with the person, and its evidence stays
+on file. Later entries move up one place and holdings are recalculated. To record it again
+correctly, issue or transfer the shares as usual.
 
-1. On the web or in the app, in Ledger's Corrections view, choose Correct on the entry, which shows
-   the exact inverse.
-2. Upload the authority document and give the authority, approving director, reference, reason and
-   an effective date of today (UTC) or earlier; a later date would hold back later issues and
-   transfers.
-3. Approve, then Apply. The correction waits under **Needs a decision**, then moves under
-   **Corrected**, or **Rejected** if it is rejected.
+A delete is refused, naming the later entry to delete first, when a later entry would take a holding
+below zero or would no longer end or bring back a holding as recorded. A corrected entry is deleted
+after its correction. The opening can't be deleted (delete the share class to start again), nor can a
+copied opening correction (correct the copied opening again) or an entry of a class with on-chain
+records.
 
-A correction is refused for an entry with no changes or already corrected, or an inverse taking a
-holding below zero; if a newer entry was recorded after preparation, reject it and prepare another.
-On a class on chain the next reconciliation reports member and supply differences for the company to
-[acknowledge](#acknowledging-a-discrepancy).
+Correct is no longer offered on entries. Corrections already prepared stay listed under Corrections
+and can still be approved and applied, until #1723 removes that workflow; an applied correction is
+an entry like any other and can be deleted.
 
 ### Changing a member's particulars
 
@@ -503,8 +505,8 @@ direct transfer while the class is marked non-transferable, rechecking the restr
 approval and application. The company determines whether its constitution and shareholder
 agreements permit the transfer; Ledova does not interpret those documents. Court-directed, paid and chain
 transfers are not built;
-court-backed [corrections](#compensating-corrections) remain. An imported register takes no
-Cessation entry, and its corrections are ordinary company corrections.
+a mistaken transfer is [deleted](#deleting-a-register-entry). An imported register takes no
+Cessation entry.
 
 ## Completed chain effects and waiting entries
 
@@ -664,7 +666,7 @@ The mobile app's Ledger shows the same rows to a register reader of the selected
 to someone who can prepare the register. Dashboard Set up your ledger and the menu's Share classes open that same overview. Selecting an unfinished class continues the clickable setup in its class workspace; an opened class shows its current ownership, rights and documents. Both clients expose the same details editing and deletion eligibility, including the reason when deletion is blocked. The menu lists Issue
 shares, Transfer shares and Corrections beneath it ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
 [non-paid transfers](#non-paid-transfers-between-members),
-[compensating corrections](#compensating-corrections)).
+[deleting a register entry](#deleting-a-register-entry)).
 
 Ledger's three web sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the Share classes card: Issue shares
@@ -672,15 +674,15 @@ selector and without the Share classes card: Issue shares
 ([non-paid transfers](#non-paid-transfers-between-members)) and Corrections.
 
 Corrections starts with a full-width Changes card, newest entries first. Each entry is a compact
-row: its kind and short date ("Issue · 26 Oct 2026"), with Correct at the end of a row that may be
-corrected, then its first two signed shareholder movements, with Show all for the rest. The date is
+row: its kind and short date ("Issue · 26 Oct 2026"), with a red Delete at the end of a row a current
+preparer can delete, then its first two signed shareholder movements, with Show all for the rest. The date is
 the company date for an issue or transfer (ledger effective date for other kinds), with the ledger
 date beneath when it differs, and any correction or reversal is named beneath by kind and date. On
 wide screens the rows align under Change, Date and Share movements. Rows don't expand. An older
 issue or transfer with no company date says Date not recorded. Retained source imports, corrections
 and particulars records stay listed with their details and permitted evidence downloads; chain
 openings, reconciliations and wallet links are read through the API since
-[#1452](https://github.com/Ledova/ledova/issues/1452). Entries remain immutable. Current register
+[#1452](https://github.com/Ledova/ledova/issues/1452). Entries are never edited. Current register
 readers can inspect the records; preparation, approval and application controls still require their
 respective company appointments.
 The former web History address opens Corrections with the same company and class. Certificates are

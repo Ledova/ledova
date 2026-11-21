@@ -767,7 +767,9 @@ class; a recipient may hold another class, be a former holder, have an award or 
 class is added. It uses the existing inline form and right-aligned collection action. People without
 shares are distinguished from current shareholders, with no invented holding or award. A person
 without shares whom nothing on the register names shows a compact red **Delete** to a current
-preparer (to an administrator when it would remove their access), with one confirmation. Initial
+preparer (to an administrator when it would remove their access), with one confirmation. In
+Corrections, each issue, transfer or correction entry a current preparer can delete ends its row with
+a compact red **Delete** and one confirmation; a refusal names the later entry to delete first. Initial
 ledger setup, investor and non-paid issues and employee awards keep their explicit new-person
 paths; invitations select existing records. A named director in external authority evidence is
 not automatically a shareholder or a Ledova user and remains a documentary field.

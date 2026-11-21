@@ -80,6 +80,10 @@ from tokens.services.register_certificates import (
     prepare_company_certificate,
     preview_company_certificate,
 )
+from tokens.services.register_entry_deletion import (
+    deletable_entries,
+    delete_register_entry,
+)
 from tokens.services.register_inspection_copies import (
     prepare_company_inspection_copy,
     preview_company_inspection_copy,
@@ -109,6 +113,7 @@ class ShareTokenViewSet(
             "holders",
             "register",
             "register_entries",
+            "register_entry_delete",
             "register_inspection_copy",
             "register_inspection_copies",
             "register_certificate",
@@ -135,6 +140,8 @@ class ShareTokenViewSet(
         "the classification refuses any other connection. "
         "The reader stays IsAuthenticated: an issuer is entitled to this and is not an administrator. "
         "Register entries name each changed member as the register does, from the same identity sources. "
+        "Deleting a register entry requires current personal company administration or prepare authority under "
+        "the locked company and class, and runs through its receipt-bound delete command. "
         "Register reads (the class list, holders, entries and waiting effects) also admit a current "
         "company appointment holding administration or a register capability, alongside the owner. "
         "The opening holders read reads the chain for a class whose register is not opened, so it admits only a "
@@ -178,7 +185,7 @@ class ShareTokenViewSet(
         return ShareTokenDetailSerializer
 
     def narrow(self, queryset):
-        if self.action in {"register_opening_holders", "partial_update", "destroy"}:
+        if self.action in {"register_opening_holders", "partial_update", "destroy", "register_entry_delete"}:
             queryset = queryset.register_preparable_by(self.request.user)
         elif self.action in self.register_reads or self.action == "retrieve":
             queryset = queryset.register_readable_by(self.request.user)
@@ -443,8 +450,23 @@ class ShareTokenViewSet(
             member = UUID(request.query_params["member"]) if "member" in request.query_params else None
         except ValueError:
             raise ValidationError({"member": "Name the member by their UUID."}) from None
-        rows = stored_entries(self.get_object(), self.paginate_queryset, wanted, member, **filters.validated_data)
+        token = self.get_object()
+        rows = stored_entries(token, self.paginate_queryset, wanted, member, **filters.validated_data)
+        deletable = deletable_entries(token, request.user, [row["uuid"] for row in rows])
+        for row in rows:
+            row["deletable"] = row["uuid"] in deletable
         return self.get_paginated_response(ShareRegisterEntrySerializer(rows, many=True).data)
+
+    @extend_schema(
+        parameters=[OpenApiParameter("entry", OpenApiTypes.UUID, OpenApiParameter.PATH)],
+        request=None,
+        responses={204: None},
+    )
+    @action(detail=True, methods=["delete"], url_path=r"register/entries/(?P<entry>[^/.]+)")
+    def register_entry_delete(self, request, uuid=None, entry=None):
+        identifier = serializers.UUIDField().run_validation(entry)
+        delete_register_entry(actor=request.user, token=self.get_object(), entry_id=identifier)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(responses=RegisterOpeningHoldersSerializer)
     @action(detail=True, methods=["get"], url_path="register/opening-holders")

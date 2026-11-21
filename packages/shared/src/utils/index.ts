@@ -98,6 +98,7 @@ export {
   entryInverse,
   entryLabel,
   entryName,
+  entryWithPeople,
   formatRegisterChanges,
   isPreparedRegisterCorrection,
   isRegisterCorrectionDecisionReceipt,

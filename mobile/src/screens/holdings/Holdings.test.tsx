@@ -401,6 +401,7 @@ const CERTIFIED: RegisterEntry = {
   corrects: null,
   correctedBy: null,
   correctable: true,
+  deletable: true,
   changes: [{ member: 'holder-1', name: 'Synthetic Holder 1', shares: '5' }],
 };
 const DIGEST = 'b'.repeat(64);
@@ -1397,7 +1398,7 @@ beforeEach(async () => {
   });
   await AsyncStorage.removeItem(companyChoiceKey);
 });
-it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership and class, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, opens an administered company’s overview with its paged shareholders, reads its team only with current administration, revokes only the confirmed appointment, request or member access, and records an award, share issues, a transfer and a correction only for the chosen class and people, with no register action under a read-only appointment', async () => {
+it('associates a member by invitation code, switches to their company on Dashboard with its shared ownership and class, keeps an interrupted acceptance recoverable across screens, opens its certificate records but none from another company for an ended association, reads no company register without register access, opens an administered company’s overview with its paged shareholders, reads its team only with current administration, revokes only the confirmed appointment, request or member access, records an award, share issues and a transfer only for the chosen class and people, deletes a register entry only after confirmation, with no register action under a read-only appointment', async () => {
   function PickedFile({ shown }: { shown: boolean }) {
     const [file, setFile] = useState<PickedDocument | null>(null);
     return shown ? <FileField label="Retained file" value={file} onFile={setFile} disabled={false} /> : null;
@@ -2178,10 +2179,9 @@ it('associates a member by invitation code, switches to their company on Dashboa
     [URLS.REGISTER_TRANSFER_PREVIEW(transfer.uuid), { ...decision('approve'), ...completed }, expect.anything()],
     [URLS.REGISTER_TRANSFER_DECIDE(transfer.uuid), { ...decided('approve'), ...completed }, expect.anything()],
   ]);
-  const correctionPosts = () => api.post.mock.calls.filter(([url]) => url.startsWith(URLS.REGISTER_CORRECTIONS));
   const certified = `issue of ${formatDate(CERTIFIED.companyEventOn)}`;
   await view.rerender(<CorrectionsScreen route={{ key: 'corrections', name: 'Corrections', params: undefined }} />);
-  const correct = await screen.findByRole('button', { name: `Correct (${certified}, Synthetic Holder 1)` });
+  const remove = await screen.findByRole('button', { name: `Delete (${certified}, Synthetic Holder 1)` });
   expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
   expect(await screen.findByText('Copied opening')).toBeTruthy();
   expect(screen.getByLabelText('Status: Prepared')).toBeTruthy();
@@ -2194,75 +2194,16 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.getByRole('button', { name: `Review (${opening})` })).toBeTruthy();
   await fireEvent.press(screen.getByRole('button', { name: 'Bring records (Founders)' }));
   expect(mockNavigate).toHaveBeenLastCalledWith('RegisterSetup', bringing);
-  await fireEvent.press(correct);
-  const correcting = { company: ADMINISTERED.uuid, token: FOUNDERS.uuid, entry: CERTIFIED.uuid };
-  expect(mockNavigate).toHaveBeenLastCalledWith('CorrectionPreparation', correcting);
-  await view.rerender(
-    <CorrectionPreparationScreen route={{ key: 'correct', name: 'CorrectionPreparation', params: correcting }} />,
+  api.delete.mockImplementationOnce(async () => ({ status: 204 }));
+  await fireEvent.press(remove);
+  await fireEvent.press(await screen.findByRole('button', { name: 'Delete (entry)' }));
+  expect(
+    await screen.findByText(`Issue of ${formatDate(CERTIFIED.companyEventOn)} for Synthetic Holder 1 deleted.`),
+  ).toBeTruthy();
+  expect(api.delete).toHaveBeenLastCalledWith(
+    `${URLS.REGISTER_ENTRIES(FOUNDERS.uuid)}${CERTIFIED.uuid}/`,
+    expect.anything(),
   );
-  await fireEvent.changeText(
-    await screen.findByLabelText(REGISTER_CORRECTION_COPY.APPROVING_DIRECTOR),
-    'Synthetic Director',
-  );
-  expect(screen.getByText('Synthetic Holder 1: -5')).toBeTruthy();
-  await fireEvent.changeText(screen.getByLabelText(REGISTER_CORRECTION_COPY.AUTHORITY_REFERENCE), 'Synthetic minute');
-  await fireEvent.changeText(screen.getByLabelText(REGISTER_CORRECTION_COPY.REASON), 'Issued in error');
-  await fireEvent.press(screen.getByRole('button', { name: 'Authority document. Choose file' }));
-  await screen.findByRole('button', { name: 'Authority document, synthetic.pdf. Choose file' });
-  expect(correctionPosts()).toHaveLength(0);
-  await fireEvent.press(screen.getByRole('button', { name: REGISTER_CORRECTION_COPY.SUBMIT }));
-  await waitFor(() => expect(mockNavigate).toHaveBeenLastCalledWith('Corrections', expect.anything()));
-  const correction = corrections[0];
-  const preparedCorrection = {
-    company: ADMINISTERED.uuid,
-    token: FOUNDERS.uuid,
-    record: correction.uuid,
-    outcome: REGISTER_CORRECTION_COPY.PREPARED,
-  };
-  expect(mockNavigate).toHaveBeenLastCalledWith('Corrections', preparedCorrection);
-  expect(correctionPosts()).toEqual([
-    [
-      URLS.REGISTER_CORRECTIONS,
-      {
-        operationId: correction.uuid,
-        appointment: ADMINISTRATION.uuid,
-        correctsId: CERTIFIED.uuid,
-        authorityEvidence: evidence,
-        effectiveOn: utcToday(),
-        authority: 'director_resolution',
-        approvingDirector: 'Synthetic Director',
-        authorityReference: 'Synthetic minute',
-        reason: 'Issued in error',
-      },
-      expect.anything(),
-    ],
-  ]);
-  await view.rerender(
-    <CorrectionsScreen route={{ key: 'corrected', name: 'Corrections', params: preparedCorrection }} />,
-  );
-  expect(await screen.findByText(REGISTER_CORRECTION_COPY.PREPARED)).toBeTruthy();
-  await settled();
-  expect(screen.getByText('Needs a decision · 1')).toBeTruthy();
-  await fireEvent.press(
-    screen.getByRole('button', { name: `Approve (correction of the ${certified}, Synthetic Holder 1)` }),
-  );
-  await fireEvent.press(await screen.findByRole('button', { name: 'Approve correction', disabled: false }));
-  await waitFor(() => expect(correctionPosts()).toHaveLength(3));
-  await settled();
-  await fireEvent.press(
-    screen.getByRole('button', { name: `Apply (correction of the ${certified}, Synthetic Holder 1)` }),
-  );
-  expect(await screen.findByText(REGISTER_CORRECTION_COPY.COMPENSATION_NOTE)).toBeTruthy();
-  await fireEvent.press(await screen.findByRole('button', { name: 'Apply correction', disabled: false }));
-  await waitFor(() => expect(correctionPosts()).toHaveLength(5));
-  await settled();
-  expect(screen.queryByRole('button', { name: /^(Approve|Apply|Reject) \(correction/ })).toBeNull();
-  expect(correctionPosts().slice(1)).toEqual([
-    [URLS.REGISTER_CORRECTION_PREVIEW(correction.uuid), decision('approve'), expect.anything()],
-    [URLS.REGISTER_CORRECTION_DECIDE(correction.uuid), decided('approve'), expect.anything()],
-    [URLS.REGISTER_CORRECTION_PREVIEW(correction.uuid), decision('apply'), expect.anything()],
-    [URLS.REGISTER_CORRECTION_DECIDE(correction.uuid), decided('apply'), expect.anything()],
-  ]);
   await fireEvent.press(screen.getByRole('button', { name: `Review (${opening})` }));
   await fireEvent.press(await screen.findByRole('button', { name: 'Review import', disabled: false }));
   await waitFor(() => expect(importPosts()).toHaveLength(2));
@@ -2348,26 +2289,32 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByRole('button', { name: /^(Transfer shares \(|Issue shares$)/ })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Add (documents)' })).toBeNull();
   expect(transferPosts()).toHaveLength(3);
-  const pendingCorrection = {
-    ...correction,
-    uuid: '51515151-5151-4151-8151-515151515151',
-    createdAt: '2026-11-04T07:00:00Z',
-  };
-  corrections = [pendingCorrection, ...corrections];
+  corrections = [
+    correctionFrom({
+      operationId: '51515151-5151-4151-8151-515151515151',
+      correctsId: CERTIFIED.uuid,
+      appointment: ADMINISTRATION.uuid,
+      authorityEvidence: evidence,
+      effectiveOn: utcToday(),
+      authority: 'director_resolution',
+      approvingDirector: 'Synthetic Director',
+      authorityReference: 'Synthetic minute',
+      reason: 'Issued in error',
+    }),
+  ];
   await view.rerender(
     <CorrectionsScreen route={{ key: 'read-only-corrections', name: 'Corrections', params: undefined }} />,
   );
   await act(async () => screen.getByTestId('corrections-scroll').props.refreshControl.props.onRefresh());
   expect(await screen.findByText(REGISTER_CORRECTION_COPY.READ_ONLY_NOTE)).toBeTruthy();
   const corrected = `Correction of the issue of ${formatShortDate(CERTIFIED.companyEventOn)} to Synthetic Holder 1`;
-  await waitFor(() => expect(screen.getAllByText(corrected)).toHaveLength(2));
+  await waitFor(() => expect(screen.getAllByText(corrected)).toHaveLength(1));
   await settled();
   expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
   expect(screen.getAllByText('Copied opening correction')).toHaveLength(1);
   expect(
-    screen.queryByRole('button', { name: /^(Correct|Approve|Apply|Reject|Review|Confirm|Bring records)( |$)/ }),
+    screen.queryByRole('button', { name: /^(Delete|Approve|Apply|Reject|Review|Confirm|Bring records)( |$)/ }),
   ).toBeNull();
-  expect(correctionPosts()).toHaveLength(5);
   const decidedImports = importPosts().length;
   await view.rerender(<LedgerScreen route={{ key: 'ledger', name: 'Ledger' }} />);
   expect(await screen.findByRole('button', { name: /^Founders, / })).toBeTruthy();
