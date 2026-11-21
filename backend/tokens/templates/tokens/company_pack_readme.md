@@ -117,8 +117,6 @@ Each settlement is the instrument of a transfer. `typed_data` is the order both 
 
 This pack carries {{ copies }} cop{{ copies|pluralize:"y,ies" }} of the documents its records relied on, besides the class and member documents.
 
-Verification evidence Ledova holds for members is not in this pack: their identity checks. Each person gave it to Ledova to be verified, and it is not a record of the company. A verification does not carry over when the register moves: whoever keeps it next verifies members again.
-
 ## 3. What the evidence proves and does not
 
 | Record | Proves | Does not prove |
