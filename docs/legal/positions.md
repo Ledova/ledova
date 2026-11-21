@@ -358,10 +358,11 @@ register corrected. Section 176 makes the register proof of its contents in the
 absence of contrary evidence.
 
 **What the code does.** The current-members register is
-[stored](../engineering/records.md#register-ledger): each share class keeps an append-only,
+[stored](../engineering/records.md#register-ledger): each share class keeps a
 hash-chained event log and the holdings it produces, and the register is read
-from them with the chain unreachable. A correction is a compensating entry that
-those holdings already reflect. A scheduled job reconciles the stored register
+from them with the chain unreachable. A mistaken entry is deleted rather than
+reversed: the later entries are re-linked and the holdings recalculated
+([decision](../decisions.md#companies-may-delete-what-they-record)). A scheduled job reconciles the stored register
 with the chain and retains each result. Former members are stored, and an
 import records members' particulars and pre-platform former members, and opens a
 class not yet on chain from the company's register. Company appointees prepare

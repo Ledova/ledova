@@ -169,14 +169,13 @@ def open_register(*, token_id, operation_id, changes, effective_on, recorded_by)
         )
 
 
-def record_entry(*, register_id, operation_id, kind, changes, effective_on, recorded_by, corrects_id=None):
+def record_entry(*, register_id, operation_id, kind, changes, effective_on, recorded_by):
     _operator()
     values = {
         "kind": kind,
         "changes": _changes(changes),
         "effective_on": effective_on,
         "recorded_by_id": recorded_by.pk,
-        "corrects_id": _uuid(corrects_id) if corrects_id is not None else None,
     }
     if kind not in RegisterEntryKind.values or type(effective_on) is not date:
         raise ValidationError("Register changes require a known event kind and an effective date.")

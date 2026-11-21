@@ -92,7 +92,7 @@ New non-tokenised grants, investor allotments and direct transfers require the c
 the actual issue or transfer date. It is separate from terms, agreement, receipt, signing and
 lodgement dates and from Ledova's immutable preparation, approval and recording timestamps. The
 company date must be no later than today (UTC) and no earlier than the applicable opening or latest
-effective event; an earlier event needs separately scoped correction or reconciliation. The normal
+effective event; an earlier event means deleting the later entries and recording them again. The normal
 path does not replay history. Chain issues retain their existing execution and finality dates.
 
 Review, details and history show the supplied company date separately from the ledger date where
@@ -710,11 +710,10 @@ withholds the share classes and the shareholder list rather than implying holdin
 The focused views reuse the existing controllers, authority checks and original-request recovery.
 The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
 
-The mobile app's Corrections has the same compact Changes rows, corrections with their decisions,
-Opening records and Particulars changes at phone width, for a register reader of the selected
-company. **Share class** is in Filters and stays locked while a review or an uncertain decision is
-open, Correct opens the preparation on its own page, a decision's review replaces the records, and
-documents go to the phone's share sheet. Opening records have Bring records or Correct copied
+The mobile app's Corrections has the same compact Changes rows with their **Delete**, Opening
+records and Particulars changes at phone width, for a register reader of the selected company.
+**Share class** is in Filters and stays locked while a review or an uncertain decision is open, an
+opening record's review replaces the records, and documents go to the phone's share sheet. Opening records have Bring records or Correct copied
 opening and the reviewing and confirming of copied openings, as on the web.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a

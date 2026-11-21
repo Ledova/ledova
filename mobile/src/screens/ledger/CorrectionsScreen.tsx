@@ -114,7 +114,6 @@ function CompanyCorrections({
   const client = useQueryClient();
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const page = useRef<ScrollView>(null);
-  const content = useRef<View>(null!);
   const source = useCompanyRegisters(owner, currentOwner, company, TITLE, available);
   const [chosen, setChosen] = useState(landing?.token ?? '');
   const [answered, setAnswered] = useState(landing);
@@ -140,7 +139,6 @@ function CompanyCorrections({
   return (
     <Page
       ref={page}
-      innerViewRef={content}
       testID="corrections-scroll"
       title={TITLE}
       lede={LEDE}

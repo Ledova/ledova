@@ -1,3 +1,4 @@
+from functools import partial
 from pathlib import Path
 
 from django.conf import settings
@@ -5,6 +6,7 @@ from django.db import migrations
 from django.db.models import Q
 
 from companies.disposal_guards import install as install_disposal
+from shared.db import on_commit
 from tokens.database_mirror_guards import _function
 from tokens.database_mirror_guards import install as install_mirror
 
@@ -27,7 +29,7 @@ def drop_unapplied_corrections(apps, schema_editor):
     if schema_editor.connection.vendor != "postgresql":
         return
     from companies.models import DeletionScope
-    from companies.services.company_deletion import follow_ups, remove
+    from companies.services.company_deletion import discard, follow_ups, remove
     from tokens.models import RegisterCorrection, RegisterCorrectionDecision
 
     install_disposal(apps, schema_editor)
@@ -48,6 +50,7 @@ def drop_unapplied_corrections(apps, schema_editor):
                 .values()
             ),
         }
+        files = [row["file"] for row in rows[RegisterCorrection] if row["file"]]
         remove(
             company_id=correction.company_id,
             actor_id=correction.submitted_by_id,
@@ -56,6 +59,7 @@ def drop_unapplied_corrections(apps, schema_editor):
             rows=follow_ups(rows, lambda data: Q(pk__in=[]), alias),
             alias=alias,
         )
+        on_commit(partial(discard, files), using=alias)
     with schema_editor.connection.cursor() as cursor:
         cursor.execute(
             "SELECT set_config('app.user_id', '', true), set_config('app.company_id', '', true), "

@@ -976,8 +976,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   records and reviews, with the preparation on its own page. Corrections' reads (`useRegisterEntries`,
   `useRegisterImports` with `importsKey` and `useRegisterParticulars`), its entry delete
   (`useRegisterEntryDeletion`), its record downloads (`useImportRecordDownload`,
-  `useParticularsRecordDownload`) and the entry helpers (`entryLabel`, `entryWithPeople`,
-  `describeEntry` and their siblings) are shared too; the app's Corrections renders the same rows and
+  `useParticularsRecordDownload`) and the entry helpers (`entryLabel`, `entryWithPeople` and their
+  siblings) are shared too; the app's Corrections renders the same rows and
   records with their decisions. A
   section whose
   read succeeded empty is omitted, while a failed read keeps its

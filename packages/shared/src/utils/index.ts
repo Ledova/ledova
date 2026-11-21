@@ -91,14 +91,7 @@ export {
   type MemberDraft,
   type PreparationDraft,
 } from './register-import-drafts';
-export {
-  describeEntry,
-  entryDate,
-  entryLabel,
-  entryName,
-  entryWithPeople,
-  formatRegisterChanges,
-} from './register-entries';
+export { entryDate, entryLabel, entryName, entryWithPeople, formatRegisterChanges } from './register-entries';
 export { isRegisterParticularsEditReceipt, particularsChanged, registerMembers } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
 export {

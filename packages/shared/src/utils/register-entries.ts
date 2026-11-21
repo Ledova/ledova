@@ -28,14 +28,6 @@ export function entryWithPeople(entry: EntryDates & Pick<RegisterEntry, 'changes
   return who ? `${entryName(entry)} for ${who}` : entryName(entry);
 }
 
-export function describeEntry(entry: EntryDates) {
-  const kind = REGISTER_ENTRY_COPY.ENTRY_KINDS[entry.kind] ?? 'Register change';
-  const date = entryDate(entry);
-  return date === entry.effectiveOn
-    ? `${kind} · ${formatDate(date)}`
-    : `${kind} · ${formatDate(date)} · Ledger date ${formatDate(entry.effectiveOn)}`;
-}
-
 export function formatRegisterChanges(changes: RegisterChange[], named: RegisterChange[] = []) {
   const names = new Map(named.map((change) => [change.member, change.name]));
   return changes.map(({ member, shares, name }) => {

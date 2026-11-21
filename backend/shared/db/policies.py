@@ -437,9 +437,10 @@ OPERATOR_ONLY = {
     "tokens_registerimportdecision": "Append-only company approvals, applications and rejections of register "
     "imports, each bound to the deciding appointment and written by the bounded register command on the operator "
     "connection. Register readers see them through the import on the operator connection.",
-    "tokens_registercorrectiondecision": "Append-only company approvals, applications and rejections of register "
-    "corrections, each bound to the deciding appointment and written by the bounded register command on the "
-    "operator connection. Register readers see them through the correction on the operator connection.",
+    "tokens_registercorrectiondecision": "Retained company approvals and applications of register corrections "
+    "applied before mistaken entries became deletable, each bound to the deciding appointment. The database "
+    "refuses every new or changed row; a decision is deleted with its correction's entry. The company pack reads "
+    "them on the operator connection.",
     "tokens_registeropeningdecision": "Append-only company approvals, applications and rejections of register "
     "openings, each bound to the deciding appointment and written by the bounded register command on the operator "
     "connection. Register readers see them through the opening on the operator connection.",

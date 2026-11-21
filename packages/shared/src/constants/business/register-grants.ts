@@ -23,7 +23,7 @@ export const REGISTER_GRANT_UNMET_COPY: Record<string, string> = {
     'The company event date was not recorded. Reject this preparation and prepare it again with the company’s date.',
   company_event_date_in_future: 'The company event date cannot be after today (UTC).',
   effective_date_before_latest_entry:
-    'The company event date is before a later register event. Use the company’s correction or reconciliation process.',
+    'The company event date is before a later register event. To record it, delete the later entries first.',
   approving_director_conflict: 'The approving director is the recipient. Another director must approve the grant.',
   member_reference_conflict: 'The proposed new member already exists. Reject this grant and prepare a new one.',
   identified_company_member_required: 'The recipient must be an identified member of this company.',
