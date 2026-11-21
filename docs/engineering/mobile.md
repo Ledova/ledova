@@ -253,7 +253,9 @@ than one class. `screens/shareholders/ShareholderDocuments.tsx` uses
 `useMemberDocuments`, with the same appointment checks and uncertain-save recovery. Picking a file
 locks its class, and pulling down waits while the editor or a save is open.
 Member access
-(`MemberAccessScreen.tsx`, through the shared `useMemberAccessForm`) has the web's People and
+(`MemberAccessScreen.tsx`, through the shared `useMemberAccessForm`) waits for company and account
+rechecks before showing an unavailable-company notice, including when entered during a reread.
+It has the web's People and
 Invitations in the web's two-line rows: each person's name and access, then their email and short
 linked date, with a compact **Revoke**, whose reason form and confirmation dialog send nothing
 until confirmed, and each invitation's name and status, then its email and short invited date, with

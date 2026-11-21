@@ -166,7 +166,7 @@ function OwnRegister({
   const companiesReady =
     !includeCompanyAppointments ||
     classes.data?.some((item) => item.companyUuid === company?.uuid) ||
-    companyAppointments.isSuccess;
+    (companyAppointments.isSuccess && (!!company || companyAppointments.fetchStatus === 'idle'));
   const preferenceRead = useUserPreferences();
   const client = useQueryClient();
   const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
