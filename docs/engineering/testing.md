@@ -73,6 +73,7 @@ isolated PostgreSQL administrator connection available.
 | All ordinary CI checks before pushing         | `make preflight`                                                           |
 | Source and client CI group                    | `make ci-checks`                                                           |
 | Source gates and type-checks                  | `make check`                                                               |
+| Unused frontend files/exports and backend modules | `make check-dead-code`                                                  |
 | Lint                                          | `make lint`; `cd backend && make lint`                                     |
 | Small gate controls                           | `make test-gates`                                                          |
 | Client, shared and contract tests             | `make test`                                                                |

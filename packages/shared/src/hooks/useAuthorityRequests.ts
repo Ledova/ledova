@@ -16,7 +16,7 @@ import { ownAppointmentsKey } from './useOwnAppointments';
 import { ownershipCompaniesKey } from './useOwnershipCompanies';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 
-export function authorityRequestsKey(owner: OrderSubmissionOwner) {
+function authorityRequestsKey(owner: OrderSubmissionOwner) {
   return ['company-authority-requests', owner.userUuid, owner.ownerAccountUuid];
 }
 
