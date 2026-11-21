@@ -21,7 +21,7 @@ export function useDialogInsets() {
   return useContext(SafeAreaInsetsContext) ?? initialWindowMetrics?.insets ?? NO_INSETS;
 }
 
-export function ModalActions({ children }: { children: ReactNode }) {
+function ModalActions({ children }: { children: ReactNode }) {
   const styles = useThemedStyles((theme) => ({
     row: {
       flexDirection: 'row' as const,

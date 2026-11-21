@@ -15,7 +15,7 @@ import { isRegisterEvidenceReceipt } from '../utils/register-commands';
 import { useApiClient } from './useApiClient';
 import type { OrderSubmissionSession } from './useSubmissionOwner';
 
-export type ClassRightsDraft = {
+type ClassRightsDraft = {
   appointment: string;
   previousRevision: number;
   attributes: ClassRightsAttributes;
@@ -23,7 +23,7 @@ export type ClassRightsDraft = {
   summary: string;
   documents: { id: string; file: RegisterDocumentFile | null; snapshot?: ClassRightsDocument }[];
 };
-export type ClassRightsTarget = {
+type ClassRightsTarget = {
   token: string;
   company: string;
   appointment: string;

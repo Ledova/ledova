@@ -15,11 +15,11 @@ import { ownAppointmentsKey, useOwnAppointments } from './useOwnAppointments';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 import { USER_PREFERENCES_QUERY_KEY } from './useUserPreferences';
 
-export function teamInvitationsKey(owner: OrderSubmissionOwner) {
+function teamInvitationsKey(owner: OrderSubmissionOwner) {
   return ['company-team-invitations', owner.userUuid, owner.ownerAccountUuid];
 }
 
-export function companyTeamKey(owner: OrderSubmissionOwner, company: string) {
+function companyTeamKey(owner: OrderSubmissionOwner, company: string) {
   return ['company-team', owner.userUuid, owner.ownerAccountUuid, company];
 }
 

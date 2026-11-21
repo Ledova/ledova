@@ -86,9 +86,19 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
-      # react-test-renderer must equal `react`, which Expo SDK 54 pins at 19.1.0;
-      # 19.3 fails `npm ci` with ERESOLVE (#668). It moves with the SDK above.
+      # React and its renderer must match Expo SDK 54's 19.1.0 exactly; newer
+      # React breaks that pair. Move both with the SDK, not in a routine batch.
+      - dependency-name: react
       - dependency-name: react-test-renderer
+      # SDK 54 expects the 19.1 React types. Keep patch updates in that line;
+      # remove this bound when the SDK adopts a newer React minor.
+      - dependency-name: "@types/react"
+        versions: [">=19.2.0"]
+      # typescript-eslint 8.73 peers TypeScript <6.1.0, so TypeScript 7 makes
+      # npm ci fail before checks. Drop this when the supported compiler moves
+      # with both the SDK and the ESLint toolchain.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
       # Babel 8 is an SDK change too: babel-preset-expo and Metro resolve their own
       # @babel/core 7, so 8 at the root leaves npm reporting an invalid tree and only
       # Jest on 8 (#668). Drop this with the SDK upgrade that adopts Babel 8.

@@ -12,7 +12,7 @@ import { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPrefere
 import { useApiClient } from './useApiClient';
 
 const COMPANIES_QUERY_KEY = ['companies'] as const;
-export const COMPANY_QUERY_KEY = ['company'] as const;
+const COMPANY_QUERY_KEY = ['company'] as const;
 
 export function ownCompaniesKey(owner: OrderSubmissionOwner | null) {
   return [...COMPANIES_QUERY_KEY, owner?.userUuid, owner?.ownerAccountUuid];
@@ -32,7 +32,7 @@ export function canAdministerCompany(company: Company | CompanyListItem) {
   return (access.draftSetup && company.isOwner && company.status === 'draft') || access.capabilities.includes('admin');
 }
 
-export function canPersonallyAdministerCompany(company: Company | CompanyListItem) {
+function canPersonallyAdministerCompany(company: Company | CompanyListItem) {
   return canAdministerCompany(company) && company.administrativeAccess.capabilities.includes('admin');
 }
 
