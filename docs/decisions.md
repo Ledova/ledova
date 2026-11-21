@@ -610,6 +610,8 @@ requires. A company still waiting on a lookup activates afresh. This supersedes 
 [4 October](#company-representative-verification) decision and the 14 October
 [combined signup](#combined-company-signup-and-initial-authority) and
 [simple signup](#simple-signup-documents-and-team-after-registration) decisions that kept the ABR lookup.
+_The identity requirement, and the identity status these receipts kept, went on 21 November 2026
+([identity verification removed](#identity-verification-removed))._
 
 ### Company documents removed
 
@@ -626,7 +628,8 @@ chose ("Company's own evidence"): the company owner, while a current administrat
 (with a verified identity where the operator requires it), names an `authority` upload they made for
 the company, Ledova keeps its own copy with the upload's SHA-256, and platform staff still review
 each instruction before it applies. One still waiting with a company document can only be rejected; the
-company submits it again with its own evidence.
+company submits it again with its own evidence. _The identity requirement went on 21 November 2026
+([identity verification removed](#identity-verification-removed))._
 
 The migration deletes every company document and its file. An instruction, or an earlier staff-era
 record, that relied on one keeps its own copy of the file with the snapshot and fingerprint it
@@ -667,8 +670,8 @@ itself was removed on 21 November 2026 ([identity verification removed](#identit
 [#1739](https://github.com/Ledova/ledova/issues/1739): "We dont need id verification to use this app
 so everything related to it should be deleted".
 
-Ledova no longer checks anyone's identity. Everything that existed only for identity checks goes,
-one focused pull request at a time:
+Ledova stops checking anyone's identity. Everything that existed only for identity checks goes, in
+these steps, each its own focused pull request:
 
 1. **The identity requirements:** the operator's switches requiring a verified identity for company
    representatives (`issuer_kyc_required`) and for participants (`investor_kyc_required`), every

@@ -75,7 +75,7 @@ from tokens.services.register import MEMBER_AMBIGUOUS, _member_identity
 from tokens.services.register_events import record_entry
 from tokens.services.register_transfers import _apply as apply_register_transfer
 from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_SUSPENDED
-from users.models import FinancialProfile, UserAccount, UserProfile
+from users.models import FinancialProfile, UserAccount
 from users.models.user_account import AccountRole
 from users.services.setup import ensure_defaults
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -883,7 +883,6 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             return [row["unmetRequirements"] for row in listed.json()["results"]]
 
         self.assertEqual(readiness(), [[]])
-        profile = UserProfile.objects.filter(pk=nominee_profile.pk)
         for reason, rows, lapsed, restored in (
             (
                 "participant_account_inactive",
