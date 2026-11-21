@@ -8,7 +8,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITransactionTestCase
 
 from companies.services.team import revoke_company_appointment
-from operators.models import Operator
 from shared.db import atomic, use_operator
 from shared.tests.core_fixtures import (
     CoreFixtures,
@@ -484,16 +483,6 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual((opening.register.sequence, int(opening.register.issued_supply)), (2, 25))
         self.assertEqual(RegisterPosition.objects.get(register=opening.register).shares, 25)
         self.assertEqual(RegisterEntry.objects.filter(register=opening.register, kind="issue").count(), 1)
-        configuration = Operator.get()
-        with use_operator():
-            Operator.objects.filter(pk=configuration.pk).update(issuer_kyc_required=True)
-            self.profile.is_id_verified = False
-            self.profile.save(update_fields=["is_id_verified"])
-        self.assertEqual(self.client.get(documents_endpoint).json()["results"], [])
-        self.assertEqual(self.client.get(f"{documents_endpoint}{document['uuid']}/file/").status_code, 404)
-        with use_operator():
-            self.profile.is_id_verified = True
-            self.profile.save(update_fields=["is_id_verified"])
         self.assertTrue(self.client.get(documents_endpoint).json()["results"])
         self.appoint_admin()
         revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)

@@ -77,15 +77,15 @@ def prepare_company_pack(*, actor, company_id, appointment, instruction, recipie
         if connections[current_alias()].in_atomic_block:
             raise ValidationError("Produce a company pack outside an existing transaction.")
         with atomic(durable=True):
-            company, actor, profile, operator = lock_company_actor(actor, company_id)
-            register_appointment(company, actor, profile, operator, appointment, CompanyCapability.ADMIN)
+            company, actor, profile = lock_company_actor(actor, company_id)
+            register_appointment(company, actor, profile, appointment, CompanyCapability.ADMIN)
         archive, filename, classes, digest = _build_company_pack(
             company, instruction=instruction, recipient=recipient, validate_contents=_require_core_contents
         )
         try:
             with atomic(durable=True):
-                company, actor, profile, operator = lock_company_actor(actor, company_id)
-                register_appointment(company, actor, profile, operator, appointment, CompanyCapability.ADMIN)
+                company, actor, profile = lock_company_actor(actor, company_id)
+                register_appointment(company, actor, profile, appointment, CompanyCapability.ADMIN)
                 class_ids = [share_class["token"].pk for share_class in classes]
                 locked = list(
                     ShareToken.objects.select_for_update().filter(pk__in=class_ids, company=company).order_by("uuid")
@@ -93,7 +93,7 @@ def prepare_company_pack(*, actor, company_id, appointment, instruction, recipie
                 if len(locked) != len(class_ids):
                     raise ValidationError("A captured share class no longer belongs to this company.")
                 _record(classes, actor, digest, instruction, recipient, RegisterExportRoute.COMPANY)
-                register_appointment(company, actor, profile, operator, appointment, CompanyCapability.ADMIN)
+                register_appointment(company, actor, profile, appointment, CompanyCapability.ADMIN)
         except BaseException:
             archive.close()
             raise

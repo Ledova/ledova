@@ -18,7 +18,6 @@ from integrations.kyc.constants import (
     REVIEW_RED,
     REVIEW_YELLOW,
 )
-from operators.models import Operator
 from shared.db import atomic, principal_of, use_operator
 from shared.models.country import Country
 from shared.tasks.queue import defer
@@ -27,7 +26,6 @@ from users.models.user_account import UserAccount
 from users.models.user_profile import UserProfile
 from users.services.accounts import lock_active_profile
 from users.services.erasure import queue_provider_erasure
-from whitelist.models import WhitelistInvalidationCause
 from whitelist.services.eligibility_invalidation import invalidation_writer_context
 from whitelist.services.refresh import enqueue_for_account
 
@@ -188,15 +186,6 @@ def update_status_from_normalized(user_profile: UserProfile, normalized: Normali
             user_profile.is_id_verified = False
             user_profile.verified_at = None
 
-        if was_verified and not user_profile.is_id_verified and user_account is not None:
-            if Operator.configured().investor_kyc_required:
-                enqueue_for_account(
-                    user_account.pk,
-                    actor,
-                    cause=WhitelistInvalidationCause.IDENTITY_LOSS,
-                    cause_fields=["is_id_verified"],
-                )
-
         user_profile.save()
 
         if normalized.review_result == REVIEW_GREEN and not was_verified:
@@ -238,11 +227,7 @@ def _process_verified_customer(user_profile, pep_data: Dict[str, Any], user_acco
         logger.warning(f"No user_account found for user_profile {user_profile.uuid}")
         return
 
-    allowed_statuses = (
-        (ACCOUNT_STATUS_ACTIVE,)
-        if Operator.configured().investor_kyc_required
-        else (ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_PENDING)
-    )
+    allowed_statuses = (ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_PENDING)
 
     uncleared_unknown = pep_type == PEP_TYPE_UNKNOWN and (
         user_profile.kyc_provider != PROVIDER_SUMSUB or pep_data.get("approved_by_provider") is not True

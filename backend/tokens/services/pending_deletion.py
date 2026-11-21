@@ -76,13 +76,12 @@ def delete_proposal(*, actor, proposal):
         company,
         current,
         _profile,
-        operator,
     ):
         proposal = model.objects.select_for_update().filter(pk=proposal.pk, company_id=company.pk).first()
         if proposal is None:
             raise NotFound(RECORD_GONE)
         appointment, expires_at = current_appointment(
-            current, company.pk, operator, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
+            current, company.pk, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
         )
         if appointment is None:
             raise NotFound(NO_PREPARER)
@@ -102,11 +101,11 @@ def delete_proposal(*, actor, proposal):
 
 
 def delete_member_invitation(*, actor, invitation):
-    with register_command(actor, invitation.company_id, "invitation_delete") as (company, current, _profile, operator):
+    with register_command(actor, invitation.company_id, "invitation_delete") as (company, current, _profile):
         invitation = (
             MemberInvitation.objects.select_for_update().filter(pk=invitation.pk, company_id=company.pk).first()
         )
-        appointment, expires_at = current_appointment(current, company.pk, operator, [CompanyCapability.ADMIN])
+        appointment, expires_at = current_appointment(current, company.pk, [CompanyCapability.ADMIN])
         if invitation is None:
             raise NotFound(RECORD_GONE)
         if appointment is None:

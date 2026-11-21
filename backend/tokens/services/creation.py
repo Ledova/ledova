@@ -14,7 +14,7 @@ def create_share_token(*, actor, company_id, data):
         raise PermissionDenied("You must be associated with a company to create tokens.")
     if set(data) - CREATE_FIELDS:
         raise ValidationError("Only the validated share-class creation fields may be supplied.")
-    with register_command(actor, company_id, "register_class_create") as (company, current_actor, _profile, _operator):
+    with register_command(actor, company_id, "register_class_create") as (company, current_actor, _profile):
         if not Company.objects.register_preparable_by(current_actor).filter(pk=company.pk).exists():
             raise NotFound("A current company administrator or preparer is required to create this share class.")
         if ShareToken.objects.filter(company=company, symbol=data.get("symbol")).exists():

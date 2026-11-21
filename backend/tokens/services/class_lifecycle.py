@@ -122,7 +122,7 @@ def update_class_details(*, actor, token, expected_updated_at, changes):
     ):
         raise ValidationError("Supply a valid class name, code and type.")
     changes = {"name": name.strip(), "symbol": symbol.upper(), "token_type": token_type}
-    with register_command(actor, token.company_id, "register_class_edit") as (_, current_actor, _profile, _operator):
+    with register_command(actor, token.company_id, "register_class_edit") as (_, current_actor, _profile):
         token = _current(token, current_actor, expected_updated_at)
         if not _available(token.pk)[0]:
             raise RegisterChangeConflict(EDIT_DETAILS_BLOCKED_REASON)
@@ -183,13 +183,13 @@ def share_class_rows(token, alias=None):
 
 
 def delete_share_class(*, actor, token, expected_updated_at):
-    with register_command(actor, token.company_id, "register_class_delete") as (_, current_actor, _profile, operator):
+    with register_command(actor, token.company_id, "register_class_delete") as (_, current_actor, _profile):
         token = _current(token, current_actor, expected_updated_at)
         reason = _available(token.pk)[1]
         if reason:
             raise RegisterChangeConflict(reason)
         appointment, expires_at = current_appointment(
-            current_actor, token.company_id, operator, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
+            current_actor, token.company_id, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
         )
         rows, detached = share_class_rows(token)
         files = stored_files(rows)

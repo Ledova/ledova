@@ -61,7 +61,7 @@ def _text(value, label, optional=False):
 
 
 def _company_of(actor, member_id):
-    appointments = CompanyAppointment.objects.current_of(actor, at=timezone.now(), identity_required=False)
+    appointments = CompanyAppointment.objects.current_of(actor, at=timezone.now())
     with use_operator(), _requester_principal(actor.pk):
         company_id = (
             RegisterMember.objects.filter(pk=member_id, company_id__in=appointments.values("company_id"))
@@ -104,9 +104,8 @@ def edit_particulars(*, actor, operation_id, appointment, member, name, resident
         company,
         current_actor,
         profile,
-        operator,
     ):
-        source = register_appointment(company, current_actor, profile, operator, appointment)
+        source = register_appointment(company, current_actor, profile, appointment)
         if not all(holds(source, capability) for capability in EDITORS):
             raise NotFound(APPOINTMENT_NOT_FOUND)
         subject = RegisterMember.objects.filter(pk=member, company=company).first()

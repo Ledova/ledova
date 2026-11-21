@@ -10,7 +10,6 @@ from rest_framework.exceptions import ValidationError
 from blockchain.models import OutgoingOperation, OutgoingStatus
 from companies.models import Company, CompanyAppointment, CompanyCapability
 from companies.services.administration import company_operation, lock_company_actor
-from operators.models import Operator
 from shared.db import atomic
 from shared.registry_scope import refuse_deferred_execution
 from tokens.exceptions import (
@@ -118,11 +117,9 @@ def _lock_actors(company, actors):
         .filter(user_id__in=actors)
         .order_by("uuid")
     )
-    operator = Operator.objects.select_for_update().get(pk=1)
     list(
         CompanyAppointment.objects.select_for_update().filter(company=company, appointee_id__in=actors).order_by("uuid")
     )
-    return operator
 
 
 @contextmanager
@@ -134,9 +131,9 @@ def _command(actor, initial, operation, recorded=False):
         actors = {actor.pk}
         if not recorded and not operation.endswith("_reject") and approval is not None:
             actors.add(approval.decided_by_id)
-        operator = _lock_actors(company, actors)
+        _lock_actors(company, actors)
         current_actor = get_user_model().objects.get(pk=actor.pk)
-        yield company, current_actor, UserProfile.objects.filter(user=current_actor).first(), operator
+        yield company, current_actor, UserProfile.objects.filter(user=current_actor).first()
 
 
 def prepare_pause_change(
@@ -195,10 +192,8 @@ def prepare_pause_change(
             captured = ShareToken.objects.get(pk=token, company_id=company_id)
             intent = pause_changes.transaction_intent(captured, paused)
             pause_changes.lock_target(intent["chain_id"], intent["to"])
-            company, current_actor, profile, operator = lock_company_actor(actor, company_id)
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            company, current_actor, profile = lock_company_actor(actor, company_id)
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             current = ShareToken.objects.select_for_update(nowait=True, of=("self",)).get(pk=token, company=company)
             current.company = company
             if (

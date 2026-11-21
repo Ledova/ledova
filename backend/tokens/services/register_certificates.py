@@ -7,18 +7,18 @@ from tokens.services.register_authority import (
 
 
 def preview_company_certificate(*, actor, token, sequence):
-    with register_output_access(actor, token, "register_certificate") as (company, actor, profile, operator, token):
-        appointment = current_register_reader(company, actor, profile, operator)
+    with register_output_access(actor, token, "register_certificate") as (company, actor, profile, token):
+        appointment = current_register_reader(company, actor, profile)
         preview = {**certificate_preview(token, sequence=sequence), "appointment": appointment.pk}
-        register_reader_appointment(company, actor, profile, operator, appointment.pk)
+        register_reader_appointment(company, actor, profile, appointment.pk)
         return preview
 
 
 def prepare_company_certificate(*, actor, token, appointment, sequence, source_digest, instruction=""):
-    with register_output_access(actor, token, "register_certificate") as (company, actor, profile, operator, token):
-        register_reader_appointment(company, actor, profile, operator, appointment)
+    with register_output_access(actor, token, "register_certificate") as (company, actor, profile, token):
+        register_reader_appointment(company, actor, profile, appointment)
         content = prepare_certificate(
             token, actor, sequence=sequence, instruction=instruction, source_digest=source_digest
         )
-        register_reader_appointment(company, actor, profile, operator, appointment)
+        register_reader_appointment(company, actor, profile, appointment)
         return content

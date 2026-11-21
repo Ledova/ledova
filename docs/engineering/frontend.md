@@ -406,9 +406,7 @@ page headings and collection wrappers do not repeat the context name.
 `SIGNUP_STEPS` (`dashboard/src/utils/paths.ts`) lists the steps after the create-account form:
 email confirmation, account type, user profile, company registration and review.
 Signup has no financial questionnaire, and `useSignupReview` reads no financial profile, on the web
-or in the app. Identity verification is not a step: when `useSignupReview` reports
-`identityRequired`, company review offers **Verify your identity**, which opens the
-`IdentityVerificationModal` that Account uses. The step map in
+or in the app, and no step verifies identity. The step map in
 `dashboard/src/routes/AppRoutes.tsx` uses the named `SIGNUP_PATHS`, and `signupRoutes` wraps each,
 with `/signup`, in `SignupRoute`, which sends a finished company account to the company dashboard
 and other finished accounts to `landingFor(role)`, lets an unfinished account or a signed-out

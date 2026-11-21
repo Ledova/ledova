@@ -18,7 +18,7 @@ and [refreshing an approval](../engineering/chain.md#refreshing-an-approval)
 states what the controls do not do. Since 2 November 2026 there are no classifications or company
 eligibility decisions ([decision](../decisions.md#verification-limited-to-id-checks)): order
 creation and swap signing need a current participant whose wallet holds a live company approval,
-and an automatic removal retains only a standing, identity or wallet loss. The rows below that name
+and an automatic removal retains only a standing or wallet loss. The rows below that name
 classification, company revocation or holder withdrawal record the behaviour as it was merged.
 
 ## The six required behaviours

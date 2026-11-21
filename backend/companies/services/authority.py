@@ -8,7 +8,6 @@ from rest_framework.exceptions import ValidationError
 from companies.exceptions import (
     AuthorityAdmissionConflictException,
     AuthorityRequestConflictException,
-    IssuerIdentityVerificationRequiredException,
 )
 from companies.models import (
     Company,
@@ -27,7 +26,6 @@ from companies.services.authority_requests import (
     _require_requester,
     _snapshots,
 )
-from operators.models import Operator
 from shared.db import atomic, current_alias, use_app, use_operator
 from users.models import UserProfile
 
@@ -78,8 +76,6 @@ def _require_initial_admission(actor, profile, company, proposal):
     )
     if proposal.requester_profile_id != profile.pk or snapshots != retained:
         raise AuthorityRequestConflictException()
-    if Operator.get().issuer_kyc_required and not profile.is_id_verified:
-        raise IssuerIdentityVerificationRequiredException()
 
 
 def _existing_admission(company, proposal):
@@ -136,12 +132,7 @@ def admit_authority_request(*, requester, request_id, declaration_version, accep
 def is_company_appointment_effective(appointment):
     with use_app(), _requester_principal(appointment.appointee_id):
         return (
-            CompanyAppointment.objects.current_for(
-                appointment.appointee,
-                appointment.company_id,
-                at=timezone.now(),
-                identity_required=Operator.get().issuer_kyc_required,
-            )
+            CompanyAppointment.objects.current_for(appointment.appointee, appointment.company_id, at=timezone.now())
             .filter(pk=appointment.pk)
             .exists()
         )
