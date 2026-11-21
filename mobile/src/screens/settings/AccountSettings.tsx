@@ -1,15 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { Alert, Text, View } from 'react-native';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';
-import {
-  PASSWORD_PROBLEMS,
-  VERIFICATION_TONES,
-  changePasswordProblems,
-  formatDateTime,
-  formatShortDate,
-  getUserVerificationStatus,
-} from '@ledova/shared';
-import { Action, Outcome, Rows, Section, Status, SwitchRow } from '../../components/Ledger';
+import { PASSWORD_PROBLEMS, changePasswordProblems, formatDateTime, formatShortDate } from '@ledova/shared';
+import { Action, Outcome, Rows, Section, SwitchRow } from '../../components/Ledger';
 import { CustomModal } from '../../components/modal';
 import { useAppLock, useThemedStyles } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
@@ -38,16 +31,14 @@ function SettingRow({
   detail,
   value,
   action,
-  accessibilityLabel,
 }: {
   label?: string;
   detail?: ReactNode;
   value?: string;
   action?: ReactNode;
-  accessibilityLabel?: string;
 }) {
   const look = useAccountStyles();
-  const spoken = accessibilityLabel ?? (value ? `${label}: ${value}` : undefined);
+  const spoken = value ? `${label}: ${value}` : undefined;
   return (
     <View style={look.setting}>
       <View accessible={!!spoken} accessibilityLabel={spoken} style={look.text}>
@@ -69,7 +60,6 @@ export function AccountSettings() {
   const navigation = useNavigation<NavigationProp<SignedInStackParamList>>();
   const lock = useAppLock();
   const { userProfile } = useUserProfile();
-  const verification = getUserVerificationStatus(userProfile);
   const settings = useSettings();
   const [changing, setChanging] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -129,19 +119,6 @@ export function AccountSettings() {
     <>
       <Section title="Security">
         <Rows>
-          {userProfile && (
-            <SettingRow
-              label="Identity check"
-              accessibilityLabel={`Identity check: ${verification.label}`}
-              action={
-                <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-                  <Status tone={VERIFICATION_TONES.get(verification.type) ?? 'waiting'} muted>
-                    {verification.label}
-                  </Status>
-                </View>
-              }
-            />
-          )}
           <SettingRow
             label="Password"
             action={

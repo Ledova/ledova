@@ -1,4 +1,3 @@
-export * from './user-accounts';
 export * from './register';
 export * from './register-grants';
 export * from './register-awards';

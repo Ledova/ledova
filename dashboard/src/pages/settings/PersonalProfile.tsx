@@ -117,9 +117,7 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
                 );
             }}
           >
-            <p className="text-sm text-text-muted">
-              These details are provided by you. Editing them does not verify your identity.
-            </p>
+            <p className="text-sm text-text-muted">These details are provided by you.</p>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Full name" className="sm:col-span-2">
                 <TextInput

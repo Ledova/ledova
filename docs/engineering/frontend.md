@@ -59,7 +59,7 @@ frame share, and `packages/shared` holds what both clients share.
 | `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes, each page loaded on demand from `lazyPages.ts` under one `Suspense` with `RouteLoading`) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                            |
 | `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                  |
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `auth/`, and single components several areas show (`AwardStatus.tsx`) |
-| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register classes, sign-out, theme, identity verification                                                                                                                                                                                                              |
+| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register classes, sign-out, theme                                                                                                                                                                                                                                    |
 | `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`), the query client it reads the session from (`queryClient.ts`) and the device stores built from the shared store factories                                                                                                       |
 | `utils/`              | Browser and pure helpers used by more than one area or the frame (`siteUrl.ts`, `saveFile.ts`, the session resets) and the web-only paths (`paths.ts`)                                                                                                                                                                             |
 | `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                            |
@@ -162,8 +162,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   its result names the fields `isLoading`, `hasError`, `isRefreshing` and `retry`
   (`packages/shared/src/hooks/useOwnershipCompanies.ts`). Older hooks still use other names, such as
   `useSettingsNavigation` (`isError`, `isFetching`), the dashboard's `useUserProfile` (`isError`,
-  `isFetching`, `refreshProfile`), `useRegisterEntries` (`isPending`, `isFetching`) and
-  `useIdentityVerification` (`isLoadingStatus`).
+  `isFetching`, `refreshProfile`) and `useRegisterEntries` (`isPending`, `isFetching`).
 - **Account boundary.** Work bound to the signed-in account takes its owner from
   `useSubmissionOwner`, and the page renders it in an inner component keyed by the owner, so pending
   work never crosses accounts. Its query keys carry the owner and every request passes
@@ -370,7 +369,7 @@ page.
 Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
 Team where permitted. Its default is Profile (`/settings#profile`), combining personal
 details and permitted company information. Account
-(`/settings#account`) has Security (identity status with Review, the password with Change), Account
+(`/settings#account`) has Security (the password with Change), Account
 details, Invitations and Your appointments cards, and Data and privacy (`/settings#data`) holds Export data and
 Delete account in the same rows, with **Export** and **Delete**. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
 sections keep their separate records, editors and authority checks. Existing `/user-profile`,
@@ -508,8 +507,8 @@ previews. Leaving or unmounting the page resets its draft.
 A failed
 check or a changed account withholds
 private content, including after an account changes in another tab. Mobile clears its cache whenever
-the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload or identity
-verification, stopping when the operation finishes or its view closes. A status read must never
+the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload,
+stopping when the operation finishes or its view closes. A status read must never
 repeat a write, upload or share issue.
 
 Every read and command retains its account, company, association, appointment and source guards.
@@ -818,8 +817,8 @@ Its screenshot provenance and update procedure are in the
 
 The dashboard stylesheet defines a `dark:` variant that follows `data-theme`, never the operating-system
 setting, for theme-specific adjustments: the
-active sidebar item's `bg-brand-tint`, and signed-out primary buttons without their green glow. The
-identity check's widget opens in its dark theme on Dark. Both web clients bundle Newsreader for
+active sidebar item's `bg-brand-tint`, and signed-out primary buttons without their green glow. Both
+web clients bundle Newsreader for
 display text and Instrument Sans for everything else (`@fontsource-variable`).
 
 The logo keeps its rounded-square outline and green L. Its editable drawing is
@@ -1064,7 +1063,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
   personal and company sections, keeping each editor's data and authority separate. Account's
-  Security, Account details, Invitations and Your appointments cards hold identity status, password,
+  Security, Account details, Invitations and Your appointments cards hold the password,
   account dates, invitation acceptance and the person's appointments; Data and privacy holds export and deletion. Documents and Team
   stay focused pages. Signup and mobile
   Settings keep their own navigation.
