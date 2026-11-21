@@ -19,7 +19,6 @@ from users.models import (
 from users.services.setup import ensure_defaults
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
 from wallets.models import Holding, Transaction, Wallet
-from wallets.services.registration import register_wallet
 
 User = get_user_model()
 
@@ -158,11 +157,11 @@ def _wallet(plan, account, seeded):
     wallet = Wallet.objects.filter_by_address(plan.address, chain=plan.chain).filter(user_account=account).first()
     if wallet is not None:
         Wallet.objects.filter(pk=wallet.pk).update(created_at=plan.registered_at, **fields)
-        account.portfolios.order_by("created_at", "uuid").first().wallets.add(wallet)
         wallet.refresh_from_db()
     else:
         with frozen(plan.registered_at):
-            wallet = register_wallet(user_account=account, address=plan.address, chain=plan.chain, **fields)
+            wallet = Wallet.objects.create(user_account=account, address=plan.address, chain=plan.chain, **fields)
+    account.portfolios.order_by("created_at", "uuid").first().wallets.add(wallet)
     if plan.verified_at:
         issued = plan.verified_at - keys.CHALLENGE_LEAD
         wallet.verification_status = WALLET_VERIFICATION_STATUS_VERIFIED
