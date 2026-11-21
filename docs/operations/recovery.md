@@ -124,9 +124,8 @@ maintained in private
 ([repairing stray uploads](jobs-and-storage.md#repairing-stray-uploads)).
 
 Notification senders only defer a job, so the in-app inbox stays empty until a worker drains the
-queue ([notifications](../engineering/backend.md#notifications)). Check the provider's
-[configuration](configuration.md) before retrying an identity review. A 200 from
-`GET /health/` proves nothing beyond the process
+queue ([notifications](../engineering/backend.md#notifications)). A 200 from `GET /health/` proves
+nothing beyond the process
 ([hosted instance checks](https://github.com/Ledova/infra/blob/main/docs/deployment.md#hosted-instance-checks)).
 
 ## Verifying stored records

@@ -99,7 +99,7 @@ record; the main ones:
 | `staff.py`                   | A compliance officer, an operations officer who can open the operator console, and a deactivated former staff member                                                                                                       |
 | `people.py`, `identities.py` | 60 investors unless `--investors` asks for at least 20, in every signup, identity and standing state, with wallets on Base, Ethereum and Bitcoin testnet, transactions, holdings, inactive device tokens and notifications |
 | `companies.py`               | Demo Robotics and two more active companies, and two companies whose signup is not complete                                                                                                                                |
-| `alerts.py`                  | Alerts in every status, one with a suspicious matter report, with AUD amounts the rules compare and activation dates that make only customers in their first 30 days new                                                   |
+| `alerts.py`                  | Alerts in every status, one with a suspicious matter report, with AUD amounts the rules compare and account ages that make only customers in their first 30 days new                                                   |
 
 The founder's wallet is development account #0, the operator's
 signer. The investor has seven wallets on the three networks, two unverified: development accounts

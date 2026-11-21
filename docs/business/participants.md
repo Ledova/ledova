@@ -61,7 +61,8 @@ establish inbox delivery. This web increment adds no mobile reset screen.
 
 ### Account standing
 
-An account is Pending, Active, Rejected, Suspended or Terminated. A wallet nomination, a company
+An account is Pending, Active, Rejected, Suspended or Terminated. It starts Pending and changes only
+when staff change its standing. A wallet nomination, a company
 wallet approval and trading through the API need a current participant: an investing account with an
 active login and a verified email, in good standing. A Pending or Active account qualifies; Rejected, Suspended and Terminated accounts never do. A nomination's preview
 names any requirement not met.
@@ -166,8 +167,8 @@ How transactions are valued and timed:
 - The single-transaction rules look only at transactions less than an hour old, or not yet mined.
   The windows use when a transaction happened, so a newly verified wallet's imported history is not
   a burst of recent activity.
-- A customer is new for 30 days after their account first became active, and an account never
-  activated counts as new. The first activation date survives suspension and reactivation.
+- A customer is new for 30 days after their account first became active, or, for an account never
+  activated, after it was created. The first activation date survives suspension and reactivation.
 
 An alert changes nothing by itself: staff review it in admin, and the account, transaction and any
 company decision stay as they are.

@@ -10,6 +10,7 @@ IDENTITY_FACTS = [
     "identity_review",
     "identity_observed_at",
 ]
+IDENTITY_REASONS = ["pep_policy", "fatf_blacklist"]
 
 
 def remove_identity_facts(apps, schema_editor):
@@ -21,6 +22,12 @@ def remove_identity_facts(apps, schema_editor):
             f"UPDATE {TABLE} SET facts = facts - %s::text[] WHERE facts ?| %s::text[]",
             [IDENTITY_FACTS, IDENTITY_FACTS],
         )
+        cursor.execute(
+            f"UPDATE {TABLE} SET facts = jsonb_set(facts, '{{standing_reason}}', '\"\"') "
+            "WHERE facts->>'standing_reason' = ANY(%s)",
+            [IDENTITY_REASONS],
+        )
+        cursor.execute("SET CONSTRAINTS ALL IMMEDIATE")
         cursor.execute(f"ALTER TABLE {TABLE} ENABLE TRIGGER {HISTORY_GUARD}")
 
 

@@ -62,9 +62,8 @@ RuleResult = Tuple[bool, Dict]
 
 
 def is_new_customer(user_account, days: int = NEW_CUSTOMER_DAYS) -> bool:
-    if not user_account.activation_date:
-        return True
-    return user_account.activation_date > timezone.now() - timedelta(days=days)
+    started = user_account.activation_date or user_account.created_at
+    return started > timezone.now() - timedelta(days=days)
 
 
 def _aud_value(transaction) -> Decimal:

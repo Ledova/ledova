@@ -273,14 +273,14 @@ class AlertBook:
         if "discrepancy" not in self.subjects:
             return []
         created = self.story.moment(6, 9, 16)
-        description = "Residential address on the profile differs from the address on the verified identity document."
+        description = "Residential address on the profile differs from the address on the source-of-funds evidence."
         return [
             self._manual(
                 "discrepancy",
                 "info_discrepancy",
                 "medium",
                 description,
-                {"field": "residential_address", "compared_with": "verified identity document"},
+                {"field": "residential_address", "compared_with": "source-of-funds evidence"},
                 created_at=created,
                 status="reviewing",
                 assignee="compliance",
