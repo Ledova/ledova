@@ -352,8 +352,10 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     exact: true,
   })!;
   await act(async () => companyRead.setState({ fetchStatus: 'paused' }));
-  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
-  expect(screen.queryByText('Other shareholder')).toBeNull();
+  await waitFor(() => {
+    expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+    expect(screen.queryByText('Other shareholder')).toBeNull();
+  });
   await act(async () => companyRead.setState({ fetchStatus: 'idle' }));
   records = await screen.findByRole('list', { name: 'Certificate records' });
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
@@ -363,8 +365,10 @@ it('downloads exact unsigned outputs and refuses late files after source or curr
     exact: true,
   })!;
   await act(async () => classRead.setState({ fetchStatus: 'paused' }));
-  expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
-  expect(screen.queryByText('Other shareholder')).toBeNull();
+  await waitFor(() => {
+    expect(screen.queryByRole('button', { name: 'Filters' })).toBeNull();
+    expect(screen.queryByText('Other shareholder')).toBeNull();
+  });
   await act(async () => classRead.setState({ fetchStatus: 'idle' }));
   records = await screen.findByRole('list', { name: 'Certificate records' });
   fireEvent.click(screen.getByRole('button', { name: 'Filters' }));

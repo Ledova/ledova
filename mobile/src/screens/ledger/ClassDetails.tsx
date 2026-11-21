@@ -92,7 +92,7 @@ export function ClassDetails(props: ClassDetailsProps) {
   );
 }
 
-export function ClassDetailsEditAction({ token, details, available }: ClassDetailsProps) {
+function ClassDetailsEditAction({ token, details, available }: ClassDetailsProps) {
   const look = useLedgerStyles();
   if (details.editor || (!token.canEditDetails && !token.editBlockedReason)) return null;
   return (

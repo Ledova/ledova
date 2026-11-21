@@ -181,7 +181,8 @@ The [principles](README.md#principles) apply; in particular, do not add:
   Every endpoint a client calls has its function in `packages/shared/src/services`;
   [the API type drift gate](gates.md#the-api-type-drift-gate) accounts for each operation, not for
   where it is called.
-- **Query keys.** The module that owns a query exports its key or key factory, and every other
+- **Query keys.** The module that owns a query keeps its key or key factory local until another
+  module needs it, then exports that single definition. Every other
   reader and invalidation imports it; a key both clients use is exported from the shared hook, as
   `AUTH_QUERY_KEY` is. A key is its resource's root (kebab-case for a new root), then the owner for
   account-bound data (anything read or written for the signed-in account), then parameters. It never
@@ -484,7 +485,8 @@ reconnection. Web query defaults enforce that page-data policy. Another person's
 entry read or browser reload; the interface does not promise live synchronisation. Keep loaded
 content stable until a relevant read is needed, without mounting another workflow's reads behind
 an overview. Certificates re-reads the member list on entry and reads only while open; Profile
-reads no member records.
+reads no member records. Ledger pages wait for the company appointment read to settle before showing
+an unavailable company when no share class confirms that access.
 
 `dashboard/src/pages/company/ledger/useIssueEntryRead.ts` confirms settled account, class and
 appointment reads before refreshing issue records. `dashboard/src/pages/company/ledger/ClassAwards.tsx`
