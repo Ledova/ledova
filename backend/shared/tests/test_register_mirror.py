@@ -32,6 +32,7 @@ from tokens.services.register import _stored_register
 from tokens.services.register_authority import register_command
 from tokens.services.register_events import verify_register
 from tokens.services.register_imports import _rows
+from tokens.services.register_member_documents import DELETED_DOCUMENT
 
 
 class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
@@ -253,6 +254,7 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         original_changes, original_hash = deepcopy(opening.changes), opening.entry_hash
         confirmed = self.client.get(f"{endpoint}{identifier}/").json()
         self.assertTrue(confirmed["correctionAllowed"])
+        self.assertIs(confirmed["members"][0]["documents"][0]["attached"], True)
         self.assertIsNone(confirmed["asicEvidence"])
         self.assertIsNone(confirmed["registerEvidence"])
         self.assertEqual(confirmed["members"][0]["amountPaid"], "70.00")
@@ -305,6 +307,9 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(verify_register(token.stored_register.pk)["issued_supply"], "90")
             with self.assertRaises(DatabaseError), atomic():
                 RegisterImport.objects.filter(pk=identifier).update(members=correction["members"])
+        self.assertEqual(self.client.delete(f"{documents_endpoint}{document['uuid']}/").status_code, 204)
+        deleted = self.client.get(f"{endpoint}{corrected_id}/").json()["members"][0]["documents"][0]
+        self.assertIs(deleted["attached"], False)
         metadata = deepcopy(correction)
         metadata.update(
             operation_id=str(uuid4()),
@@ -315,6 +320,10 @@ class RegisterMirrorTest(CoreFixtures, APITransactionTestCase):
         metadata["members"][0]["name"] = "Corrected Synthetic Founder"
         metadata["members"][0]["entered_on"] = "2018-01-01"
         metadata["former_members"][0]["name"] = "Corrected synthetic former member"
+        refused = self.client.post(endpoint, metadata, format="json")
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertIn(DELETED_DOCUMENT, refused.content.decode())
+        del metadata["members"][0]["documents"]
         prepared = self.client.post(endpoint, metadata, format="json")
         self.assertEqual(prepared.status_code, 201, prepared.content)
         metadata_id = prepared.json()["uuid"]

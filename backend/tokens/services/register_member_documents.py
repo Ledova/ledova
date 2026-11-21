@@ -64,11 +64,28 @@ def member_document_evidence(*, company, member, token, actor, evidence_id, cate
     return evidence
 
 
+DELETED_DOCUMENT = "A shareholder document in these records was deleted. Remove it, or upload the file again."
+
+
+def deleted_attachment(*, company, token, member, evidence_id):
+    return (
+        not RegisterMemberDocument.objects.filter(token=token, member_id=member, evidence_id=evidence_id).exists()
+        and RegisterImport.objects.filter(
+            company=company,
+            token=token,
+            status="applied",
+            members__contains=[{"member": str(member), "documents": [{"evidence": str(evidence_id)}]}],
+        ).exists()
+    )
+
+
 def retain_import_documents(members, company, token, actor):
     for member in members:
         if "documents" not in member:
             continue
         for row in member["documents"]:
+            if deleted_attachment(company=company, token=token, member=member["member"], evidence_id=row["evidence"]):
+                raise ValidationError(DELETED_DOCUMENT)
             evidence = member_document_evidence(
                 company=company,
                 member=member["member"],
