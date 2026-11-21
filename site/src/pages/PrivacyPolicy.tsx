@@ -27,7 +27,7 @@ export function PrivacyPolicy() {
     <>
       <PageHeader
         title="Privacy policy"
-        lead="For the ledova.io preview and the public source code · Updated 20&nbsp;November&nbsp;2026"
+        lead="For the ledova.io preview and the public source code · Updated 21&nbsp;November&nbsp;2026"
       />
       <section className="border-t border-border-subtle">
         <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
@@ -142,10 +142,12 @@ export function PrivacyPolicy() {
               remain until the company deletes them, or for a specific legal requirement or claim. The company is
               responsible for its legal register. Seven-year former-member retention is not a universal period for every
               copy Ledova holds. Authorised companies can obtain ledger exports and a company pack, and a company’s
-              administrator can delete the company with all its records and stored files in Settings. Retained execution
-              history, supplier copies, support correspondence, logs and archives need separate review and treatment;
-              this is not immediate erasure of every copy. Live data-handling acceptance remains pending. The preview
-              may still be reset; keep your own copies of useful test records.
+              administrator can delete the company with all its records and stored files in Settings. Each deletion
+              leaves a short record of its kind, the company, who made it and when, but not the deleted contents, and we
+              keep it indefinitely. Retained execution history, supplier copies, support correspondence, logs and
+              archives need separate review and treatment; this is not immediate erasure of every copy. Live
+              data-handling acceptance remains pending. The preview may still be reset; keep your own copies of useful
+              test records.
             </p>
           </Section>
           <Section title="Access, correction and complaints">

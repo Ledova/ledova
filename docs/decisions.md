@@ -28,7 +28,7 @@ stay here as history and are marked where they appear.
 | [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; activation itself removed 14 November (#1567)                                                                                             |
 | [Company documents removed](#company-documents-removed)                                                            | 2 November 2026                                | Current; #1491 step 3; retained instructions take the company's own evidence                                                       |
 | [Company activation removed](#company-activation-removed)                                                          | 14 November 2026                               | Current; #1567; a company is Active when its signup completes, with no activation step or review                                                                 |
-| [Terms as technology infrastructure](#terms-as-technology-infrastructure)                                          | 14 November 2026                               | Current; #1567; Terms v2026-11-15, prepared without legal review, for new acceptance                                                                             |
+| [Terms as technology infrastructure](#terms-as-technology-infrastructure)                                          | 14 November 2026                               | Current; #1567; Terms v2026-11-15, prepared without legal review; v2026-11-21 replaces it for new acceptance                                                                             |
 | [Retired company review removed](#retired-company-review-removed)                                                  | 15 November 2026                               | Current; #1567; review states and fields deleted, companies left in them return to Draft                                                                         |
 | [The stored register](#the-stored-register)                                                                        | September 2026; staff review retired 5 October | Current                                                                                                                            |
 | [Register CSV download removed](#register-csv-download-removed)                                                    | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
@@ -45,6 +45,7 @@ stay here as history and are marked where they appear.
 | [Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up)                                  | 9 November 2026                                | Current; #1567                                                                                                                     |
 | [App sign-up asks only for the full name](#app-sign-up-asks-only-for-the-full-name)                                | 20 November 2026                               | Current; #1711                                                                                                                     |
 | [Companies may delete what they record](#companies-may-delete-what-they-record)                                    | 20 November 2026                               | Current; #1723, delivered in steps                                                                                                 |
+| [Terms for companies deleting records](#terms-for-companies-deleting-records)                                    | 21 November 2026                               | Current; #1735; Terms v2026-11-21, prepared without legal review, for new acceptance                                                                              |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital)    | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                          | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
 | [Member particulars requests removed](#member-particulars-requests-removed)                                        | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed and linked members follow their profile (#1492)      |
@@ -2779,6 +2780,38 @@ review or approve the company's records. The
 what a contract cannot transfer. An account that accepted an earlier version stays under it until
 it accepts the new one, which only the web's **Settings → Account** offers; the mobile app has no
 Terms renewal control, and a company's acceptance at signup is not renewed.
+
+### Terms for companies deleting records
+
+**Owner decision, 21 November 2026**, given in the session and tracked in
+[#1735](https://github.com/Ledova/ledova/issues/1735). Once companies could
+[delete what they record](#companies-may-delete-what-they-record), the Terms still told a
+company to contact Ledova to arrange closure. Shown a draft new version, the owner chose "Yes, as
+drafted".
+
+Terms v2026-11-21 replace v2026-11-15 for new acceptance, and the earlier versions stay published.
+Like v2026-11-15, they were prepared without legal review. Three sections change:
+
+- **Leaving Ledova** says people with the right authority can delete a company's records in the
+  service. An administrator can delete the company with all its records and stored files. Each
+  deletion needs one confirmation and cannot be undone. Deleting does not end the company's duty to
+  keep the records the law requires. A company with records on a blockchain cannot be deleted this
+  way. Deleting a company does not delete people's own accounts or their Terms acceptances, and
+  Ledova keeps a short record of each deletion.
+- **What the company is responsible for** extends the record-keeping duty to any record the company
+  deletes from Ledova.
+- **Liability** applies the exclusion and the indemnity to records a company or its users delete,
+  as well as those they enter.
+
+The Privacy policy names the short record each deletion leaves: its kind, the company, who made it
+and when, but not the deleted contents. It is kept indefinitely, because the database refuses to
+delete a deletion receipt. The independent review found the draft's sentence on kept records partly
+inaccurate: a company's own signup acceptance goes with the company, and deleting a sign-in erases
+identity-check data. Shown the corrected Terms and Privacy sentences the same day, the owner said
+"proceed with your recommendation". Acceptance works as for v2026-11-15. An account stays under
+the version it accepted until it accepts the new one in the web's **Settings → Account**. A
+company's acceptance at signup is not renewed. The signup declaration names the new version, and
+earlier declarations stay valid for the appointments made under them.
 
 ### Retired company review removed
 

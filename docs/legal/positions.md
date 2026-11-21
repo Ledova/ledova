@@ -125,6 +125,11 @@ Law guarantees and the unfair contract terms rules for standard-form contracts
 with consumers and small businesses, any licence that actual conduct requires,
 and s174 duties if the service in fact maintains a statutory register. The Terms
 apply their exclusions only as far as the law allows.
+On 21 November 2026 the owner approved Terms v2026-11-21, also prepared without
+legal review, once companies could delete what they record. They describe
+deletion in the service, keep the company's record-keeping duty for anything it
+deletes, and extend the exclusion and indemnity to deleted records
+([decision](../decisions.md#terms-for-companies-deleting-records)).
 The [launch position](#registry-only-launch-preparation) records the remaining live
 supplier and legal assessment.
 

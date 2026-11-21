@@ -44,7 +44,7 @@ Ledova does not look the company up in the ABR or any other register
 3. Enter the company at **Company details** and continue. Saving creates the company as Draft.
 4. Review the saved information. A short statement beside **Complete company setup** says that
    choosing the button confirms you are authorised to act for this company, including administering
-   its workspace and users, and accepts the Terms of Service (version 2026-11-15, which state the
+   its workspace and users, and accepts the Terms of Service (version 2026-11-21, which state the
    company's responsibilities and that Ledova does not review or approve them) on its behalf. No file, checkbox or delegation choice is needed. If
    your instance requires a verified identity for representatives and yours is not verified yet,
    **Complete company setup** waits until the check passes. The web offers **Verify your identity**
@@ -198,7 +198,7 @@ and revocations cannot be edited or deleted on their own; they go only with the 
 [company](#deleting-a-company) ([how company rows are protected](../engineering/security.md#company-rows)).
 An invitation that was never accepted can be deleted on its own.
 
-- Signup admission records the 2026-11-15 authority and Terms declaration. Invitation acceptance
+- Signup admission records the 2026-11-21 authority and Terms declaration. Invitation acceptance
   keeps its own 2026-10-04 declaration, as do the receipts of companies activated before activation
   was removed; a person accepting a limited invitation does not declare workspace administration. Earlier admitted declarations keep their
   original version and text.
