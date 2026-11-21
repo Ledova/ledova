@@ -110,7 +110,7 @@ spend and refusal commit together; the database accepts only these five codes:
 | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | --------------------------------------------------- |
 | A negative whitelist result                                                                                                                         | `not_whitelisted`               | The submission                                      |
 | Insufficient seller share or buyer payment balance                                                                                                  | `insufficient_balance`          | The submission                                      |
-| The account that signed is not a current participant, including one whose standing or identity lapses before commit; the detail carries the reasons | `investor_not_eligible`         | Token-wide                                          |
+| The account that signed is not a current participant, including one whose standing lapses before commit; the detail carries the reasons | `investor_not_eligible`         | Token-wide                                          |
 | A share token whose recorded deployment names a chain other than the domain about to be signed, or whose deployment row cannot be read              | `settlement_chain_disagreement` | Token-wide: matching refuses at the first candidate |
 | Every compatible fill fails the [amount check](#payment-units)                                                                                      | `invalid_settlement_amount`     | Earlier failing candidates are skipped              |
 

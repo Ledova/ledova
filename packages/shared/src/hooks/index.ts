@@ -73,7 +73,7 @@ export { useCompanyPack, useCompanyPackAuthority } from './useCompanyPack';
 export { companyPacksKey, inspectionCopiesKey, useCompanyPacks, useInspectionCopies } from './useOutputHistory';
 
 export { useUserProfile } from './useUserProfile';
-export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
+export { useOperator } from './useOperator';
 export { readRegister, registersKey, registersQuery, useRegisters } from './useRegisters';
 export { allPeopleKey, peopleKey, readPeople, usePeople } from './usePeople';
 export { entriesKey, registerEntriesKey, useShareholder } from './useShareholder';

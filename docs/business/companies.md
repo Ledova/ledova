@@ -109,8 +109,7 @@ choose the file with the device's file picker, and **Download** opens the share 
 4. Submit the request. The platform freezes the company and representative details, the
    capabilities, the expiry and any file, and shows what it captured.
 5. On the request's page, accept the displayed declaration of your authority to act for the company, which also accepts
-   the Terms on its behalf, and admit the request. Where your instance requires a verified
-   identity, an unverified one leaves the request pending. Admission makes the company Active.
+   the Terms on its behalf, and admit the request. Admission makes the company Active.
 6. Read the appointment's personal and delegatable capabilities, expiry and status. An attached
    file stays available from the request's page (**Download**).
 7. Withdraw a pending request you no longer want. After admission, **Revoke** asks you
@@ -173,14 +172,12 @@ Revocation rules:
 
 - Revocation is permanent and keeps the full history. A replacement comes only through a new
   invitation; no self-declaration restores an initial or legacy-owner appointment.
-- You can revoke your own appointment even after losing identity verification, unless you're the
-  company's only administrator.
+- You can revoke your own appointment unless you're the company's only administrator.
 - Administrators may revoke an initial appointment or another administrator's appointment.
-- A company's only administrator can't revoke their own appointment, even while their identity
-  verification has lapsed: a revoked appointment can't be restored, so the company would have no one
-  to manage or delete it. They appoint another administrator first, or
-  [delete the company](#deleting-a-company); if their identity verification has lapsed, they verify
-  again first. Another administrator counts only while current. The web and app show that reason
+- A company's only administrator can't revoke their own appointment: a revoked appointment can't be
+  restored, so the company would have no one to manage or delete it. They appoint another
+  administrator first, or [delete the company](#deleting-a-company). Another administrator counts
+  only while current. The web and app show that reason
   beside a disabled **Revoke**. Closing their account, or an expiry, can still leave a company
   without an administrator.
 

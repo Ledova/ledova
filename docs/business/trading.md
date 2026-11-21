@@ -73,7 +73,7 @@ Creating or changing an order and signing a settlement require the acting person
 the order. No eligibility decision is involved
 ([decision](../decisions.md#verification-limited-to-id-checks)). Either party may pass on the other's
 signature, so the check follows the signature: the account that signed must be current. A party who
-loses their standing, identity or approval between the two keeps their signature but cannot add
+loses their standing or approval between the two keeps their signature but cannot add
 another, and once the removal lands on chain the share token itself refuses the settlement.
 A buyer must already hold the settlement stablecoin when the buy order is created, so Ledova never
 accepts an unfunded offer.
