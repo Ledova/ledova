@@ -258,7 +258,6 @@ def submit_instruction(
             company,
             current_actor,
             profile,
-            operator,
         ):
             token = ShareToken.objects.filter(pk=token_id, company=company).first()
             if token is None or company.owner_id != current_actor.pk:
@@ -277,7 +276,7 @@ def submit_instruction(
             )
             if existing:
                 return existing
-            require_company_administration(company, current_actor, profile, operator)
+            require_company_administration(company, current_actor, profile)
             _check_on_chain(token)
             _check_items(kind, normalized, token, values["approving_director"])
             evidence = RegisterEvidence.objects.select_for_update().filter(pk=authority_evidence).first()

@@ -196,8 +196,9 @@ does not replace the issues or the [engineering standards](engineering/README.md
 4. Broader cleanup candidates and cache/guard ideas belong on #1567 and #1453. Re-verify callers
    before removing anything; this pass authorises no global cache rewrite or new navigation model.
    Keep mobile work for Claude/later in this continuation: use
-   [#1464](https://github.com/Ledova/ledova/issues/1464) and the separately scoped native identity
-   verification [#1562](https://github.com/Ledova/ledova/issues/1562), without claiming either complete.
+   [#1464](https://github.com/Ledova/ledova/issues/1464), without claiming it complete. The native identity
+   verification of [#1562](https://github.com/Ledova/ledova/issues/1562) is no longer needed: identity
+   verification was removed on 21 November 2026 ([decision](decisions.md#identity-verification-removed)).
 5. [#1555](https://github.com/Ledova/ledova/issues/1555) pagination remains deferred pending the
    owner's direction. [#624](https://github.com/Ledova/ledova/issues/624) needs later human/device
    release acceptance; the PDF licensing replacement is recorded in

@@ -207,9 +207,7 @@ stored balances and the hourly wallet sync logs a warning for each.
 | `CRYPTO_RISK_THRESHOLD_HIGH`                             | `0.6`             | No                                                        |
 
 Identity verification is off until configured: with any other `KYC_PROVIDER` value, blank
-included, the integration answers `503 Service not configured`, and the operator's
-`issuer_kyc_required` needs a configured provider
-([operator configuration](operator-console.md#operator-configuration)). Only KYCAID screens
+included, the integration answers `503 Service not configured`. Only KYCAID screens
 addresses; under Sum&Sub every screening fails
 ([transaction monitoring](../business/participants.md#transaction-monitoring)). With
 `KYCAID_CRYPTO_MONITORING_ENABLED` off, screenings fail with "Crypto monitoring is disabled"; after

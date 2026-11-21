@@ -67,8 +67,8 @@ export function AcceptInvitationForm({
   return (
     <View style={look.form}>
       <Text style={styles.muted}>
-        Enter the code the company gave you. Acceptance uses your signed-in account and the existing account, email and
-        configured identity checks.
+        Enter the code the company gave you. Acceptance uses your signed-in account and the existing account and email
+        checks.
       </Text>
       <Field
         label="Invitation code"

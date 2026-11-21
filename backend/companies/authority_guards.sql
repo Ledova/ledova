@@ -107,7 +107,6 @@ DECLARE
     issuer companies_company;
     proposal companies_companyauthorityrequest;
     principal bigint;
-    requires_identity boolean;
 BEGIN
     IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
@@ -129,7 +128,6 @@ BEGIN
     SELECT * INTO actor FROM authentication_customuser WHERE id = proposal.requester_id FOR UPDATE;
     SELECT * INTO representative FROM users_userprofile WHERE uuid = proposal.requester_profile_id FOR UPDATE;
     SELECT * INTO proposal FROM companies_companyauthorityrequest WHERE uuid = NEW.request_id FOR UPDATE;
-    SELECT issuer_kyc_required INTO requires_identity FROM operators_operator WHERE id = 1 FOR SHARE;
     IF current_user = @APP_ROLE@ OR principal IS DISTINCT FROM actor.id
         OR actor.id IS NULL OR NOT actor.is_active OR NOT actor.is_email_verified
         OR representative.user_id IS DISTINCT FROM actor.id
@@ -149,7 +147,6 @@ BEGIN
         OR proposal.person_identity_raw IS DISTINCT FROM jsonb_build_object(
             'user_id', actor.id, 'profile_uuid', representative.uuid::text,
             'email', actor.email, 'full_name', COALESCE(representative.full_name, ''))
-        OR COALESCE(requires_identity, false) AND NOT representative.is_id_verified
     THEN
         RAISE EXCEPTION 'Initial company authority requires the exact current declaration and requester'
             USING ERRCODE = '23514';

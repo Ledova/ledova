@@ -214,9 +214,9 @@ def entry_rows(entry, source):
 
 
 def delete_register_entry(*, actor, token, entry_id):
-    with register_command(actor, token.company_id, "register_entry_delete") as (company, current, _profile, operator):
+    with register_command(actor, token.company_id, "register_entry_delete") as (company, current, _profile):
         appointment, expires_at = current_appointment(
-            current, company.pk, operator, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
+            current, company.pk, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
         )
         if appointment is None:
             raise NotFound(NO_ENTRY_PREPARER)

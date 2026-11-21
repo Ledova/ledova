@@ -476,8 +476,7 @@ Legacy-owner appointments return null declaration fields. Capabilities are six i
 Wallet nominations, company wallet instructions, non-paid chain grants, orders, order changes and
 swap signatures check the participant at the time of each action, in the service and again in the
 database guards after lock waits: an active login with a verified email, an investor or both
-account, standing Active (or Pending Verification while the operator does not require the investor
-identity check), a verified identity when it does, and an active company
+account, standing Active or Pending Verification, and an active company
 ([rules](../business/participants.md#account-standing)). Since
 [#1491](https://github.com/Ledova/ledova/issues/1491) no classification source, document or company
 eligibility decision is involved, and orders, submissions and swaps no longer record one. A company

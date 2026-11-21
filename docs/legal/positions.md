@@ -187,10 +187,10 @@ owner chose deletion with the removal of investor eligibility.
 
 **Status.** Reviewed 2026-09-15; unchanged. Note that in neither historical
 analysis is an identity document collected until investor onboarding is
-switched on or the operator turns on the `issuer_kyc_required` setting, which
-requires a company appointee to be identity-verified before their appointment
-is effective; this position is engaged only then. The issuer switch was added to
-this note on 2026-09-21.
+switched on; this position is engaged only then. The `issuer_kyc_required`
+setting, added to this note on 2026-09-21, was removed with identity
+verification on 2026-11-21
+([decision](../decisions.md#identity-verification-removed)).
 
 ## 4. Financial-services boundaries
 
@@ -519,9 +519,7 @@ professional summaries, not from the amended Act.
 **Implementation and earlier service assumption.** Investor onboarding,
 payment recording and token workflows exist in the software.
 The earlier clerk-only service proposal assumed no movement of money or tokens;
-the retired deployment mode did not enforce that whole proposal. The operator's
-`issuer_kyc_required` setting requires a company appointee to be
-identity-verified before their appointment is effective. The replacement
+the retired deployment mode did not enforce that whole proposal. The replacement
 company-managed workflows and retained platform functions need their own
 assessment.
 

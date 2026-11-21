@@ -280,9 +280,8 @@ def acknowledge_discrepancy(*, actor, reconciliation_id, appointment, discrepanc
         company,
         current_actor,
         profile,
-        operator,
     ):
-        source = register_appointment(company, current_actor, profile, operator, appointment, CompanyCapability.APPROVE)
+        source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.APPROVE)
         prior = RegisterAcknowledgement.objects.filter(
             acknowledged_by_id=current_actor.pk, idempotency_key=idempotency_key
         ).first()

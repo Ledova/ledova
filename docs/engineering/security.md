@@ -99,8 +99,8 @@ App writes to Company, authority requests, appointments, invitations and
 legacy-owner sources are denied, and the app role has no grants on activation receipts; the
 actor-bound services in `companies/services/` (`administration.py`, `editing.py`,
 `authority.py`, `authority_requests.py`, `team.py`) carry the
-caller's principal, lock the company before the live account, profile, identity requirement and
-appointments, and check the clock after the wait. Policies scope authority requests to their
+caller's principal, lock the company before the live account, profile and appointments, and check
+the clock after the wait. Policies scope authority requests to their
 requester, appointments to their appointee and invitations to their inviter; team reads go
 through the administration check and exclude private identity, financial and authority evidence.
 Triggers attached in `companies/database_guards.sql`, with functions there and in

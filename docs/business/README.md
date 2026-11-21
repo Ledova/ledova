@@ -64,7 +64,7 @@ Today the [users](../product.md#1-who-uses-ledova) act as follows.
 | Company administrators and appointees   | People the company appoints, each with their own account. Within the capabilities their appointment records, they set up the company, appoint the team, record share classes through the API, run the register, record awards and allotments, invite members and prepare outputs.                                                                                                      |
 | The registering account (company owner) | The account that registered the company. Ownership grants no appointment and supplies no register decision. It keeps some earlier owner-only workflows: submitting the directors' register instructions for settled market transfers and retained issues and opening Representative authority. It can also read the register.                                                          |
 | Members                                 | People entered on a company's register, with or without an account or a wallet. After accepting a company-issued invitation they read their own particulars, holdings, history and awards, ask the company for certificates, and keep their recorded name and address up to date from their Profile ([member records](member-records.md)). Being a member grants no company authority. |
-| Investors                               | People with an investing account. They verify their identity and, through the API, can nominate a wallet to a company ([participants](participants.md)). One person can be an investor, a member and a company appointee at once.                                                                                                                                                      |
+| Investors                               | People with an investing account. Through the API they can nominate a wallet to a company ([participants](participants.md)). One person can be an investor, a member and a company appointee at once.                                                                                                                                                      |
 | Platform staff                          | Run hosting, security, integrations, background jobs and support, and recover technical failures. Separately authorised staff handle crypto, screening and payment operations. Staff permissions never count as a company appointment.                                                                                                                                                 |
 | Automation                              | Validates and applies exact company-approved instructions, signs chain transactions with the platform's operator key, reconciles records and reports failures. It records the human decision behind each effect and never supplies company authority.                                                                                                                                  |
 
@@ -94,9 +94,7 @@ Platform staff still perform these tasks, each described where linked:
 A company appointment names one person and one company and records two separate sets of
 capabilities: those the person holds personally, and those they may delegate onward when inviting
 others. It may have an expiry and can be revoked. An appointment counts only while the person's
-account is active with a verified email, the company's
-[identity requirement for representatives](companies.md#representative-identity-requirement) is
-met, and the appointment has neither expired nor been revoked
+account is active with a verified email and the appointment has neither expired nor been revoked
 ([appointments](companies.md#what-an-appointment-records)).
 
 | Capability (app label)                                   | What it permits today                                                                                                                                                                                                                            |
@@ -144,8 +142,8 @@ approval and create at most one entry. Other decision families keep the separate
 
 Each step confirms an exact preview. If anything the step depends on changes before you confirm,
 such as the proposal, your appointment or the register, the step is refused and you review it
-again. Every step rechecks your appointment, including the identity requirement, at the moment it
-is recorded, so a revocation that lands first refuses the step and records nothing.
+again. Every step rechecks your appointment at the moment it is recorded, so a revocation that
+lands first refuses the step and records nothing.
 
 These company actions are taken in one step rather than prepared, approved and applied:
 

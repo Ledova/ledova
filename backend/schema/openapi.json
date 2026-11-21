@@ -5817,10 +5817,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "investorKycRequired": {
-            "readOnly": true,
-            "type": "boolean"
-          },
           "issuedStablecoin": {
             "allOf": [
               {
@@ -5829,10 +5825,6 @@
             ],
             "nullable": true,
             "readOnly": true
-          },
-          "issuerKycRequired": {
-            "readOnly": true,
-            "type": "boolean"
           },
           "legalName": {
             "readOnly": true,
@@ -5858,9 +5850,7 @@
         "required": [
           "abn",
           "contactEmail",
-          "investorKycRequired",
           "issuedStablecoin",
-          "issuerKycRequired",
           "legalName",
           "name",
           "supportedSettlementAssets",

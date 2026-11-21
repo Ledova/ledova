@@ -21,7 +21,7 @@ Recovery leaves unsigned work held in its existing state. For existing signed op
 can verify intent, observe canonical receipts, apply finality checks and project genuine results;
 it cannot broadcast or replay signed bytes. A stored hash or signed state alone does not prove
 submission. An uncertain transaction remains held when no canonical receipt is available, rather
-than being marked failed or replaced. Identity invalidations and audit records remain, but they
+than being marked failed or replaced. Invalidations and audit records remain, but they
 cannot start a whitelist transaction. Reconciled deployments do not start a trading approval.
 
 The historical protocols below describe the retained records and their safeguards. Off-chain
@@ -428,7 +428,7 @@ keep retained private entry reads, sync and export and original technical recove
 advisory lock precedes the company and source locks, and a fresh signature also rechecks the
 captured nomination, proof, participant and expiry. Permanent source loss on never-signed work
 fails the claim and projects that failure, releasing its target so a genuine loss REMOVE is not
-stranded behind it; it invents no standing, identity or wallet-deletion cause.
+stranded behind it; it invents no standing or wallet-deletion cause.
 
 A change's `pending` and `executing` are unresolved (the nested operation tells PREPARING from
 SIGNED); `confirmed` records the original successful transaction, `unchanged` a real no-transaction
@@ -458,14 +458,14 @@ still move shares, and pausing the token is the operator's lever.
 ### Refreshing an approval
 
 `whitelist.services.refresh` keeps technical invalidation. It submits only REMOVE, under the
-actual retained standing, identity or wallet-loss cause, and never adds or renews approval,
+actual retained standing or wallet-loss cause, and never adds or renews approval,
 authorises a company instruction or treats a possession-proof refresh as wallet deletion. A
-participant who is current again explains why a standing or identity loss needs no removal, but a
+participant who is current again explains why a standing loss needs no removal, but a
 wallet removal still removes; absence of a genuine cause is diagnostic, not permission to write.
 The sweep reads the registry's expiry (an expired address needs no write) and recovers an
 unresolved predecessor first; missing receipts, time or membership never release a signed operation.
 
-Standing, identity or wallet verification loss and wallet deletion keep the actual prior facts and
+Standing or wallet verification loss and wallet deletion keep the actual prior facts and
 any actor, independent of any new company instruction. The eligibility causes (claim or request
 withdrawal, company revocation, eligibility expiry and evidence purge) went with investor
 eligibility on 2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)).

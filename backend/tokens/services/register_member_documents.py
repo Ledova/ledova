@@ -142,8 +142,8 @@ def link_import_documents(proposal, actor, appointment):
 
 
 def add_member_document(*, actor, company_id, member, token, evidence, category, appointment, idempotency_key):
-    with register_command(actor, company_id, "register_member_document") as (company, actor, profile, operator):
-        source = register_appointment(company, actor, profile, operator, appointment, CompanyCapability.PREPARE)
+    with register_command(actor, company_id, "register_member_document") as (company, actor, profile):
+        source = register_appointment(company, actor, profile, appointment, CompanyCapability.PREPARE)
         if not RegisterPosition.objects.filter(
             register__company=company, register__token_id=token, member_id=member, member__company=company
         ).exists():
@@ -183,11 +183,10 @@ def delete_member_document(*, actor, document):
         company,
         current,
         _profile,
-        operator,
     ):
         document = RegisterMemberDocument.objects.select_for_update().filter(pk=document.pk, company=company).first()
         appointment, expires_at = current_appointment(
-            current, company.pk, operator, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
+            current, company.pk, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
         )
         if document is None:
             raise NotFound(RECORD_GONE)

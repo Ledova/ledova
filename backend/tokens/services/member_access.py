@@ -26,7 +26,6 @@ from companies.models import CompanyAppointment, CompanyCapability
 from companies.services.administration import company_operation
 from companies.services.authority_requests import _require_requester
 from integrations.sendgrid_email import sendgrid_client
-from operators.models import Operator
 from shared.db import current_alias
 from tokens.exceptions import InvitationEmailUnavailable, RegisterChangeConflict
 from tokens.models import (
@@ -72,9 +71,7 @@ def company_administered(queryset, actor):
     if not actor.is_authenticated:
         return queryset.none()
     administered = (
-        CompanyAppointment.objects.current_of(
-            actor, at=timezone.now(), identity_required=Operator.get().issuer_kyc_required
-        )
+        CompanyAppointment.objects.current_of(actor, at=timezone.now())
         .holding_any([CompanyCapability.ADMIN])
         .values("company_id")
     )
@@ -107,8 +104,8 @@ def issue_invitation(
     *, actor, operation_id, company, appointment, member, intended_email, acceptance_deadline=None, _code=None
 ):
     intended_email = normalize_email(intended_email)
-    with register_command(actor, company, "member_invitation_issue") as (issuer, current, profile, operator):
-        source = register_appointment(issuer, current, profile, operator, appointment, CompanyCapability.ADMIN)
+    with register_command(actor, company, "member_invitation_issue") as (issuer, current, profile):
+        source = register_appointment(issuer, current, profile, appointment, CompanyCapability.ADMIN)
         existing = MemberInvitation.objects.filter(pk=operation_id).first()
         values = {
             "company_id": issuer.pk,
@@ -179,9 +176,8 @@ def send_invitation_email(*, actor, **values):
         company,
         current,
         profile,
-        operator,
     ):
-        register_appointment(company, current, profile, operator, values["appointment"], CompanyCapability.ADMIN)
+        register_appointment(company, current, profile, values["appointment"], CompanyCapability.ADMIN)
         if not constant_time_compare(invitation.code_sha256, hashlib.sha256(code.encode()).hexdigest()):
             raise RegisterChangeConflict()
         if (
@@ -259,7 +255,7 @@ def accept_invitation(*, actor, code, user_account, confirmation):
         raise ValidationError("Confirm the invitation using the code supplied by the company.")
     digest = hashlib.sha256(code.encode()).hexdigest()
     invitation = get_object_or_404(MemberInvitation, code_sha256=digest)
-    with register_command(actor, invitation.company_id, "member_invitation_accept") as (company, current, profile, _):
+    with register_command(actor, invitation.company_id, "member_invitation_accept") as (company, current, profile):
         _require_requester(current)
         invitation = MemberInvitation.objects.select_for_update().get(pk=invitation.pk)
         account = get_object_or_404(
@@ -302,9 +298,8 @@ def revoke_association(*, actor, association_id, appointment, idempotency_key, r
         company,
         current,
         profile,
-        operator,
     ):
-        source = register_appointment(company, current, profile, operator, appointment, CompanyCapability.ADMIN)
+        source = register_appointment(company, current, profile, appointment, CompanyCapability.ADMIN)
         subject = MemberAssociation.objects.select_for_update().get(pk=subject.pk)
         values = {
             "association_id": subject.pk,

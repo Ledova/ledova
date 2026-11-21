@@ -77,10 +77,10 @@ def used_people(company_id):
 
 
 def company_people(*, actor, company_id):
-    with register_command(actor, company_id, "register_people_read") as (company, actor, profile, operator):
-        current_register_reader(company, actor, profile, operator)
+    with register_command(actor, company_id, "register_people_read") as (company, actor, profile):
+        current_register_reader(company, actor, profile)
         used = used_people(company.pk)
-        if current_appointment(actor, company.pk, operator, [CompanyCapability.ADMIN])[0] is None:
+        if current_appointment(actor, company.pk, [CompanyCapability.ADMIN])[0] is None:
             used |= set(MemberInvitation.objects.filter(company=company).values_list("member", flat=True))
             used |= set(MemberAssociation.objects.filter(company=company).values_list("member", flat=True))
         members = register_people(company.pk, actor)["members"]
@@ -115,9 +115,9 @@ def person_rows(member):
 
 
 def delete_person(*, actor, company_id, member_id):
-    with register_command(actor, company_id, "register_person_delete") as (company, current, _profile, operator):
+    with register_command(actor, company_id, "register_person_delete") as (company, current, _profile):
         appointment, expires_at = current_appointment(
-            current, company.pk, operator, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
+            current, company.pk, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
         )
         if appointment is None:
             raise NotFound(NO_PERSON_PREPARER)
@@ -137,7 +137,7 @@ def delete_person(*, actor, company_id, member_id):
             .values()
         )
         if invitations or associations:
-            appointment, expires_at = current_appointment(current, company.pk, operator, [CompanyCapability.ADMIN])
+            appointment, expires_at = current_appointment(current, company.pk, [CompanyCapability.ADMIN])
             if appointment is None:
                 raise PermissionDenied(NO_PERSON_ADMINISTRATOR)
         if member.pk in used_people(company.pk):
@@ -163,8 +163,8 @@ def delete_person(*, actor, company_id, member_id):
 
 
 def add_person(*, actor, operation_id, company, appointment, member, name, residential_address):
-    with register_command(actor, company, "register_person_add") as (company, actor, profile, operator):
-        source = register_appointment(company, actor, profile, operator, appointment, CompanyCapability.PREPARE)
+    with register_command(actor, company, "register_person_add") as (company, actor, profile):
+        source = register_appointment(company, actor, profile, appointment, CompanyCapability.PREPARE)
         expected = {
             "company_id": company.pk,
             "member_id": member,

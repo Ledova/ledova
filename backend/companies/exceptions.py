@@ -2,13 +2,6 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 
 
-class IssuerIdentityVerificationRequiredException(APIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = "Your identity must be verified before you can exercise this company appointment."
-    default_code = "issuer_identity_verification_required"
-    expose_code = True
-
-
 class OfficeholderAttestationRequiredException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = (

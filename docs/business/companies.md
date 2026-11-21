@@ -26,7 +26,6 @@ shows a company's administrators and register readers its ownership overview, it
 - [Who may administer a company](#who-may-administer-a-company)
 - [Company information](#company-information)
 - [Company status](#company-status)
-- [Representative identity requirement](#representative-identity-requirement)
 - [The Company page](#the-company-page)
 
 ## Company signup
@@ -45,19 +44,16 @@ Ledova does not look the company up in the ABR or any other register
 4. Review the saved information. A short statement beside **Complete company setup** says that
    choosing the button confirms you are authorised to act for this company, including administering
    its workspace and users, and accepts the Terms of Service (version 2026-11-21, which state the
-   company's responsibilities and that Ledova does not review or approve them) on its behalf. No file, checkbox or delegation choice is needed. If
-   your instance requires a verified identity for representatives and yours is not verified yet,
-   **Complete company setup** waits until the check passes. The web offers **Verify your identity**
-   here. The app currently reports the requirement; its native provider journey is tracked separately
-   in [#1562](https://github.com/Ledova/ledova/issues/1562).
+   company's responsibilities and that Ledova does not review or approve them) on its behalf. No file, checkbox or delegation choice is needed.
+   Ledova does not check your identity ([decision](../decisions.md#identity-verification-removed)).
 5. Choose **Complete company setup**. This records your acceptance of that declaration, keeps a
    no-file authority request and admits it. Signup completes only once your initial appointment is
    confirmed.
 
 Admission checks that you still own the draft company, that its name, identifiers and type and your
-own email and name have not changed since the request was captured, that any expiry you chose has
-not passed and, where your instance requires it, that your identity is verified. A refused admission
-leaves the request pending and signup unfinished; a pending request grants no authority. A company
+own email and name have not changed since the request was captured and that any expiry you chose has
+not passed. A refused admission leaves the request pending and signup unfinished; a pending request
+grants no authority. A company
 has exactly one initial admission; expiry or revocation of that appointment does not permit another.
 
 The initial appointment gives you Manage company information and team personally, and all six
@@ -113,8 +109,7 @@ choose the file with the device's file picker, and **Download** opens the share 
 4. Submit the request. The platform freezes the company and representative details, the
    capabilities, the expiry and any file, and shows what it captured.
 5. On the request's page, accept the displayed declaration of your authority to act for the company, which also accepts
-   the Terms on its behalf, and admit the request. Where your instance requires a verified
-   identity, an unverified one leaves the request pending. Admission makes the company Active.
+   the Terms on its behalf, and admit the request. Admission makes the company Active.
 6. Read the appointment's personal and delegatable capabilities, expiry and status. An attached
    file stays available from the request's page (**Download**).
 7. Withdraw a pending request you no longer want. After admission, **Revoke** asks you
@@ -142,7 +137,7 @@ be managed, and the same Account rows and card; there you type the invitation's 
    or selected appointment changes, and it is not available from history. If you did not keep it,
    create another invitation.
 3. To accept, enter the code and agree to the displayed authorisation and company responsibility
-   declaration. Your own account, verified email and the identity requirement apply. Editing the
+   declaration. Your own account and verified email apply. Editing the
    code clears your agreement; a failed acceptance keeps the input for a deliberate retry.
 4. Read your appointments' source, capabilities, expiry and status on Account, and the invitations
    you issued, with their acceptance outcome, on Team. Until it is accepted, a current company
@@ -165,8 +160,8 @@ Invitation rules:
   code authorises the first eligible account that accepts it.
 - Acceptance is refused when the deadline or the offered appointment expiry has passed, when you
   issued the invitation yourself, when you already hold an unrevoked, unexpired appointment for that
-  company (even one that is temporarily ineffective), when the inviter no longer has the authority
-  to offer it, or when the identity requirement is not met. After an earlier appointment expires or
+  company (even one that is temporarily ineffective) or when the inviter no longer has the authority
+  to offer it. After an earlier appointment expires or
   is revoked, a new invitation can be accepted.
 - Two people accepting the same code at once produce one appointment, and the same account retrying
   gets its retained appointment back.
@@ -177,14 +172,12 @@ Revocation rules:
 
 - Revocation is permanent and keeps the full history. A replacement comes only through a new
   invitation; no self-declaration restores an initial or legacy-owner appointment.
-- You can revoke your own appointment even after losing identity verification, unless you're the
-  company's only administrator.
+- You can revoke your own appointment unless you're the company's only administrator.
 - Administrators may revoke an initial appointment or another administrator's appointment.
-- A company's only administrator can't revoke their own appointment, even while their identity
-  verification has lapsed: a revoked appointment can't be restored, so the company would have no one
-  to manage or delete it. They appoint another administrator first, or
-  [delete the company](#deleting-a-company); if their identity verification has lapsed, they verify
-  again first. Another administrator counts only while current. The web and app show that reason
+- A company's only administrator can't revoke their own appointment: a revoked appointment can't be
+  restored, so the company would have no one to manage or delete it. They appoint another
+  administrator first, or [delete the company](#deleting-a-company). Another administrator counts
+  only while current. The web and app show that reason
   beside a disabled **Revoke**. Closing their account, or an expiry, can still leave a company
   without an administrator.
 
@@ -291,19 +284,6 @@ has a historical officeholder attestation. These controls cannot activate a draf
 appointment authority, and the status changes send no notification. They exist only in
 admin: there is no API for them, and the database refuses these status changes from a staff account
 without the change permission.
-
-## Representative identity requirement
-
-Each instance chooses whether company representatives must have a verified identity; it is off by
-default. When it is on, the person's verified identity is required for every act of company
-authority: initial admission, accepting an invitation, company administration,
-member invitations, and register and wallet decisions. Staff technical
-recovery of a company is not affected. A representative becomes verified only through the
-configured identity provider, from **Verify your identity** at signup review or later from
-**Settings → Account** on web with the identity check's **Review**. With the requirement on and no
-provider, every company decision is refused
-([operator configuration](../operations/operator-console.md#operator-configuration)). The investor
-requirement is separate ([participants](participants.md#account-standing)).
 
 ## The Company page
 
