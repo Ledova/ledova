@@ -61,7 +61,7 @@ export function PrivacyPolicy() {
               <li>
                 <strong className={LABEL}>What you record:</strong> company details, share classes, holdings and awards,
                 the names, addresses and email addresses of people you add or invite, and documents you upload. Earlier
-                wallet and verification records can also remain in the system.
+                wallet records can also remain in the system.
               </li>
               <li>
                 <strong className={LABEL}>When you use the site:</strong> the server&apos;s logs record requests to the
