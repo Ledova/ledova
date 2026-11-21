@@ -8,7 +8,7 @@ BEGIN
 END;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.users_guard_profile_save()
+CREATE OR REPLACE FUNCTION public.users_guard_provider_identity()
  RETURNS trigger
  LANGUAGE plpgsql
 AS $function$
@@ -54,6 +54,6 @@ $function$;
 
 CREATE TRIGGER users_keep_first_activation BEFORE UPDATE OF activation_date ON customer_accounts_account FOR EACH ROW EXECUTE FUNCTION users_keep_first_activation();
 
-CREATE TRIGGER users_profile_save BEFORE INSERT OR UPDATE ON users_userprofile FOR EACH ROW EXECUTE FUNCTION users_guard_profile_save();
+CREATE TRIGGER users_profile_save BEFORE INSERT OR UPDATE ON users_userprofile FOR EACH ROW EXECUTE FUNCTION users_guard_provider_identity();
 
 CREATE TRIGGER users_account_standing BEFORE INSERT OR UPDATE ON customer_accounts_account FOR EACH ROW EXECUTE FUNCTION users_guard_account_standing();

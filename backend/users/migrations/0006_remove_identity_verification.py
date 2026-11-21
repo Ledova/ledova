@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.db import migrations, models
 
 from tokens.database_mirror_guards import _function
@@ -16,15 +15,13 @@ def remove_identity_guard(apps, schema_editor):
     if schema_editor.connection.vendor != "postgresql":
         return
     with schema_editor.connection.cursor() as cursor:
-        cursor.execute("SELECT quote_literal(%s)", [settings.RLS_ROLES["app"]])
-        (app,) = cursor.fetchone()
+        # The function keeps its name because tokens/0007 replays it by name from current source.
+        cursor.execute(_function(users_guards.SQL, "users_guard_provider_identity"))
         cursor.execute("DROP TRIGGER IF EXISTS users_provider_identity ON users_userprofile")
-        cursor.execute("DROP FUNCTION IF EXISTS users_guard_provider_identity()")
-        cursor.execute(_function(users_guards.SQL, "users_guard_profile_save").replace("@APP_ROLE@", app))
         cursor.execute("DROP TRIGGER IF EXISTS users_profile_save ON users_userprofile")
         cursor.execute(
             "CREATE TRIGGER users_profile_save BEFORE INSERT OR UPDATE ON users_userprofile "
-            "FOR EACH ROW EXECUTE FUNCTION users_guard_profile_save()"
+            "FOR EACH ROW EXECUTE FUNCTION users_guard_provider_identity()"
         )
         cursor.execute(
             "UPDATE customer_accounts_account SET account_status = 'pending', rejection_reason = '' "

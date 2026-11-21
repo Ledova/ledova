@@ -24,10 +24,9 @@ def remove_identity_records(apps, schema_editor):
     alerts.filter(Q(alert_type__in=REMOVED_ALERT_TYPES) | Q(triggered_rule__in=REMOVED_RULES)).exclude(
         case_evidence
     ).delete()
-    retained = alerts.filter(case_evidence)
     apps.get_model("compliance", "AlertProcedureTemplate").objects.using(alias).filter(
         alert_type__in=REMOVED_ALERT_TYPES
-    ).exclude(steps__checklist_items__alert__in=retained).delete()
+    ).exclude(steps__checklist_items__isnull=False).delete()
     apps.get_model("compliance", "MonitoringRule").objects.using(alias).filter(
         rule_type__in=REMOVED_RULE_TYPES
     ).delete()

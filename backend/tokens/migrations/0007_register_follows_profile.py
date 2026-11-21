@@ -14,7 +14,7 @@ REPLACED = (
     (database_guards.SQL, "tokens_check_register_particulars_edit"),
     (database_guards.ALLOTMENT_SQL, "tokens_guard_register_member_particulars"),
     (database_mirror_guards.SQL, "tokens_validate_mirror_import"),
-    (users_guards.SQL, "users_guard_profile_save"),
+    (users_guards.SQL, "users_guard_provider_identity"),
 )
 
 LINKED = """
