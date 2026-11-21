@@ -401,8 +401,9 @@ of the selected company, read through `useCompanyRegisters.ts` and the shared `u
 `useClassCorrections`, `useRegisterImports` and `useRegisterParticulars`, with decisions through
 `useRegisterDecision`: the selected class's name, with **Share class** in Filters as on Transfer
 shares, then Changes, the class's register entries newest first (`ClassEntries.tsx`), each the web's
-compact row: its kind and short date, with **Correct**, a compact text `Action`, at the end of a
-correctable row for someone who can prepare the register, then any ledger date, reversal or entry it
+compact row: its kind and short date, with **Delete**, a compact red text `Action`, at the end of a
+row the person may delete (an issue, transfer or correction, for someone who can prepare the register),
+confirmed once in the web's dialog, then any ledger date, reversal or entry it
 corrects, and its first two signed share movements with **Show all** for the rest, with **Load more
 register entries** for later pages. Its Corrections follow under the web's groups (Needs a decision,
 Corrected and Rejected, from `CORRECTION_GROUPS`), each (`CorrectionRecord.tsx`) the web's summary
@@ -424,12 +425,6 @@ opening may be corrected, which opens Set up your ledger for the class. Particul
 (`ParticularsChanges.tsx`) follows for the whole company, five at a time with **Show all N
 changes**, each the web's summary (the member, then what changed and its as-at date) opening who
 made it and when, the particulars before and after, and an earlier change's supporting document.
-**Correct** opens the web's correction form on its own page (`CorrectionPreparationScreen.tsx`,
-through the shared `useCorrectionEntry` and `useCorrectionPreparation`): the entry being corrected
-and its exact inverse, then Authority, Approving director for a resolution, Authority reference, the
-effective date typed as `YYYY-MM-DD` (UTC), the authority document and the reason, keeping its retry
-of an uncertain preparation. Preparing or Cancel returns to the class's Corrections, with a prepared
-correction in view and marked as prepared.
 A read-only appointment gets the web's notes and no actions. Share class is locked while a review or
 held decision is open, and pulling down rereads the classes, the person's appointments, the entries,
 corrections, opening records and particulars changes while none is.

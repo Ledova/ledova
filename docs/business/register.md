@@ -382,7 +382,7 @@ cessation the entry recorded. Particulars it recorded stay with the person, and 
 on file. Later entries move up one place and holdings are recalculated. To record it again
 correctly, issue or transfer the shares as usual.
 
-A delete is refused, naming the later entry to delete first, when a later entry would take a holding
+A delete is refused, naming the later entry to delete first and the people it records, when a later entry would take a holding
 below zero or would no longer end or bring back a holding as recorded. A corrected entry is deleted
 after its correction. The opening can't be deleted (delete the share class to start again), nor can a
 copied opening correction (correct the copied opening again) or an entry of a class with on-chain

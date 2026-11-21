@@ -102,9 +102,9 @@ Partly paid allotments, calls and payment collection are deferred
 
 ### Ownership changes and access
 
-Record imports, grants and supported direct transfers as genuine ledger events,
-which the company can delete when they are mistaken. Keep the actual dates,
-actors, instruments and resulting quantities. Members can obtain their permitted records and outputs
+Record imports, grants and supported direct transfers as genuine ledger events.
+The company can delete a mistaken issue or transfer; a copied opening is corrected
+instead. Keep the actual dates, actors, instruments and resulting quantities. Members can obtain their permitted records and outputs
 without a wallet where no chain action is involved. Contractual terms, receipt,
 company issue authority, technical execution and register entry stay distinct.
 

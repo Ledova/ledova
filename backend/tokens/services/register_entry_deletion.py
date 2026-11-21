@@ -37,6 +37,7 @@ from tokens.services.pending_deletion import (
     PROPOSAL_DECISIONS,
     RECORD_GONE,
 )
+from tokens.services.register import member_identities
 from tokens.services.register_authority import register_command
 from tokens.services.register_events import with_company_event_dates
 
@@ -72,9 +73,9 @@ def entries_kept(token):
 
 
 def deletable_entries(token, actor, entries):
-    if not entries or actor is None or entries_kept(token):
+    if not entries or actor is None:
         return set()
-    if not ShareToken.objects.register_preparable_by(actor).filter(pk=token.pk).exists():
+    if not ShareToken.objects.register_preparable_by(actor).filter(pk=token.pk).exists() or entries_kept(token):
         return set()
     sourced = Q(pk__in=[])
     for model, field in SOURCES:
@@ -87,13 +88,18 @@ def deletable_entries(token, actor, entries):
     )
 
 
-def _name(entry):
+def _name(token, entry):
     day = entry.company_event_on or entry.effective_on
-    return f"{RegisterEntryKind(entry.kind).label.lower()} of {day.day} {day:%B %Y}"
+    label = f"{RegisterEntryKind(entry.kind).label.lower()} of {day.day} {day:%B %Y}"
+    members = [UUID(change["member"]) for change in entry.changes]
+    people = member_identities(token, sorted(set(members)))
+    names = list(dict.fromkeys(people[member].name for member in members if people[member].name))
+    who = f"{names[0]} and {len(names) - 1} others" if len(names) > 2 else " and ".join(names)
+    return f"{label} for {who}" if who else label
 
 
-def _first(entry):
-    return f"Delete the {_name(entry)} first."
+def _first(token, entry):
+    return f"Delete the {_name(token, entry)} first."
 
 
 def _source(entry):
@@ -228,12 +234,12 @@ def delete_register_entry(*, actor, token, entry_id):
             raise ValidationError(ENTRY_KEPT)
         correction = with_company_event_dates(RegisterEntry.objects.filter(corrects=entry)).first()
         if correction is not None:
-            raise ValidationError(_first(correction))
+            raise ValidationError(_first(token, correction))
         if RegisterCorrection.objects.filter(corrects=entry).exists():
             raise ValidationError(CORRECTION_PROPOSED)
         blocking = _blocking(register, entry)
         if blocking is not None:
-            raise ValidationError(_first(blocking))
+            raise ValidationError(_first(token, blocking))
         rows, detached = entry_rows(entry, source)
         chain_unreferenced(rows, ENTRIES_ON_CHAIN)
         files = stored_files(rows)

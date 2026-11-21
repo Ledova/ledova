@@ -355,8 +355,8 @@ families](chain.md#signing-families).
 
 ### Corrections API
 
-What a correction does: [compensating
-corrections](../business/register.md#compensating-corrections). Preparation derives the exact
+Where corrections stand: [deleting a register
+entry](../business/register.md#deleting-a-register-entry). Preparation derives the exact
 inverse changes and captures the register's sequence and head hash; an entry is `correctable` while
 it has changes and no correction reverses it. The compensating entry's operation id is the
 correction's UUID, and nothing is broadcast.

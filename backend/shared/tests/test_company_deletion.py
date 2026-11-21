@@ -218,6 +218,7 @@ class CompanyDeletionTest(CoreFixtures, APITransactionTestCase):
         dependent = self.client.delete(f"{entries}{issued}/")
         self.assertEqual(dependent.status_code, 400, dependent.content)
         self.assertIn("Delete the transfer of", dependent.content.decode())
+        self.assertIn("for Synthetic Investor and ", dependent.content.decode())
         self.assertIn(OPENING_KEPT, self.client.delete(f"{entries}{opening}/").content.decode())
         self.assertEqual(self.client.delete(f"{entries}{granted}/").status_code, 204)
         with use_operator():
