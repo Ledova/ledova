@@ -2807,7 +2807,8 @@ The Privacy policy names the short record each deletion leaves: its kind, the co
 and when, but not the deleted contents. It is kept indefinitely, because the database refuses to
 delete a deletion receipt. The independent review found the draft's sentence on kept records partly
 inaccurate: a company's own signup acceptance goes with the company, and deleting a sign-in erases
-identity-check data. The owner approved the corrected Terms and Privacy sentences on the same day. Acceptance works as for v2026-11-15. An account stays under
+identity-check data. Shown the corrected Terms and Privacy sentences the same day, the owner said
+"proceed with your recommendation". Acceptance works as for v2026-11-15. An account stays under
 the version it accepted until it accepts the new one in the web's **Settings → Account**. A
 company's acceptance at signup is not renewed. The signup declaration names the new version, and
 earlier declarations stay valid for the appointments made under them.
