@@ -24,14 +24,12 @@ from tokens.services.register_evidence import evidence_snapshot, matching_bytes
 
 @contextmanager
 def class_rights_read(*, actor, token):
-    with register_command(actor, token.company_id, "class_rights_read") as (company, current_actor, profile, operator):
+    with register_command(actor, token.company_id, "class_rights_read") as (company, current_actor, profile):
         token = get_object_or_404(
             ShareToken.objects.register_readable_by(current_actor).select_for_update(), pk=token.pk, company=company
         )
         administration = (
-            CompanyAppointment.objects.current_for(
-                current_actor, company.pk, at=timezone.now(), identity_required=operator.issuer_kyc_required
-            )
+            CompanyAppointment.objects.current_for(current_actor, company.pk, at=timezone.now())
             .filter(capabilities__contains=[CompanyCapability.ADMIN])
             .order_by("uuid")
             .first()
@@ -95,10 +93,9 @@ def record_class_rights(
         company,
         current_actor,
         profile,
-        operator,
     ):
         token = get_object_or_404(ShareToken.objects.select_for_update(), pk=token.pk, company=company)
-        source = register_appointment(company, current_actor, profile, operator, appointment, CompanyCapability.ADMIN)
+        source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.ADMIN)
         prior = ClassRightsRevision.objects.filter(recorded_by=current_actor, idempotency_key=idempotency_key).first()
         if prior is not None:
             if (

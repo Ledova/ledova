@@ -10,7 +10,6 @@ import {
   type RegisterImport,
   type RegisterImportPreparation,
   type RegisterEntry,
-  type RegisterCorrection,
   type RegisterParticularsChange,
   type RegisterDecideRequest,
   REGISTER_COPY,
@@ -74,7 +73,6 @@ const REGISTER = COMPANY_TOKEN_ENDPOINTS.REGISTER;
 const IMPORTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_IMPORTS;
 const GRANTS = COMPANY_TOKEN_ENDPOINTS.REGISTER_GRANTS;
 const TRANSFERS = COMPANY_TOKEN_ENDPOINTS.REGISTER_TRANSFERS;
-const CORRECTIONS = COMPANY_TOKEN_ENDPOINTS.REGISTER_CORRECTIONS;
 const PARTICULARS = COMPANY_TOKEN_ENDPOINTS.REGISTER_PARTICULARS_CHANGES;
 const APPOINTMENTS = '/api/v1/company-authority/appointments/';
 const PROFILES = '/api/user-profiles/';
@@ -130,8 +128,7 @@ function page(classes: Listed[] = [harbour('ordinary')], next: string | null = n
 }
 
 function noCommands(url: string) {
-  return [IMPORTS, GRANTS, TRANSFERS, CORRECTIONS, PARTICULARS, APPOINTMENTS].includes(url) ||
-    url.endsWith('/register/entries/')
+  return [IMPORTS, GRANTS, TRANSFERS, PARTICULARS, APPOINTMENTS].includes(url) || url.endsWith('/register/entries/')
     ? { data: { results: [], count: 0, next: null, previous: null } }
     : null;
 }
@@ -1020,7 +1017,7 @@ it('reads every class page and groups exact holdings by member identity with sea
               changes: [{ member: 'member-one', name: 'Example Member', shares: '9007199254740993' }],
               corrects: null,
               correctedBy: null,
-              correctable: true,
+              deletable: false,
             },
           ],
           count: 1,
@@ -1385,7 +1382,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   let proposal: RegisterImport | undefined;
   const retiredImports: RegisterImport[] = [];
   let historyEntries: RegisterEntry[] = [];
-  let historyCorrections: RegisterCorrection[] = [];
   let historyParticulars: RegisterParticularsChange[] = [];
   const attachment = new File(['%PDF-1.4 synthetic certificate'], 'share-certificate.pdf', { type: 'application/pdf' });
   const agreement = new File(['%PDF-1.4 synthetic agreement'], 'shareholder-agreement.pdf', {
@@ -1519,7 +1515,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       return { data: { members: companyMembers, awardRecipients: [] } };
     }
     if (url === IMPORTS) return dataPage(proposal ? [proposal, ...retiredImports] : retiredImports);
-    if (url === CORRECTIONS) return dataPage(historyCorrections);
     if (url === PARTICULARS) return dataPage(historyParticulars);
     if (url === COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token.uuid)) return dataPage(historyEntries);
     return dataPage([]);
@@ -2002,42 +1997,10 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       ],
       corrects: null,
       correctedBy: null,
-      correctable: true,
+      deletable: true,
     },
   ];
   appointment = { ...appointment, capabilities: ['prepare', 'approve', 'apply'] };
-  historyCorrections = [
-    {
-      uuid: 'retained-correction',
-      company: company.uuid,
-      register: token.uuid,
-      corrects: 'transfer-entry',
-      effectiveOn: '2026-10-22',
-      createdAt: '2026-10-22T01:00:00Z',
-      changes: historyEntries[0].changes.map(({ member, shares }) => ({ member, shares: String(-BigInt(shares)) })),
-      authority: 'director_resolution',
-      approvingDirector: 'Example Director',
-      authorityReference: 'Correction instruction',
-      authorityEvidence: 'retained-authority',
-      reason: 'Retained correction reason',
-      preparingAppointment: appointment.uuid,
-      preparedByName: 'Example Director',
-      providedBy: 'company',
-      status: 'submitted',
-      stage: 'submitted',
-      decisions: [],
-      baseHash: 'a'.repeat(64),
-      baseSequence: 3,
-      appliedEntry: null,
-      evidenceFingerprint: 'b'.repeat(64),
-      evidenceSnapshot: {},
-      sourceDocument: null,
-      rejectionReason: '',
-      reviewedAt: null,
-      reviewedBy: null,
-      submittedBy: 1,
-    },
-  ];
   historyParticulars = [
     {
       uuid: 'particulars-edit',
@@ -2128,11 +2091,6 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect(screen.queryByRole('link', { name: /^Correct \(/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Acknowledge/ })).toBeNull();
-  const correctionSummary = `Correction of the transfer of ${formatShortDate('2026-10-20')} to Taylor Demo. Show details and documents`;
-  const retainedCorrection = (await screen.findByRole('button', { name: correctionSummary })).closest('li')!;
-  expect(retainedCorrection.previousElementSibling?.textContent).toBe('Needs a decision · 1');
-  expect(within(retainedCorrection).getByText(`Correction · ${formatShortDate('2026-10-22')}`)).toBeTruthy();
-  expect(screen.getByText('Retained correction reason')).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
   expect(screen.getByRole('button', { name: /^Download \(supporting document/, hidden: true })).toBeTruthy();
   expect(screen.queryByRole('button', { name: /Approve|Apply|Reject/ })).toBeNull();
@@ -2166,17 +2124,27 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       exact: false,
     })
   ).closest('li')!;
-  expect(
-    within(correctionEntry).getByRole('link', {
-      name: `Correct (transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
+  api.delete.mockResolvedValueOnce({ status: 204 });
+  fireEvent.click(
+    within(correctionEntry).getByRole('button', {
+      name: `Delete (transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
     }),
+  );
+  fireEvent.click(
+    within(await screen.findByRole('dialog', { name: 'Delete this transfer?' })).getByRole('button', {
+      name: 'Delete',
+    }),
+  );
+  expect(
+    await screen.findByText(`Transfer of ${formatDate('2026-10-20')} for Example Shareholder and Taylor Demo deleted.`),
   ).toBeTruthy();
+  expect(api.delete).toHaveBeenCalledWith(
+    `${COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token.uuid)}transfer-entry/`,
+    expect.anything(),
+  );
+  api.delete.mockClear();
   expect(screen.queryByRole('button', { name: /Prepare \(certificate for/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
-  const approveCorrection = screen.getByRole('button', {
-    name: `Approve (correction of the transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
-  });
-  expect(approveCorrection.closest('li')!.previousElementSibling?.textContent).toBe('Needs a decision · 1');
   expect(proposal!.status).toBe('applied');
   expect(proposal!.decisions.map((decision) => decision.kind)).toEqual(['approve', 'apply']);
   cleanup();
@@ -2984,7 +2952,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
   expect((screen.getByRole('checkbox', { name: 'Select Protected records' }) as HTMLInputElement).checked).toBe(true);
   fireEvent.click(screen.getByRole('button', { name: 'Delete (selected share classes)' }));
   let bulkDialog = within(await screen.findByRole('dialog', { name: 'Delete 3 share classes?' }));
-  expect(bulkDialog.getByText(/their saved setup reviews are retired automatically/)).toBeTruthy();
+  expect(bulkDialog.getByText(/This deletes these classes and all their records for everyone/)).toBeTruthy();
   expect(bulkDialog.getByText('Will be kept')).toBeTruthy();
   expect(bulkDialog.getByText(/Protected records/)).toBeTruthy();
   expect(bulkDialog.getByText('This class has ownership history.')).toBeTruthy();

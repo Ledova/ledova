@@ -32,24 +32,6 @@ class StaffMember:
 
 
 @dataclass(frozen=True)
-class Kyc:
-    provider: str
-    status: str
-    result: str | None
-    decided_at: datetime
-    document_type: str
-    document_country: str
-    labels: tuple = ()
-    pep_type: str = "none"
-
-
-@dataclass(frozen=True)
-class Attempt:
-    result: str
-    at: datetime
-
-
-@dataclass(frozen=True)
 class Financial:
     occupation: str
     source_of_funds: tuple
@@ -131,11 +113,8 @@ class Person:
     birth_date: date | None = None
     address: str | None = None
     citizenship: str | None = None
-    kyc: Kyc | None = None
-    attempts: tuple = ()
     financial: Financial | None = None
     account_status: str = "pending"
-    rejection_reason: str = ""
     status_changed_at: datetime | None = None
     last_login: datetime | None = None
     alerts_enabled: bool = True
@@ -204,7 +183,6 @@ class AlertPlan:
     outcome: str | None = None
     notes: str = ""
     transfer: str | None = None
-    screened: bool = False
     smr_type: str | None = None
     smr_reference: str | None = None
     smr_filed_at: datetime | None = None

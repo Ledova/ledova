@@ -8,7 +8,7 @@ class CompanyQuerySet(QuerySet):
     def personally_administered_by(self, user, company_id):
         from companies.models import CompanyAppointment, CompanyCapability
 
-        sources = CompanyAppointment.objects.current_for(user, company_id, at=timezone.now(), identity_required=False)
+        sources = CompanyAppointment.objects.current_for(user, company_id, at=timezone.now())
         return self.filter(pk__in=sources.filter(capabilities__contains=[CompanyCapability.ADMIN]).values("company_id"))
 
     def readable_by(self, user):
@@ -41,11 +41,8 @@ class CompanyQuerySet(QuerySet):
 
     def _appointed(self, user, capabilities):
         from companies.models import CompanyAppointment
-        from operators.models import Operator
 
-        appointments = CompanyAppointment.objects.current_of(
-            user, at=timezone.now(), identity_required=Operator.get().issuer_kyc_required
-        )
+        appointments = CompanyAppointment.objects.current_of(user, at=timezone.now())
         return appointments.holding_any(capabilities).values("company_id")
 
     def administrable_by(self, user):

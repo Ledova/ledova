@@ -37,7 +37,7 @@ the repository root and never edited
 ## Product screenshots
 
 `public/screenshots/ownership.jpg`, `ledger.jpg` and `certificates.jpg`, with their `-dark.jpg`
-counterparts, are genuine localhost captures of fictional Purpose Demo on 30 October 2026.
+counterparts, are genuine localhost captures of fictional Purpose Demo on 20 November 2026.
 The homepage shows the capture matching the website theme, including a saved preference.
 Screens narrower than 640 px show the `-phone.jpg` and `-phone-dark.jpg` versions instead: the same
 pages captured 390 px wide, so their text stays readable.

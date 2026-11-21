@@ -12,6 +12,13 @@ export const getCompanyPeople = (apiClient: AxiosInstance, company: string, conf
       return response;
     });
 
+export const deleteCompanyPerson = (
+  apiClient: AxiosInstance,
+  company: string,
+  member: string,
+  config: AxiosRequestConfig = {},
+) => apiClient.delete<void>(`${COMPANY_TOKEN_ENDPOINTS.REGISTER_PEOPLE}${member}/`, { ...config, params: { company } });
+
 export const registerCompanyPerson = (
   apiClient: AxiosInstance,
   request: RegisterPersonRegistrationRequest,

@@ -72,6 +72,7 @@ __pycache__/
 !backend/companies/disposal_guards.sql
 !backend/tokens/database_people.sql
 !backend/tokens/database_class_lifecycle.sql
+!backend/tokens/database_entry_deletion.sql
 **/*.sql.gz
 **/*secret*.zip
 **/*secret*.tar

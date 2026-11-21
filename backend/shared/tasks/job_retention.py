@@ -6,7 +6,7 @@ from django.utils import timezone
 from authentication.services.email_codes import CODE_LIFETIME
 from ledova_backend.procrastinate_app import app
 from shared.db import use_operator
-from users.services.erasure import purge_abandoned_signups
+from users.services.lifecycle import purge_abandoned_signups
 
 SUCCEEDED_JOB_HOURS = 7 * 24
 UNSUCCESSFUL_JOB_HOURS = 30 * 24

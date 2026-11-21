@@ -1,20 +1,28 @@
 import { REGISTER_ALLOTMENT_COPY, REGISTER_ALLOTMENT_UNMET_COPY } from '../constants/business/register-allotments';
-import { previewRegisterAllotmentDecision, decideRegisterAllotment } from '../services/register-allotments';
+import {
+  previewRegisterAllotmentDecision,
+  decideRegisterAllotment,
+  deleteRegisterAllotment,
+} from '../services/register-allotments';
 import { isRegisterAllotmentDecisionReceipt } from '../utils/register-allotments';
 import type { RegisterAllotment, RegisterAllotmentDecisionPreview } from '../types';
 import { useEffect, useRef, useState } from 'react';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_UNMET_COPY } from '../constants/business/register-corrections';
 import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../constants/business/register-imports';
 import { REGISTER_GRANT_COPY, REGISTER_GRANT_UNMET_COPY } from '../constants/business/register-grants';
 import { REGISTER_TRANSFER_COPY, REGISTER_TRANSFER_UNMET_COPY } from '../constants/business/register-transfers';
-import { decideRegisterTransfer, previewRegisterTransferDecision } from '../services/register-transfers';
-import { decideRegisterGrant, previewRegisterGrantDecision } from '../services/register-grants';
-import { decideRegisterCorrection, previewRegisterCorrectionDecision } from '../services/register-corrections';
-import { decideRegisterImport, previewRegisterImportDecision } from '../services/register-imports';
+import {
+  decideRegisterTransfer,
+  deleteRegisterTransfer,
+  previewRegisterTransferDecision,
+} from '../services/register-transfers';
+import { decideRegisterGrant, deleteRegisterGrant, previewRegisterGrantDecision } from '../services/register-grants';
+import {
+  decideRegisterImport,
+  deleteRegisterImport,
+  previewRegisterImportDecision,
+} from '../services/register-imports';
 import type {
-  RegisterCorrection,
-  RegisterCorrectionDecisionPreview,
   RegisterDecideRequest,
   RegisterDecisionKind,
   RegisterDecisionRequest,
@@ -27,7 +35,6 @@ import type {
 } from '../types';
 import { failureStatus, createUserFriendlyError, refusalSentence, failureSentence } from '../utils/errors';
 import { isRegisterDecisionReceipt } from '../utils/register-commands';
-import { isRegisterCorrectionDecisionReceipt } from '../utils/register-corrections';
 import { isRegisterGrantDecisionReceipt } from '../utils/register-grants';
 import { isRegisterTransferDecisionReceipt } from '../utils/register-transfers';
 import { useApiClient } from './useApiClient';
@@ -48,6 +55,7 @@ export type RegisterDecisionFamily<Proposal, Preview extends DecisionPreview> = 
     data: RegisterDecideRequest,
     config?: AxiosRequestConfig,
   ) => Promise<{ data: Proposal }>;
+  remove: (apiClient: AxiosInstance, uuid: string, config?: AxiosRequestConfig) => Promise<{ status: number }>;
   isReceipt: (proposal: Proposal, uuid: string, request: RegisterDecideRequest, preview?: Preview) => boolean;
   unmet: Record<string, string>;
   copy: { PREVIEW_FAILED: string; DECIDE_FAILED: string; DECISION_RECEIPT_FAILED: string };
@@ -56,6 +64,7 @@ export type RegisterDecisionFamily<Proposal, Preview extends DecisionPreview> = 
 export const REGISTER_IMPORT_DECISIONS: RegisterDecisionFamily<RegisterImport, RegisterImportDecisionPreview> = {
   preview: previewRegisterImportDecision,
   decide: decideRegisterImport,
+  remove: deleteRegisterImport,
   isReceipt: isRegisterDecisionReceipt,
   unmet: REGISTER_IMPORT_UNMET_COPY,
   copy: REGISTER_IMPORT_COPY,
@@ -65,6 +74,7 @@ export const REGISTER_ALLOTMENT_DECISIONS: RegisterDecisionFamily<RegisterAllotm
   {
     preview: previewRegisterAllotmentDecision,
     decide: decideRegisterAllotment,
+    remove: deleteRegisterAllotment,
     isReceipt: isRegisterAllotmentDecisionReceipt,
     unmet: REGISTER_ALLOTMENT_UNMET_COPY,
     copy: REGISTER_ALLOTMENT_COPY,
@@ -73,6 +83,7 @@ export const REGISTER_ALLOTMENT_DECISIONS: RegisterDecisionFamily<RegisterAllotm
 export const REGISTER_GRANT_DECISIONS: RegisterDecisionFamily<RegisterGrant, RegisterGrantDecisionPreview> = {
   preview: previewRegisterGrantDecision,
   decide: decideRegisterGrant,
+  remove: deleteRegisterGrant,
   isReceipt: isRegisterGrantDecisionReceipt,
   unmet: REGISTER_GRANT_UNMET_COPY,
   copy: REGISTER_GRANT_COPY,
@@ -81,20 +92,10 @@ export const REGISTER_GRANT_DECISIONS: RegisterDecisionFamily<RegisterGrant, Reg
 export const REGISTER_TRANSFER_DECISIONS: RegisterDecisionFamily<RegisterTransfer, RegisterTransferDecisionPreview> = {
   preview: previewRegisterTransferDecision,
   decide: decideRegisterTransfer,
+  remove: deleteRegisterTransfer,
   isReceipt: isRegisterTransferDecisionReceipt,
   unmet: REGISTER_TRANSFER_UNMET_COPY,
   copy: REGISTER_TRANSFER_COPY,
-};
-
-export const REGISTER_CORRECTION_DECISIONS: RegisterDecisionFamily<
-  RegisterCorrection,
-  RegisterCorrectionDecisionPreview
-> = {
-  preview: previewRegisterCorrectionDecision,
-  decide: decideRegisterCorrection,
-  isReceipt: isRegisterCorrectionDecisionReceipt,
-  unmet: REGISTER_CORRECTION_UNMET_COPY,
-  copy: REGISTER_CORRECTION_COPY,
 };
 
 type RegisterDecisionTarget<Preview> = {

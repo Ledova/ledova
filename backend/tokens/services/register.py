@@ -609,7 +609,6 @@ def stored_entries(token, paginate, wanted=(), member=None, *, search="", certif
             ],
             "corrects": entry.corrects_id,
             "corrected_by": entry.corrected_by,
-            "correctable": bool(entry.changes) and entry.corrected_by is None,
         }
         for entry in entries
     ]

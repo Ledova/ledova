@@ -196,8 +196,7 @@ export function ClassDetailsContent({
         size="sm"
       >
         <p className="text-sm text-text-primary">
-          Delete {target?.name} ({target?.symbol}) from active share classes? Saved setup reviews are retired
-          automatically. Their records and audit history are kept.
+          This deletes {target?.name} ({target?.symbol}) and all its records for everyone. This can’t be undone.
         </p>
         <Failure>{details.error}</Failure>
         <ModalActions>

@@ -7,10 +7,12 @@ import {
   UPLOAD_RULE,
   useMemberDocuments,
   type DocumentDraft,
+  type RegisterMemberDocument,
   type RegisterMemberDocumentCategory,
 } from '@ledova/shared';
 import { Action, Actions, FormActions, LoadError, Loading, Rows, Section } from '../../components/Ledger';
 import { FileField } from '../../components/Field';
+import { CustomModal } from '../../components/modal';
 import { SearchSelect } from '../../components/SearchSelect';
 import { SelectField } from '../../components/SelectField';
 import { useThemedStyles } from '../../contexts';
@@ -66,6 +68,7 @@ function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
   });
   const { editor } = documents;
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<RegisterMemberDocument | null>(null);
   useEffect(() => {
     onHeldChange(!!editor || documents.busy || documents.held);
     return () => onHeldChange(false);
@@ -108,15 +111,26 @@ function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
                         {holding?.label ? ` · ${holding.label}` : ''}
                       </Text>
                     </View>
-                    <Action
-                      label={downloading === document.uuid ? 'Downloading…' : 'Download'}
-                      accessibilityLabel={`Download (${document.snapshot.name})`}
-                      disabled={documents.busy}
-                      onPress={() => {
-                        setDownloading(document.uuid);
-                        void documents.download(document).finally(() => setDownloading(null));
-                      }}
-                    />
+                    <Actions>
+                      <Action
+                        label={downloading === document.uuid ? 'Downloading…' : 'Download'}
+                        accessibilityLabel={`Download (${document.snapshot.name})`}
+                        disabled={documents.busy}
+                        onPress={() => {
+                          setDownloading(document.uuid);
+                          void documents.download(document).finally(() => setDownloading(null));
+                        }}
+                      />
+                      {documents.appointment && (
+                        <Action
+                          destructive
+                          label="Delete"
+                          accessibilityLabel={`Delete (${document.snapshot.name})`}
+                          disabled={documents.busy}
+                          onPress={() => setDeleting(document)}
+                        />
+                      )}
+                    </Actions>
                   </View>
                 );
               })}
@@ -227,6 +241,25 @@ function OwnShareholderDocuments({ onHeldChange, ...props }: Props) {
           {documents.error}
         </Text>
       )}
+      <CustomModal
+        visible={!!deleting}
+        title="Delete this document?"
+        busy={documents.busy}
+        onClose={() => setDeleting(null)}
+        actions={
+          <Action
+            label={documents.busy ? 'Deleting…' : 'Delete'}
+            accessibilityLabel={`${documents.busy ? 'Deleting…' : 'Delete'} (document)`}
+            destructive
+            disabled={documents.busy}
+            onPress={() => {
+              if (deleting) void documents.remove(deleting).finally(() => setDeleting(null));
+            }}
+          />
+        }
+      >
+        <Text style={styles.text}>{deleting?.snapshot.name} is removed for everyone. This can’t be undone.</Text>
+      </CustomModal>
     </Section>
   );
 }

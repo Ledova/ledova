@@ -59,7 +59,7 @@ frame share, and `packages/shared` holds what both clients share.
 | `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes, each page loaded on demand from `lazyPages.ts` under one `Suspense` with `RouteLoading`) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                            |
 | `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                  |
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `auth/`, and single components several areas show (`AwardStatus.tsx`) |
-| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register classes, sign-out, theme, identity verification                                                                                                                                                                                                              |
+| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register classes, sign-out, theme                                                                                                                                                                                                                                    |
 | `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`), the query client it reads the session from (`queryClient.ts`) and the device stores built from the shared store factories                                                                                                       |
 | `utils/`              | Browser and pure helpers used by more than one area or the frame (`siteUrl.ts`, `saveFile.ts`, the session resets) and the web-only paths (`paths.ts`)                                                                                                                                                                             |
 | `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                            |
@@ -162,8 +162,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   its result names the fields `isLoading`, `hasError`, `isRefreshing` and `retry`
   (`packages/shared/src/hooks/useOwnershipCompanies.ts`). Older hooks still use other names, such as
   `useSettingsNavigation` (`isError`, `isFetching`), the dashboard's `useUserProfile` (`isError`,
-  `isFetching`, `refreshProfile`), `useRegisterEntries` (`isPending`, `isFetching`) and
-  `useIdentityVerification` (`isLoadingStatus`).
+  `isFetching`, `refreshProfile`) and `useRegisterEntries` (`isPending`, `isFetching`).
 - **Account boundary.** Work bound to the signed-in account takes its owner from
   `useSubmissionOwner`, and the page renders it in an inner component keyed by the owner, so pending
   work never crosses accounts. Its query keys carry the owner and every request passes
@@ -370,7 +369,7 @@ page.
 Settings uses the same one-level pattern: Profile, Account and Data and privacy for everyone, then
 Team where permitted. Its default is Profile (`/settings#profile`), combining personal
 details and permitted company information. Account
-(`/settings#account`) has Security (identity status with Review, the password with Change), Account
+(`/settings#account`) has Security (the password with Change), Account
 details, Invitations and Your appointments cards, and Data and privacy (`/settings#data`) holds Export data and
 Delete account in the same rows, with **Export** and **Delete**. `settingsPage` (`dashboard/src/utils/destinations.ts`) gives each view its page title. These
 sections keep their separate records, editors and authority checks. Existing `/user-profile`,
@@ -406,9 +405,7 @@ page headings and collection wrappers do not repeat the context name.
 `SIGNUP_STEPS` (`dashboard/src/utils/paths.ts`) lists the steps after the create-account form:
 email confirmation, account type, user profile, company registration and review.
 Signup has no financial questionnaire, and `useSignupReview` reads no financial profile, on the web
-or in the app. Identity verification is not a step: when `useSignupReview` reports
-`identityRequired`, company review offers **Verify your identity**, which opens the
-`IdentityVerificationModal` that Account uses. The step map in
+or in the app, and no step verifies identity. The step map in
 `dashboard/src/routes/AppRoutes.tsx` uses the named `SIGNUP_PATHS`, and `signupRoutes` wraps each,
 with `/signup`, in `SignupRoute`, which sends a finished company account to the company dashboard
 and other finished accounts to `landingFor(role)`, lets an unfinished account or a signed-out
@@ -510,8 +507,8 @@ previews. Leaving or unmounting the page resets its draft.
 A failed
 check or a changed account withholds
 private content, including after an account changes in another tab. Mobile clears its cache whenever
-the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload or identity
-verification, stopping when the operation finishes or its view closes. A status read must never
+the account changes, so its rechecks are always of the same account. Keep bounded status checks for a submitted upload,
+stopping when the operation finishes or its view closes. A status read must never
 repeat a write, upload or share issue.
 
 Every read and command retains its account, company, association, appointment and source guards.
@@ -632,13 +629,14 @@ The server side, including how identical and changed retries are answered, is th
 ## The shared register client layer
 
 `packages/shared` holds the client layer for the company-run register commands the web app runs
-(imports, corrections, particulars changes, grants, transfers and allotments); the chain and wallet
+(imports, particulars changes, grants, transfers and allotments) and the register entry delete; the
+chain and wallet
 commands' client layer went with their pages under
 [#1452](https://github.com/Ledova/ledova/issues/1452). It has:
 
 - a service for each list, preview, decision, preparation and document download;
 - a check of each prepared proposal against every field of its request
-  (`isPreparedRegisterImport` and siblings for corrections, grants, transfers and allotments), and
+  (`isPreparedRegisterImport` and siblings for grants, transfers and allotments), and
   of a particulars change against its one-step edit (`isRegisterParticularsEditReceipt`);
 - the decision families for `useRegisterDecision` (`REGISTER_*_DECISIONS` in
   `packages/shared/src/hooks/useRegisterDecision.ts`) with the generic receipt check;
@@ -671,8 +669,8 @@ step; a different externally selected saved record still gets its own form.
 New classes at `/company/ledger/setup` and explicit imports at `/company/ledger/:uuid/import` use
 the same page entry. An explicit import keeps its saved-record or opening-correction context;
 ordinary class selection does not start a replacement opening. Setup chooses or creates a class,
-then prepares its mirror import, preserving exact-request recovery. Correction and transfer stay
-under `/company/ledger/:uuid/` (`correct/:entry`, `transfer`), and particulars at
+then prepares its mirror import, preserving exact-request recovery. Transfer stays under
+`/company/ledger/:uuid/transfer`, and particulars at
 `/company/ledger/members/:member/particulars`. The particulars
 change, titled with the shareholder's name, is one step: it sends the name and address the page read as `expected` and, once applied,
 lands on its record under Corrections (in the app, back on the shareholder's page). Its form logic is
@@ -682,24 +680,23 @@ gets no form: the page shows that the member keeps their particulars in their Le
 Non-paid and employee-award grants are prepared inline in Issue shares.
 
 The web and native class pages' `ClassDetails.tsx` use the shared `useClassDetails` hook to edit name, code and type
-or delete an unused class using the API's `canEditDetails`, `editBlockedReason`, `canDelete` and
+or delete a class using the API's `canEditDetails`, `editBlockedReason`, `canDelete` and
 `updatedAt`. On the web, a current preparer sees disabled Edit with `editBlockedReason` when details
 are locked; readers without preparation authority see no Edit action. An authorised
-preparer sees the API's `deletionBlockedReason` beside a disabled **Delete** action when records prevent
-deletion. The web confirmation explains that saved setup reviews are retired automatically and
-their records and audit history are kept. They pin the
+preparer sees the API's `deletionBlockedReason` beside a disabled **Delete** action when on-chain
+records prevent deletion. The confirmation says the class and all its records are deleted for
+everyone and that this can't be undone. They pin the
 original class, company and version when opening the action, preserve edits during source checks,
 and hold an uncertain request for explicit result checking rather than submitting a new target.
 Confirmed changes invalidate the related class and ownership reads; deletion does not refetch the
-removed class. Setup decisions refresh class availability, so retiring a review can expose editing
-without a reload. Deleting a class retires saved setup reviews and removes the unused class from
-active use atomically, retaining the reviews, their decisions and deletion attribution;
-it never deletes confirmed ownership. An applied genuinely empty opening permits metadata editing
+removed class. Setup decisions refresh class availability, so rejecting a review can expose editing
+without a reload. Deleting a class removes it with all its records in one transaction
+([class deletion](backend.md#company-workflow-api)). An applied genuinely empty opening permits metadata editing
 when no other dependent records exist. Each actual edit automatically retains an immutable
 before/after revision and current actor/appointment at the database boundary. The opening and its
 hash are unchanged. The existing inline editor stays unchanged; retained revisions add no history
-section, query or dedicated history API to the page. Company packs include the full attribution,
-including deleted classes. Past ownership activity still locks editing even if current supply is zero.
+section, query or dedicated history API to the page. Company packs include the full attribution.
+Past ownership activity still locks editing even if current supply is zero.
 Class rights retain their separate revision-based editor and permissions.
 The Class rights step owns an independent explicit save/cancel task, outside the opening HTML form
 on web; step navigation and the opening footer are unavailable while that task is held. New classes
@@ -768,7 +765,7 @@ saying so with its confirmation disabled. Form inputs are described with each pr
 The web register's repeated row wrappers, stage rows and download failures use
 `dashboard/src/pages/company/ledger/shared/RecordShell.tsx`, and the Ledger's records show their
 decisions through `dashboard/src/pages/company/ledger/DecisionTrail.tsx`; a particulars change shows its
-before and after instead, and an earlier one its retained decisions. Four records (import, correction, particulars change and transfer) use
+before and after instead, and an earlier one its retained decisions. Three records (import, particulars change and transfer) use
 `useRegisterTaskGuard.ts` for their existing visible-task check, while grant, allotment and award
 keep their distinct guards and wrappers. The preparation pages share `PreparationShell.tsx` for
 the account-check page and read-only paragraphs, and
@@ -820,8 +817,8 @@ Its screenshot provenance and update procedure are in the
 
 The dashboard stylesheet defines a `dark:` variant that follows `data-theme`, never the operating-system
 setting, for theme-specific adjustments: the
-active sidebar item's `bg-brand-tint`, and signed-out primary buttons without their green glow. The
-identity check's widget opens in its dark theme on Dark. Both web clients bundle Newsreader for
+active sidebar item's `bg-brand-tint`, and signed-out primary buttons without their green glow. Both
+web clients bundle Newsreader for
 display text and Instrument Sans for everything else (`@fontsource-variable`).
 
 The logo keeps its rounded-square outline and green L. Its editable drawing is
@@ -927,7 +924,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   also stay mounted across the Shareholders views. Held work disables its controls.
   Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
-  their task, class and any record (`allotments/`, `transfer/`, `corrections/`, `awards/`, `grants/`;
+  their task, class and any record (`allotments/`, `transfer/`, `corrections/` for opening records, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class
   scope, prevents company changes, disables class selection and other sidebar tasks, and pins held task
   work to its task and class. The held task's sidebar link remains available from a sibling view
@@ -940,8 +937,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   (or the class's company), class and task hash and focuses that class; with a record it focuses that
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
   Member access.
-  Corrections shows immutable recorded entries in rows that don't expand, and retained supporting records
-  as compact summaries that open their details and permitted downloads, alongside their capability-guarded append-only maintenance workflows. Register-read
+  Corrections shows recorded entries in rows that don't expand, each with **Delete** for a current
+  preparer, and retained supporting records as compact summaries that open their details and permitted
+  downloads, alongside their capability-guarded maintenance workflows. Register-read
   access alone grants no mutation. Inspection copies keeps class inspection-copy preparation;
   Company pack stays at company scope. Their forms and prepared lists use the shared
   `useClassInspectionCopy`, `useCompanyPackAuthority`, `useCompanyPack`, `useInspectionCopies` and
@@ -973,12 +971,11 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   prepared transfer to the page instead of navigating) and its document download
   (`useTransferRecordDownload`) are shared the same way; the app's Transfer shares renders the same
   records and reviews, with the preparation on its own page. Corrections' reads (`useRegisterEntries`,
-  `useClassCorrections` with `correctionsKey`, `useRegisterImports` with `importsKey` and
-  `useRegisterParticulars`), its correction form (`useCorrectionPreparation`, which hands the prepared
-  correction to the page) and entry read (`useCorrectionEntry`), its record downloads
-  (`useCorrectionRecordDownload`, `useImportRecordDownload`, `useParticularsRecordDownload`) and the
-  entry helpers (`entryLabel`, `describeEntry` and their siblings) are shared too; the app's Corrections
-  renders the same rows and records with their decisions, and the correction form on its own page. A
+  `useRegisterImports` with `importsKey` and `useRegisterParticulars`), its entry delete
+  (`useRegisterEntryDeletion`), its record downloads (`useImportRecordDownload`,
+  `useParticularsRecordDownload`) and the entry helpers (`entryLabel`, `entryWithPeople` and their
+  siblings) are shared too; the app's Corrections renders the same rows and
+  records with their decisions. A
   section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
@@ -1037,7 +1034,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   and its entries). Entries load newest first, a page per Load more: an entry a later page repeats
   is listed once, a page with a non-whole share change fails, and a corrected or reversing entry
   reads as not loaded yet until its page arrives. A proposal of another company or class, an
-  unreadable holding and a correction lookup answering with entries it was not asked for fail the
+  unreadable holding and an entry lookup answering with entries it was not asked for fail the
   read. Each repeated control is named for screen readers after its visible label and its entry or
   proposal.
 - Team (`dashboard/src/pages/company/team`, and the app's Team screen,
@@ -1066,7 +1063,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
 - Company: reads the selected company's complete detail; an edit sends only changed fields.
 - Settings on web: the sidebar owns its destinations. Profile uses one standard workspace for
   personal and company sections, keeping each editor's data and authority separate. Account's
-  Security, Account details, Invitations and Your appointments cards hold identity status, password,
+  Security, Account details, Invitations and Your appointments cards hold the password,
   account dates, invitation acceptance and the person's appointments; Data and privacy holds export and deletion. Documents and Team
   stay focused pages. Signup and mobile
   Settings keep their own navigation.

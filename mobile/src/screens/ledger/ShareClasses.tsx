@@ -221,9 +221,9 @@ export function ShareClasses({
         {operation && (
           <>
             <Text style={look.muted}>
-              Unused classes are removed from active use and their saved setup reviews are retired automatically. Their
-              records and audit history are kept. Each class is checked separately; deletion stops if a result cannot be
-              confirmed.
+              {operation.targets.length === 1
+                ? 'This deletes the class and all its records for everyone. This can’t be undone.'
+                : 'This deletes these classes and all their records for everyone. This can’t be undone.'}
             </Text>
             <View style={look.list}>
               {operation.targets.map((target, index) => (

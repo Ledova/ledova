@@ -109,7 +109,6 @@ export function ReviewScreen() {
     data,
     company,
     isCompany,
-    identityRequired,
     isLoading,
     error,
     completionError,
@@ -307,13 +306,9 @@ export function ReviewScreen() {
                 .
               </Text>
             )}
-            {identityRequired ? (
-              <Text accessibilityRole="alert" style={styles.errorText}>
-                This platform requires a verified identity before company setup.
-              </Text>
-            ) : !canCompleteSignup ? (
+            {!canCompleteSignup && (
               <Text style={styles.errorText}>Please ensure all information is complete to proceed.</Text>
-            ) : null}
+            )}
             {completionError && (
               <Text accessibilityRole="alert" style={styles.errorText}>
                 {completionError}

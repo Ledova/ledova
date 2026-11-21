@@ -24,7 +24,7 @@ import { CompanyContextNotice } from '@components/CompanyContextNotice';
 import { useCompanyContext } from '@hooks/useCompanyContext';
 import { certificatesLocation } from '@utils/paths';
 
-import { ClassCorrections } from './ClassCorrections';
+import { ClassChanges } from './ClassChanges';
 import { ClassImports } from './ClassImports';
 import { ClassIssues } from './ClassIssues';
 import { ClassAwards } from './ClassAwards';
@@ -56,7 +56,7 @@ function RegisterPage({ sections, task, children }: { sections?: ReactNode; task
             : shownTask === 'transfer'
               ? 'Record a transfer between shareholders.'
               : shownTask === 'corrections'
-                ? 'Prepare and review changes while preserving the original records.'
+                ? 'Review the register’s changes and delete a mistaken entry.'
                 : hash === '#awards'
                   ? 'Record employee entitlements and vesting. Shares are issued through a separate company decision.'
                   : documents === 'inspection-copies'
@@ -664,8 +664,7 @@ function OwnRegister({
                   </div>
                   <div hidden={view !== 'register' || selectedTask !== 'corrections'} className="flex flex-col gap-5">
                     <Section title="Changes">
-                      <ClassCorrections
-                        landed={landed}
+                      <ClassChanges
                         owner={owner}
                         guard={guard}
                         token={register.token.uuid}
@@ -678,7 +677,6 @@ function OwnRegister({
                           selectedToken === register.token.uuid &&
                           sourceReady
                         }
-                        onHeldChange={correctionHeld}
                       />
                     </Section>
                     <Section title="Opening records">

@@ -5,7 +5,9 @@ import { randomUUID } from 'expo-crypto';
 import {
   FIELD_LIMITS,
   REGISTER_COPY,
+  failureSentence,
   refusalSentences,
+  useConfirmedDeletion,
   useErrorSummary,
   useRegisterDecision,
   type RegisterDecisionFamily,
@@ -14,6 +16,7 @@ import {
 } from '@ledova/shared';
 import { Action, FormActions, Loading, useCardStyles } from '../../components/Ledger';
 import { Field } from '../../components/Field';
+import { CustomModal } from '../../components/modal';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { useLedgerStyles } from './useLedgerStyles';
@@ -28,6 +31,7 @@ const KINDS: RegisterDecisionKind[] = ['approve', 'apply', 'reject'];
 export function RegisterDecisions<Shown extends Proposal, Previewed extends Preview>({
   family,
   copy,
+  noun,
   proposal,
   steps,
   guard,
@@ -49,6 +53,7 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   guard: () => void;
   newEffectGuard?: (kind: RegisterDecisionKind) => void;
   context: string;
+  noun: string;
   onDecided: (proposal: Shown) => Promise<unknown>;
   onRefused: () => Promise<unknown>;
   children: (preview: Previewed, kind: RegisterDecisionKind) => ReactNode;
@@ -103,9 +108,15 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   const reject = useRegisterDecision(family, proposal, options('reject'));
   const decisions = { approve, apply, reject };
   const decision = active ? decisions[active] : null;
-  const busy = approve.busy || apply.busy || reject.busy;
+  const [deleting, setDeleting] = useState(false);
+  const removal = useConfirmedDeletion(
+    (apiClient, uuid: string) => family.remove(apiClient, uuid, { ledovaSubmissionGuard: guard }),
+    onRefused,
+  );
+  const deletable = proposal.status === 'submitted' && !!steps.prepare;
+  const busy = approve.busy || apply.busy || reject.busy || removal.isPending;
   usePreventRemove(busy || (visible && !!decision?.recovery), () => {});
-  const held = busy || !!approve.recovery || !!apply.recovery || !!reject.recovery || !!active;
+  const held = busy || !!approve.recovery || !!apply.recovery || !!reject.recovery || !!active || deleting;
   useEffect(() => {
     onHeldChange?.(proposal.uuid, held);
     return () => onHeldChange?.(proposal.uuid, false);
@@ -233,8 +244,20 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   }
   return (
     <>
-      {available.length > 0 && (
+      {(available.length > 0 || deletable) && (
         <FormActions>
+          {deletable && (
+            <Action
+              destructive
+              label="Delete"
+              accessibilityLabel={`Delete (${context})`}
+              disabled={busy}
+              onPress={() => {
+                removal.reset();
+                setDeleting(true);
+              }}
+            />
+          )}
           {actionKinds.map((kind) => {
             const label = kind === 'approve' ? approveLabel : copy.DECISIONS[kind];
             return (
@@ -273,6 +296,30 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
           </View>
         );
       })}
+      {deleting && (
+        <CustomModal
+          visible
+          title={`Delete ${noun}?`}
+          busy={removal.isPending}
+          onClose={() => setDeleting(false)}
+          actions={
+            <Action
+              label={removal.isPending ? 'Deleting…' : 'Delete'}
+              accessibilityLabel={`${removal.isPending ? 'Deleting…' : 'Delete'} (${context})`}
+              destructive
+              disabled={removal.isPending}
+              onPress={() => removal.mutate(proposal.uuid, { onSuccess: () => setDeleting(false) })}
+            />
+          }
+        >
+          <Text style={styles.text}>This deletes the {noun} and its decisions for everyone. This can’t be undone.</Text>
+          {removal.isError && (
+            <Text accessibilityRole="alert" style={styles.error}>
+              {failureSentence(removal.error, `The ${noun} was not deleted. Try again.`)}
+            </Text>
+          )}
+        </CustomModal>
+      )}
     </>
   );
 }

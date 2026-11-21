@@ -4,6 +4,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError
 from rest_framework.test import APITransactionTestCase
 
+from companies.services.administration import LAST_ADMINISTRATOR
 from companies.services.team import revoke_company_appointment
 from shared.db import atomic, use_operator
 from shared.tests.core_fixtures import CoreFixtures, pdf_bytes, populated_register
@@ -21,6 +22,15 @@ class RegistrySafeguardsTest(CoreFixtures, APITransactionTestCase):
     def test_revoked_company_authority_cannot_apply_an_approved_employee_grant(self):
         identifier = self.prepare_grant()
         self.decision("/api/v1/tokens/register-grants/", identifier, "approve")
+        appointments = "/api/v1/company-authority/appointments/"
+        (sole,) = self.client.get(appointments).json()["results"]
+        self.assertEqual(sole["revocationBlockedReason"], LAST_ADMINISTRATOR)
+        refused = self.client.post(f"{appointments}{self.appointment.pk}/revoke/", {}, format="json")
+        self.assertEqual(refused.status_code, 400, refused.content)
+        self.assertIn(LAST_ADMINISTRATOR, refused.content.decode())
+        self.appoint_admin()
+        (shared,) = self.client.get(appointments).json()["results"]
+        self.assertEqual((shared["status"], shared["revocationBlockedReason"]), ("active", None))
         revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
         response = self.client.post(
             f"/api/v1/tokens/register-grants/{identifier}/decision-preview/",

@@ -42,7 +42,7 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "ENUM_NAME_OVERRIDES": {
-        "ServiceTermsVersionEnum": ["2026-11-15"],
+        "ServiceTermsVersionEnum": ["2026-11-21"],
         "CompanyAuthorityDeclarationVersionEnum": ["2026-10-04"],
         "ClassRightsVotingTypeEnum": ["not_recorded", "general", "conditional", "no_general_vote", "custom"],
         "ClassRightsDividendsTypeEnum": ["not_recorded", "participating", "preferential", "none", "custom"],
@@ -65,7 +65,6 @@ SPECTACULAR_SETTINGS = {
         "SwapOrderStatusEnum": "tokens.models.choices.SwapOrderStatus",
         "TransferOrderStatusEnum": "tokens.models.choices.TransferOrderStatus",
         "TransferOrderTypeEnum": "tokens.models.choices.TransferOrderType",
-        "UserVerificationStatusEnum": "integrations.kyc.constants.VERIFICATION_STATUS_CHOICES",
         "WalletSigningPreferenceEnum": "wallets.models.wallet.WalletSigningPreference.choices",
         "WhitelistActionEnum": "whitelist.models.change.WhitelistAction.choices",
         "WhitelistChangeStatusEnum": "whitelist.models.change.WhitelistChangeStatus.choices",

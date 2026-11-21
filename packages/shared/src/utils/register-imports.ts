@@ -41,7 +41,8 @@ export function isRegisterImportMembers(value: unknown): value is RegisterTransf
         typeof member.walletless === 'boolean' &&
         (member.onRegister === undefined || typeof member.onRegister === 'boolean') &&
         (member.hasAwards === undefined || typeof member.hasAwards === 'boolean') &&
-        (member.followsProfile === undefined || typeof member.followsProfile === 'boolean'),
+        (member.followsProfile === undefined || typeof member.followsProfile === 'boolean') &&
+        (member.deletable === undefined || typeof member.deletable === 'boolean'),
     ) &&
     data.awardRecipients.every(
       (recipient) => !!recipient.member.trim() && !!recipient.name.trim() && !!recipient.residentialAddress.trim(),

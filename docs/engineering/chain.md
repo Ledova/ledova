@@ -21,7 +21,7 @@ Recovery leaves unsigned work held in its existing state. For existing signed op
 can verify intent, observe canonical receipts, apply finality checks and project genuine results;
 it cannot broadcast or replay signed bytes. A stored hash or signed state alone does not prove
 submission. An uncertain transaction remains held when no canonical receipt is available, rather
-than being marked failed or replaced. Identity invalidations and audit records remain, but they
+than being marked failed or replaced. Invalidations and audit records remain, but they
 cannot start a whitelist transaction. Reconciled deployments do not start a trading approval.
 
 The historical protocols below describe the retained records and their safeguards. Off-chain
@@ -95,8 +95,8 @@ kind or contract function for either exists, and shares are whole units at every
 | Register       | `RegisterPosition.shares` and `ShareRegister.issued_supply` are `DecimalField(decimal_places=0)` (`backend/tokens/models/register.py`)                                    |
 | Register event | The register entry guard (`tokens_guard_register_entry` in `backend/tokens/database_guards.sql`) requires every change's `shares` to be a whole, non-zero, signed integer |
 
-`RegisterInstructionKind` has `issue` and `transfer` only; a `cessation` must reach exactly zero, a
-`correction` must exactly invert an earlier entry, and `backend/tokens/database_mirror_guards.sql`
+`RegisterInstructionKind` has `issue` and `transfer` only; a `cessation` must reach exactly zero, no
+new `correction` is admitted, and `backend/tokens/database_mirror_guards.sql`
 confines a `mirror_correction`'s signed differences to an imported register's applied snapshot
 before deployment and any entry other than the opening and earlier mirror corrections. No kind can
 reduce a holding partially on a live class. `mint`, `setAuthorizedShares` and `pause` are
@@ -428,7 +428,7 @@ keep retained private entry reads, sync and export and original technical recove
 advisory lock precedes the company and source locks, and a fresh signature also rechecks the
 captured nomination, proof, participant and expiry. Permanent source loss on never-signed work
 fails the claim and projects that failure, releasing its target so a genuine loss REMOVE is not
-stranded behind it; it invents no standing, identity or wallet-deletion cause.
+stranded behind it; it invents no standing or wallet-deletion cause.
 
 A change's `pending` and `executing` are unresolved (the nested operation tells PREPARING from
 SIGNED); `confirmed` records the original successful transaction, `unchanged` a real no-transaction
@@ -458,14 +458,14 @@ still move shares, and pausing the token is the operator's lever.
 ### Refreshing an approval
 
 `whitelist.services.refresh` keeps technical invalidation. It submits only REMOVE, under the
-actual retained standing, identity or wallet-loss cause, and never adds or renews approval,
+actual retained standing or wallet-loss cause, and never adds or renews approval,
 authorises a company instruction or treats a possession-proof refresh as wallet deletion. A
-participant who is current again explains why a standing or identity loss needs no removal, but a
+participant who is current again explains why a standing loss needs no removal, but a
 wallet removal still removes; absence of a genuine cause is diagnostic, not permission to write.
 The sweep reads the registry's expiry (an expired address needs no write) and recovers an
 unresolved predecessor first; missing receipts, time or membership never release a signed operation.
 
-Standing, identity or wallet verification loss and wallet deletion keep the actual prior facts and
+Standing or wallet verification loss and wallet deletion keep the actual prior facts and
 any actor, independent of any new company instruction. The eligibility causes (claim or request
 withdrawal, company revocation, eligibility expiry and evidence purge) went with investor
 eligibility on 2 November 2026 ([decision](../decisions.md#verification-limited-to-id-checks)).
@@ -738,8 +738,8 @@ rate stored then; `sync_exchange_rates` refreshes the rate every 10 minutes and 
 Wallet sync skips the hash of a transfer the app recorded before mining. Rule windows use the block
 time or, before mining, the recorded time. `TRANSACTION_MONITORING_WINDOW_HOURS` and `NEW_CUSTOMER_DAYS` are in
 `backend/compliance/constants.py`. The `users_keep_first_activation` trigger keeps an account's
-earliest activation date through suspension and reactivation; it can still move earlier, which is
-how the demo seed dates its testers from their identity decision.
+earliest activation date through suspension and reactivation; it can still move earlier. An account
+never activated is new for `NEW_CUSTOMER_DAYS` after it was created.
 
 ### Portfolio history
 

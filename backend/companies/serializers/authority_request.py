@@ -10,14 +10,15 @@ from companies.models import (
     CompanyCapability,
     CompanyType,
 )
+from companies.services.administration import LAST_ADMINISTRATOR, last_administrator
 from companies.services.authority import (
     SIGNUP_DECLARATION_VERSION,
     is_company_appointment_effective,
 )
 
 VERIFICATION_UNAVAILABLE = (
-    "Request retained. Accept the company authority and Terms acknowledgement to establish initial authority once "
-    "any required identity check passes. This pending request grants no company authority."
+    "Request retained. Accept the company authority and Terms acknowledgement to establish initial authority. "
+    "This pending request grants no company authority."
 )
 WITHDRAWN_MESSAGE = (
     "Request withdrawn. Its evidence and original terms remain retained and accessible; "
@@ -89,6 +90,7 @@ class CompanyAppointmentSerializer(serializers.ModelSerializer):
         source="revocation.created_at", read_only=True, allow_null=True, default=None
     )
     status = serializers.ChoiceField(choices=["active", "expired", "revoked"], read_only=True)
+    revocation_blocked_reason = serializers.SerializerMethodField()
 
     class Meta:
         model = CompanyAppointment
@@ -101,6 +103,7 @@ class CompanyAppointmentSerializer(serializers.ModelSerializer):
             "revoked_at",
             "status",
             "is_effective",
+            "revocation_blocked_reason",
             "declaration_version",
             "declaration_text",
         ]
@@ -108,6 +111,9 @@ class CompanyAppointmentSerializer(serializers.ModelSerializer):
 
     def get_is_effective(self, obj) -> bool:
         return is_company_appointment_effective(obj)
+
+    def get_revocation_blocked_reason(self, obj) -> str | None:
+        return LAST_ADMINISTRATOR if last_administrator(obj) else None
 
 
 class AuthorityPersonIdentitySnapshotSerializer(serializers.Serializer):

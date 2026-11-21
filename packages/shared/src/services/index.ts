@@ -19,7 +19,6 @@ export {
   deleteAccount,
   exportAccountData,
 } from './users';
-export { getIdentityVerificationToken, getIdentityVerificationStatus } from './identityVerification';
 export { getCurrentUserPreferences } from './userPreferences';
 export {
   registerDeviceToken,
@@ -35,6 +34,7 @@ export {
   registerCompany,
   getCompany,
   updateCompany,
+  deleteCompany,
   createCompanyPack,
   getCompanyPacks,
 } from './companies';
@@ -81,14 +81,6 @@ export {
   downloadRegisterImportFile,
 } from './register-imports';
 export {
-  getRegisterEntries,
-  getRegisterCorrections,
-  prepareRegisterCorrection,
-  previewRegisterCorrectionDecision,
-  decideRegisterCorrection,
-  downloadRegisterCorrectionFile,
-} from './register-corrections';
-export {
   getRegisterParticularsChanges,
   editRegisterParticulars,
   downloadRegisterParticularsChangeFile,
@@ -99,3 +91,4 @@ export * from './register-allotments';
 
 export * from './member-access';
 export * from './register-people';
+export * from './register-entries';

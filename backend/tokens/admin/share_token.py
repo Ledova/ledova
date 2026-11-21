@@ -93,8 +93,6 @@ class ShareTokenAdmin(admin.ModelAdmin):
     search_fields = ["name", "symbol", "contract_address", "company__name"]
     readonly_fields = [
         "uuid",
-        "deleted_at",
-        "deleted_by",
         "contract_address",
         "chain",
         "deployment_tx_hash",
@@ -108,12 +106,6 @@ class ShareTokenAdmin(admin.ModelAdmin):
         "pause_submission_status",
     ]
     ordering = ["-created_at"]
-
-    def get_queryset(self, request):
-        return ShareToken.all_objects.all().order_by(*self.ordering)
-
-    def has_change_permission(self, request, obj=None):
-        return super().has_change_permission(request, obj) and not (obj and obj.deleted_at)
 
     def get_readonly_fields(self, request, obj=None):
         readonly = list(super().get_readonly_fields(request, obj))
@@ -170,7 +162,7 @@ class ShareTokenAdmin(admin.ModelAdmin):
         (
             "Timestamps",
             {
-                "fields": ["created_at", "updated_at", "deleted_at", "deleted_by"],
+                "fields": ["created_at", "updated_at"],
                 "classes": ["collapse"],
             },
         ),

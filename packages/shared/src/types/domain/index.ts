@@ -1,5 +1,4 @@
 export * from './auth';
-export * from './identity-verification';
 export * from './notifications';
 export * from './user';
 export * from './user-preferences';
@@ -12,7 +11,7 @@ export * from './register-grant';
 export * from './register-award';
 export * from './register-transfer';
 export * from './register-import';
-export * from './register-correction';
+export * from './register-entries';
 export * from './register-particulars';
 export * from './operator';
 

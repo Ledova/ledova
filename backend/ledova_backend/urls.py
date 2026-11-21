@@ -8,9 +8,6 @@ from assets import views as asset_views
 from authentication import views as auth_views
 from feature_flags import views as feature_flag_views
 from integrations.alchemy import AlchemyWebhookView
-from integrations.kycaid.crypto_webhook import KYCAIDCryptoWebhookView
-from integrations.kycaid.webhook import KYCAIDWebhookView
-from integrations.sumsub import SumSubWebhookView
 from portfolios import views as portfolio_views
 from users import views as user_views
 from wallets import views as wallet_views
@@ -34,14 +31,7 @@ router.register(r"portfolios", portfolio_views.PortfolioViewSet, basename="portf
 router.register(r"assets", asset_views.AssetViewSet, basename="assets")
 router.register(r"feature-flags", feature_flag_views.FeatureFlagViewSet, basename="feature-flags")
 
-identity_verification_router = DefaultRouter()
-identity_verification_router.register(r"", user_views.IdentityVerificationViewSet, basename="identity-verification")
-
 urlpatterns = [
-    path("api/users/identity-verification/", include(identity_verification_router.urls)),
-    path("webhooks/sumsub/", SumSubWebhookView.as_view(), name="sumsub-webhook"),
-    path("webhooks/kycaid/", KYCAIDWebhookView.as_view(), name="kycaid-webhook"),
-    path("webhooks/kycaid/crypto/", KYCAIDCryptoWebhookView.as_view(), name="kycaid-crypto-webhook"),
     path("webhooks/alchemy/", AlchemyWebhookView.as_view(), name="alchemy-webhook"),
     path("api/operator/", include("operators.urls", namespace="operators")),
     path("api/v1/companies/", include("companies.urls", namespace="companies")),

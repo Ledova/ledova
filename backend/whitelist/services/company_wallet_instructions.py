@@ -12,7 +12,6 @@ from companies.models import Company, CompanyAppointment, CompanyCapability
 from companies.services.administration import company_operation, lock_company_actor
 from companies.services.authority_requests import _requester_principal
 from integrations.base_chain import get_base_chain_client
-from operators.models import Operator
 from shared.db import atomic, use_operator
 from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
@@ -82,7 +81,6 @@ def _lock_context(company, actor_ids, associations, appointments):
     )
     if sorted((row.pk, row.user_id) for row in locked_profiles) != sorted(profiles):
         raise WhitelistSigningHold(["wallet_source_changed"])
-    operator = Operator.objects.select_for_update().get(pk=1)
     list(
         CompanyAppointment.objects.select_for_update().filter(pk__in=[row.pk for row in appointments]).order_by("uuid")
     )
@@ -93,7 +91,6 @@ def _lock_context(company, actor_ids, associations, appointments):
         ):
             raise WhitelistSigningHold(["wallet_source_changed"])
         WalletPossessionProof.objects.select_for_update().filter(pk=associations["proof"]).first()
-    return operator, wallet
 
 
 def _associations(proposal):
@@ -121,7 +118,7 @@ def wallet_command(actor, proposal, operation, recorded=False):
             )
         )
         try:
-            operator, _ = _lock_context(
+            _lock_context(
                 company,
                 {actor.pk, *(row.decided_by_id for row in decision_rows)},
                 _associations(proposal),
@@ -131,7 +128,7 @@ def wallet_command(actor, proposal, operation, recorded=False):
             raise ValidationError({"unmet_requirements": error.unmet_requirements}) from None
         current_actor = get_user_model().objects.get(pk=actor.pk)
         profile = UserProfile.objects.filter(user=current_actor).first()
-        yield company, current_actor, profile, operator
+        yield company, current_actor, profile
 
 
 def _source_terms(company, nomination, target_change, expires_at, registry):
@@ -295,11 +292,8 @@ def prepare_wallet_instruction(
             company_row,
             current_actor,
             profile,
-            operator,
         ):
-            source = register_appointment(
-                company_row, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            source = register_appointment(company_row, current_actor, profile, appointment, CompanyCapability.PREPARE)
             unmet = _state(proposal)
             if unmet:
                 raise ValidationError({"unmet_requirements": unmet})

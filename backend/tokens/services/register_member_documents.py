@@ -1,17 +1,28 @@
 from uuid import UUID, uuid5
 
 from django.db import IntegrityError
+from django.db.models import Q
 from rest_framework.exceptions import NotFound, ValidationError
 
-from companies.models import CompanyCapability
+from companies.models import CompanyCapability, DeletionScope
+from companies.services.company_deletion import (
+    current_appointment,
+    discard,
+    follow_ups,
+    remove,
+    reverse_relations,
+    stored_files,
+)
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import (
     RegisterEvidence,
     RegisterEvidenceKind,
+    RegisterImport,
     RegisterMemberDocument,
     RegisterMemberDocumentCategory,
     RegisterPosition,
 )
+from tokens.services.pending_deletion import RECORD_GONE
 from tokens.services.register_authority import register_appointment, register_command
 from tokens.services.register_evidence import evidence_snapshot, matching_bytes
 
@@ -53,11 +64,38 @@ def member_document_evidence(*, company, member, token, actor, evidence_id, cate
     return evidence
 
 
+DELETED_DOCUMENT = "A shareholder document in these records was deleted. Remove it, or upload the file again."
+
+
+def deleted_attachment(*, company, token, member, evidence_id):
+    return (
+        not RegisterMemberDocument.objects.filter(token=token, member_id=member, evidence_id=evidence_id).exists()
+        and RegisterImport.objects.filter(
+            company=company,
+            token=token,
+            status="applied",
+            members__contains=[{"member": str(member), "documents": [{"evidence": str(evidence_id)}]}],
+        ).exists()
+    )
+
+
+def deleted_import_documents(proposal):
+    return any(
+        deleted_attachment(
+            company=proposal.company_id, token=proposal.token_id, member=member["member"], evidence_id=row["evidence"]
+        )
+        for member in proposal.members
+        for row in member.get("documents", [])
+    )
+
+
 def retain_import_documents(members, company, token, actor):
     for member in members:
         if "documents" not in member:
             continue
         for row in member["documents"]:
+            if deleted_attachment(company=company, token=token, member=member["member"], evidence_id=row["evidence"]):
+                raise ValidationError(DELETED_DOCUMENT)
             evidence = member_document_evidence(
                 company=company,
                 member=member["member"],
@@ -131,8 +169,8 @@ def link_import_documents(proposal, actor, appointment):
 
 
 def add_member_document(*, actor, company_id, member, token, evidence, category, appointment, idempotency_key):
-    with register_command(actor, company_id, "register_member_document") as (company, actor, profile, operator):
-        source = register_appointment(company, actor, profile, operator, appointment, CompanyCapability.PREPARE)
+    with register_command(actor, company_id, "register_member_document") as (company, actor, profile):
+        source = register_appointment(company, actor, profile, appointment, CompanyCapability.PREPARE)
         if not RegisterPosition.objects.filter(
             register__company=company, register__token_id=token, member_id=member, member__company=company
         ).exists():
@@ -150,3 +188,48 @@ def add_member_document(*, actor, company_id, member, token, evidence, category,
             appointment=source,
             idempotency_key=idempotency_key,
         )
+
+
+NO_DOCUMENT_PREPARER = "A current company administrator or preparer is required to delete this document."
+
+
+def evidence_kept(evidence_id, document_id):
+    for related in reverse_relations(RegisterEvidence):
+        rows = related.related_model._base_manager.filter(**{related.field.attname: evidence_id})
+        if related.related_model is RegisterMemberDocument:
+            rows = rows.exclude(pk=document_id)
+        if rows.exists():
+            return True
+    return RegisterImport._base_manager.filter(
+        members__contains=[{"documents": [{"evidence": str(evidence_id)}]}]
+    ).exists()
+
+
+def delete_member_document(*, actor, document):
+    with register_command(actor, document.company_id, "register_document_delete") as (
+        company,
+        current,
+        _profile,
+    ):
+        document = RegisterMemberDocument.objects.select_for_update().filter(pk=document.pk, company=company).first()
+        appointment, expires_at = current_appointment(
+            current, company.pk, [CompanyCapability.ADMIN, CompanyCapability.PREPARE]
+        )
+        if document is None:
+            raise NotFound(RECORD_GONE)
+        if appointment is None:
+            raise NotFound(NO_DOCUMENT_PREPARER)
+        rows = {RegisterMemberDocument: list(RegisterMemberDocument._base_manager.filter(pk=document.pk).values())}
+        evidence = RegisterEvidence._base_manager.select_for_update().filter(pk=document.evidence_id).first()
+        if evidence is not None and not evidence_kept(evidence.pk, document.pk):
+            rows[RegisterEvidence] = list(RegisterEvidence._base_manager.filter(pk=evidence.pk).values())
+        files = stored_files(rows)
+        remove(
+            company_id=company.pk,
+            actor_id=current.pk,
+            appointment_id=appointment,
+            scope=DeletionScope.DOCUMENT,
+            rows=follow_ups(rows, lambda data: Q(pk__in=[])),
+            expires_at=expires_at,
+        )
+    discard(files)

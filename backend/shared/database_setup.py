@@ -23,6 +23,7 @@ from tokens import (
     database_class_documents,
     database_class_lifecycle,
     database_class_rights,
+    database_entry_deletion,
     database_event_date_guards,
     database_member_documents,
     database_member_name_guards,
@@ -68,6 +69,7 @@ FAMILY_GUARDS = (
     activation_guards.install,
     database_class_lifecycle.install,
     database_class_details.install,
+    database_entry_deletion.install,
 )
 
 CREATE_ROLES = """

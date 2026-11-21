@@ -3,14 +3,14 @@ import re
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, connections
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
-from companies.models import CompanyAppointment, CompanyCapability
+from companies.models import CompanyCapability
 from companies.services.authority_requests import _requester_principal
 from shared.db import current_alias, use_operator
 from tokens.constants import MAX_UINT256, REGISTER_IMPORT_ADDRESS_LENGTH
@@ -39,13 +39,7 @@ from tokens.services.former_holders import retention_cutoff
 from tokens.services.member_events import current_associations
 from tokens.services.register import _member_identity, imported_membership_dates
 from tokens.services.register_authority import register_appointment, register_command
-from tokens.services.register_decisions import (
-    DecisionFamily,
-    _digest,
-    _reject,
-    decide,
-    preview,
-)
+from tokens.services.register_decisions import DecisionFamily, decide, preview
 from tokens.services.register_events import create_member, record_entry
 from tokens.services.register_evidence import (
     discard,
@@ -56,6 +50,7 @@ from tokens.services.register_evidence import (
 from tokens.services.register_instructions import APPROVED
 from tokens.services.register_member_documents import (
     check_import_documents,
+    deleted_import_documents,
     document_rows,
     link_import_documents,
     retain_import_documents,
@@ -327,7 +322,7 @@ def _correction_requirements(proposal):
 
 
 def correction_allowed(proposal):
-    if proposal.status != "applied" or proposal.token.deleted_at:
+    if proposal.status != "applied":
         return False
     register = ShareRegister.objects.filter(token_id=proposal.token_id).first()
     if register is None:
@@ -424,11 +419,8 @@ def prepare_import(
             company,
             current_actor,
             profile,
-            operator,
         ):
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             token = ShareToken.objects.select_for_update().filter(pk=token_id, company=company).first()
             if token is None:
                 raise NotFound("Share class not found.")
@@ -630,6 +622,8 @@ def _effect_requirements(proposal):
             matching_bytes(proposal.asic_file, proposal.asic_snapshot["file_size"], proposal.asic_fingerprint)
     except ValidationError:
         unmet.append("evidence_unavailable")
+    if deleted_import_documents(proposal):
+        unmet.append("document_deleted")
     token = proposal.token
     if proposal.correction_of_id is not None:
         unmet.extend(_correction_requirements(proposal))
@@ -784,36 +778,3 @@ def decide_import(*, actor, import_id, appointment, kind, idempotency_key, previ
         confirmation=confirmation,
         reason=reason,
     )
-
-
-def retire_class_imports(token, actor, profile, operator):
-    proposals = list(
-        RegisterImport.objects.select_for_update().filter(token=token, status="submitted").order_by("uuid")
-    )
-    if not proposals:
-        return
-    appointment = (
-        CompanyAppointment.objects.current_for(actor, token.company_id, at=timezone.now(), identity_required=False)
-        .holding_any([CompanyCapability.ADMIN, CompanyCapability.PREPARE])
-        .order_by("uuid")
-        .first()
-    )
-    if appointment is None:
-        raise NotFound("A current company administrator or preparer is required to delete this share class.")
-    source = register_appointment(token.company, actor, profile, operator, appointment.pk, CompanyCapability.PREPARE)
-    reason = "Retired automatically when deleting the unused share class."
-    for proposal in proposals:
-        identifier = uuid4()
-        decision = RegisterImportDecision.objects.create(
-            uuid=identifier,
-            register_import=proposal,
-            kind="reject",
-            decided_by=actor,
-            appointment=source,
-            idempotency_key=identifier,
-            digest=_digest(IMPORTS, proposal, "reject", actor, source, reason),
-            reason=reason,
-            decided_at=timezone.now(),
-        )
-        decision.refresh_from_db(fields=["decided_at"])
-        _reject(proposal, actor, decision)

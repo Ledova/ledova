@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin
 from django.utils import timezone
 
@@ -12,10 +13,22 @@ from compliance.admin._helpers import (
     badge,
     choice_badge,
 )
+from compliance.constants import ALERT_TYPE_CHOICES
 from compliance.models import AlertChecklistItem, ComplianceAlert
 from shared.utils.admin_display import admin_link
 
 ALERT_STATUS_COLOURS = {"new": TEAL, "reviewing": YELLOW, "escalated": ORANGE, "closed": GREY}
+
+
+class ComplianceAlertForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "alert_data" in self.fields:
+            self.fields["alert_data"].required = False
+
+    def clean_alert_data(self):
+        data = self.cleaned_data["alert_data"]
+        return {} if data is None else data
 
 
 class AlertChecklistItemInline(admin.TabularInline):
@@ -67,10 +80,11 @@ class AlertChecklistItemInline(admin.TabularInline):
 
 @admin.register(ComplianceAlert)
 class ComplianceAlertAdmin(admin.ModelAdmin):
+    form = ComplianceAlertForm
     list_display = [
         "triggered_rule",
         "user_account",
-        "alert_type",
+        "alert_type_label",
         "severity_badge",
         "status_badge",
         "assigned_to",
@@ -93,6 +107,7 @@ class ComplianceAlertAdmin(admin.ModelAdmin):
         "updated_at",
         "monitoring_rule",
         "transaction_link",
+        "alert_type_label",
     ]
     ordering = ["-created_at"]
     date_hierarchy = "created_at"
@@ -114,6 +129,17 @@ class ComplianceAlertAdmin(admin.ModelAdmin):
         ("Account Action", {"fields": ("account_action", "account_action_at")}),
         ("System Information", {"fields": ("uuid", "created_at", "updated_at"), "classes": ("collapse",)}),
     )
+
+    def get_fieldsets(self, request, obj=None):
+        if obj is None or obj.alert_type in dict(ALERT_TYPE_CHOICES):
+            return self.fieldsets
+        (name, options), *rest = self.fieldsets
+        fields = tuple("alert_type_label" if field == "alert_type" else field for field in options["fields"])
+        return ((name, {**options, "fields": fields}), *rest)
+
+    @admin.display(description="Alert type", ordering="alert_type")
+    def alert_type_label(self, obj):
+        return obj.get_alert_type_display()
 
     @admin.display(description="Severity", ordering="severity")
     def severity_badge(self, obj):

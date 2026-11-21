@@ -60,7 +60,7 @@ changes have no admin page.
 
 Every change except a [particulars change](#changing-a-members-particulars) rests on evidence the
 company provides ([company-provided evidence](README.md#company-provided-evidence)). The authority
-document behind an opening, correction, wallet link, transfer or
+document behind an opening, wallet link, transfer or
 [retained instruction](#retained-director-instructions) is a director resolution naming the
 approving director or, except for a transfer or instruction, a court order with its reference. Uploads are PDF,
 PNG or JPEG files within the upload limit (10 MB by default); evidence downloads are not logged.
@@ -77,12 +77,13 @@ Every change is an entry:
 | Issue                      | Adds a positive whole number of shares to one member                             |
 | Transfer                   | Moves shares between members; issued shares do not change                        |
 | Cessation                  | Removes a member's entire holding in this class; no current workflow records one |
-| Compensating correction    | Exactly reverses every change of one earlier entry                               |
+| Compensating correction    | Exactly reverses every change of one earlier entry; none is made any more        |
 | Copied opening correction  | Records the exact difference when the company corrects the opening's records     |
 
-Entries are never edited or deleted ([nothing is overwritten](README.md#nothing-is-overwritten)),
-and each is linked to the one before, so altered history is detected when the register is verified
-([the entry chain](../engineering/records.md#entries-and-the-hash-chain)). Shares are whole numbers,
+Entries are never edited, and each is linked to the one before, so altered history is detected when
+the register is verified ([the entry chain](../engineering/records.md#entries-and-the-hash-chain)).
+A company can [delete an issue, transfer or correction](#deleting-a-register-entry); the later
+entries are then linked again. Shares are whole numbers,
 no change takes a holding below zero, and emptying a holding leaves a zero position. A cessation
 covers this class only; recording a cessation or correction burns, seizes or transfers nothing on
 chain. Entries name members by member ID, keeping names and residential addresses as particulars.
@@ -91,7 +92,8 @@ New non-tokenised grants, investor allotments and direct transfers require the c
 the actual issue or transfer date. It is separate from terms, agreement, receipt, signing and
 lodgement dates and from Ledova's immutable preparation, approval and recording timestamps. The
 company date must be no later than today (UTC) and no earlier than the applicable opening or latest
-effective event; an earlier event needs separately scoped correction or reconciliation. The normal
+effective event; an earlier event means deleting the later entries and recording them again, or, before
+the opening, correcting the copied opening. The normal
 path does not replay history. Chain issues retain their existing execution and finality dates.
 
 Review, details and history show the supplied company date separately from the ledger date where
@@ -188,7 +190,9 @@ Only the company owner, current register appointees and the operator read former
 Former shareholders on Shareholders and on a former member's own page; register appointees also see
 them, with residential addresses, in inspection copies. Particulars are
 kept while a person is a member and for the retention period after they last held shares, at least
-seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)).
+seven years, then purged for good ([retention](../engineering/security.md#retention-clocks)). The
+clock runs from the person's recorded positions, so when the only class someone held is deleted,
+their particulars stay until the company deletes that person or the company.
 
 ## Opening a register
 
@@ -318,9 +322,14 @@ with **Record a shareholding before adding documents.** Class-wide governing doc
 [Class rights](issuing-shares.md#class-rights); company source copies belong to the whole opening
 and remain separate.
 
-Files and their record links are retained, with the uploader, appointment, category and file
-fingerprint. Later uploads add attachments without overwriting stored files. One stored file can
-support several linked people without duplicating its bytes.
+Files and their record links are kept, with the uploader, appointment, category and file
+fingerprint, until a current preparer deletes the attachment. Later uploads add attachments without
+overwriting stored files. One stored file can support several linked people without duplicating its
+bytes. **Delete** on an attachment, after one confirmation, removes that link for everyone; the
+stored file goes too unless another attachment or record still uses it. An attachment added while
+bringing records in stays listed in that opening record, but correcting the copied opening leaves it
+out once deleted. Records naming a deleted attachment can't be prepared, approved or applied; upload
+the file again to re-attach it.
 Current company register readers can download them; they are not shared automatically with members
 or published. A category describes the company's attachment: uploading a Share certificate neither
 generates nor verifies one, and an attachment does not replace an issue's required approval,
@@ -334,7 +343,8 @@ each member ID, with a current source and a reason. Applying keeps the earlier s
 opening entry, adds a Copied opening correction entry for the exact difference (none when only
 particulars change) and records the new particulars. It is refused once the class has later share
 activity, a deployment, or member-access or particulars activity; the company then resolves its
-records and uses the supported workflow.
+records and uses the supported workflow. The correction starts from the copied rows and the
+attachments they still have; attachments deleted since are left out.
 
 ### Opening from the chain
 
@@ -364,24 +374,27 @@ mapped wallet was linked elsewhere since, reject it and prepare another.
 
 ## Changing the register after the opening
 
-### Compensating corrections
+### Deleting a register entry
 
-A correction exactly reverses one entry, which stays and is named by it. An entry can be corrected
-once, and a correction can itself be corrected; partial corrections and replacement transactions are
-not built.
+A mistaken issue, transfer or correction is deleted rather than reversed. On the web or in the app,
+in Ledger's Corrections view, a current preparer chooses **Delete** at the end of the entry's row and
+confirms once; it can't be undone. The entry goes with the record behind it: the allotment with its
+agreement and receipt, the grant, the transfer or the correction, with their approvals and any
+cessation the entry recorded. Particulars it recorded stay with the person, and its evidence stays
+on file. Later entries move up one place and holdings are recalculated. To record it again
+correctly, issue or transfer the shares as usual.
 
-1. On the web or in the app, in Ledger's Corrections view, choose Correct on the entry, which shows
-   the exact inverse.
-2. Upload the authority document and give the authority, approving director, reference, reason and
-   an effective date of today (UTC) or earlier; a later date would hold back later issues and
-   transfers.
-3. Approve, then Apply. The correction waits under **Needs a decision**, then moves under
-   **Corrected**, or **Rejected** if it is rejected.
+A delete is refused, naming the later entry to delete first and the people it records, when a later entry would take a holding
+below zero or would no longer end or bring back a holding as recorded. A corrected entry is deleted
+after its correction. The opening can't be deleted (delete the share class to start again), nor can a
+copied opening correction (correct the copied opening again) or an entry of a class with on-chain
+records.
 
-A correction is refused for an entry with no changes or already corrected, or an inverse taking a
-holding below zero; if a newer entry was recorded after preparation, reject it and prepare another.
-On a class on chain the next reconciliation reports member and supply differences for the company to
-[acknowledge](#acknowledging-a-discrepancy).
+Compensating corrections are no longer made. One recorded earlier stays in the history as a
+**Compensating correction** entry naming the entry it reverses, and can be deleted like any other
+entry; its record, decisions and evidence stay in the [company pack](member-records.md#the-company-pack)
+until then. Corrections that never changed the register, still waiting for a decision or rejected,
+were removed when the workflow was retired.
 
 ### Changing a member's particulars
 
@@ -496,8 +509,8 @@ direct transfer while the class is marked non-transferable, rechecking the restr
 approval and application. The company determines whether its constitution and shareholder
 agreements permit the transfer; Ledova does not interpret those documents. Court-directed, paid and chain
 transfers are not built;
-court-backed [corrections](#compensating-corrections) remain. An imported register takes no
-Cessation entry, and its corrections are ordinary company corrections.
+a mistaken transfer is [deleted](#deleting-a-register-entry). An imported register takes no
+Cessation entry.
 
 ## Completed chain effects and waiting entries
 
@@ -536,10 +549,9 @@ decision covers: settled market transfers, and direct issues approved before iss
 company-run. Under one [owner decision](../decisions.md#the-stored-register), both keep a staff
 review, for settled transfers until [#869](https://github.com/Ledova/ledova/issues/869):
 
-1. The company owner, while a current administrator of the company (with a verified identity where
-   your instance requires it), submits an instruction listing the exact items a named director
-   approved, with the authority reference, a reason and the authority document they uploaded for the
-   company, of which Ledova keeps a private copy
+1. The company owner, while a current administrator of the company, submits an instruction listing
+   the exact items a named director approved, with the authority reference, a reason and the
+   authority document they uploaded for the company, of which Ledova keeps a private copy
    ([decision](../decisions.md#company-documents-removed)). Neither app has a form for it; it goes
    through Ledova's API
    ([retained instructions API](../engineering/records.md#retained-register-instructions-api)).
@@ -647,17 +659,17 @@ The Ledger view shows:
 - **Add** below the card, aligned right, for someone who can prepare the register, opening
   [register setup](#bringing-in-existing-records) for the selected company.
 
-On web and mobile, selection controls appear when at least one class can be removed. Checkboxes
-select classes individually; for multiple classes, **Select all** selects every class shown, including
-protected classes. A single class needs only its own checkbox.
-**Delete** confirms which selected classes can be removed and which will be kept, with
-their reasons ([safe class deletion](issuing-shares.md#share-classes)).
+On web and mobile, selection controls appear when at least one class can be deleted. Checkboxes
+select classes individually; for multiple classes, **Select all** selects every class shown. A single
+class needs only its own checkbox. **Delete** confirms which selected classes will be deleted with
+all their records and which will be kept, with their reasons
+([class deletion](issuing-shares.md#share-classes)).
 
 The mobile app's Ledger shows the same rows to a register reader of the selected company, and **Add**
-to someone who can prepare the register. Dashboard Set up your ledger and the menu's Share classes open that same overview. Selecting an unfinished class continues the clickable setup in its class workspace; an opened class shows its current ownership, rights and documents. Both clients expose the same safe details editing and deletion eligibility, including the reason when deletion is blocked. The menu lists Issue
+to someone who can prepare the register. Dashboard Set up your ledger and the menu's Share classes open that same overview. Selecting an unfinished class continues the clickable setup in its class workspace; an opened class shows its current ownership, rights and documents. Both clients expose the same details editing and deletion eligibility, including the reason when deletion is blocked. The menu lists Issue
 shares, Transfer shares and Corrections beneath it ([investor and non-paid issues](issuing-shares.md#ways-to-issue-shares),
 [non-paid transfers](#non-paid-transfers-between-members),
-[compensating corrections](#compensating-corrections)).
+[deleting a register entry](#deleting-a-register-entry)).
 
 Ledger's three web sidebar sub-items each open their own focused view, with a shared share-class
 selector and without the Share classes card: Issue shares
@@ -665,35 +677,31 @@ selector and without the Share classes card: Issue shares
 ([non-paid transfers](#non-paid-transfers-between-members)) and Corrections.
 
 Corrections starts with a full-width Changes card, newest entries first. Each entry is a compact
-row: its kind and short date ("Issue · 26 Oct 2026"), with Correct at the end of a row that may be
-corrected, then its first two signed shareholder movements, with Show all for the rest. The date is
+row: its kind and short date ("Issue · 26 Oct 2026"), with a red Delete at the end of a row a current
+preparer can delete, then its first two signed shareholder movements, with Show all for the rest. The date is
 the company date for an issue or transfer (ledger effective date for other kinds), with the ledger
 date beneath when it differs, and any correction or reversal is named beneath by kind and date. On
 wide screens the rows align under Change, Date and Share movements. Rows don't expand. An older
-issue or transfer with no company date says Date not recorded. Retained source imports, corrections
+issue or transfer with no company date says Date not recorded. Retained source imports
 and particulars records stay listed with their details and permitted evidence downloads; chain
 openings, reconciliations and wallet links are read through the API since
-[#1452](https://github.com/Ledova/ledova/issues/1452). Entries remain immutable. Current register
+[#1452](https://github.com/Ledova/ledova/issues/1452). Entries are never edited. Current register
 readers can inspect the records; preparation, approval and application controls still require their
 respective company appointments.
 The former web History address opens Corrections with the same company and class. Certificates are
 prepared in [Documents](member-records.md#preparing-a-certificate).
 
-The same view holds the existing append-only correction and maintenance workflows: corrections,
-source opening records and particulars changes. Each record is a compact summary, as on Issue
-shares; selecting it shows or hides its snapshot, documents and decision trail. Only an unfinished
-record, a rejected opening record, or a particulars change that was not applied shows its status
-beneath it, with any decisions. Corrections sit under **Needs a
-decision**, **Corrected** and **Rejected**, the last two showing five with **Show all** for the
-rest; each reads like "Correction of the issue of 26 Oct 2026 to …", with the shares when it has one
-compensating change, then its effective date. An opening record shows its kind and shares, then its
+The same view holds the source opening records and particulars changes. Each record is a compact
+summary, as on Issue shares; selecting it shows or hides its snapshot, documents and decision trail.
+Only an unfinished record, a rejected opening record, or a particulars change that was not applied
+shows its status beneath it, with any decisions. An opening record shows its kind and shares, then its
 record date and member count; its shareholders sit behind **Show the shareholders**, open while it
 awaits a decision. A particulars change shows the member, then what changed and its as-at date, five
 at a time; its details show who changed the particulars and when, with the particulars before and
 after; one a linked member made reads Changed by: The member, in their Ledova profile. Stages read
 Prepared, Approved, Applied or Rejected (for an import, Reviewed and Confirmed; for a particulars
 change from before the one-step edit that was never applied, Prepared, not applied or Approved, not
-applied), and an import, a correction or such an earlier particulars change has an Evidence row
+applied), and an import or such an earlier particulars change has an Evidence row
 reading Provided by the company or, before the work became company-run, "Verified by Ledova staff".
 A section that read successfully with nothing to show is left out. An unfinished request keeps its
 class and exact request, and while one is held the company, task and class cannot be changed; its
@@ -703,11 +711,10 @@ withholds the share classes and the shareholder list rather than implying holdin
 The focused views reuse the existing controllers, authority checks and original-request recovery.
 The web refinements were delivered under [#1165](https://github.com/Ledova/ledova/issues/1165).
 
-The mobile app's Corrections has the same compact Changes rows, corrections with their decisions,
-Opening records and Particulars changes at phone width, for a register reader of the selected
-company. **Share class** is in Filters and stays locked while a review or an uncertain decision is
-open, Correct opens the preparation on its own page, a decision's review replaces the records, and
-documents go to the phone's share sheet. Opening records have Bring records or Correct copied
+The mobile app's Corrections has the same compact Changes rows with their **Delete**, Opening
+records and Particulars changes at phone width, for a register reader of the selected company.
+**Share class** is in Filters and stays locked while a review or an uncertain decision is open, an
+opening record's review replaces the records, and documents go to the phone's share sheet. Opening records have Bring records or Correct copied
 opening and the reviewing and confirming of copied openings, as on the web.
 
 The Shareholders view lists Current shareholders: one row per shareholder across classes, with a
@@ -788,6 +795,11 @@ to the legal register; a later confirmed opening, share issue or transfer record
 The company's current preparation or administration appointment is required. A retry retrieves
 the original person registration instead of creating another identity. Names and addresses can
 coincide between different people; the stored member ID distinguishes them.
+
+A person without shares shows **Delete** to a current preparer when nothing on the register names
+them: no recorded holding, cessation, award, grant, allotment, transfer, opening record or on-chain
+record. One confirmation removes their particulars, registration and particulars changes, and any
+invitation or access they have to their records; removing access needs a current administrator.
 
 An award recipient without shares has a person record from their first award. Every flow uses
 their member ID and current particulars, so an issue, a transfer or another award reaches the same

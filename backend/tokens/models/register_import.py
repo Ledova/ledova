@@ -240,8 +240,17 @@ class RegisterMemberParticulars(BaseModel):
                     source_allotment__isnull=True,
                     source_award__isnull=True,
                     source_registration__isnull=False,
+                )
+                | models.Q(
+                    source_import__isnull=True,
+                    source_change__isnull=True,
+                    source_grant__isnull=True,
+                    source_transfer__isnull=True,
+                    source_allotment__isnull=True,
+                    source_award__isnull=True,
+                    source_registration__isnull=True,
                 ),
-                name="register_member_particulars_one_source",
+                name="register_member_particulars_at_most_one_source",
             ),
         ]
 

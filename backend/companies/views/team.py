@@ -22,6 +22,7 @@ from companies.services.signup_terms import accept_signup_terms
 from companies.services.team import (
     accept_team_invitation,
     company_team,
+    delete_team_invitation,
     issue_team_invitation,
     revoke_company_appointment,
 )
@@ -32,11 +33,13 @@ class CompanyTeamInvitationViewSet(mixins.ListModelMixin, AuthenticatedGenericVi
     queryset = CompanyTeamInvitation.objects.none()
     serializer_class = CompanyTeamInvitationSerializer
     scoped_model = CompanyTeamInvitation
-    http_method_names = ["get", "post", "head", "options"]
-    operator_actions = frozenset({"list"})
+    http_method_names = ["get", "post", "delete", "head", "options"]
+    lookup_field = "uuid"
+    operator_actions = frozenset({"list", "destroy"})
     operator_actions_because = (
         "The inviter-private list loads acceptance timestamps through appointee-private appointments; "
-        "its queryset always binds the authenticated inviter and returns no appointee identity or evidence."
+        "its queryset always binds the authenticated inviter and returns no appointee identity or evidence. "
+        "Deleting an open invitation runs the bounded company command, which requires current administration."
     )
 
     def initial(self, request, *args, **kwargs):
@@ -70,6 +73,10 @@ class CompanyTeamInvitationViewSet(mixins.ListModelMixin, AuthenticatedGenericVi
         )
         response["Cache-Control"] = "private, no-store"
         return response
+
+    def destroy(self, request, uuid=None):
+        delete_team_invitation(requester=request.user, invitation_id=uuid)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(request=CompanyTeamInvitationAcceptSerializer, responses={200: OwnCompanyAppointmentSerializer})
     @action(detail=False, methods=["post"])

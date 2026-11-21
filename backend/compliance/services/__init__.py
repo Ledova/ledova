@@ -1,3 +1,1 @@
-from compliance.services.crypto_screening import CryptoScreeningService
-from compliance.services.risk_assessment import RiskAssessmentService
 from compliance.services.transaction_monitoring import TransactionMonitoringService

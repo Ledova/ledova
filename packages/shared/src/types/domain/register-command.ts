@@ -4,11 +4,6 @@ import type {
   RegisterAllotmentDecideRequest,
 } from './register-allotment';
 import type { ApiRequest, ApiSchema } from '../contracts';
-import type {
-  RegisterCorrection,
-  RegisterCorrectionDecideRequest,
-  RegisterCorrectionDecisionRequest,
-} from './register-correction';
 import type { RegisterImport, RegisterImportDecideRequest, RegisterImportDecisionRequest } from './register-import';
 import type { RegisterGrant, RegisterGrantDecideRequest, RegisterGrantDecisionRequest } from './register-grant';
 import type {
@@ -28,21 +23,14 @@ export type RegisterEvidenceUpload = Omit<ApiRequest<'api_v1_tokens_register_evi
 };
 export type RegisterDecisionKind = ApiSchema<'RegisterDecisionKindEnum'>;
 export type RegisterProposal =
-  | RegisterAllotment
-  | RegisterImport
-  | RegisterCorrection
-  | RegisterParticularsChange
-  | RegisterGrant
-  | RegisterTransfer;
+  RegisterAllotment | RegisterImport | RegisterParticularsChange | RegisterGrant | RegisterTransfer;
 export type RegisterDecisionRequest =
   | RegisterAllotmentDecisionRequest
   | RegisterImportDecisionRequest
   | RegisterGrantDecisionRequest
-  | RegisterTransferDecisionRequest
-  | RegisterCorrectionDecisionRequest;
+  | RegisterTransferDecisionRequest;
 export type RegisterDecideRequest =
   | RegisterAllotmentDecideRequest
   | RegisterImportDecideRequest
   | RegisterGrantDecideRequest
-  | RegisterTransferDecideRequest
-  | RegisterCorrectionDecideRequest;
+  | RegisterTransferDecideRequest;

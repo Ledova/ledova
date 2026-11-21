@@ -575,38 +575,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/users/identity-verification/status/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_users_identity_verification_status_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/users/identity-verification/token/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_users_identity_verification_token_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/companies/': {
     parameters: {
       query?: never;
@@ -633,7 +601,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_companies_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_companies_destroy'];
     options?: never;
     head?: never;
     patch: ApiOperations['api_v1_companies_partial_update'];
@@ -746,6 +714,22 @@ export interface ApiPaths {
     put?: never;
     post: ApiOperations['api_v1_company_authority_invitations_create'];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/company-authority/invitations/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: ApiOperations['api_v1_company_authority_invitations_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1007,6 +991,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/register/entries/{entry}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: ApiOperations['api_v1_tokens_register_entries_destroy'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/register/inspection-copies/': {
     parameters: {
       query?: never;
@@ -1193,7 +1193,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_member_invitations_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_member_invitations_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1337,7 +1337,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_allotments_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_allotments_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1695,86 +1695,6 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
-  '/api/v1/tokens/register-corrections/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_register_corrections_list'];
-    put?: never;
-    post: ApiOperations['api_v1_tokens_register_corrections_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/register-corrections/{uuid}/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_register_corrections_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/register-corrections/{uuid}/decide/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_tokens_register_corrections_decide_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/register-corrections/{uuid}/decision-preview/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: ApiOperations['api_v1_tokens_register_corrections_decision_preview_create'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/tokens/register-corrections/{uuid}/file/': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get: ApiOperations['api_v1_tokens_register_corrections_file_retrieve'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/api/v1/tokens/register-deployments/': {
     parameters: {
       query?: never;
@@ -1881,7 +1801,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_grants_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_grants_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -1993,7 +1913,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_imports_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_imports_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -2345,7 +2265,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_member_documents_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_member_documents_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -2473,7 +2393,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_particulars_changes_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_particulars_changes_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -2591,6 +2511,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/register-people/{uuid}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: ApiOperations['api_v1_tokens_register_people_destroy'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/register-reconciliations/': {
     parameters: {
       query?: never;
@@ -2665,7 +2601,7 @@ export interface ApiPaths {
     get: ApiOperations['api_v1_tokens_register_transfers_retrieve'];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: ApiOperations['api_v1_tokens_register_transfers_destroy'];
     options?: never;
     head?: never;
     patch?: never;
@@ -3513,7 +3449,6 @@ export interface ApiComponents {
     _CompanyUserProfileCreateRequest: {
       firstName: string;
       lastName: string;
-      phone?: string;
     };
     AccountExportData: {
       account: ApiComponents['schemas']['ExportedAccount'] | null;
@@ -3881,6 +3816,7 @@ export interface ApiComponents {
       delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       expiresAt: string | null;
       isEffective: boolean;
+      revocationBlockedReason: string | null;
       revokedAt: string | null;
       status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
       uuid: string;
@@ -4038,6 +3974,7 @@ export interface ApiComponents {
       expiresAt: string | null;
       isEffective: boolean;
       name: string;
+      revocationBlockedReason: string | null;
       revokedAt: string | null;
       source: ApiComponents['schemas']['CompanyAppointmentSourceEnum'];
       status: ApiComponents['schemas']['CompanyAppointmentStatusEnum'];
@@ -4277,7 +4214,6 @@ export interface ApiComponents {
       createdAt: string;
       dateOfBirth: string | null;
       fullName: string | null;
-      isIdVerified: boolean;
       phoneCountryCode: string | null;
       phoneNumber: string | null;
       residentialAddress: string | null;
@@ -4319,12 +4255,6 @@ export interface ApiComponents {
       name: string | null;
       nativeBalance: string;
       uuid: string;
-    };
-    ExtractedApplicantData: {
-      address: string | null;
-      dateOfBirth: string | null;
-      fullName: string | null;
-      residenceCountry?: string | null;
     };
     FeatureFlag: {
       description?: string;
@@ -4408,27 +4338,8 @@ export interface ApiComponents {
       walletUuid: string;
     };
     HttpStatusEnum: 400 | 403 | 409;
-    IdentityVerificationSession: {
-      accessToken: string | null;
-      applicantId: string | null;
-      formUrl: string | null;
-      provider: string;
-    };
-    IdentityVerificationStatus: {
-      applicantId: string | null;
-      extractedData: ApiComponents['schemas']['ExtractedApplicantData'] | null;
-      isVerified: boolean;
-      needsRetry: boolean;
-      provider: string;
-      rejectionLabels: string[];
-      reviewAnswer: string | null;
-      reviewResult: string | null;
-      status: string | null;
-      verifiedAt: string | null;
-    };
     IntendedUseEnum: 'long_term_investment' | 'trading_crypto' | 'savings' | 'other';
     IssuanceTypeEnum: 'initial' | 'additional' | 'bonus' | 'dividend' | 'transfer';
-    KycProviderEnum: 'sumsub' | 'kycaid';
     MarkAllReadResponse: {
       marked: number;
     };
@@ -4635,9 +4546,7 @@ export interface ApiComponents {
     Operator: {
       abn: string;
       contactEmail: string;
-      investorKycRequired: boolean;
       issuedStablecoin: ApiComponents['schemas']['SettlementAsset'] | null;
-      issuerKycRequired: boolean;
       legalName: string;
       name: string;
       supportedSettlementAssets: ApiComponents['schemas']['SettlementAsset'][];
@@ -4822,6 +4731,7 @@ export interface ApiComponents {
       delegatableCapabilities: ApiComponents['schemas']['CompanyCapabilityEnum'][];
       expiresAt: string | null;
       isEffective: boolean;
+      revocationBlockedReason: string | null;
       revokedAt: string | null;
       signupTerms: ApiComponents['schemas']['CompanySignupTermsReceipt'] | null;
       source: ApiComponents['schemas']['CompanyAppointmentSourceEnum'];
@@ -4976,12 +4886,6 @@ export interface ApiComponents {
       next?: string | null;
       previous?: string | null;
       results: ApiComponents['schemas']['RegisterCapitalIncrease'][];
-    };
-    PaginatedRegisterCorrectionList: {
-      count: number;
-      next?: string | null;
-      previous?: string | null;
-      results: ApiComponents['schemas']['RegisterCorrection'][];
     };
     PaginatedRegisterDeploymentList: {
       count: number;
@@ -5686,85 +5590,7 @@ export interface ApiComponents {
       recordedBy: number;
       uuid: string;
     };
-    RegisterCorrection: {
-      appliedEntry: string | null;
-      approvingDirector: string;
-      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
-      authorityEvidence: string | null;
-      authorityReference: string;
-      baseHash: string;
-      baseSequence: number;
-      changes: unknown;
-      company: string;
-      corrects: string;
-      createdAt: string;
-      decisions: ApiComponents['schemas']['RegisterCorrectionDecision'][];
-      effectiveOn: string;
-      evidenceFingerprint: string;
-      evidenceSnapshot: unknown;
-      preparedByName: string | null;
-      preparingAppointment: string | null;
-      providedBy: string;
-      reason: string;
-      register: string;
-      rejectionReason: string;
-      reviewedAt: string | null;
-      reviewedBy: number | null;
-      sourceDocument: string | null;
-      stage: string;
-      status: ApiComponents['schemas']['RegisterCorrectionStatusEnum'];
-      submittedBy: number;
-      uuid: string;
-    };
     RegisterCorrectionAuthorityEnum: 'director_resolution' | 'court_order';
-    RegisterCorrectionChange: {
-      member: string;
-      shares: string;
-    };
-    RegisterCorrectionCreateRequest: {
-      appointment: string;
-      approvingDirector?: string;
-      authority: ApiComponents['schemas']['RegisterCorrectionAuthorityEnum'];
-      authorityEvidence: string;
-      authorityReference: string;
-      correctsId: string;
-      effectiveOn: string;
-      operationId: string;
-      reason: string;
-    };
-    RegisterCorrectionDecideRequest: {
-      appointment: string;
-      confirmation: boolean;
-      idempotencyKey: string;
-      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
-      previewDigest: string;
-      reason?: string;
-    };
-    RegisterCorrectionDecision: {
-      appointment: string;
-      decidedAt: string;
-      decidedBy: number;
-      decidedByName: string;
-      digest: string;
-      idempotencyKey: string;
-      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
-      reason: string;
-      uuid: string;
-    };
-    RegisterCorrectionDecisionPreview: {
-      canDecide: boolean;
-      changes: ApiComponents['schemas']['RegisterCorrectionChange'][];
-      effectiveOn: string;
-      originalChanges: ApiComponents['schemas']['RegisterCorrectionChange'][];
-      previewDigest: string;
-      registerSequence: number;
-      unmetRequirements: string[];
-    };
-    RegisterCorrectionDecisionRequestRequest: {
-      appointment: string;
-      kind: ApiComponents['schemas']['RegisterDecisionKindEnum'];
-      reason?: string;
-    };
     RegisterCorrectionStatusEnum: 'submitted' | 'applied' | 'rejected';
     RegisterDecisionKindEnum: 'approve' | 'apply' | 'reject';
     RegisterDeployment: {
@@ -6399,6 +6225,7 @@ export interface ApiComponents {
     };
     RegisterMemberSelection: {
       currentShares: string;
+      deletable?: boolean;
       enteredOn: string | null;
       followsProfile?: boolean;
       hasAwards?: boolean;
@@ -6920,9 +6747,8 @@ export interface ApiComponents {
     ResendVerificationRequest: {
       email?: string;
     };
-    ReviewResultEnum: 'GREEN' | 'RED' | 'YELLOW';
     RoleEnum: 'investor' | 'company' | 'both';
-    ServiceTermsVersionEnum: '2026-11-15';
+    ServiceTermsVersionEnum: '2026-11-21';
     SettlementApprovalBroadcastRequest: {
       ownerAccountUuid: string;
       settlementDigest: string;
@@ -7170,9 +6996,9 @@ export interface ApiComponents {
     ShareRegisterEntry: {
       changes: ApiComponents['schemas']['ShareRegisterEntryChange'][];
       companyEventOn: string | null;
-      correctable: boolean;
       correctedBy: string | null;
       corrects: string | null;
+      deletable: boolean;
       effectiveOn: string;
       kind: ApiComponents['schemas']['ShareRegisterEntryKindEnum'];
       recordedAt: string;
@@ -7500,28 +7326,17 @@ export interface ApiComponents {
       email: string;
       fullName?: string | null;
       isActive: boolean;
-      isIdVerified: boolean;
       isSignupCompleted?: boolean;
       isStaff: boolean;
-      kycaidApplicantId: string | null;
-      kycProvider: ApiComponents['schemas']['KycProviderEnum'];
       lastLogin: string | null;
       phoneCountryCode?: string | null;
       phoneNumber?: string | null;
-      rejectionLabels: string[] | null;
       residenceCountry?: string | null;
       residenceCountryName: string | null;
       residentialAddress?: string | null;
-      reviewResult: (ApiComponents['schemas']['ReviewResultEnum'] | ApiComponents['schemas']['NullEnum']) | null;
-      sumsubApplicantId: string | null;
-      sumsubVerificationStatus:
-        (ApiComponents['schemas']['UserVerificationStatusEnum'] | ApiComponents['schemas']['NullEnum']) | null;
       termsAcceptance: ApiComponents['schemas']['TermsAcceptance'] | null;
       termsAndConditions?: boolean;
       uuid: string;
-      verificationStatus:
-        (ApiComponents['schemas']['UserVerificationStatusEnum'] | ApiComponents['schemas']['NullEnum']) | null;
-      verifiedAt: string | null;
     };
     UserProfileRequest: {
       citizenshipCountry: string;
@@ -7545,7 +7360,6 @@ export interface ApiComponents {
       password: string;
       passwordConfirm: string;
     };
-    UserVerificationStatusEnum: 'init' | 'pending' | 'queued' | 'completed' | 'onHold' | 'prechecked';
     ValueSourceEnum: 'market' | 'nav' | 'par' | 'unpriced';
     VersionEnum: '1';
     Wallet: {
@@ -8730,44 +8544,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_users_identity_verification_status_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['IdentityVerificationStatus'];
-        };
-      };
-    };
-  };
-  api_users_identity_verification_token_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['IdentityVerificationSession'];
-        };
-      };
-    };
-  };
   api_v1_companies_list: {
     parameters: {
       query?: {
@@ -8839,6 +8615,25 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['CompanyDetail'];
         };
+      };
+    };
+  };
+  api_v1_companies_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -9062,6 +8857,25 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['CompanyTeamInvitationIssued'];
         };
+      };
+    };
+  };
+  api_v1_company_authority_invitations_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -9623,6 +9437,26 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_entries_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        entry: string;
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_tokens_register_inspection_copies_retrieve: {
     parameters: {
       query?: never;
@@ -9960,6 +9794,25 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_member_invitations_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_tokens_member_invitations_accept_create: {
     parameters: {
       query?: never;
@@ -10209,6 +10062,25 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['RegisterAllotment'];
         };
+      };
+    };
+  };
+  api_v1_tokens_register_allotments_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -10877,162 +10749,6 @@ export interface ApiOperations {
       };
     };
   };
-  api_v1_tokens_register_corrections_list: {
-    parameters: {
-      query?: {
-        company?: string;
-        ordering?: string;
-        page?: number;
-        page_size?: number;
-        register?: string;
-        status?: 'applied' | 'rejected' | 'submitted';
-        token?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['PaginatedRegisterCorrectionList'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_corrections_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['RegisterCorrectionCreateRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterCorrectionCreateRequest'];
-        'multipart/form-data': ApiComponents['schemas']['RegisterCorrectionCreateRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterCorrection'];
-        };
-      };
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterCorrection'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_corrections_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterCorrection'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_corrections_decide_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['RegisterCorrectionDecideRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterCorrectionDecideRequest'];
-        'multipart/form-data': ApiComponents['schemas']['RegisterCorrectionDecideRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterCorrection'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_corrections_decision_preview_create: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': ApiComponents['schemas']['RegisterCorrectionDecisionRequestRequest'];
-        'application/x-www-form-urlencoded': ApiComponents['schemas']['RegisterCorrectionDecisionRequestRequest'];
-        'multipart/form-data': ApiComponents['schemas']['RegisterCorrectionDecisionRequestRequest'];
-      };
-    };
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': ApiComponents['schemas']['RegisterCorrectionDecisionPreview'];
-        };
-      };
-    };
-  };
-  api_v1_tokens_register_corrections_file_retrieve: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        uuid: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          '*/*': Blob;
-        };
-      };
-    };
-  };
   api_v1_tokens_register_deployments_list: {
     parameters: {
       query?: {
@@ -11271,6 +10987,25 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_grants_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_tokens_register_grants_acceptance_file_retrieve: {
     parameters: {
       query?: never;
@@ -11465,6 +11200,25 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['RegisterImport'];
         };
+      };
+    };
+  };
+  api_v1_tokens_register_imports_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -12099,6 +11853,25 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_member_documents_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_tokens_register_member_documents_file_retrieve: {
     parameters: {
       query?: never;
@@ -12355,6 +12128,25 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_particulars_changes_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_tokens_register_particulars_changes_file_retrieve: {
     parameters: {
       query?: never;
@@ -12580,6 +12372,27 @@ export interface ApiOperations {
       };
     };
   };
+  api_v1_tokens_register_people_destroy: {
+    parameters: {
+      query: {
+        company: string;
+      };
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   api_v1_tokens_register_reconciliations_list: {
     parameters: {
       query?: {
@@ -12740,6 +12553,25 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['RegisterTransfer'];
         };
+      };
+    };
+  };
+  api_v1_tokens_register_transfers_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

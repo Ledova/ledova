@@ -10,7 +10,7 @@ DECLARE
     delegated jsonb;
     principal bigint;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -73,7 +73,7 @@ DECLARE
     proposal companies_companyauthorityrequest;
     principal bigint;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -107,9 +107,8 @@ DECLARE
     issuer companies_company;
     proposal companies_companyauthorityrequest;
     principal bigint;
-    requires_identity boolean;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -129,7 +128,6 @@ BEGIN
     SELECT * INTO actor FROM authentication_customuser WHERE id = proposal.requester_id FOR UPDATE;
     SELECT * INTO representative FROM users_userprofile WHERE uuid = proposal.requester_profile_id FOR UPDATE;
     SELECT * INTO proposal FROM companies_companyauthorityrequest WHERE uuid = NEW.request_id FOR UPDATE;
-    SELECT issuer_kyc_required INTO requires_identity FROM operators_operator WHERE id = 1 FOR SHARE;
     IF current_user = @APP_ROLE@ OR principal IS DISTINCT FROM actor.id
         OR actor.id IS NULL OR NOT actor.is_active OR NOT actor.is_email_verified
         OR representative.user_id IS DISTINCT FROM actor.id
@@ -143,13 +141,12 @@ BEGIN
         OR NOT NEW.capabilities @> '["admin"]'::jsonb
         OR NEW.expires_at IS DISTINCT FROM proposal.requested_expires_at
         OR NEW.expires_at <= clock_timestamp()
-        OR NEW.declaration_version IS DISTINCT FROM '2026-11-15' OR NEW.declaration_text IS DISTINCT FROM 'I am authorised to act for this company, including setting up and administering its workspace and users, and I accept the Terms of Service (version 2026-11-15) on its behalf. The company is responsible for its records and decisions, its legal and regulatory obligations, who may hold its shares and the identity checks it needs, and Ledova does not review or approve them.'
+        OR NEW.declaration_version IS DISTINCT FROM '2026-11-21' OR NEW.declaration_text IS DISTINCT FROM 'I am authorised to act for this company, including setting up and administering its workspace and users, and I accept the Terms of Service (version 2026-11-21) on its behalf. The company is responsible for its records and decisions, its legal and regulatory obligations, who may hold its shares and the identity checks it needs, and Ledova does not review or approve them.'
         OR proposal.company_identity_raw IS DISTINCT FROM jsonb_build_object(
             'name', issuer.name, 'acn', issuer.acn, 'abn', issuer.abn, 'company_type', issuer.company_type)
         OR proposal.person_identity_raw IS DISTINCT FROM jsonb_build_object(
             'user_id', actor.id, 'profile_uuid', representative.uuid::text,
             'email', actor.email, 'full_name', COALESCE(representative.full_name, ''))
-        OR COALESCE(requires_identity, false) AND NOT representative.is_id_verified
     THEN
         RAISE EXCEPTION 'Initial company authority requires the exact current declaration and requester'
             USING ERRCODE = '23514';

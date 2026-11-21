@@ -12,6 +12,7 @@ export interface Person {
   awardOnly: boolean;
   onRegister?: boolean;
   hasAwards?: boolean;
+  deletable?: boolean;
 }
 
 export interface PersonChoice {
@@ -41,6 +42,7 @@ export function peopleFrom(data: RegisterTransferMembers | undefined): Person[] 
       awardOnly: false,
       onRegister: row.onRegister !== false,
       hasAwards: row.hasAwards,
+      deletable: row.deletable === true,
     })),
     ...data.awardRecipients.map((row) => ({
       member: row.member,
