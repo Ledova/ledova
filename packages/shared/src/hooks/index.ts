@@ -3,14 +3,12 @@ export { AUTH_QUERY_KEY, useAuth, AUTH_QUERY_ROOT } from './useAuth';
 export { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 export { useRole } from './useRole';
 export { useSignInForm } from './useSignInForm';
-export { useIdentityVerificationStatus, IDENTITY_VERIFICATION_QUERY_KEY } from './useIdentityVerificationStatus';
 export { useNotifications } from './useNotifications';
 export { useSubmissionOwner } from './useSubmissionOwner';
 export type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';
 export { hasProblems, useErrorSummary, useFocusClaim } from './useErrorSummary';
 export type { FieldCheck, Problems } from './useErrorSummary';
 export {
-  REGISTER_CORRECTION_DECISIONS,
   REGISTER_IMPORT_DECISIONS,
   REGISTER_GRANT_DECISIONS,
   REGISTER_TRANSFER_DECISIONS,
@@ -24,6 +22,8 @@ export {
   COMPANY_QUERY_KEY,
   ownCompaniesKey,
 } from './useCompanySelection';
+export { useCompanyDeletion } from './useCompanyDeletion';
+export { useConfirmedDeletion } from './useConfirmedDeletion';
 export { COMPANY_EDIT_FIELDS, useEditCompanyForm } from './useEditCompanyForm';
 export type { CompanyActionRead, EditCompanyFormProps } from './useEditCompanyForm';
 export { useSignupUser } from './useSignupUser';
@@ -73,7 +73,7 @@ export { useCompanyPack, useCompanyPackAuthority } from './useCompanyPack';
 export { companyPacksKey, inspectionCopiesKey, useCompanyPacks, useInspectionCopies } from './useOutputHistory';
 
 export { useUserProfile } from './useUserProfile';
-export { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
+export { useOperator } from './useOperator';
 export { readRegister, registersKey, registersQuery, useRegisters } from './useRegisters';
 export { allPeopleKey, peopleKey, readPeople, usePeople } from './usePeople';
 export { entriesKey, registerEntriesKey, useShareholder } from './useShareholder';
@@ -115,22 +115,14 @@ export { useTransferPreparation } from './useTransferPreparation';
 export type { TransferDocumentKind, TransferPreparationOptions } from './useTransferPreparation';
 export { useTransferRecordDownload } from './useTransferRecordDownload';
 export { useRegisterEntries } from './useRegisterEntries';
-export { correctionsKey, useClassCorrections } from './useClassCorrections';
-export type { ClassCorrection } from './useClassCorrections';
 export { importsKey, useRegisterImports } from './useRegisterImports';
 export { useRegisterParticulars } from './useRegisterParticulars';
-export { useCorrectionPreparation } from './useCorrectionPreparation';
-export type { CorrectionPreparationOptions } from './useCorrectionPreparation';
-export { useCorrectionEntry } from './useCorrectionEntry';
-export {
-  useCorrectionRecordDownload,
-  useImportRecordDownload,
-  useParticularsRecordDownload,
-} from './useRegisterRecordDownload';
+export { useImportRecordDownload, useParticularsRecordDownload } from './useRegisterRecordDownload';
 export { importRegisterKey, useImportRegister } from './useImportRegister';
 export { useStartedClasses } from './useStartedClasses';
 export { useNewShareClass } from './useNewShareClass';
 export { useImportPreparation } from './useImportPreparation';
 export type { ImportPreparationOptions } from './useImportPreparation';
 export { useClassDeletion } from './useClassDeletion';
+export { useRegisterEntryDeletion } from './useRegisterEntryDeletion';
 export { useNewClassRights } from './useNewClassRights';

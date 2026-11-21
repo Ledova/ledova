@@ -2,7 +2,7 @@ CREATE OR REPLACE FUNCTION tokens_guard_class_details_revision() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE share_class public.tokens_sharetoken; principal bigint; last_revision integer; actor_name text;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = __MIGRATE__ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -11,7 +11,7 @@ BEGIN
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     SELECT * INTO share_class FROM public.tokens_sharetoken WHERE uuid = NEW.token_id;
     IF pg_trigger_depth() <> 2 OR current_user NOT IN (__OPERATOR__, __MIGRATE__)
-        OR principal IS NULL OR share_class.uuid IS NULL OR share_class.deleted_at IS NOT NULL
+        OR principal IS NULL OR share_class.uuid IS NULL
         OR current_setting('app.company_id', true) IS DISTINCT FROM share_class.company_id::text
         OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_class_edit'
         OR NEW.recorded_by_id IS DISTINCT FROM principal

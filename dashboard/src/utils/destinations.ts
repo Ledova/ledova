@@ -83,7 +83,6 @@ const WEB_PARENTS: Partial<Record<DestinationKey, DestinationParent>> = {
   userProfile: { destination: 'settings', back: false },
   companyAuthority: { destination: 'settings', view: 'account' },
   companyAuthorityRequest: { destination: 'companyAuthority' },
-  companyRegisterCorrection: { destination: 'companyRegister', view: 'corrections' },
   companyRegisterTransfer: { destination: 'companyRegister', view: 'transfer' },
   companyRegisterParticulars: { destination: 'companyRegister', view: 'corrections' },
 };

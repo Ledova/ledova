@@ -27,7 +27,6 @@ export {
   isUuid,
 } from './validation';
 export { validateUserProfileField } from './user-validation';
-export { getUserVerificationStatus } from './user-verification';
 export { assertNextPageAdvances, firstOfEach, getNextPageParam, readEveryPage } from './pagination';
 export {
   createUserFriendlyError,
@@ -41,7 +40,6 @@ export {
   refusalSentence,
   refusalSentences,
 } from './errors';
-export { readIdentityVerification } from './identity-verification';
 export {
   appointmentDates,
   appointmentReceipt,
@@ -91,17 +89,7 @@ export {
   type MemberDraft,
   type PreparationDraft,
 } from './register-import-drafts';
-export {
-  correctionSummary,
-  describeEntry,
-  entryDate,
-  entryInverse,
-  entryLabel,
-  entryName,
-  formatRegisterChanges,
-  isPreparedRegisterCorrection,
-  isRegisterCorrectionDecisionReceipt,
-} from './register-corrections';
+export { entryDate, entryLabel, entryName, entryWithPeople, formatRegisterChanges } from './register-entries';
 export { isRegisterParticularsEditReceipt, particularsChanged, registerMembers } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
 export {
@@ -117,7 +105,6 @@ export {
 } from './register-awards';
 export { isPreparedRegisterTransfer } from './register-transfers';
 export {
-  CORRECTION_GROUPS,
   ISSUE_GROUPS,
   PARTICULARS_GROUPS,
   ENTRY_CHANGES_CAP,

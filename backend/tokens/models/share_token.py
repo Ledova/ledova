@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from django.conf import settings
 from django.core.validators import MaxValueValidator
 from django.db import models
 from django.utils import timezone
 
 from shared.models import BaseModel
-from tokens.querysets import ActiveShareTokenManager, ShareTokenQuerySet
+from tokens.querysets import ShareTokenQuerySet
 
 from .choices import ShareTokenStatus, ShareTokenType
 
@@ -18,10 +17,6 @@ if TYPE_CHECKING:
 
 class ShareToken(BaseModel):
     deployment_id = models.UUIDField(null=True, editable=False)
-    deleted_at = models.DateTimeField(null=True, editable=False)
-    deleted_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", null=True, editable=False
-    )
 
     company = models.ForeignKey(
         "companies.Company",
@@ -80,27 +75,15 @@ class ShareToken(BaseModel):
     )
     deployed_at = models.DateTimeField(blank=True, null=True)
 
-    objects = ActiveShareTokenManager()
-    all_objects = ShareTokenQuerySet.as_manager()
+    objects = ShareTokenQuerySet.as_manager()
 
     class Meta:
-        base_manager_name = "all_objects"
-        default_manager_name = "objects"
         verbose_name = "Share Token"
         verbose_name_plural = "Share Tokens"
         ordering = ["-created_at"]
         constraints = [
             models.CheckConstraint(condition=models.Q(decimals=0), name="share_token_whole_units"),
-            models.CheckConstraint(
-                condition=models.Q(deleted_at__isnull=True, deleted_by__isnull=True)
-                | models.Q(deleted_at__isnull=False, deleted_by__isnull=False),
-                name="share_class_deletion_attribution",
-            ),
-            models.UniqueConstraint(
-                fields=["company", "symbol"],
-                condition=models.Q(deleted_at__isnull=True),
-                name="unique_company_symbol",
-            ),
+            models.UniqueConstraint(fields=["company", "symbol"], name="unique_company_symbol"),
         ]
 
     def __str__(self):

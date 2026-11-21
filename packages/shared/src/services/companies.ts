@@ -50,3 +50,6 @@ export const createCompanyPack = (
 
 export const getCompanyPacks = (apiClient: AxiosInstance, companyUuid: string, config: AxiosRequestConfig = {}) =>
   apiClient.get<CompanyPacks>(COMPANY_ENDPOINTS.PACKS(companyUuid), config);
+
+export const deleteCompany = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.delete<void>(COMPANY_ENDPOINTS.DETAIL(uuid), config);

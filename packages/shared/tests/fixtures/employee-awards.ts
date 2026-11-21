@@ -22,6 +22,7 @@ export const APPOINTMENT: OwnCompanyAppointment = {
   delegatableCapabilities: [],
   status: 'active',
   isEffective: true,
+  revocationBlockedReason: null,
   expiresAt: null,
   revokedAt: null,
   createdAt: '2026-10-07T00:00:00Z',

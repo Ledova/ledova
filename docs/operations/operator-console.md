@@ -26,7 +26,6 @@ needs the add permission, and the row cannot be deleted.
 | --------------- | ---------------------------------------------------------------------------- |
 | Identity        | `name`, `legal_name`, `abn`, `contact_email`, `website`                      |
 | Settlement      | `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
-| Identity checks | `investor_kyc_required` (default on), `issuer_kyc_required` (default off)    |
 
 The model normalises the ABN. Ledova holds no payment instructions or receiving wallet:
 integrated AUD payments are deferred
@@ -38,47 +37,6 @@ Settlement assets must be stablecoins with an active contract deployment on
 `receiving_wallet_chain`; the form refuses any other. Order creation needs exactly one active,
 deployed asset in `supported_settlement_assets`: with none or several, order messages and
 executions are refused until the list holds one, and every created order records that asset.
-
-What the flags require is in [account standing](../business/participants.md#account-standing)
-(`investor_kyc_required`) and the
-[representative identity requirement](../business/companies.md#representative-identity-requirement)
-(`issuer_kyc_required`). Turn on `issuer_kyc_required` only with a
-[KYC provider configured](configuration.md#identity-verification-providers).
-
-## Company exit
-
-The application command `python manage.py company_disposal` is a maintenance operation, not a
-company or staff-web action. It requires the separate schema-maintenance credential; the normal
-application and operator roles cannot access its receipts or deletion admission. Hosted access
-and execution arrangements belong in private [Ledova/infra](https://github.com/Ledova/infra).
-
-Before using it, verify the company's instruction and current administrator appointment, deliver
-the available company pack and confirm receipt, and review every remaining purpose, hold and copy.
-Keep the supporting review privately; command references are opaque case identifiers, not names,
-emails or legal conclusions. Stop/drain company work and account for captured mail, logs, provider
-copies and archives separately. A remaining hold prevents disposal, not permission to bypass it.
-
-1. `preview --company UUID --appointment UUID --pack delivered-pack.zip` reports a digest, row
-   counts and file count without deleting anything. The pack's company, recorded manifest,
-   contents, class heads and capture time must still match. A company with no classes needs no
-   pack, but its basic-details handover still needs verification.
-2. `dispose` takes those same arguments, `--digest`, `--authorisation-reference`,
-   `--handover-reference` and `--purpose-review-reference`. It also requires
-   `--confirm-company UUID --confirm-no-holds --confirm-copies-reviewed`. These confirmations
-   record the operator's review; they do not perform that review or establish a legal basis.
-3. `status --company UUID` or `status --receipt UUID` finds the durable outcome. Database deletion
-   is atomic; file deletion starts only after commit. If current-storage cleanup is incomplete,
-   resolve the storage problem, recheck any new hold or instruction, and use
-   `retry-files --receipt UUID --confirm-no-holds --confirm-copies-reviewed`. The original receipt
-   is not proof that no later hold exists. A committed database change
-   is not undone by a later file error. The receipt and pending file names remain retryable.
-
-The supported scope is non-chain registry records and current private storage, plus exactly
-linked member inbox/queued notifications and admin audit rows. Users/profiles/accounts and
-unrelated companies/jobs remain. Retained execution journals, other unsupported relationships,
-running company notifications, changed exports or previews, and expired/revoked authority refuse
-the operation. Receipt completion concerns current storage only, not every external/retained copy.
-No automatic company purge or live release is authorised by this procedure.
 
 ## The operator console
 
@@ -127,7 +85,8 @@ The last command admits the operator signer for the local chain (31337) and refu
 chain id; outside Docker, run it only when the backend points at a local chain
 ([local chain admission](../engineering/chain.md#local-chain-admission)). The seed commands are
 idempotent. `sync_monitoring_rules` seeds the monitoring rules, whose amounts are AUD; without them
-no rule raises an alert. `sync_procedure_templates` seeds the alert procedure templates. The public
+no rule raises an alert. `sync_procedure_templates` seeds the alert procedure templates and deletes
+those the seed no longer has, except a template whose steps a case checklist uses. The public
 compliance seed is not a deployment's private monitoring policy. Run them before the demo seed,
 whose alerts link to the monitoring rules when they exist.
 

@@ -42,7 +42,9 @@ class RegisterGrantViewSet(RegisterProposalViewSet):
     queryset = RegisterGrant.objects.none()
     serializer_class = RegisterGrantSerializer
     scoped_model = RegisterGrant
+    http_method_names = RegisterProposalViewSet.deletable_methods
     operator_actions = RegisterProposalViewSet.operator_actions | {
+        "destroy",
         "create",
         "terms_file",
         "acceptance_file",
@@ -52,7 +54,8 @@ class RegisterGrantViewSet(RegisterProposalViewSet):
     operator_actions_because = (
         "Retained non-paid grants and private files are read only through this request's exact-company register "
         "queryset. Bounded preparation and decisions check current company appointments under the company lock; "
-        "the operator connection performs the exact approved ledger effect and reads append-only decisions."
+        "the operator connection performs the exact approved ledger effect and reads append-only decisions. "
+        "A delete of one still awaiting a decision runs the bounded delete command under current preparation authority."
     )
 
     def filter_queryset(self, queryset):

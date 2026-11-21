@@ -27,7 +27,7 @@ export function PrivacyPolicy() {
     <>
       <PageHeader
         title="Privacy policy"
-        lead="For the ledova.io preview and the public source code · Updated 20&nbsp;November&nbsp;2026"
+        lead="For the ledova.io preview and the public source code · Updated 22&nbsp;November&nbsp;2026"
       />
       <section className="border-t border-border-subtle">
         <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
@@ -55,14 +55,13 @@ export function PrivacyPolicy() {
                 <strong className={LABEL}>When you register:</strong> your email address, a password (kept only as a
                 one-way hash), and your full name. Signup, on the web or in the app, doesn&apos;t ask for a birth date,
                 phone number, address, occupation, source of funds or intended use. You can add or update an address in
-                Profile for linked shareholder particulars. Earlier preview records can retain these details. A
-                configured identity check can collect identity details separately; these do not determine company
-                ownership.
+                Profile for linked shareholder particulars. Earlier preview records can retain these details. Ledova
+                does not check your identity.
               </li>
               <li>
                 <strong className={LABEL}>What you record:</strong> company details, share classes, holdings and awards,
                 the names, addresses and email addresses of people you add or invite, and documents you upload. Earlier
-                wallet and verification records can also remain in the system.
+                wallet records can also remain in the system.
               </li>
               <li>
                 <strong className={LABEL}>When you use the site:</strong> the server&apos;s logs record requests to the
@@ -108,45 +107,35 @@ export function PrivacyPolicy() {
                 Ledova account does not automatically erase those provider copies.
               </li>
               <li>
-                Optional identity checks and native push can send information to the configured identity provider or
-                Expo. Their purposes, processing locations and retention must be confirmed before real information is
-                sent. Investment payments and trading are unavailable.
+                Native push can send information to Expo. Its purposes, processing locations and retention must be
+                confirmed before real information is sent. Investment payments and trading are unavailable.
               </li>
             </ul>
           </Section>
           <Section title="Retention and deletion">
             <p>
               Delete account in Settings ends sign-in immediately and erases unnecessary account details, including
-              personal answers, identity-provider metadata, preferences, device tokens and inbox notifications. Minimal
-              account references, Terms receipts, and specific retained transaction or legal-case records remain where
-              needed to explain genuine history. Expired session records are removed by daily maintenance. Uncompleted
-              signup information without protected history or a pending provider follow-up is erased after 30 days
-              without activity. Unused uploads are eligible for cleanup after 24 hours; successful jobs after seven days
-              and unsuccessful jobs after 30 days. Server logs rotate at their configured size limit. Support
-              correspondence can also be kept in group history and recipient mailboxes, with no automatic expiry. Those
-              copies need separate review and deletion when their support, security or specific legal purpose ends,
-              subject to identified holds and recovery periods. Deleting a Ledova account does not delete them
-              automatically.
-            </p>
-            <p>
-              If an identity provider holds an applicant, deletion starts a separate permanent-erasure request. Our
-              target is 30 days; the operator must obtain actual supplier confirmation. Pending applicant identifiers
-              and the completion email are kept only for that follow-through, then cleared after confirmation and
-              notice. An identified legal hold can delay specific deletion; we record its reason and review date.
-              Reversible provider deactivation is not treated as deletion. Identity checks are currently off in the
-              preview; if enabled, the configured provider is Sumsub or KYCAID, with its own notice and processing
-              locations to be confirmed before real identity information is collected.
+              personal answers, preferences, device tokens and inbox notifications. Minimal account references, Terms
+              receipts, and specific retained transaction or legal-case records remain where needed to explain genuine
+              history. Expired session records are removed by daily maintenance. Uncompleted signup information without
+              protected history is erased after 30 days without activity. Unused uploads are eligible for cleanup after
+              24 hours; successful jobs after seven days and unsuccessful jobs after 30 days. Server logs rotate at
+              their configured size limit. Support correspondence can also be kept in group history and recipient
+              mailboxes, with no automatic expiry. Those copies need separate review and deletion when their support,
+              security or specific legal purpose ends, subject to identified holds and recovery periods. Deleting a
+              Ledova account does not delete them automatically.
             </p>
             <p>
               Company records are separate from your sign-in. Their particulars, documents, decisions and copied history
-              remain for the company’s identified recordkeeping purpose or a specific legal requirement or claim. The
-              company is responsible for its legal register. Seven-year former-member retention is not a universal
-              period for every copy Ledova holds. Authorised companies can obtain ledger exports and a company pack, and
-              contact {CONTACT} to arrange exit and a review of records to keep or dispose of. A reviewed maintenance
-              process can remove supported company records and current stored files. Retained execution history,
-              supplier copies, support correspondence, logs and archives need separate review and treatment; this is not
-              immediate erasure of every copy. Live data-handling acceptance remains pending. The preview may still be
-              reset; keep your own copies of useful test records.
+              remain until the company deletes them, or for a specific legal requirement or claim. The company is
+              responsible for its legal register. Seven-year former-member retention is not a universal period for every
+              copy Ledova holds. Authorised companies can obtain ledger exports and a company pack, and a company’s
+              administrator can delete the company with all its records and stored files in Settings. Each deletion
+              leaves a short record of its kind, the company, who made it and when, but not the deleted contents, and we
+              keep it indefinitely. Retained execution history, supplier copies, support correspondence, logs and
+              archives need separate review and treatment; this is not immediate erasure of every copy. Live
+              data-handling acceptance remains pending. The preview may still be reset; keep your own copies of useful
+              test records.
             </p>
           </Section>
           <Section title="Access, correction and complaints">

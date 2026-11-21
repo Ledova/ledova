@@ -246,7 +246,7 @@ class ShareRegisterEntrySerializer(serializers.Serializer):
     changes = ShareRegisterEntryChangeSerializer(many=True)
     corrects = serializers.UUIDField(allow_null=True)
     corrected_by = serializers.UUIDField(allow_null=True)
-    correctable = serializers.BooleanField()
+    deletable = serializers.BooleanField()
 
 
 class ShareRegisterWaitingEffectSerializer(serializers.Serializer):

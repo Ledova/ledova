@@ -4,7 +4,6 @@ import io
 import json
 import zipfile
 from datetime import date, timedelta
-from urllib.parse import urlencode
 from uuid import UUID, uuid4
 
 from django.conf import settings
@@ -20,13 +19,14 @@ from companies.services.team import (
     revoke_company_appointment,
 )
 from shared.db import use_operator
-from shared.tests.core_fixtures import CoreFixtures, retained_evidence
+from shared.tests.core_fixtures import CoreFixtures, import_payload, retained_evidence
 from tokens.models import (
     RegisterAllotment,
     RegisterEvidenceKind,
     RegisterExport,
     RegisterGrant,
     RegisterTransfer,
+    ShareToken,
 )
 from tokens.services.company_pack import produce_company_pack
 from tokens.services.former_holders import purge_register_exports
@@ -291,10 +291,22 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
                 format="json",
             )
             self.assertEqual(linked.status_code, 201, linked.content)
-        removed_class = self.client.delete(
-            details_endpoint + "?" + urlencode({"expected_updated_at": renamed_class.json()["updatedAt"]})
+        with use_operator():
+            setup_class = ShareToken.objects.get(pk=class_id)
+        opening = self.client.post(
+            "/api/v1/tokens/register-imports/",
+            {
+                **import_payload(self.owner, self.appointment, setup_class),
+                "members": [],
+                "former_members": [],
+                "asic_issued_total": "0",
+                "asic_member_count": 0,
+            },
+            format="json",
         )
-        self.assertEqual(removed_class.status_code, 204, removed_class.content)
+        self.assertEqual(opening.status_code, 201, opening.content)
+        self.decision("/api/v1/tokens/register-imports/", opening.json()["uuid"], "approve")
+        self.decision("/api/v1/tokens/register-imports/", opening.json()["uuid"], "apply")
         packed = self.client.post(
             f"/api/v1/companies/{self.company.pk}/pack/",
             {
@@ -327,8 +339,6 @@ class RegisterOutputsTest(CoreFixtures, APITransactionTestCase):
             for file in manifest["files"]:
                 data = bundle.read(file["path"])
                 self.assertEqual((len(data), hashlib.sha256(data).hexdigest()), (file["size"], file["sha256"]))
-            retired_class = json.loads(bundle.read(f"classes/{class_id}/class.json"))
-            self.assertTrue(retired_class["deleted_at"])
             exported_details = json.loads(bundle.read(f"classes/{class_id}/class_details_history.json"))
             self.assertEqual([record["revision"] for record in exported_details], [1, 2])
             self.assertEqual(

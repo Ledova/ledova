@@ -5,12 +5,9 @@ from django.utils import timezone
 class RegisterMemberDocumentQuerySet(QuerySet):
     def readable_by(self, user):
         from companies.models import REGISTER_READERS, CompanyAppointment
-        from operators.models import Operator
 
         companies = (
-            CompanyAppointment.objects.current_of(
-                user, at=timezone.now(), identity_required=Operator.get().issuer_kyc_required
-            )
+            CompanyAppointment.objects.current_of(user, at=timezone.now())
             .holding_any(REGISTER_READERS)
             .values("company_id")
         )

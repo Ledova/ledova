@@ -1,10 +1,8 @@
 import { AuthLayout, AuthHeader, AuthDivider, AuthSubmit, AuthBack } from '@components/auth';
 import { SIGNUP_PATHS, SITE_PATHS } from '@utils/paths';
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { ClipboardTextIcon } from '@phosphor-icons/react';
-import { IdentityVerificationModal } from '@components/IdentityVerificationModal';
 import { COMPANY_TYPES, TERMS_VERSION } from '@ledova/shared';
 import { ICON_LG } from '@components/iconSizes';
 import { useReview } from './useReview';
@@ -24,7 +22,6 @@ export default function SignupReview() {
     data,
     company,
     isCompany,
-    identityRequired,
     isLoading,
     error,
     completionError,
@@ -37,7 +34,6 @@ export default function SignupReview() {
     resetAuthorityRequest,
     isResettingAuthority,
   } = useReview();
-  const [verificationOpen, setVerificationOpen] = useState(false);
 
   const handleBack = () => {
     navigate(isCompany ? SIGNUP_PATHS.companyRegistration : SIGNUP_PATHS.userProfile);
@@ -167,23 +163,10 @@ export default function SignupReview() {
               .
             </p>
           )}
-          {identityRequired ? (
-            <p className="text-sm text-text-body text-center mb-4">
-              This platform requires a verified identity before company setup.{' '}
-              <button
-                type="button"
-                onClick={() => setVerificationOpen(true)}
-                className="font-semibold text-brand-light hover:text-brand-subtle underline"
-              >
-                Verify your identity
-              </button>
+          {!canCompleteSignup && (
+            <p className="text-sm text-error-light text-center mb-4">
+              Please ensure all information is complete to proceed.
             </p>
-          ) : (
-            !canCompleteSignup && (
-              <p className="text-sm text-error-light text-center mb-4">
-                Please ensure all information is complete to proceed.
-              </p>
-            )
           )}
           {completionError && (
             <p role="alert" className="text-sm text-error-light text-center mb-4">
@@ -209,16 +192,6 @@ export default function SignupReview() {
           <AuthBack onClick={handleBack} disabled={isSubmitting || isResettingAuthority} />
         </p>
       </div>
-
-      {identityRequired && (
-        <IdentityVerificationModal
-          isOpen={verificationOpen}
-          onClose={() => {
-            setVerificationOpen(false);
-            void retryLoad();
-          }}
-        />
-      )}
     </AuthLayout>
   );
 }

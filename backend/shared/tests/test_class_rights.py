@@ -309,6 +309,7 @@ class ClassRightsTest(CoreFixtures, APITransactionTestCase):
         self.client.force_authenticate(self.foreign)
         self.assertEqual(self.client.get(file_endpoint, file_query).status_code, 404)
         self.client.force_authenticate(self.owner)
+        self.appoint_admin()
         create_revision = ClassRightsRevision.objects.create
 
         def revoke_before_commit(**values):

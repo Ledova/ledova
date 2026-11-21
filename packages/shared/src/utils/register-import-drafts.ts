@@ -109,7 +109,9 @@ export function initialMembers(
       residentialAddress: row.residentialAddress,
       shares: row.shares,
       enteredOn: row.enteredOn,
-      documents: (row.documents ?? []).map((document) => ({ ...document, id: newKey(), file: null })),
+      documents: (row.documents ?? [])
+        .filter((document) => document.attached !== false)
+        .map(({ evidence, category, snapshot }) => ({ id: newKey(), evidence, category, snapshot, file: null })),
       allotments: row.allotments?.length
         ? row.allotments.map((allotment) => ({
             ...allotment,

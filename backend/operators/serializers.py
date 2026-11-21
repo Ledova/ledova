@@ -29,7 +29,5 @@ class OperatorSerializer(serializers.ModelSerializer):
             "website",
             "supported_settlement_assets",
             "issued_stablecoin",
-            "investor_kyc_required",
-            "issuer_kyc_required",
         ]
         read_only_fields = fields

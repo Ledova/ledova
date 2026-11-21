@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { READ_TIMING } from '../constants/api';
-import { getRegisterEntries } from '../services/register-corrections';
+import { getRegisterEntries } from '../services/register-entries';
 import { CERTIFICATE_STATUSES, type CertificateStatus } from '../utils/certificateRecords';
 import { assertNextPageAdvances, getNextPageParam } from '../utils/pagination';
 import { useApiClient } from './useApiClient';

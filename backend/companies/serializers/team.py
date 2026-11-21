@@ -151,6 +151,7 @@ class CompanyTeamAppointmentSerializer(OwnCompanyAppointmentSerializer):
             "revoked_at",
             "status",
             "is_effective",
+            "revocation_blocked_reason",
             "source",
         ]
         read_only_fields = fields

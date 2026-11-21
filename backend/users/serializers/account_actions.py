@@ -18,7 +18,6 @@ class ExportedProfileSerializer(serializers.Serializer):
     phone_number = serializers.CharField(allow_null=True, allow_blank=True)
     residential_address = serializers.CharField(allow_null=True, allow_blank=True)
     citizenship_country = serializers.CharField(allow_null=True)
-    is_id_verified = serializers.BooleanField()
     created_at = serializers.DateTimeField()
 
 

@@ -15,7 +15,7 @@ sets the order below. Reuse these issues rather than creating a parallel backlog
 The company-managed register foundation is delivered under
 [#860](https://github.com/Ledova/ledova/issues/860): one registry product,
 company authority, the
-company-run register with imports, corrections, openings and wallet links,
+company-run register with imports, openings and wallet links,
 non-paid grants and transfers, company-authorised chain actions, employee
 awards with recorded vesting, fully paid external allotments, members' own
 Profile particulars, member-specific invitations and own records,
@@ -38,9 +38,10 @@ same day: the company gives notices to its members and pays dividends itself, an
 register ([decision](decisions.md#shareholder-publications-removed)). Investor eligibility, the ABR
 company check and company documents went the same day: classification claims, Supporting payslips,
 company eligibility decisions, registry checks and company documents with their staff verification
-are gone, the only verification of a person is the identity check, and retained register
-instructions take the company's own evidence
-([decision](decisions.md#verification-limited-to-id-checks)).
+are gone, and retained register instructions take the company's own evidence
+([decision](decisions.md#verification-limited-to-id-checks)). Identity verification, with its
+providers and PEP screening, was removed on 21 November 2026
+([decision](decisions.md#identity-verification-removed)).
 
 The development workflow ([#943](https://github.com/Ledova/ledova/issues/943),
 closed 11 October) now uses fresh PostgreSQL migrations, minimum test suites

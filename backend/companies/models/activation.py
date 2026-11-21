@@ -11,7 +11,6 @@ class CompanyActivation(BaseModel):
     idempotency_key = models.UUIDField(editable=False)
     lifecycle_revision = models.PositiveBigIntegerField(editable=False)
     person_identity = models.JSONField(editable=False)
-    issuer_identity_required = models.BooleanField(editable=False)
     declaration_version = models.CharField(max_length=10, editable=False)
     declaration_text = models.TextField(editable=False)
     activated_at = models.DateTimeField(editable=False)

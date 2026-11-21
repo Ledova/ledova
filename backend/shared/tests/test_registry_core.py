@@ -1,6 +1,5 @@
 import hashlib
 import io
-import json
 import zipfile
 from datetime import timedelta
 from unittest.mock import patch
@@ -23,6 +22,7 @@ from companies.models import (
     Company,
     CompanyAppointment,
     CompanyCapability,
+    CompanyDisposal,
     CompanySignupTermsAcceptance,
 )
 from companies.services import transition_company
@@ -42,7 +42,6 @@ from companies.services.team import (
     revoke_company_appointment,
 )
 from feature_flags.models import FeatureFlag
-from operators.models import Operator
 from shared.database_setup import seed_reference_rows
 from shared.db import atomic, current_alias, use_migrate, use_operator
 from shared.tests.core_fixtures import (
@@ -51,7 +50,6 @@ from shared.tests.core_fixtures import (
     import_payload,
     pdf_bytes,
     person,
-    retained_evidence,
 )
 from tokens.models import (
     ClassDetailsRevision,
@@ -63,6 +61,7 @@ from tokens.models import (
     RegisterGrantDecision,
     RegisterImport,
     RegisterImportDecision,
+    RegisterMemberParticulars,
     RegisterPersonRegistration,
     RegisterPosition,
     RegisterTransfer,
@@ -70,15 +69,13 @@ from tokens.models import (
     ShareRegister,
     ShareToken,
 )
-from tokens.services.class_lifecycle import delete_unused_class
 from tokens.services.creation import create_share_token
 from tokens.services.holder_identity import identity_at_allotment
 from tokens.services.register import MEMBER_AMBIGUOUS, _member_identity
 from tokens.services.register_events import record_entry
-from tokens.services.register_imports import retire_class_imports
 from tokens.services.register_transfers import _apply as apply_register_transfer
 from users.constants import ACCOUNT_STATUS_ACTIVE, ACCOUNT_STATUS_SUSPENDED
-from users.models import FinancialProfile, UserAccount, UserProfile
+from users.models import FinancialProfile, UserAccount
 from users.models.user_account import AccountRole
 from users.services.setup import ensure_defaults
 from wallets.constants import WALLET_VERIFICATION_STATUS_VERIFIED
@@ -189,8 +186,8 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(classes[details["uuid"]]["updatedAt"], details["updatedAt"])
         self.assertTrue(classes[details["uuid"]]["canDelete"])
         self.assertIsNone(classes[details["uuid"]]["deletionBlockedReason"])
-        self.assertFalse(classes[str(self.token.pk)]["canDelete"])
-        self.assertIn("confirmed ledger records", classes[str(self.token.pk)]["deletionBlockedReason"])
+        self.assertTrue(classes[str(self.token.pk)]["canDelete"])
+        self.assertIsNone(classes[str(self.token.pk)]["deletionBlockedReason"])
         change = {
             "name": "Synthetic preference shares",
             "symbol": "pref",
@@ -255,17 +252,13 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             current["editBlockedReason"],
             "Class details can change only while its opening is empty and no dependent records exist.",
         )
-        self.assertFalse(current["canDelete"])
-        self.assertIn("confirmed ledger records", current["deletionBlockedReason"])
+        self.assertTrue(current["canDelete"])
+        self.assertIsNone(current["deletionBlockedReason"])
         blocked_edit = self.client.patch(
             current_path, {**change, "expectedUpdatedAt": current["updatedAt"]}, format="json"
         )
         self.assertEqual(blocked_edit.status_code, 409, blocked_edit.content)
         self.assertEqual(blocked_edit.json()["detail"], current["editBlockedReason"])
-        self.assertEqual(
-            delete_version(current_path, current["updatedAt"]).status_code,
-            409,
-        )
         draft = self.client.post(
             "/api/v1/tokens/",
             {
@@ -307,8 +300,6 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertIsNone(resumed.json()["deletionBlockedReason"])
         with use_operator():
             abandoned = RegisterImport.objects.get(pk=prepared.json()["uuid"])
-            retained = (abandoned.members, abandoned.evidence_snapshot, abandoned.status)
-            decisions = list(RegisterImportDecision.objects.filter(register_import=abandoned).values())
             empty = ShareRegister.objects.create(token=draft_token, company=self.company)
         removed = delete_version(draft_path, resumed.json()["updatedAt"])
         self.assertEqual(removed.status_code, 204, removed.content)
@@ -318,43 +309,18 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         listed = self.client.get("/api/v1/tokens/register/").json()
         self.assertNotIn(str(draft_token.pk), [row["uuid"] for row in listed["results"]])
         with use_operator():
-            tombstone = ShareToken.all_objects.get(pk=draft_token.pk)
-            self.assertEqual(tombstone.deleted_by_id, self.owner.pk)
-            self.assertIsNotNone(tombstone.deleted_at)
-            abandoned.refresh_from_db()
-            self.assertEqual((abandoned.members, abandoned.evidence_snapshot, abandoned.status), retained)
-            self.assertEqual(list(RegisterImportDecision.objects.filter(register_import=abandoned).values()), decisions)
-            self.assertEqual(ShareRegister.objects.get(pk=empty.pk).sequence, 0)
-            with self.assertRaises(DatabaseError), atomic():
-                ShareToken.all_objects.filter(pk=tombstone.pk).update(deleted_at=None, deleted_by=None)
-            with self.assertRaises(DatabaseError), atomic():
-                ShareToken.all_objects.filter(pk=tombstone.pk).update(name="Rewrite deleted history")
-            with self.assertRaises(DatabaseError), atomic():
-                ShareToken.all_objects.filter(pk=tombstone.pk).delete()
-            with self.assertRaises(DatabaseError), atomic():
-                ShareToken.objects.create(
-                    company=self.company,
-                    name="Forged deletion",
-                    symbol="FAKE",
-                    total_supply="1000",
-                    deleted_at=timezone.now(),
-                    deleted_by=self.owner,
-                )
-            with self.assertRaisesMessage(
-                DatabaseError, "Deleted share classes cannot acquire new records or effects"
-            ), atomic():
-                RegisterPosition.objects.create(register=empty, member=self.member, shares=1)
-            with self.assertRaisesMessage(
-                DatabaseError, "Deleted share classes cannot acquire new records or effects"
-            ), atomic():
-                RegisterExport.objects.create(
-                    token=tombstone,
-                    requested_by_id=self.owner.pk,
-                    kind="company_pack",
-                    register_sequence=0,
-                    member_rows=0,
-                    former_rows=0,
-                )
+            self.assertFalse(ShareToken.objects.filter(pk=draft_token.pk).exists())
+            self.assertFalse(RegisterImport.objects.filter(pk=abandoned.pk).exists())
+            self.assertFalse(RegisterImportDecision.objects.filter(register_import_id=abandoned.pk).exists())
+            self.assertFalse(ShareRegister.objects.filter(pk=empty.pk).exists())
+            self.assertEqual(
+                list(
+                    CompanyDisposal.objects.filter(company_id=self.company.pk).values_list(
+                        "scope", "actor_id", "manifest"
+                    )
+                ),
+                [("share_class", self.owner.pk, {})] * 2,
+            )
         replayed = self.client.post(
             "/api/v1/tokens/register-imports/", import_payload(self.owner, self.appointment, draft_token), format="json"
         )
@@ -365,7 +331,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(recreated.status_code, 201, recreated.content)
-        self.assertNotEqual(recreated.json()["uuid"], str(tombstone.pk))
+        self.assertNotEqual(recreated.json()["uuid"], str(draft_token.pk))
         self.assertEqual(
             delete_version(f"/api/v1/tokens/{recreated.json()['uuid']}/", recreated.json()["updatedAt"]).status_code,
             204,
@@ -388,79 +354,29 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             )
             self.assertEqual(response.status_code, 201, response.content)
             pending.append(response.json()["uuid"])
-        preparer, preparer_profile = person("class-retirement-preparer")
-        for capabilities in ([CompanyCapability.PREPARE, CompanyCapability.APPROVE], [CompanyCapability.PREPARE]):
-            _, code, _ = issue_team_invitation(
-                requester=self.owner,
-                company_id=self.company.pk,
-                inviter_appointment_id=self.appointment.pk,
-                idempotency_key=uuid4(),
-                capabilities=capabilities,
-            )
-            preparation = accept_team_invitation(
-                requester=preparer, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
-            )
-            if CompanyCapability.APPROVE in capabilities:
-                self.client.force_authenticate(preparer)
-                self.decision(
-                    "/api/v1/tokens/register-imports/",
-                    pending[0],
-                    "approve",
-                    appointment=preparation,
-                    idempotency_key=pending[0],
-                )
-                revoke_company_appointment(requester=self.owner, appointment_id=preparation.pk)
-        with use_operator():
-            snapshots = {
-                str(proposal.pk): (proposal.members, proposal.evidence_snapshot)
-                for proposal in RegisterImport.objects.filter(pk__in=pending)
-            }
-            operator = Operator.get()
-        with company_operation(preparer, self.company.pk, "register_class_delete"), self.assertRaises(
-            DatabaseError
-        ), atomic():
-            ShareToken.objects.filter(pk=automatic_token.pk).update(deleted_at=timezone.now(), deleted_by=preparer)
-        with company_operation(preparer, self.company.pk, "register_class_delete"), self.assertRaises(
-            DatabaseError
-        ), atomic():
-            retire_class_imports(automatic_token, preparer, preparer_profile, operator)
-        with self.assertRaises(DatabaseError), patch(
-            "tokens.services.class_lifecycle.ShareToken.save", side_effect=DatabaseError("Synthetic deletion failure")
-        ):
-            delete_unused_class(actor=preparer, token=automatic_token, expected_updated_at=automatic_token.updated_at)
-        with use_operator():
-            self.assertEqual(RegisterImport.objects.filter(pk__in=pending, status="submitted").count(), 2)
-            self.assertEqual(RegisterImportDecision.objects.filter(register_import_id__in=pending).count(), 1)
-            self.assertTrue(ShareToken.objects.filter(pk=automatic_token.pk).exists())
+        preparer, _ = person("class-deletion-preparer")
+        _, code, _ = issue_team_invitation(
+            requester=self.owner,
+            company_id=self.company.pk,
+            inviter_appointment_id=self.appointment.pk,
+            idempotency_key=uuid4(),
+            capabilities=[CompanyCapability.PREPARE],
+        )
+        preparation = accept_team_invitation(
+            requester=preparer, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
+        )
         self.client.force_authenticate(preparer)
         self.assertTrue(self.client.get(automatic_path).json()["canDelete"])
-        preview = self.client.post(
-            f"/api/v1/tokens/register-imports/{pending[0]}/decision-preview/",
-            {"appointment": str(preparation.pk), "kind": "reject", "reason": "Ordinary rejection"},
-            format="json",
-        )
-        self.assertEqual(preview.status_code, 200, preview.content)
-        self.assertIn("appointment_capability_required", preview.json()["unmetRequirements"])
         self.assertEqual(delete_version(automatic_path, "2000-01-01T00:00:00Z").status_code, 409)
         removed = delete_version(automatic_path, automatic.json()["updatedAt"])
         self.assertEqual(removed.status_code, 204, removed.content)
         self.assertEqual(delete_version(automatic_path, automatic.json()["updatedAt"]).status_code, 404)
         with use_operator():
-            automatic_token = ShareToken.all_objects.get(pk=automatic_token.pk)
-            self.assertEqual(automatic_token.deleted_by_id, preparer.pk)
-            for proposal in RegisterImport.objects.filter(pk__in=pending):
-                self.assertEqual(proposal.status, "rejected")
-                self.assertEqual(proposal.reviewed_by_id, preparer.pk)
-                self.assertEqual((proposal.members, proposal.evidence_snapshot), snapshots[str(proposal.pk)])
-                rejection = proposal.decisions.get(kind="reject")
-                self.assertEqual(rejection.idempotency_key, rejection.pk)
-                self.assertEqual(rejection.appointment_id, preparation.pk)
-                self.assertEqual(rejection.decided_by_id, preparer.pk)
-                self.assertEqual(rejection.reason, "Retired automatically when deleting the unused share class.")
-            self.assertEqual(RegisterImportDecision.objects.filter(register_import_id__in=pending).count(), 3)
-            self.assertFalse(RegisterEntry.objects.filter(register__token=automatic_token).exists())
-        revoke_company_appointment(requester=self.owner, appointment_id=preparation.pk)
-        self.assertEqual(delete_version(automatic_path, automatic.json()["updatedAt"]).status_code, 404)
+            self.assertFalse(RegisterImport.objects.filter(pk__in=pending).exists())
+            self.assertEqual(
+                CompanyDisposal.objects.get(company_id=self.company.pk, actor_id=preparer.pk).appointment_id,
+                preparation.pk,
+            )
         self.client.force_authenticate(self.owner)
         empty_class = self.client.post(
             "/api/v1/tokens/",
@@ -511,7 +427,6 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(
                 revision.after, {"name": empty_change["name"], "symbol": "EMP", "token_type": "preference"}
             )
-            retained_revision = ClassDetailsRevision.objects.filter(pk=revision.pk).values().get()
             with self.assertRaises(DatabaseError), atomic():
                 ClassDetailsRevision.objects.filter(pk=revision.pk).update(after=revision.before)
             with self.assertRaises(DatabaseError), atomic():
@@ -564,6 +479,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(latest.revision, 2)
             self.assertEqual(latest.before, revision.after)
             self.assertEqual(latest.after, {**revision.after, "name": "Final empty class"})
+        self.appoint_admin()
         save_token = ShareToken.save
 
         def revoke_during_edit(instance, *args, **kwargs):
@@ -584,36 +500,23 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(ClassDetailsRevision.objects.filter(token=empty_token).count(), 2)
         listed = self.client.get("/api/v1/tokens/register/").json()["results"]
         self.assertTrue(next(row for row in listed if row["uuid"] == str(empty_token.pk))["canDelete"])
-        with use_operator():
-            opening = RegisterEntry.objects.get(register__token=empty_token)
-            opening_hash = opening.entry_hash
         removed = delete_version(empty_path, final.json()["updatedAt"])
         self.assertEqual(removed.status_code, 204, removed.content)
         self.assertEqual(self.client.get(empty_path).status_code, 404)
         retained_path = f"/api/v1/tokens/register-imports/{empty_proposal.json()['uuid']}/"
-        retained_review = self.client.get(retained_path)
-        self.assertEqual(retained_review.status_code, 200, retained_review.content)
-        self.assertFalse(retained_review.json()["correctionAllowed"])
-        self.assertEqual(self.client.post(f"{retained_path}decide/", empty_decision, format="json").status_code, 200)
-        self.assertEqual(
-            self.client.post(
-                f"{retained_path}decide/", {**empty_decision, "idempotency_key": str(uuid4())}, format="json"
-            ).status_code,
-            404,
-        )
+        self.assertEqual(self.client.get(retained_path).status_code, 404)
+        self.assertEqual(self.client.post(f"{retained_path}decide/", empty_decision, format="json").status_code, 404)
         with use_operator():
-            self.assertEqual(ClassDetailsRevision.objects.filter(pk=revision.pk).values().get(), retained_revision)
-            self.assertEqual(ClassDetailsRevision.objects.filter(token=empty_token).count(), 2)
-            opening.refresh_from_db()
-            self.assertEqual((opening.kind, opening.changes, opening.entry_hash), ("opening", [], opening_hash))
-            self.assertEqual(RegisterImport.objects.get(pk=empty_proposal.json()["uuid"]).status, "applied")
+            self.assertFalse(ClassDetailsRevision.objects.filter(token_id=empty_token.pk).exists())
+            self.assertFalse(RegisterEntry.objects.filter(register__token_id=empty_token.pk).exists())
+            self.assertFalse(RegisterImport.objects.filter(pk=empty_proposal.json()["uuid"]).exists())
         ownership = self.client.get("/api/v1/tokens/ownership/", {"company": str(self.company.pk)}).json()
         self.assertEqual([row["uuid"] for row in ownership["classes"]], [str(self.token.pk)])
         packed = self.client.post(
             f"/api/v1/companies/{self.company.pk}/pack/",
             {
                 "appointment": str(self.appointment.pk),
-                "instruction": "SYNTHETIC-RETIRED-CLASS-AUDIT",
+                "instruction": "SYNTHETIC-DELETED-CLASS-AUDIT",
                 "recipient": "Synthetic company administrator",
             },
             format="json",
@@ -622,50 +525,28 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         content = b"".join(packed.streaming_content)
         packed.close()
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
-            captured = json.loads(archive.read(f"classes/{tombstone.pk}/class.json"))
-            self.assertIsNotNone(captured["deleted_at"])
-            self.assertEqual(captured["deleted_by"], self.owner.pk)
-            audit = json.loads(archive.read(f"classes/{tombstone.pk}/authority.json"))
-            self.assertEqual(audit["imports"][0]["status"], "rejected")
-            self.assertTrue(audit["imports"][0]["decisions"])
-            empty_audit = json.loads(archive.read(f"classes/{empty_token.pk}/authority.json"))
-            self.assertEqual(empty_audit["imports"][0]["status"], "applied")
-            self.assertEqual(len(empty_audit["imports"][0]["decisions"]), 2)
-            empty_entries = json.loads(archive.read(f"classes/{empty_token.pk}/entries.json"))
             self.assertEqual(
-                (len(empty_entries), empty_entries[0]["entry_hash"], empty_entries[0]["changes"]), (1, opening_hash, [])
+                {name.split("/")[1] for name in archive.namelist() if name.startswith("classes/")}, {str(self.token.pk)}
             )
         self.assertEqual(self.client.get(history_path).json(), history.json())
         with use_operator():
             original = RegisterEntry.objects.get(register__token=self.token, kind="opening")
-        authority = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.AUTHORITY)
-        correction = self.client.post(
-            "/api/v1/tokens/register-corrections/",
-            {
-                "operation_id": str(uuid4()),
-                "appointment": str(self.appointment.pk),
-                "corrects_id": str(original.pk),
-                "authority_evidence": str(authority.pk),
-                "effective_on": timezone.now().date().isoformat(),
-                "authority": "director_resolution",
-                "approving_director": "Synthetic Director",
-                "authority_reference": "SYNTHETIC-COMPENSATING-RECORD",
-                "reason": "Compensate a recorded opening without erasing history",
-            },
-            format="json",
-        )
-        self.assertEqual(correction.status_code, 201, correction.content)
-        self.decision("/api/v1/tokens/register-corrections/", correction.json()["uuid"], "approve")
-        self.decision("/api/v1/tokens/register-corrections/", correction.json()["uuid"], "apply")
+        recorded = self.client.get(current_path).json()
+        self.assertFalse(recorded["canEditDetails"])
+        self.assertTrue(recorded["canDelete"])
         with use_operator():
-            register = ShareRegister.objects.get(token=self.token)
-            self.assertEqual((register.sequence, int(register.issued_supply)), (2, 0))
-            self.assertEqual(RegisterPosition.objects.get(register=register).shares, 0)
-        protected = self.client.get(current_path).json()
-        self.assertFalse(protected["canEditDetails"])
-        self.assertFalse(protected["canDelete"])
-        self.assertIn("confirmed ledger records", protected["deletionBlockedReason"])
-        self.assertEqual(delete_version(current_path, protected["updatedAt"]).status_code, 409)
+            kept = (
+                RegisterMemberParticulars.objects.filter(member=self.member).values("name", "residential_address").get()
+            )
+        removed = delete_version(current_path, recorded["updatedAt"])
+        self.assertEqual(removed.status_code, 204, removed.content)
+        with use_operator():
+            self.assertFalse(ShareToken.objects.filter(pk=self.token.pk).exists())
+            self.assertFalse(RegisterEntry.objects.filter(pk=original.pk).exists())
+            self.assertFalse(RegisterPosition.objects.filter(member=self.member).exists())
+            particulars = RegisterMemberParticulars.objects.get(member=self.member)
+            self.assertEqual({"name": particulars.name, "residential_address": particulars.residential_address}, kept)
+            self.assertIsNone(particulars.source_import_id)
 
     def test_company_ownership_summary_and_paged_holders_are_exact_and_current(self):
         overview = "/api/v1/tokens/ownership/"
@@ -741,6 +622,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(self.client.get(overview, {"company": str(self.company.pk)}).status_code, 404)
         self.assertEqual(self.client.get(endpoint, {"sequence": 1}).status_code, 404)
         self.client.force_authenticate(self.owner)
+        self.appoint_admin()
         revoke_company_appointment(
             requester=self.owner,
             appointment_id=self.appointment.pk,
@@ -839,7 +721,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
                 "name": "Synthetic New Pty Ltd",
                 "acn": "987654320",
                 "companyType": "pty",
-                "primaryContact": {"firstName": "Ada", "lastName": "Example", "phone": "+61 0491570159"},
+                "primaryContact": {"firstName": "Ada", "lastName": "Example"},
             },
             format="json",
         )
@@ -1001,9 +883,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             return [row["unmetRequirements"] for row in listed.json()["results"]]
 
         self.assertEqual(readiness(), [[]])
-        profile = UserProfile.objects.filter(pk=nominee_profile.pk)
         for reason, rows, lapsed, restored in (
-            ("participant_identity_required", profile, {"is_id_verified": False}, {"is_id_verified": True}),
             (
                 "participant_account_inactive",
                 account,
@@ -1236,6 +1116,7 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             raced = self.client.post("/api/v1/tokens/", class_payload, format="json")
         self.assertEqual(raced.status_code, 404, raced.content)
         self.assertFalse(ShareToken.objects.filter(company=self.company, symbol="RACE").exists())
+        self.appoint_admin()
         revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
         self.client.force_authenticate(self.owner)
         owner_without_authority = self.client.post("/api/v1/tokens/", class_payload, format="json")

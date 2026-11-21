@@ -8,7 +8,7 @@ import {
   DESTINATIONS,
   HOLDER_TYPE_LABELS,
   REGISTER_COPY,
-  REGISTER_CORRECTION_COPY,
+  REGISTER_ENTRY_COPY,
   REGISTER_PARTICULARS_COPY,
   USER_PREFERENCES_QUERY_KEY,
   appointmentForParticularsEdit,
@@ -371,7 +371,7 @@ function OwnShareholder({
                   {data.entries.data.map(({ token, entry }) => (
                     <View key={entry.uuid} style={look.row}>
                       <View style={look.line}>
-                        <Text style={[look.title, look.fill]}>{REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]}</Text>
+                        <Text style={[look.title, look.fill]}>{REGISTER_ENTRY_COPY.ENTRY_KINDS[entry.kind]}</Text>
                         <Text style={[look.figure, look.title]}>
                           {signedShares(
                             entry.changes

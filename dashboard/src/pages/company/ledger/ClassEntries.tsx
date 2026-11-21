@@ -1,7 +1,7 @@
 import { useId, useState, type ReactNode } from 'react';
 import {
   ENTRY_CHANGES_CAP,
-  REGISTER_CORRECTION_COPY,
+  REGISTER_ENTRY_COPY,
   entryDate,
   entryLabel,
   entryName,
@@ -19,7 +19,7 @@ import { LoadError, Loading, MoreToggle, Status } from '@components/Ledger';
 import { LoadMore } from '@components/List';
 import { RegisterChanges } from '@pages/company/ledger/shared/RegisterChanges';
 
-const COPY = REGISTER_CORRECTION_COPY;
+const COPY = REGISTER_ENTRY_COPY;
 
 export function ClassEntries({
   owner,

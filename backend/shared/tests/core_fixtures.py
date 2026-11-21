@@ -12,10 +12,12 @@ from pypdf import PdfWriter
 
 from companies.models import Company, CompanyCapability
 from companies.services.authority import (
+    DECLARATION_VERSION,
     SIGNUP_DECLARATION_VERSION,
     admit_authority_request,
 )
 from companies.services.authority_requests import submit_authority_request
+from companies.services.team import accept_team_invitation, issue_team_invitation
 from shared.db import use_migrate, use_operator
 from tokens.models import RegisterEvidenceKind, RegisterMember, ShareToken
 from tokens.services.register_evidence import retain_register_evidence
@@ -49,9 +51,8 @@ def person(label):
         )
         profile, _, _, _ = ensure_defaults(user)
         profile.full_name = f"Synthetic {label}"
-        profile.is_id_verified = True
         profile.is_signup_completed = True
-        profile.save(update_fields=["full_name", "is_id_verified", "is_signup_completed"])
+        profile.save(update_fields=["full_name", "is_signup_completed"])
     return user, profile
 
 
@@ -170,6 +171,19 @@ class CoreFixtures:
         )
         self.token, self.member = populated_register(self.owner, self.company, self.appointment)
         self.client.force_authenticate(self.owner)
+
+    def appoint_admin(self, label="core-admin"):
+        user, _ = person(label)
+        _, code, _ = issue_team_invitation(
+            requester=self.owner,
+            company_id=self.company.pk,
+            inviter_appointment_id=self.appointment.pk,
+            idempotency_key=uuid4(),
+            capabilities=[CompanyCapability.ADMIN],
+        )
+        return accept_team_invitation(
+            requester=user, code=code, declaration_version=DECLARATION_VERSION, accept_declaration=True
+        )
 
     def invitation_payload(self, **changes):
         return {

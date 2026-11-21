@@ -2,16 +2,14 @@ from datetime import timedelta
 
 from compliance.seeds.monitoring_rules import MONITORING_RULES
 from compliance.services.transaction_monitoring import RULE_CODE_TO_ALERT_TYPE
-from shared.seeds.synthetic.plan import AlertPlan, Ref
+from shared.seeds.synthetic.plan import AlertPlan
 
 RULES = {rule["rule_code"]: rule for rule in MONITORING_RULES}
 ROLE_CHAINS = {
     "large_deposit": "ethereum",
     "sof_deposit": "ethereum",
     "structuring": "ethereum",
-    "screened_send": "bitcoin",
 }
-SCREENING_FAILURE = "Crypto monitoring is disabled"
 MANUAL = "MANUAL"
 
 
@@ -48,11 +46,6 @@ class AlertBook:
                 (story.moment(days, 9, 17), ("USDC", True, story.rng.uniform(8250, 9880), False, f"structuring-{n}"))
                 for n, days in enumerate((104, 103, 101))
             ]
-        if role == "screened_send":
-            return [
-                (story.moment(49, 9, 16), ("BTC", True, 9200, False, None)),
-                (story.moment(46, 9, 16), ("BTC", False, 6200, True, "screened_send")),
-            ]
         if role == "high_volume":
             directions = (True, True, False, True, False, True, False, True)
             return [
@@ -81,7 +74,6 @@ class AlertBook:
         builders = (
             self._large_deposit,
             self._sof_deposit,
-            self._screened_send,
             self._high_volume,
             self._structuring,
             self._dormant,
@@ -154,28 +146,6 @@ class AlertBook:
         return [
             AlertPlan(person=person, data=data, transfer=transfer.tx_hash, **self._rule("MON-006"), **closed),
             self._large(person, transfer, notes),
-        ]
-
-    def _screened_send(self):
-        if "screened_send" not in self.subjects:
-            return []
-        person, transfer = self.subjects["screened_send"], self.labelled["screened_send"]
-        created = self._monitored(transfer)
-        notes = (
-            "Screening could not run. The destination is the investor's own exchange deposit address, "
-            "confirmed against the exchange statement."
-        )
-        data = {
-            "flagged_address": transfer.counterparty,
-            "screening_id": Ref("screening", transfer.tx_hash),
-            "screening_trigger": "large_transaction",
-            "reason": "Crypto screening failed - address safety unverified",
-            "error": SCREENING_FAILURE,
-        }
-        closed = self._closed(created, "false_positive", notes)
-        return [
-            AlertPlan(person=person, data=data, transfer=transfer.tx_hash, screened=True, **self._rule(code), **closed)
-            for code in ("MON-004", "MON-005")
         ]
 
     def _high_volume(self):
@@ -303,14 +273,14 @@ class AlertBook:
         if "discrepancy" not in self.subjects:
             return []
         created = self.story.moment(6, 9, 16)
-        description = "Residential address on the profile differs from the address on the verified identity document."
+        description = "Residential address on the profile differs from the address on the source-of-funds evidence."
         return [
             self._manual(
                 "discrepancy",
                 "info_discrepancy",
                 "medium",
                 description,
-                {"field": "residential_address", "compared_with": "verified identity document"},
+                {"field": "residential_address", "compared_with": "source-of-funds evidence"},
                 created_at=created,
                 status="reviewing",
                 assignee="compliance",
@@ -349,22 +319,19 @@ class AlertBook:
             return []
         changed = self.changes["suspended"]
         created = changed - timedelta(minutes=self.story.rng.randint(40, 90))
-        description = (
-            "Possible match on the DFAT consolidated list (name and year of birth). "
-            "Identity documents requested to rule it out."
-        )
+        description = "A police request for information named this account holder."
         return [
             self._manual(
                 "suspended",
-                "sanctions_match",
+                "law_enforcement",
                 "critical",
                 description,
-                {"list": "DFAT consolidated list", "matched_on": ["name", "year of birth"], "confirmed": False},
+                {"source": "Police request for information", "answered": False},
                 created_at=created,
                 status="escalated",
                 assignee="compliance",
                 assigned_at=self.story.after(created, 5, 20),
-                notes="Escalated to the director. Account suspended while the match is resolved.",
+                notes="Escalated to the director. Account suspended while the request is answered.",
                 account_action="suspended",
                 account_action_at=changed,
             )

@@ -190,8 +190,7 @@ BEGIN
     actual_facts := whitelist_eligibility_invalidation_facts(NEW.user_account_id, NULL, NEW.chain_id);
     IF actual_facts IS NULL OR actual_facts->>'profile' IS DISTINCT FROM NEW.facts->>'profile'
         OR actual_facts->>'holder' IS DISTINCT FROM NEW.facts->>'holder'
-        OR actual_facts->>'kyc_required' IS DISTINCT FROM NEW.facts->>'kyc_required'
-    THEN RAISE EXCEPTION 'Retain the original account, holder and loss configuration'
+    THEN RAISE EXCEPTION 'Retain the original account and holder'
         USING ERRCODE = '23514'; END IF;
     IF NEW.cause = 'wallet_removal' THEN
         SELECT * INTO actual_wallet FROM wallets WHERE uuid = NEW.wallet_id;
@@ -214,21 +213,17 @@ BEGIN
             IF (CASE effect_field
                 WHEN 'role' THEN NOT (NEW.facts->>'role' IN ('investor', 'both')
                     AND actual_facts->>'role' NOT IN ('investor', 'both'))
-                WHEN 'account_status' THEN NOT ((NEW.facts->>'standing' = 'active'
-                    OR (NEW.facts->>'standing' = 'pending' AND NOT (NEW.facts->>'kyc_required')::boolean))
-                    AND actual_facts->>'standing' <> 'active' AND NOT (
-                        actual_facts->>'standing' = 'pending' AND NOT (actual_facts->>'kyc_required')::boolean))
+                WHEN 'account_status' THEN NOT (NEW.facts->>'standing' IN ('active', 'pending')
+                    AND actual_facts->>'standing' NOT IN ('active', 'pending'))
                 WHEN 'is_active' THEN NOT ((NEW.facts->>'active')::boolean AND NOT (actual_facts->>'active')::boolean)
                 WHEN 'is_email_verified' THEN NOT ((NEW.facts->>'email_verified')::boolean
                     AND NOT (actual_facts->>'email_verified')::boolean)
-                WHEN 'is_id_verified' THEN NOT ((NEW.facts->>'identity_verified')::boolean
-                    AND NOT (actual_facts->>'identity_verified')::boolean AND (actual_facts->>'kyc_required')::boolean)
                 ELSE true END)
             THEN RAISE EXCEPTION 'Every retained cause field must commit its genuine loss'
                 USING ERRCODE = '23514'; END IF;
             IF NEW.initiated_by_id IS NOT NULL THEN
                 permission := CASE WHEN effect_field IN ('is_active', 'is_email_verified') THEN 'change_customuser'
-                    WHEN effect_field = 'is_id_verified' THEN 'change_userprofile' ELSE 'change_useraccount' END;
+                    ELSE 'change_useraccount' END;
                 permission_app := CASE WHEN effect_field IN ('is_active', 'is_email_verified')
                     THEN 'authentication' ELSE 'users' END;
                 IF NOT whitelist_invalidation_actor_permission(NEW.initiated_by_id, (NEW.facts->>'holder')::bigint,
@@ -374,9 +369,6 @@ AS $function$
     SELECT jsonb_build_object('account', account.uuid::text, 'profile', profile.uuid::text,
         'holder', actor.id::text, 'role', account.role, 'standing', account.account_status,
         'active', actor.is_active, 'email_verified', actor.is_email_verified,
-        'identity_verified', profile.is_id_verified, 'kyc_required', configuration.investor_kyc_required,
-        'identity_provider', profile.kyc_provider, 'identity_status', profile.verification_status,
-        'identity_review', profile.review_result, 'identity_observed_at', profile.verified_at,
         'standing_reason', account.rejection_reason,
         'wallet', wallet.uuid::text, 'address', lower(wallet.address), 'chain', wallet.chain,
         'wallet_verified', wallet.verification_status, 'chain_id', bound_chain_id,
@@ -389,7 +381,6 @@ AS $function$
     FROM customer_accounts_account account
     JOIN users_userprofile profile ON profile.uuid = account.user_profile_id
     JOIN authentication_customuser actor ON actor.id = profile.user_id
-    JOIN operators_operator configuration ON configuration.id = 1
     LEFT JOIN wallets wallet ON wallet.uuid = bound_wallet_id AND wallet.user_account_id = account.uuid
     WHERE account.uuid = bound_account_id;
 $function$;
@@ -535,7 +526,6 @@ BEGIN
         FROM jsonb_array_elements(NEW.cause_fields) field), '[]'::jsonb)
         OR EXISTS (SELECT 1 FROM jsonb_array_elements(NEW.cause_fields) field WHERE jsonb_typeof(field) <> 'string')
         OR (NEW.cause = 'wallet_removal' AND NEW.cause_fields <> '[]'::jsonb)
-        OR (NEW.cause = 'identity_loss' AND NEW.cause_fields <> '["is_id_verified"]'::jsonb)
         OR (NEW.cause = 'standing_loss' AND (NEW.cause_fields = '[]'::jsonb OR EXISTS (
             SELECT 1 FROM jsonb_array_elements_text(NEW.cause_fields) field
             WHERE field NOT IN ('account_status', 'role', 'is_active', 'is_email_verified'))))
@@ -552,7 +542,7 @@ BEGIN
         ELSE
             FOR effect_field IN SELECT jsonb_array_elements_text(NEW.cause_fields) LOOP
                 permission := CASE WHEN effect_field IN ('is_active', 'is_email_verified') THEN 'change_customuser'
-                    WHEN effect_field = 'is_id_verified' THEN 'change_userprofile' ELSE 'change_useraccount' END;
+                    ELSE 'change_useraccount' END;
                 permission_app := CASE WHEN effect_field IN ('is_active', 'is_email_verified')
                     THEN 'authentication' ELSE 'users' END;
                 IF NOT whitelist_invalidation_actor_permission(principal, (actual_facts->>'holder')::bigint,
@@ -564,9 +554,6 @@ BEGIN
     ELSIF principal IS NOT NULL OR NEW.cause = 'wallet_removal' THEN
         RAISE EXCEPTION 'Automation does not invent a wallet removal actor' USING ERRCODE = '23514';
     END IF;
-    IF NEW.cause = 'identity_loss' AND NOT (
-        (actual_facts->>'kyc_required')::boolean AND (actual_facts->>'identity_verified')::boolean)
-    THEN RAISE EXCEPTION 'Retain configured identity before its genuine loss' USING ERRCODE = '23514'; END IF;
     IF NEW.cause = 'wallet_removal' AND (actual_facts->>'wallet' IS DISTINCT FROM NEW.wallet_id::text
         OR actual_facts->>'address' IS DISTINCT FROM NEW.address OR actual_facts->>'chain' <> 'base')
     THEN RAISE EXCEPTION 'Retain the actual wallet and its holder' USING ERRCODE = '23514'; END IF;

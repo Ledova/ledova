@@ -25,6 +25,7 @@ export function AppointmentRecord({
   teamRecord?: boolean;
 }) {
   const declarationId = useId();
+  const reasonId = useId();
   const [declarationShown, setDeclarationShown] = useState(false);
   const person = teamRecord && 'email' in appointment ? appointment : null;
   const title = person ? person.name || person.email : companyName;
@@ -33,6 +34,7 @@ export function AppointmentRecord({
       ? appointment.declarationText
       : '';
   const revocable = appointment.status !== 'revoked';
+  const blockedReason = revocable ? appointment.revocationBlockedReason : null;
   return (
     <li className="flex min-w-0 flex-col gap-1 py-3 text-sm">
       <div className="flex items-baseline justify-between gap-3">
@@ -63,10 +65,16 @@ export function AppointmentRecord({
                 compact
                 label="Revoke"
                 context={`appointment for ${title} · ${scopeLabels(appointment.capabilities)} · appointed ${formatDate(appointment.createdAt)}`}
-                disabled={disabled}
+                describedBy={blockedReason ? reasonId : undefined}
+                disabled={disabled || !!blockedReason}
                 onClick={onRevoke}
               />
             </div>
+          )}
+          {blockedReason && (
+            <p id={reasonId} className="basis-full text-text-muted">
+              {blockedReason}
+            </p>
           )}
         </div>
       )}

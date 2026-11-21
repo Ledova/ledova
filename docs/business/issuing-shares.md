@@ -36,7 +36,7 @@ setup: **Ledger**, **Add**, on the web or in the app.
 Every class created there carries the internal quantity guard as its technical share limit, with
 no custom limit. Creation records no shares and no legal registration. The technical
 limit is not statutory authorised capital; the class code and type do not define its economic rights.
-Class codes are one to five ASCII letters, saved in uppercase, unique among the company's active classes, and may
+Class codes are one to five ASCII letters, saved in uppercase, unique among the company's classes, and may
 not reuse a reserved asset symbol. On the web, the same administrator or preparer can edit a
 class's name, code and type while it has no ownership activity or operational dependencies, including
 after a confirmed empty opening. Saved Class rights and their governing documents do not prevent
@@ -45,28 +45,23 @@ visible for current preparers when locked, disabled with the server's reason; re
 mandate get no Edit action. Reject any saved setup review first; the rejected draft stays recorded.
 Each saved change retains its previous and new name, code and type, the representative, appointment
 and time automatically, without adding a history section to the page. The original opening,
-decisions and hash remain unchanged. The company pack includes the full attributed details history,
-even after deletion.
+decisions and hash remain unchanged. The company pack includes the full attributed details history.
 A zero balance after actual ownership activity does not permit editing.
-A share class's **Delete** removes an unused
-class from active use and automatically retires any saved, unconfirmed setup reviews in the same
-transaction. Rejected setup drafts and a confirmed empty opening do not prevent deletion.
-The class must never have recorded actual ownership activity. It keeps the class,
-deletion actor and time, drafts, decisions and evidence as audit history. Its code can then be reused
-by a new class without changing the earlier record. An empty register stub alone does not prevent
-deletion. Class rights revisions and their governing documents also remain in the audit and company
-pack without preventing retirement. Actual ownership history and other operational dependencies
-still block deletion. The web shows the
-reason beside a disabled **Delete** action. On a completed class page, this action sits
-below the ownership, rights and document cards, while Edit stays with Class details. Deletion retirement records its actor, time and reason
-without granting ordinary review approval authority. If retirement or deletion fails, both roll back. These
-controls are also available in the native app. On the web, Share classes supports selecting classes
-individually or every visible class with **Select all**, including protected classes. **Delete**
-is available when at least one selected class is removable. Its confirmation names those classes and
-shows which selected classes will be kept and why. Each removal is checked
-separately, so a refusal or uncertain result stops the sequence and leaves unsent classes untouched.
-Confirmed removals and retained records are not undone by a later refusal. Company closure uses its separate
-[status controls](companies.md#staff-company-controls). Deployment, capital increases and
+A share class's **Delete** deletes the class with all its records: its register and ownership,
+setup reviews and their decisions, issues, transfers, awards and vesting, corrections, Class rights,
+the class's shareholder-document links and its outputs
+([decision](../decisions.md#companies-may-delete-what-they-record)). One confirmation names the class
+and says this can't be undone. People stay, keeping the name and address the class recorded for them,
+and uploaded documents stay. The class code can then be reused. A class with on-chain records can't be
+deleted here; the web and app show that reason beside a disabled **Delete**. On a completed class
+page, this action sits below the ownership, rights and document cards, while Edit stays with Class
+details. If any part of a delete fails, nothing is deleted. These controls are also available in the
+native app. On the web, Share classes supports selecting classes individually or every visible class
+with **Select all**. **Delete** is available when at least one selected class can be deleted. Its
+confirmation names those classes and shows which will be kept and why. Each class is deleted
+separately, so a refusal or uncertain result stops the sequence and leaves unsent classes untouched;
+classes already deleted stay deleted. Deleting the whole company is separate
+([deleting a company](companies.md#deleting-a-company)). Deployment, capital increases and
 pausing are company decisions; earlier direct actions by the owner or platform staff are retired,
 and their records stay readable. The register API can confirm a zero-issued opening for a genuinely
 unopened draft class without a contract or former members. It creates no shareholder, holding or
@@ -153,8 +148,7 @@ Only a draft class of an active company can be deployed, once. A class with no r
 opened register holding no shares, can be deployed; an unopened or unreadable register, or issued
 shares, refuse it,
 because deployment cannot mirror populated holdings. Deployment never resets an empty register or
-creates a second opening, and while it is admitted the register cannot change, including imports and
-corrections. Company share operations grant no crypto on-ramp purchase permission. How the signer
+creates a second opening, and while it is admitted the register cannot change, including imports. Company share operations grant no crypto on-ramp purchase permission. How the signer
 executes it is in [engineering](../engineering/chain.md#share-class-deployment).
 
 ### Raising the authorised shares
@@ -221,14 +215,14 @@ setup on the web first.
 
 ### What each record changes
 
-| Record                                                         | Effect on issued shares and holdings                                                                                                |
-| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Copying existing records (the opening)                         | Sets the opening balance; it is never an issue                                                                                      |
-| Employee award and vesting                                     | None: an award is a promised entitlement and vesting a company record                                                               |
-| Investor agreement and receipt                                 | None on their own; completing the approved allotment makes the issue                                                                |
-| Any issue: grant, award-linked grant, allotment or chain grant | Increases the issued shares and the recipient's holding once                                                                        |
-| Transfer                                                       | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members)) |
-| Correction                                                     | Keeps the earlier entry and records an exact reversal or opening difference ([corrections](register.md#compensating-corrections))   |
+| Record                                                         | Effect on issued shares and holdings                                                                                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Copying existing records (the opening)                         | Sets the opening balance; it is never an issue                                                                                                                |
+| Employee award and vesting                                     | None: an award is a promised entitlement and vesting a company record                                                                                         |
+| Investor agreement and receipt                                 | None on their own; completing the approved allotment makes the issue                                                                                          |
+| Any issue: grant, award-linked grant, allotment or chain grant | Increases the issued shares and the recipient's holding once                                                                                                  |
+| Transfer                                                       | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members))                           |
+| Correction                                                     | Exactly reverses an earlier entry, or records an opening difference; a mistaken issue or transfer is [deleted](register.md#deleting-a-register-entry) instead |
 
 Investor and employee issues use the same register: one member, one set of holdings and one history
 serve both.
@@ -243,8 +237,9 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
   separately from agreement, terms, vesting and receipt dates. It enters the exact review and
   resulting entry; Ledova's recording and approval timestamps stay actual. The date must be no later
   than today (UTC) and no earlier than the applicable opening or latest effective event
-  ([register dates](register.md#register-entries)). Earlier events need correction or reconciliation,
-  not a replay through the normal issue path. Chain issues keep their existing execution dates.
+  ([register dates](register.md#register-entries)). An earlier event means deleting the later entries
+  and recording them again, or correcting the copied opening when it comes before the opening; the
+  normal issue path doesn't replay history. Chain issues keep their existing execution dates.
 - The issue must fit within the authorised shares; quantities are whole, and a chain request is at
   most 2,147,483,647.
 - A payment or receipt never authorises an issue, and non-paid terms never create an amount paid.
@@ -350,7 +345,8 @@ that uploaded a separate matching copy.
 
 Applying rechecks the authority, evidence, vested quantity still available, particulars, register
 and authorised shares, then records the Issue once. Pending or approved grants reserve neither
-vested nor authorised shares, and a later transfer or correction returns no shares to the award.
+vested nor authorised shares. A later transfer returns no shares to the award, but deleting the
+issue makes its vested shares available to grant again.
 Later grants use the recipient's existing member record, including a former-member record.
 
 New vesting, endings, reversals and newly applied linked issues cannot precede the latest accepted

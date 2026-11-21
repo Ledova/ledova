@@ -19,7 +19,6 @@ class WhitelistAuthority(models.TextChoices):
 
 class WhitelistInvalidationCause(models.TextChoices):
     STANDING_LOSS = "standing_loss", "Account standing lost"
-    IDENTITY_LOSS = "identity_loss", "Configured identity lost"
     WALLET_REMOVAL = "wallet_removal", "Wallet removed or verification lost"
 
 
@@ -39,7 +38,7 @@ class WhitelistEligibilityInvalidation(BaseModel):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(cause__in=["standing_loss", "identity_loss", "wallet_removal"]),
+                condition=models.Q(cause__in=["standing_loss", "wallet_removal"]),
                 name="whitelist_invalidation_retained_cause",
             ),
             models.CheckConstraint(condition=models.Q(chain_id__gt=0), name="whitelist_invalidation_chain"),

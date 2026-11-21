@@ -27,11 +27,6 @@ export const DESTINATIONS = {
     title: 'Set up your ledger',
     audience: 'everyone',
   },
-  companyRegisterCorrection: {
-    path: '/company/ledger/:uuid/correct/:entry',
-    title: 'Correction',
-    audience: 'everyone',
-  },
   companyRegisterTransfer: {
     path: '/company/ledger/:uuid/transfer',
     title: 'Non-paid transfer',
@@ -70,7 +65,6 @@ export const DESTINATION_PARENTS: Partial<Record<DestinationKey, DestinationPare
   companyClass: { destination: 'companyRegister' },
   companyRegisterSetup: { destination: 'companyRegister' },
   companyRegisterImport: { destination: 'companyRegister' },
-  companyRegisterCorrection: { destination: 'companyRegister' },
   companyRegisterTransfer: { destination: 'companyRegister' },
   companyRegisterParticulars: { destination: 'companyRegister', view: 'shareholders' },
   companyShareholder: { destination: 'companyRegister', view: 'shareholders' },

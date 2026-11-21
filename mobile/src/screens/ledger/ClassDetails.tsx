@@ -200,8 +200,7 @@ export function ClassDetailsContent({
         }
       >
         <Text style={look.text}>
-          Delete {target?.name} ({target?.symbol}) from active share classes? Saved setup reviews are retired
-          automatically. Their records and audit history are kept.
+          This deletes {target?.name} ({target?.symbol}) and all its records for everyone. This can’t be undone.
         </Text>
         {!!details.error && (
           <Text accessibilityRole="alert" style={look.smallError}>

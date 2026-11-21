@@ -17,6 +17,7 @@ from companies.serializers.pack import (
     CompanyPackRequestSerializer,
     CompanyPacksSerializer,
 )
+from companies.services.company_deletion import delete_company
 from shared.db import set_principal
 from shared.views import AuthenticatedModelViewSet
 from tokens.exceptions import RegisterIntegrityError
@@ -34,7 +35,7 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         "packs requires the same current personal administrator and shows only packs recorded as produced through "
         "the company's pages, never one produced in platform admin."
     )
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     filterset_class = CompanyFilter
     ordering = ["-created_at"]
     ordering_fields = ["created_at", "name", "status"]
@@ -83,6 +84,11 @@ class CompanyViewSet(AuthenticatedModelViewSet):
         company = serializer.save()
         return Response(CompanyDetailSerializer(company, context=self.get_serializer_context()).data)
 
+    @extend_schema(responses={204: None})
+    def destroy(self, request, *args, **kwargs):
+        delete_company(actor=request.user, company_id=self.get_object().pk)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @extend_schema(request=CompanyPackRequestSerializer, responses={(200, "application/zip"): OpenApiTypes.BINARY})
     @action(detail=True, methods=["post"])
     def pack(self, request, uuid=None):
@@ -110,6 +116,6 @@ class CompanyViewSet(AuthenticatedModelViewSet):
             return queryset.readable_by(self.request.user)
         if self.action in {"pack", "packs"}:
             return queryset.personally_administered_by(self.request.user, self.kwargs.get("uuid"))
-        if self.action == "partial_update":
+        if self.action in {"partial_update", "destroy"}:
             return queryset.administrable_by(self.request.user)
         return queryset.owned_by(self.request.user)

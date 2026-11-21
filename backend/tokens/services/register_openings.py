@@ -121,7 +121,7 @@ def _authority_values(authority, approving_director, authority_reference, reason
 
 
 def _company_of(actor, token_id):
-    appointments = CompanyAppointment.objects.current_of(actor, at=timezone.now(), identity_required=False)
+    appointments = CompanyAppointment.objects.current_of(actor, at=timezone.now())
     with use_operator(), _requester_principal(actor.pk):
         company_id = (
             ShareToken.objects.filter(pk=token_id, company_id__in=appointments.values("company_id"))
@@ -136,7 +136,7 @@ def _company_of(actor, token_id):
 def _holding(actor, company_id, appointment, capability):
     with use_operator(), _requester_principal(actor.pk):
         return (
-            CompanyAppointment.objects.current_for(actor, company_id, at=timezone.now(), identity_required=False)
+            CompanyAppointment.objects.current_for(actor, company_id, at=timezone.now())
             .filter(pk=appointment)
             .holding_any([CompanyCapability.ADMIN, capability])
             .exists()
@@ -210,11 +210,8 @@ def prepare_opening(
             company,
             current_actor,
             profile,
-            operator,
         ):
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             token = ShareToken.objects.select_for_update().filter(pk=token_id, company=company).first()
             if token is None:
                 raise NotFound(SHARE_CLASS_NOT_FOUND)
@@ -490,7 +487,7 @@ def decide_opening(*, actor, opening_id, appointment, kind, idempotency_key, pre
 
 
 def _appointed_in(actor, company_id):
-    appointments = CompanyAppointment.objects.current_of(actor, at=timezone.now(), identity_required=False)
+    appointments = CompanyAppointment.objects.current_of(actor, at=timezone.now())
     with use_operator(), _requester_principal(actor.pk):
         if not appointments.filter(company_id=company_id).exists():
             raise NotFound(COMPANY_NOT_FOUND)
@@ -526,11 +523,8 @@ def prepare_link(
             company,
             current_actor,
             profile,
-            operator,
         ):
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             existing = RegisterWalletLink.objects.filter(pk=operation_id).first()
             if existing is not None:
                 expected = {
