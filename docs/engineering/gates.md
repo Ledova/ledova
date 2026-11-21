@@ -255,8 +255,7 @@ snapshot; ordinary comparison never rewrites it. Mapping keys are canonicalised;
 constraints, request/response metadata and nullability remain significant. Fix diagnostics through
 real declarations and existing enum definitions, without bypassing authorisation or suppressing
 warnings. The schema checker excludes administrative, static, API-root, format-duplicate and
-bodyless methods; its explicit provider-webhook exclusions are Alchemy, KYCAID identity, KYCAID
-crypto and Sumsub. Missing routes, phantom operations and stale exclusions fail; unused application
+bodyless methods; its one explicit provider-webhook exclusion is Alchemy. Missing routes, phantom operations and stale exclusions fail; unused application
 routes and error-only compatibility routes still count.
 
 `make check-api-types` regenerates the

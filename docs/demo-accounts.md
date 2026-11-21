@@ -71,7 +71,7 @@ flowchart LR
 - **Casey Demo:** employee shareholder/member in Purpose Demo only, with an award and issued shares.
 - **Quinn Investor Demo:** investor/member in Purpose Demo, for personal holdings and certificates;
   no company administration.
-- Taylor, Casey and Quinn are active, identity-verified investors.
+- Taylor, Casey and Quinn are active investors.
 - **Jordan Ellis:** a second Purpose Demo officer, added on 29 October 2026 to re-appoint Alex with
   prepare and approve.
 

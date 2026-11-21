@@ -35,7 +35,7 @@ Backend accounting conservatively includes both discovered methods and every `su
 boundary keeps representative read/write and capability-family refusals instead of repeating every
 route/method combination. This replaces 96 boundary rows with 26 and leaves room for the PDF
 parser's thirteen meaningful hostile-input rows and the Terms/retention checks without increasing the cap.
-Two additional methods cover immutable Terms receipts and provider erasure/maintenance; the Terms
+Two additional methods cover immutable Terms receipts and account maintenance; the Terms
 case includes six explicit refusal/mutation rows. No existing core journey is removed.
 Company deletion keeps two methods and two runtime-role rows for tenant preservation, file removal,
 a failed class delete's rollback, the on-chain refusals and privileged-boundary refusals; the first
@@ -142,7 +142,8 @@ foreign invitation and revoked association refusals. One
 output case covers real company certificate PDFs, a register reader who lists no member invitations
 or associations and whose access ends with their appointment, pack provenance, an empty class's rights, details history and governing documents, file integrity,
 and the purge of export records after the retention floor. Two mirror cases cover complete copied
-holdings and allotments, once-only opening corrections, retained earlier snapshots, stale and
+holdings and allotments, once-only opening corrections, retained earlier snapshots, a deleted
+setup attachment marked unattached and refused in a later or waiting correction, stale and
 incomplete requests, and refusal after later ownership or member-access activity. They exercise
 the API and PostgreSQL guards; they establish no genuine legal register or source verification.
 The existing class journey also covers metadata editing and class deletion, stale versions,
@@ -163,7 +164,7 @@ session and principal handling, foreign reads and writes, exact-company binding,
 and once-only issue. Exact-company binding includes class edits and deletion through real app and
 operator connections, foreign-class refusals and refusal of direct app-role SQL metadata changes.
 The own-profile case also checks that the operator-connection profile save, with
-its serializer bypassed, cannot change provider identity results or another person's row. The PR description records the executed count, the scoped count and any skips.
+its serializer bypassed, cannot change another person's row. The PR description records the executed count, the scoped count and any skips.
 
 ## Client suites
 

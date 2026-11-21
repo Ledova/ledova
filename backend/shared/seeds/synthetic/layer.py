@@ -80,11 +80,9 @@ def summary(plan):
     wallets = [wallet for person in everyone for wallet in person.wallets]
     return {
         "investors": len(investors),
-        "active": statuses["active"],
+        "pending": statuses["pending"],
         "suspended": statuses["suspended"],
         "terminated": statuses["terminated"],
-        "rejected": statuses["rejected"],
-        "checking": cohorts["kyc_pending"] + cohorts["kyc_resubmit"] + cohorts["kyc_red"],
         "unfinished": cohorts["unverified"] + cohorts["stalled"],
         "owners": len(plan.people) - len(investors),
         "companies": dict(companies),

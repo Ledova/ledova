@@ -738,8 +738,8 @@ rate stored then; `sync_exchange_rates` refreshes the rate every 10 minutes and 
 Wallet sync skips the hash of a transfer the app recorded before mining. Rule windows use the block
 time or, before mining, the recorded time. `TRANSACTION_MONITORING_WINDOW_HOURS` and `NEW_CUSTOMER_DAYS` are in
 `backend/compliance/constants.py`. The `users_keep_first_activation` trigger keeps an account's
-earliest activation date through suspension and reactivation; it can still move earlier, which is
-how the demo seed dates its testers from their identity decision.
+earliest activation date through suspension and reactivation; it can still move earlier. An account
+never activated is new for `NEW_CUSTOMER_DAYS` after it was created.
 
 ### Portfolio history
 

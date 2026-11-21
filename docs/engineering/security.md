@@ -197,12 +197,10 @@ A Profile save is a bounded operator write. `PATCH /api/user-profiles/<uuid>/` r
 connection so that a saved full name or residential address reaches every register that currently
 links the person in the same transaction
 ([particulars from Profile](../business/member-records.md#particulars-from-profile)). `narrow()` binds
-it to the signed-in person's own locked row, and the serializer keeps provider identity results and
-the email read-only. The save also marks its transaction with the person's ID in `app.profile_save`
-for the profile update alone, and the `users_provider_identity` trigger checks a marked write as it
-checks an app-role one: it refuses any change to provider identity results and any row but the
-saving person's own. Unmarked operator writes, the verification service's and account deletion's,
-are unchanged. The register guards accept a member's change only through the person's own
+it to the signed-in person's own locked row, and the serializer keeps the email read-only. The save
+also marks its transaction with the person's ID in `app.profile_save` for the profile update alone,
+and the `users_profile_save` trigger refuses a marked write to any row but the saving person's own.
+Unmarked operator writes, such as account deletion's, are unchanged. The register guards accept a member's change only through the person's own
 current association for that company and member, with each value taken from their profile or kept,
 as an applied change over the exact current particulars, and they refuse a company's edit of a
 member who has a current association
@@ -279,23 +277,10 @@ classified as retained, with a reason.
 
 The `delete-account` action in [lifecycle.py](../../backend/users/services/lifecycle.py)
 replaces the sign-in email, disables the account and password, clears unused email-verification
-codes and revokes sessions. It erases personal profile and identity-provider metadata, financial
-answers, preferences, device tokens and inbox notifications. Account-only risk assessments and
-identity/periodic-review alerts are removed unless linked to an identified retained compliance
-case. Executed transaction journals and specific flagged/filed case evidence remain separate.
-Provider callbacks, profile and account writers recheck the fresh active user under account locks;
-inactive callbacks cannot repopulate erased details. Company-first profile locking is preserved.
-
-If a provider holds an applicant, closure creates a private operator-only erasure work item before
-clearing the profile. A signed callback for an unused duplicate provider profile is tracked in
-the same queue rather than overwriting the current applicant. An operator must request
-**permanent** supplier deletion, not reversible
-deactivation, and record genuine confirmation. The target is thirty days. Applicant IDs and the
-completion address are kept only for that follow-through, then cleared after confirmation and
-notice. A specific legal hold needs its case, reason and review date; it is not a blanket exemption
-for registry users. Pending, overdue and held items remain visible to the operator. No supplier
-request is silently treated as completed. An active account’s current applicant cannot be
-completed as erased; an unused duplicate additionally needs explicit operator confirmation.
+codes and revokes sessions. It erases the personal profile, financial answers, preferences, device
+tokens and inbox notifications. Executed transaction journals and compliance case evidence remain
+separate. Profile and account writers recheck the fresh active user under account locks, so a late
+write cannot repopulate erased details. Company-first profile locking is preserved.
 
 Stable user, profile and account identifiers remain for protected references. Company member
 particulars, associations, decisions, evidence and copied snapshots are retained separately for the
@@ -311,11 +296,9 @@ remain. No web or native signup sends financial-profile answers.
 Signup, on the web and in the app, submits only the full name through the shared profile hook;
 birth date, phone and address are not requested or sent, including when resuming a profile that
 already holds them. Profile edits only name and address on both clients, preserving historical
-phone and identity data for their existing display/export and erasure paths. Address supports
-linked member particulars and can be postal; it is not required of every company administrator.
-Identity providers accept missing account DOB and can collect their required details in their own
-verification flow; verified extraction may populate the profile. No identity check is bypassed by
-reducing signup collection.
+phone, birth date and citizenship for their existing display, export and erasure paths. Address
+supports linked member particulars and can be postal; it is not required of every company
+administrator.
 
 Company deletion is separate from account deletion. A current company administrator, or the owner
 of a draft under the draft setup exception, deletes the company from Settings
@@ -370,7 +353,7 @@ company Terms and appointments are preserved. Public versions remain accessible.
 | ---------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below                                        |
 | Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                 | Deleted with their company; decisions and copies also with their share class, above |
-| Uncompleted signup without protected history or a provider follow-up   | Thirty days without signup/login activity           | Existing daily maintenance erases account-only data                                 |
+| Uncompleted signup without protected history                           | Thirty days without signup/login activity           | Existing daily maintenance erases account-only data                                 |
 | Expired JWT and Django session rows                                    | Token/session expiry                                | Existing daily maintenance removes expired rows                                     |
 | Successful / unsuccessful jobs                                         | Seven / thirty days                                 | Existing job maintenance                                                            |
 | Unreferenced private uploads                                           | At least 24 hours unchanged                         | Existing orphan sweep                                                               |

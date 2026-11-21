@@ -17,6 +17,7 @@ export type RegisterImportMemberDocument = {
   evidence: string;
   category: RegisterMemberDocumentCategory;
   snapshot?: RegisterMemberDocumentSnapshot;
+  attached?: boolean;
 };
 
 export type RegisterMemberDocumentRecord = ApiSchema<'RegisterMemberDocument'>;

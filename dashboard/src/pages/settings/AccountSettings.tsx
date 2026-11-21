@@ -341,9 +341,8 @@ export function AccountData() {
       >
         <p className="mb-3 text-sm font-medium">This action cannot be undone.</p>
         <p className="text-sm text-text-muted">
-          This ends sign-in and erases unnecessary account details. Where an identity provider holds your documents,
-          permanent deletion is requested separately, with a target of 30 days. Company records, required security
-          receipts and specific legal holds remain separate. Contact hello@ledova.io for privacy questions.
+          This ends sign-in and erases unnecessary account details. Company records, required security receipts and
+          specific legal holds remain separate. Contact hello@ledova.io for privacy questions.
         </p>
         {deleteMutation.isError && (
           <p role="alert" className="mt-3 text-sm text-error-light">

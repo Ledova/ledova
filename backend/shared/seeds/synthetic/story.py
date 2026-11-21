@@ -20,11 +20,9 @@ from shared.seeds.synthetic.plan import (
     MINIMUM_INVESTORS,
     SEED,
     WINDOW_DAYS,
-    Attempt,
     CompanyPlan,
     Device,
     Financial,
-    Kyc,
     Note,
     Person,
     Plan,
@@ -35,7 +33,6 @@ from shared.seeds.synthetic.plan import (
     WalletPlan,
     stream,
 )
-from users.services.identity import REVIEW_OUTCOME_MESSAGES
 from users.services.notifications import transaction_message
 
 PEOPLE_STREAM = "people"
@@ -72,37 +69,25 @@ STAFF_NAMES = (("Helena", "Marsh"), ("Grace", "Okafor"), ("Daniel", "Burke"))
 SPECIAL_COHORTS = (
     ("unverified", 2),
     ("stalled", 3),
-    ("kyc_pending", 4),
-    ("kyc_resubmit", 2),
-    ("kyc_red", 3),
-    ("kyc_rejected", 1),
 )
 JOIN_RANGES = {
     "unverified": (2, 24),
     "stalled": (8, 120),
-    "kyc_pending": (2, 45),
-    "kyc_resubmit": (5, 90),
-    "kyc_red": (6, 150),
-    "kyc_rejected": (30, 150),
 }
 STALLED_STEPS = ("account-type", "user-profile", "financial-profile")
-PENDING_STATES = (("kycaid", "pending"), ("sumsub", "queued"), ("sumsub", "onHold"), ("kycaid", "pending"))
-RED_LABELS = (("DOCUMENT_EXPIRED",), ("SELFIE_MISMATCH",), ("DOCUMENT_DAMAGED", "BAD_PHOTO_QUALITY"))
-RESUBMIT_LABELS = (("UNSATISFACTORY_PHOTOS",), ("DOCUMENT_PAGE_MISSING", "INCOMPLETE_DOCUMENT"))
 ROLE_DAYS = {
     "suspended": 60,
     "terminated": 90,
     "structuring": 125,
     "large_deposit": 135,
     "sof_deposit": 95,
-    "screened_send": 70,
     "high_volume": 45,
     "dormant": 150,
     "rapid": 50,
     "media": 70,
     "discrepancy": 20,
 }
-RISKS = (("medium_occupation", 2), ("medium_sof", 2), ("medium_pep", 1), ("high_pep", 1))
+RISKS = (("medium_occupation", 2), ("medium_sof", 2))
 FOREIGN_CITIZENSHIPS = ("NZ", "GB", "SG", "US", "IN")
 FUND_SOURCES = ("employment_income", "savings", "investment_income", "sale_of_assets", "inheritance")
 OTHER_FUND_SOURCES = ("Distribution from a family trust", "Proceeds of a business sale settled in instalments")
@@ -183,7 +168,7 @@ COMPANY_SPECS = (
         2023,
         "WA",
         16,
-        "unverified",
+        "new",
     ),
 )
 
@@ -218,7 +203,6 @@ class Story:
         self.rng.shuffle(self.mobiles)
         self.tester_mobile = self.mobiles.pop()
         self.acns = {DEMO_ACN}
-        self.pending = 0
         self.alerts = AlertBook(self)
 
     def build(self):
@@ -325,14 +309,8 @@ class Story:
 
     def _citizenship(self, risk):
         if risk == "medium_occupation":
-            country = self.rng.choice(FOREIGN_CITIZENSHIPS)
-            return country, ("PASSPORT", country)
-        if risk == "high_pep":
-            return "AU", ("PASSPORT", "GB")
-        country = "AU" if self.rng.random() < 0.82 else self.rng.choice(FOREIGN_CITIZENSHIPS)
-        if country == "AU" and self.rng.random() < 0.6:
-            return country, ("DRIVERS_LICENSE", "AU")
-        return country, ("PASSPORT", country)
+            return self.rng.choice(FOREIGN_CITIZENSHIPS)
+        return "AU" if self.rng.random() < 0.82 else self.rng.choice(FOREIGN_CITIZENSHIPS)
 
     def _financial(self, at, risk, role):
         occupation = self.rng.choice(identities.OCCUPATIONS)
@@ -340,8 +318,6 @@ class Story:
             occupation = identities.HIGH_RISK_OCCUPATIONS[0]
         elif risk == "medium_sof":
             occupation = self.rng.choice(identities.HIGH_RISK_OCCUPATIONS[1:])
-        elif risk == "high_pep":
-            occupation = "Politician"
         sources = tuple(self.rng.sample(FUND_SOURCES, k=self.rng.choice((1, 1, 2))))
         other = ""
         if risk == "medium_sof" or role == "sof_deposit":
@@ -401,10 +377,9 @@ class Story:
         completed = None if cohort == "stalled" else self.after(joined, 18, 40)
         profiled = step in (None, "financial-profile")
         phone, birth, address = self._contact() if profiled else (None, None, None)
-        citizenship, document = self._citizenship(risk)
-        kyc, attempts, status, rejection = self._kyc(cohort, step, joined, document, risk)
+        citizenship = self._citizenship(risk)
         financial = self._financial(self.after(joined, 14, 30), risk, role) if completed else None
-        start = kyc.decided_at if kyc and kyc.result == "GREEN" else (completed or joined)
+        start = completed or joined
         status_changed = self.alerts.account_change(role) if role in ("suspended", "terminated") else None
         person = Person(
             key=key,
@@ -420,11 +395,8 @@ class Story:
             birth_date=birth,
             address=address,
             citizenship=citizenship if profiled else None,
-            kyc=kyc,
-            attempts=attempts,
             financial=financial,
-            account_status=role if status_changed else status,
-            rejection_reason=rejection,
+            account_status=role if status_changed else "pending",
             status_changed_at=status_changed,
             last_login=self._last_login(completed, status_changed),
             alerts_enabled=self.rng.random() < 0.85,
@@ -433,35 +405,6 @@ class Story:
         if role:
             self.alerts.subject(role, person)
         return self._finish(person)
-
-    def _kyc(self, cohort, step, joined, document, risk):
-        document_type, country = document
-        if cohort == "stalled" and step != "financial-profile":
-            return None, (), "pending", ""
-        submitted = self.after(joined, 8, 15)
-        if cohort == "kyc_pending":
-            provider, status = PENDING_STATES[self.pending % len(PENDING_STATES)]
-            self.pending += 1
-            return Kyc(provider, status, None, submitted, document_type, country), (), "pending", ""
-        if cohort == "kyc_resubmit":
-            labels = self.rng.choice(RESUBMIT_LABELS)
-            kyc = Kyc("sumsub", "completed", "RED", self.after(submitted, 30, 1800), document_type, country, labels)
-            return kyc, (), "pending", ""
-        if cohort == "kyc_red":
-            labels = self.rng.choice(RED_LABELS)
-            kyc = Kyc("kycaid", "completed", "RED", self.after(submitted, 30, 2400), document_type, country, labels)
-            return kyc, (), "pending", ""
-        attempts = ()
-        if cohort == "green" and self.rng.random() < 0.1:
-            attempts = (Attempt("RED", self.after(submitted, 20, 90)),)
-            submitted = self.after(attempts[0].at, 600, 2880)
-        decided = self.after(submitted, 4, 900)
-        if cohort == "kyc_rejected":
-            kyc = Kyc("kycaid", "completed", "GREEN", decided, "PASSPORT", "GB", pep_type="foreign")
-            return kyc, attempts, "rejected", "pep_policy"
-        provider, pep = ("sumsub", "domestic") if risk in ("medium_pep", "high_pep") else ("kycaid", "none")
-        kyc = Kyc(provider, "completed", "GREEN", decided, document_type, country, pep_type=pep)
-        return kyc, attempts, "active", ""
 
     def _last_login(self, completed, status_changed=None):
         if completed is None:
@@ -504,10 +447,6 @@ class Story:
         return slots
 
     def _investor_wallets(self, key, cohort, role, start):
-        if cohort in ("kyc_pending", "kyc_resubmit", "kyc_red"):
-            if self.rng.random() < 0.5:
-                return (self._wallet("base", keys.secret("wallet", key, 0), self.after(start, 30, 4000), False),)
-            return ()
         if cohort != "green":
             return ()
         wallets, first = [], None
@@ -614,9 +553,7 @@ class Story:
         return tuple(devices)
 
     def _finish(self, person):
-        raw = [self._identity_note(attempt.result, attempt.at) for attempt in person.attempts]
-        if person.kyc and person.kyc.result in REVIEW_OUTCOME_MESSAGES:
-            raw.append(self._identity_note(person.kyc.result, person.kyc.decided_at))
+        raw = []
         for wallet in person.wallets:
             for transfer in wallet.transfers:
                 if transfer.app_sent:
@@ -631,10 +568,6 @@ class Story:
                     )
         notes = tuple(self._note(*entry, person.last_login) for entry in sorted(raw, key=lambda entry: entry[0]))
         return replace(person, notes=notes, devices=self._devices(person.key, person.signup_completed_at, notes))
-
-    def _identity_note(self, result, at):
-        title, body = REVIEW_OUTCOME_MESSAGES[result]
-        return at + timedelta(seconds=2), title, body, "general", {"type": "identity", "event": result}
 
     def _note(self, at, title, body, kind, data, last_login):
         read_at, archived = None, False
@@ -676,16 +609,16 @@ class Story:
             existing=spec.key == DEMO_COMPANY.key,
         )
 
-    def _founder_wallet(self, spec, key, decided, tester):
+    def _founder_wallet(self, spec, key, ready, tester):
         if tester:
             hardhat = keys.hardhat_keys([0])[0]
-            wallet = self._wallet("base", hardhat.key, self.after(decided, 600, 2000))
+            wallet = self._wallet("base", hardhat.key, self.after(ready, 600, 2000))
         elif spec.key == "coralgum":
             piece = keys.hardware_keys(keys.secret("keystone", key), [0])[0]
-            registered = self.after(decided, 600, 4000)
+            registered = self.after(ready, 600, 4000)
             wallet = self._wallet("base", piece.key, registered, True, "hardware", "Keystone", piece.derivation)
         elif spec.target in ("active", "draft"):
-            wallet = self._wallet("base", keys.secret("wallet", key, 0), self.after(decided, 600, 4000), name="Company")
+            wallet = self._wallet("base", keys.secret("wallet", key, 0), self.after(ready, 600, 4000), name="Company")
         else:
             return ()
         transfers, holdings = self.activity(wallet, self.after(wallet.verified_at, 60, 600), self.rng.randint(3, 5))
@@ -700,12 +633,7 @@ class Story:
         joined = self.moment(spec.owner_days, 8, 18)
         completed = self.after(joined, 20, 45)
         phone, birth, address = self._contact()
-        pending = spec.target == "unverified"
-        submitted = self.after(joined, 6, 12)
-        decided = submitted if pending else self.after(submitted, 5, 240)
-        result = None if pending else "GREEN"
-        kyc = Kyc("kycaid", "pending" if pending else "completed", result, decided, "DRIVERS_LICENSE", "AU")
-        wallets = self._founder_wallet(spec, key, decided, tester)
+        wallets = self._founder_wallet(spec, key, self.after(completed, 5, 240), tester)
         operator = wallets[0].address if wallets and spec.target == "active" else None
         acn = DEMO_ACN if tester else self._new_acn()
         company = self._company(spec, key, self.after(joined, 12, 30), operator, acn)
@@ -722,31 +650,29 @@ class Story:
             birth_date=birth,
             address=address,
             citizenship="AU",
-            kyc=kyc,
-            account_status="pending" if pending else "active",
             last_login=self._last_login(completed),
             wallets=wallets,
             existing=tester,
         )
         return self._finish(person), company
 
-    def _investor_tester_wallets(self, decided):
+    def _investor_tester_wallets(self, ready):
         hardhat = keys.hardhat_keys(range(5))
         bitcoin = keys.secret("bitcoin", "tester-investor", 0)
         wallets = [
-            self._wallet("base", hardhat[1].key, self.after(decided, 30, 60), name="MetaMask"),
-            self._wallet("ethereum", hardhat[1].key, self.after(decided, 14000, 15000), name="MetaMask"),
+            self._wallet("base", hardhat[1].key, self.after(ready, 30, 60), name="MetaMask"),
+            self._wallet("ethereum", hardhat[1].key, self.after(ready, 14000, 15000), name="MetaMask"),
             self._wallet(
                 "base",
                 hardhat[2].key,
-                self.after(decided, 36000, 37000),
+                self.after(ready, 36000, 37000),
                 True,
                 "hardware",
                 "Keystone",
                 hardhat[2].derivation,
             ),
-            self._wallet("bitcoin", bitcoin, self.after(decided, 50000, 52000), name="Sparrow"),
-            self._wallet("base", hardhat[4].key, self.after(decided, 120000, 125000), name="Trading"),
+            self._wallet("bitcoin", bitcoin, self.after(ready, 50000, 52000), name="Sparrow"),
+            self._wallet("base", hardhat[4].key, self.after(ready, 120000, 125000), name="Trading"),
             self._wallet("ethereum", hardhat[3].key, self.moment(31), False, name="Spare"),
             self._wallet("bitcoin", keys.secret("bitcoin", "tester-investor", 1), self.moment(9), False),
         ]
@@ -759,8 +685,7 @@ class Story:
 
     def _investor_tester(self):
         joined = self.moment(176, 19, 20)
-        failed = self.after(joined, 25, 35)
-        decided = self.after(failed, 1300, 1500)
+        ready = self.after(joined, 1325, 1535)
         person = Person(
             key="tester-investor",
             email=DEMO_INVESTOR_EMAIL,
@@ -774,17 +699,14 @@ class Story:
             birth_date=self.calendar.today - timedelta(days=41 * 365 + 120),
             address="27 Wattlebird Crescent, Lyrebird Downs NSW 2577",
             citizenship="AU",
-            kyc=Kyc("kycaid", "completed", "GREEN", decided, "DRIVERS_LICENSE", "AU"),
-            attempts=(Attempt("RED", failed),),
             financial=Financial(
                 occupation="Software engineer",
                 source_of_funds=("employment_income", "investment_income"),
                 intended_use="long_term_investment",
                 at=self.after(joined, 12, 16),
             ),
-            account_status="active",
             last_login=self.before(self.now, 120, 150),
-            wallets=self._investor_tester_wallets(decided),
+            wallets=self._investor_tester_wallets(ready),
             existing=True,
         )
         return self._finish(person)

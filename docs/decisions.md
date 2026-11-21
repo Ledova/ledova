@@ -1310,7 +1310,8 @@ pending proposal and a register entry. Three things stay: a delete that would le
 balance is refused; only current authority in that company can delete (a current appointment, or a
 draft company's owner under the existing draft setup exception), and no company can reach another's
 records; and on-chain history and Ledova's own records (account closure, Terms receipts and identity
-checks) keep their rules. The company remains responsible for its legal register and
+checks) keep their rules. _Identity checks went on 21 November 2026
+([identity verification removed](#identity-verification-removed))._ The company remains responsible for its legal register and
 records, including former members' details for seven years under s169(7).
 
 This supersedes the rule that companies are never deleted

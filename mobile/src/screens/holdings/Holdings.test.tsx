@@ -194,7 +194,6 @@ const PROFILE = {
   fullName: 'Synthetic Profile Person',
   residentialAddress: 'Synthetic personal address',
   citizenshipCountryName: 'Australia',
-  isIdVerified: true,
   dateJoined: '2026-10-01T00:00:00Z',
   lastLogin: '2026-10-30T00:00:00Z',
 };

@@ -51,9 +51,8 @@ def person(label):
         )
         profile, _, _, _ = ensure_defaults(user)
         profile.full_name = f"Synthetic {label}"
-        profile.is_id_verified = True
         profile.is_signup_completed = True
-        profile.save(update_fields=["full_name", "is_id_verified", "is_signup_completed"])
+        profile.save(update_fields=["full_name", "is_signup_completed"])
     return user, profile
 
 

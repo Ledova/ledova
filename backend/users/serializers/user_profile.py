@@ -5,7 +5,6 @@ from rest_framework import serializers
 from authentication.services.terms import TERMS_VERSION, current_terms_receipt
 from shared.models.country import Country
 from users.models.user_profile import UserProfile
-from users.serializers.identity_verification import RejectionLabelsField
 
 SIGNUP_IS_COMPLETE = "Sign-up cannot be reopened once it is complete."
 DATE_OF_BIRTH_IN_FUTURE = "Date of birth cannot be in the future."
@@ -28,7 +27,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
     is_staff = serializers.SerializerMethodField()
     date_joined = serializers.SerializerMethodField()
     last_login = serializers.SerializerMethodField()
-    rejection_labels = RejectionLabelsField(read_only=True, allow_null=True)
     terms_version = serializers.ChoiceField(choices=[TERMS_VERSION], write_only=True, required=False)
     terms_acceptance = serializers.SerializerMethodField()
 
@@ -50,33 +48,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "citizenship_country_name",
             "residence_country",
             "residence_country_name",
-            "is_id_verified",
             "terms_and_conditions",
             "terms_version",
             "terms_acceptance",
             "is_signup_completed",
-            "kyc_provider",
-            "verification_status",
-            "review_result",
-            "rejection_labels",
-            "verified_at",
-            "kycaid_applicant_id",
-            "sumsub_applicant_id",
-            "sumsub_verification_status",
         )
-        read_only_fields = (
-            "uuid",
-            "is_id_verified",
-            "residence_country",
-            "kyc_provider",
-            "verification_status",
-            "review_result",
-            "rejection_labels",
-            "verified_at",
-            "kycaid_applicant_id",
-            "sumsub_applicant_id",
-            "sumsub_verification_status",
-        )
+        read_only_fields = ("uuid", "residence_country")
 
     @extend_schema_field(serializers.BooleanField())
     def get_is_active(self, obj):

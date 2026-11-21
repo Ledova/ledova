@@ -1,7 +1,7 @@
 import logging
 from datetime import timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from django.db.models import Avg, Sum
 from django.utils import timezone
@@ -13,45 +13,33 @@ from compliance.constants import (
     ALERT_STATUS_REVIEWING,
     ALERT_THRESHOLD_AUD,
     ALERT_TYPE_DORMANT_REACTIVATION,
-    ALERT_TYPE_EXTREME_RISK_TRANSACTION,
     ALERT_TYPE_HIGH_AGGREGATE_VOLUME,
-    ALERT_TYPE_HIGH_RISK_WALLET,
     ALERT_TYPE_LARGE_TRANSACTION,
     ALERT_TYPE_NEW_CUSTOMER_SOF,
     ALERT_TYPE_PATTERN_DEVIATION,
     ALERT_TYPE_RAPID_TRANSACTIONS,
     ALERT_TYPE_ROUND_AMOUNTS,
-    ALERT_TYPE_SANCTIONED_ADDRESS,
     ALERT_TYPE_STRUCTURING,
-    ASSESSMENT_STATUS_COMPLETE,
     DORMANT_ACCOUNT_DAYS,
-    HIGH_RISK_RATINGS,
     NEW_CUSTOMER_DAYS,
     PATTERN_DEVIATION_BASELINE_DAYS,
     PATTERN_DEVIATION_MIN_HISTORY,
     PATTERN_DEVIATION_MULTIPLIER,
-    RISK_RATING_EXTREME,
     ROUND_AMOUNT_COUNT_THRESHOLD,
     ROUND_AMOUNT_DIVISOR,
     ROUND_AMOUNT_PERIOD_DAYS,
-    RULE_TYPE_ADDRESS,
     RULE_TYPE_AGGREGATE_VOLUME,
     RULE_TYPE_DORMANT_REACTIVATION,
-    RULE_TYPE_EXTREME_RISK,
     RULE_TYPE_PATTERN,
     RULE_TYPE_PATTERN_DEVIATION,
     RULE_TYPE_RAPID_TRANSACTIONS,
     RULE_TYPE_ROUND_AMOUNTS,
     RULE_TYPE_SOF_REQUIRED,
     RULE_TYPE_THRESHOLD,
-    SCREENING_RESULT_REJECTED,
-    SCREENING_RESULT_REVIEW,
-    SCREENING_STATUS_FAILED,
     SCREENING_THRESHOLD_AUD,
     TRANSACTION_MONITORING_WINDOW_HOURS,
 )
-from compliance.models import ComplianceAlert, CustomerRiskAssessment, MonitoringRule
-from compliance.services.crypto_screening import CryptoScreeningService
+from compliance.models import ComplianceAlert, MonitoringRule
 from shared.db import atomic
 from shared.tasks.queue import defer
 from users.services.accounts import lock_active_profile
@@ -63,33 +51,23 @@ RULE_CODE_TO_ALERT_TYPE = {
     "MON-001": ALERT_TYPE_LARGE_TRANSACTION,
     "MON-002": ALERT_TYPE_RAPID_TRANSACTIONS,
     "MON-003": ALERT_TYPE_STRUCTURING,
-    "MON-004": ALERT_TYPE_HIGH_RISK_WALLET,
-    "MON-005": ALERT_TYPE_SANCTIONED_ADDRESS,
     "MON-006": ALERT_TYPE_NEW_CUSTOMER_SOF,
     "MON-007": ALERT_TYPE_HIGH_AGGREGATE_VOLUME,
     "MON-008": ALERT_TYPE_DORMANT_REACTIVATION,
     "MON-009": ALERT_TYPE_PATTERN_DEVIATION,
     "MON-010": ALERT_TYPE_ROUND_AMOUNTS,
-    "MON-011": ALERT_TYPE_EXTREME_RISK_TRANSACTION,
 }
 
 RuleResult = Tuple[bool, Dict]
 
 
 def is_new_customer(user_account, days: int = NEW_CUSTOMER_DAYS) -> bool:
-    if not user_account.activation_date:
-        return True
-    return user_account.activation_date > timezone.now() - timedelta(days=days)
+    started = user_account.activation_date or user_account.created_at
+    return started > timezone.now() - timedelta(days=days)
 
 
 def _aud_value(transaction) -> Decimal:
     return transaction.market_value_aud or Decimal("0")
-
-
-def _latest_complete_assessment(user_account) -> Optional[CustomerRiskAssessment]:
-    return CustomerRiskAssessment.objects.filter(
-        user_account=user_account, assessment_status=ASSESSMENT_STATUS_COMPLETE
-    ).first()
 
 
 def _has_sof_documentation(user_account) -> bool:
@@ -153,49 +131,6 @@ def _check_structuring_pattern(rule, transaction, user_account) -> RuleResult:
         "period_hours": period_hours,
         "pattern": "potential_structuring",
     }
-
-
-def _screening_trigger(transaction, user_account) -> Optional[str]:
-    assessment = _latest_complete_assessment(user_account)
-    if assessment and assessment.overall_risk_rating in HIGH_RISK_RATINGS:
-        return "high_risk_customer"
-    if _aud_value(transaction) >= SCREENING_THRESHOLD_AUD:
-        return "large_transaction"
-    if is_new_customer(user_account):
-        return "new_customer"
-    return None
-
-
-def _check_address(rule, transaction, user_account) -> RuleResult:
-    if transaction is None:
-        return False, {}
-    trigger = _screening_trigger(transaction, user_account)
-    if trigger is None:
-        logger.debug(f"Skipping address screening for transaction {transaction.uuid}")
-        return False, {}
-    logger.info(f"Address screening triggered for transaction {transaction.uuid} (reason: {trigger})")
-    screening = CryptoScreeningService().screen_transaction(transaction, user_account)
-    if screening is None:
-        return False, {}
-    if screening.status == SCREENING_STATUS_FAILED:
-        verdict = "Crypto screening failed - address safety unverified"
-    elif screening.result == SCREENING_RESULT_REJECTED:
-        verdict = "Crypto screening flagged high-risk address"
-    elif screening.result == SCREENING_RESULT_REVIEW:
-        verdict = "Crypto screening requires manual review"
-    else:
-        return False, {}
-    details = {
-        "flagged_address": screening.to_address,
-        "screening_id": str(screening.pk),
-        "screening_trigger": trigger,
-        "reason": verdict,
-    }
-    if screening.status == SCREENING_STATUS_FAILED:
-        details["error"] = screening.error_message
-    else:
-        details.update(risk_score=screening.risk_score, risk_signals=screening.risk_signals)
-    return True, details
 
 
 def _check_sof_required(rule, transaction, user_account) -> RuleResult:
@@ -327,36 +262,15 @@ def _check_round_amounts(rule, transaction, user_account) -> RuleResult:
     }
 
 
-def _check_extreme_risk(rule, transaction, user_account) -> RuleResult:
-    if transaction is None:
-        return False, {}
-    assessment = _latest_complete_assessment(user_account)
-    if not assessment or assessment.overall_risk_rating != RISK_RATING_EXTREME:
-        return False, {}
-    return True, {
-        "risk_rating": assessment.overall_risk_rating,
-        "risk_score": assessment.total_risk_score,
-        "transaction_amount": float(_aud_value(transaction)),
-        "assessment_date": assessment.created_at.isoformat(),
-        "reason": (
-            f"Transaction by EXTREME risk customer (score: {assessment.total_risk_score}) "
-            "requires manual review per Document 2 §4.2"
-        ),
-        "action_required": "Manual review required before processing",
-    }
-
-
 RULE_CHECKS = {
     RULE_TYPE_THRESHOLD: _check_threshold,
     RULE_TYPE_RAPID_TRANSACTIONS: _check_rapid_transactions,
     RULE_TYPE_PATTERN: _check_structuring_pattern,
-    RULE_TYPE_ADDRESS: _check_address,
     RULE_TYPE_SOF_REQUIRED: _check_sof_required,
     RULE_TYPE_AGGREGATE_VOLUME: _check_aggregate_volume,
     RULE_TYPE_DORMANT_REACTIVATION: _check_dormant_reactivation,
     RULE_TYPE_PATTERN_DEVIATION: _check_pattern_deviation,
     RULE_TYPE_ROUND_AMOUNTS: _check_round_amounts,
-    RULE_TYPE_EXTREME_RISK: _check_extreme_risk,
 }
 
 
