@@ -108,18 +108,20 @@ export function checkDeadCode(root = ROOT) {
     const source = files.get(filename);
     function visit(node) {
       if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
+      let loaded;
       if (
         ts.isCallExpression(node) &&
         (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
           (ts.isIdentifier(node.expression) && node.expression.text === 'require'))
       ) {
-        const specifier = node.arguments[0];
-        if (specifier && ts.isStringLiteralLike(specifier)) {
-          const target = ts.resolveModuleName(specifier.text, filename, options, ts.sys).resolvedModule
-            ?.resolvedFileName;
-          const imported = target && files.get(target);
-          if (imported) use(checker.getSymbolAtLocation(imported));
-        }
+        loaded = node.arguments[0];
+      } else if (ts.isImportTypeNode(node) && !node.qualifier && ts.isLiteralTypeNode(node.argument)) {
+        loaded = node.argument.literal;
+      }
+      if (loaded && ts.isStringLiteralLike(loaded)) {
+        const target = ts.resolveModuleName(loaded.text, filename, options, ts.sys).resolvedModule?.resolvedFileName;
+        const imported = target && files.get(target);
+        if (imported) use(checker.getSymbolAtLocation(imported));
       }
       if (ts.isIdentifier(node)) {
         const reference = ts.isShorthandPropertyAssignment(node.parent)

@@ -57,7 +57,7 @@ the dashboard, website, mobile and shared source trees, plus shared tests and th
 entry files. It reports unreachable files and exports with no reference outside their defining
 module, resolving the dashboard aliases and shared package from source. Application entry points,
 tests and ambient declarations are roots; the generated API snapshot is retained as generated
-contract data. Literal lazy imports, `require` and namespace values conservatively keep the loaded
+contract data. Literal lazy imports, `require`, module namespace types and namespace values conservatively keep the loaded
 module's exports. Re-exporting a name alone does not establish a consumer.
 
 The Python AST graph reports unreachable backend modules. Django models/admin entry modules,
