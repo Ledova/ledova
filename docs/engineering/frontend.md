@@ -59,7 +59,7 @@ frame share, and `packages/shared` holds what both clients share.
 | `routes/`             | The whole route table (`PAGES` with `signedInRoutes`, the sign-up and public routes, each page loaded on demand from `lazyPages.ts` under one `Suspense` with `RouteLoading`) and the guards (`ProtectedRoute`, `SignupRoute`, `RootRedirect`, `PublicOnlyRoute`) with their waiting and failure states                            |
 | `pages/`              | One folder per page with its `index.tsx` entry and its own files, sub-pages nested inside it, and a `shared/` folder for files several pages under one folder use                                                                                                                                                                  |
 | `components/`         | The UI kit (`Page` and `PageAction`, `Ledger`, `Modal`, `Field`, `iconSizes`), the signed-in frame (`Layout`, `Sidebar`, `MobileHeader`, `NotificationBell`) and public layout (`AuthLayout`, `Footer`) with their parts and contexts, group folders such as `auth/`, and single components several areas show (`AwardStatus.tsx`) |
-| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register classes, sign-out, theme, identity verification                                                                                                                                                                                                              |
+| `hooks/`              | App-wide hooks with no JSX: profile, role and sign-up state, register classes, sign-out, theme                                                                                                                                                                                                                                    |
 | `services/`           | Browser bindings, whatever their users: the axios instance with its interceptors (`apiClient.ts`), the query client it reads the session from (`queryClient.ts`) and the device stores built from the shared store factories                                                                                                       |
 | `utils/`              | Browser and pure helpers used by more than one area or the frame (`siteUrl.ts`, `saveFile.ts`, the session resets) and the web-only paths (`paths.ts`)                                                                                                                                                                             |
 | `styles/`             | `index.css` and the generated `tokens.css` ([design tokens](#design-tokens-and-themes))                                                                                                                                                                                                                                            |
@@ -162,8 +162,7 @@ The [principles](README.md#principles) apply; in particular, do not add:
   its result names the fields `isLoading`, `hasError`, `isRefreshing` and `retry`
   (`packages/shared/src/hooks/useOwnershipCompanies.ts`). Older hooks still use other names, such as
   `useSettingsNavigation` (`isError`, `isFetching`), the dashboard's `useUserProfile` (`isError`,
-  `isFetching`, `refreshProfile`), `useRegisterEntries` (`isPending`, `isFetching`) and
-  `useIdentityVerification` (`isLoadingStatus`).
+  `isFetching`, `refreshProfile`) and `useRegisterEntries` (`isPending`, `isFetching`).
 - **Account boundary.** Work bound to the signed-in account takes its owner from
   `useSubmissionOwner`, and the page renders it in an inner component keyed by the owner, so pending
   work never crosses accounts. Its query keys carry the owner and every request passes
