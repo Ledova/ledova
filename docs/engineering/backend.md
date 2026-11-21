@@ -136,6 +136,10 @@ stay read-only unless the staff member personally holds a current `admin` appoin
 company or the draft-setup exception applies (`companies/admin/company.py`). It cannot add or
 delete a company, registration uses its bounded service, and the owner is read-only.
 
+`ComplianceAlertAdmin` accepts `{}` or a cleared Alert data field and stores an empty object;
+malformed JSON is still refused. This form-only normalisation does not change model defaults or
+database nullability.
+
 ## External API consumers
 
 These route groups have no bundled client and are kept deliberately:
