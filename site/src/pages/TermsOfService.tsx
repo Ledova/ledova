@@ -13,7 +13,7 @@ const TERMS = [
   ],
   [
     'What the company is responsible for',
-    'The company is responsible for the accuracy, completeness and lawfulness of everything it records, and for keeping its register of members and other records as the law requires, whether or not it uses Ledova to do so; using Ledova does not make us its agent or register keeper. The company is responsible for its decisions and approvals and the authority behind every change it records; for complying with the laws that apply to it, including corporations, fundraising and disclosure, employee share scheme, tax, anti-money laundering and privacy laws, and for its notices and filings with ASIC and other regulators; for deciding who may acquire or hold its shares or awards, including any investor eligibility or transfer restriction; and for any identity, eligibility or background checks it needs on its officers, members, investors or employees. Ledova’s features, including any identity check the service asks a person to complete, do not carry out these responsibilities for the company. Recording something in Ledova does not verify or approve it or establish legal ownership. Registration does not incorporate a company, appoint a director or issue shares, and an award is an entitlement, not issued shares.',
+    'The company is responsible for the accuracy, completeness and lawfulness of everything it records, and for keeping its register of members and other records as the law requires, whether or not it uses Ledova to do so and including any record it deletes from Ledova; using Ledova does not make us its agent or register keeper. The company is responsible for its decisions and approvals and the authority behind every change it records; for complying with the laws that apply to it, including corporations, fundraising and disclosure, employee share scheme, tax, anti-money laundering and privacy laws, and for its notices and filings with ASIC and other regulators; for deciding who may acquire or hold its shares or awards, including any investor eligibility or transfer restriction; and for any identity, eligibility or background checks it needs on its officers, members, investors or employees. Ledova’s features, including any identity check the service asks a person to complete, do not carry out these responsibilities for the company. Recording something in Ledova does not verify or approve it or establish legal ownership. Registration does not incorporate a company, appoint a director or issue shares, and an award is an entitlement, not issued shares.',
   ],
   [
     'Documents and privacy',
@@ -25,11 +25,11 @@ const TERMS = [
   ],
   [
     'Liability',
-    'To the extent the law allows, Ledova is provided as is; we are not liable for loss arising from the records, decisions or instructions a company or its authorised users enter, or from a company not meeting its own obligations, except to the extent we caused the loss; and we are not liable for indirect or consequential loss. Where a guarantee that cannot be excluded applies but our liability for breaching it may be limited, our liability is limited to supplying the service again or paying the cost of having it supplied again. The company indemnifies Blueberry Money against claims by others arising from the records, decisions or instructions the company or its authorised users enter, or from its breach of the law or these terms, except to the extent we caused the claim or loss.',
+    'To the extent the law allows, Ledova is provided as is; we are not liable for loss arising from the records, decisions or instructions a company or its authorised users enter or delete, or from a company not meeting its own obligations, except to the extent we caused the loss; and we are not liable for indirect or consequential loss. Where a guarantee that cannot be excluded applies but our liability for breaching it may be limited, our liability is limited to supplying the service again or paying the cost of having it supplied again. The company indemnifies Blueberry Money against claims by others arising from the records, decisions or instructions the company or its authorised users enter or delete, or from its breach of the law or these terms, except to the extent we caused the claim or loss.',
   ],
   [
     'Leaving Ledova',
-    'You can download your account summary and delete your sign-in from Settings. Authorised company users can download the available ledger exports and company pack. Deleting a sign-in does not delete the company’s separate records. An authorised company representative can contact hello@ledova.io to arrange export and closure, identify records still needed for a lawful purpose and agree disposal of the rest. Our Privacy policy explains the periods and limits; we do not promise that every copy is erased immediately.',
+    'You can download your account summary and delete your sign-in from Settings. Deleting a sign-in does not delete the company’s separate records. Authorised company users can download the available ledger exports and company pack. People with the right authority in a company can delete its records in the service, and a company administrator can delete the company, with all its records and stored files, in Settings. Each deletion asks for confirmation and cannot be undone, so download what the company needs first. Deleting records from Ledova does not end the company’s duty to keep the records the law requires, such as its register of members and former members’ details. A company with records on a blockchain cannot be deleted this way, because we keep that history. We also keep records we need for our own obligations, such as Terms acceptances, identity checks and a short record of each deletion. Our Privacy policy explains the periods and limits; we do not promise that every copy is erased immediately.',
   ],
   [
     'Misuse and suspension',
@@ -44,7 +44,7 @@ const TERMS = [
 export function TermsOfService() {
   return (
     <>
-      <PageHeader title="Terms of Service" lead="Version 2026-11-15" />
+      <PageHeader title="Terms of Service" lead="Version 2026-11-21" />
       <section className="border-t border-border-subtle">
         <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
           <p>
@@ -63,6 +63,10 @@ export function TermsOfService() {
               Privacy policy
             </Link>{' '}
             and the earlier Terms,{' '}
+            <Link to="/terms-of-service/2026-11-15" className={INLINE_LINK}>
+              version 2026-11-15
+            </Link>
+            ,{' '}
             <Link to="/terms-of-service/2026-11-09" className={INLINE_LINK}>
               version 2026-11-09
             </Link>{' '}

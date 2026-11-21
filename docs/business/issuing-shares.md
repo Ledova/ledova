@@ -60,8 +60,8 @@ native app. On the web, Share classes supports selecting classes individually or
 with **Select all**. **Delete** is available when at least one selected class can be deleted. Its
 confirmation names those classes and shows which will be kept and why. Each class is deleted
 separately, so a refusal or uncertain result stops the sequence and leaves unsent classes untouched;
-classes already deleted stay deleted. Company closure uses its separate
-[status controls](companies.md#staff-company-controls). Deployment, capital increases and
+classes already deleted stay deleted. Deleting the whole company is separate
+([deleting a company](companies.md#deleting-a-company)). Deployment, capital increases and
 pausing are company decisions; earlier direct actions by the owner or platform staff are retired,
 and their records stay readable. The register API can confirm a zero-issued opening for a genuinely
 unopened draft class without a contract or former members. It creates no shareholder, holding or

@@ -16952,9 +16952,9 @@
         "type": "string"
       },
       "ServiceTermsVersionEnum": {
-        "description": "* `2026-11-15` - 2026-11-15",
+        "description": "* `2026-11-21` - 2026-11-21",
         "enum": [
-          "2026-11-15"
+          "2026-11-21"
         ],
         "type": "string"
       },
