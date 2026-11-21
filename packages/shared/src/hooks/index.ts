@@ -3,7 +3,6 @@ export { AUTH_QUERY_KEY, useAuth, AUTH_QUERY_ROOT } from './useAuth';
 export { USER_PREFERENCES_QUERY_KEY, useUserPreferences } from './useUserPreferences';
 export { useRole } from './useRole';
 export { useSignInForm } from './useSignInForm';
-export { useIdentityVerificationStatus, IDENTITY_VERIFICATION_QUERY_KEY } from './useIdentityVerificationStatus';
 export { useNotifications } from './useNotifications';
 export { useSubmissionOwner } from './useSubmissionOwner';
 export type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';

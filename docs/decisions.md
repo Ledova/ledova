@@ -2446,7 +2446,8 @@ status, one short action or switch on the right. The owner also asked to remove 
 and Share with friends, which went with their code. Reviewing the build, the owner asked for the
 identity check's status to sit on its line, aligned right like the buttons ("The verified with the
 green dot I think could be on same line of the identify check but aligned to the right"); on the web
-it sits before **Review**.
+it sits before **Review**. _The identity check left Security on 21 November 2026
+([identity verification removed](#identity-verification-removed))._
 
 **Invitations, decided on 3 November 2026.** In the signed-in walkthrough, the web's Company invitation
 card took a shareholder to Team's company-officer form, while the app's opened the shareholder

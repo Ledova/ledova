@@ -554,9 +554,8 @@ under it, is shown; under a group's overview, such as on a share class or a shar
 overview is marked. A group with only one permitted page, such as Documents with only Certificates,
 is a plain link to that page, marked current there. Profile always holds personal information. Team and
 Company details follow current company access. Personal edits never change company-recorded particulars.
-Account has four cards: **Security** (the identity check's status with **Review**, which the app
-leaves out, the password with **Change** and, in the app, the biometric sign-in and App lock
-switches), **Account details** (**Member since** and **Last login**), **Invitations** (a
+Account has four cards: **Security** (the password with **Change** and, in the app, the biometric
+sign-in and App lock switches), **Account details** (**Member since** and **Last login**), **Invitations** (a
 **Shareholder invitation** row and a **Company officer invitation** row, each with **Accept**; the
 second opens Team's accept task) and **Your appointments**: your appointments across companies in
 Team's rows, with a compact **Representative authority** at its foot for a company's owner. Each row
@@ -673,7 +672,6 @@ request, on pages and in dialogs, including:
 
 - downloads ("Downloading…", on the one document being fetched);
 - previews and preparations;
-- identity verification;
 - establishing an appointment;
 - member invitations and access;
 - register setup's review step (editing the records, loading and confirming the decision).
@@ -725,8 +723,7 @@ rather than its identifier. It reports:
 - a prepared non-paid transfer, or a made particulars change, on the record you land
   on in Ledger.
 
-Identity verification shows its result in its own dialog, and sign-in and sign-up keep their boxed
-outcomes.
+Sign-in and sign-up keep their boxed outcomes.
 Ledger's other forms don't use `Outcome`. Mobile reports saved personal details, Documents'
 downloads, an added person, member access's recorded invitation and deleted share classes with
 `Outcome` as the web does, a
@@ -743,8 +740,7 @@ document types and some statuses ("Under Review", "Awaiting Payment"), keep its 
 mobile's own copy, such as sign-up and its native alerts, use title case or three dots; the shared
 strings it shows follow this.
 
-Copy and tone maps meant for both clients live in `packages/shared`. The web also reads the identity
-verification outcomes (`IDENTITY_OUTCOME_COPY`) and their tones (`VERIFICATION_TONES`) there.
+Copy and tone maps meant for both clients live in `packages/shared`.
 
 ## Choosing a person
 

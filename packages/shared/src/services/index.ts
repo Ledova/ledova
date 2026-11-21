@@ -19,7 +19,6 @@ export {
   deleteAccount,
   exportAccountData,
 } from './users';
-export { getIdentityVerificationToken, getIdentityVerificationStatus } from './identityVerification';
 export { getCurrentUserPreferences } from './userPreferences';
 export {
   registerDeviceToken,
