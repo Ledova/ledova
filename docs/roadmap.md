@@ -15,7 +15,7 @@ sets the order below. Reuse these issues rather than creating a parallel backlog
 The company-managed register foundation is delivered under
 [#860](https://github.com/Ledova/ledova/issues/860): one registry product,
 company authority, the
-company-run register with imports, corrections, openings and wallet links,
+company-run register with imports, openings and wallet links,
 non-paid grants and transfers, company-authorised chain actions, employee
 awards with recorded vesting, fully paid external allotments, members' own
 Profile particulars, member-specific invitations and own records,

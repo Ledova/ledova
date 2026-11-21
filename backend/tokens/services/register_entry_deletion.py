@@ -34,7 +34,6 @@ from tokens.models import (
 )
 from tokens.services.pending_deletion import (
     ALLOTMENT_PARTS,
-    PROPOSAL_DECISIONS,
     RECORD_GONE,
 )
 from tokens.services.register import member_identities
@@ -48,12 +47,17 @@ SOURCES = (
     (RegisterTransfer, "register_entry"),
     (RegisterCorrection, "applied_entry"),
 )
+SOURCE_DECISIONS = {
+    RegisterAllotment: "RegisterAllotmentDecision",
+    RegisterGrant: "RegisterGrantDecision",
+    RegisterTransfer: "RegisterTransferDecision",
+    RegisterCorrection: "RegisterCorrectionDecision",
+}
 NO_ENTRY_PREPARER = "A current company administrator or preparer is required to delete this entry."
 ENTRIES_ON_CHAIN = "This class has on-chain records, which Ledova keeps, so its entries can't be deleted here."
 OPENING_KEPT = "The opening can't be deleted. To start the class again, delete the share class."
 COPIED_OPENING_KEPT = "A copied opening correction can't be deleted. Correct the copied opening again instead."
 ENTRY_KEPT = "Only an issue, transfer or correction recorded here can be deleted."
-CORRECTION_PROPOSED = "A correction proposed for this entry is still on record, so the entry can't be deleted yet."
 
 
 def _unnotified(data):
@@ -83,7 +87,6 @@ def deletable_entries(token, actor, entries):
     return set(
         RegisterEntry.objects.filter(pk__in=entries, kind__in=DELETABLE_KINDS)
         .filter(sourced)
-        .exclude(Exists(RegisterCorrection.objects.filter(corrects=OuterRef("pk")).exclude(status="applied")))
         .values_list("pk", flat=True)
     )
 
@@ -162,7 +165,7 @@ def _blocking(register, entry):
 
 def entry_rows(entry, source):
     model = type(source)
-    decision = apps.get_model("tokens", PROPOSAL_DECISIONS[model.__name__])
+    decision = apps.get_model("tokens", SOURCE_DECISIONS[model])
     rows = {
         RegisterEntry: list(RegisterEntry._base_manager.filter(pk=entry.pk).values()),
         model: list(model._base_manager.filter(pk=source.pk).select_for_update().values()),
@@ -235,8 +238,6 @@ def delete_register_entry(*, actor, token, entry_id):
         correction = with_company_event_dates(RegisterEntry.objects.filter(corrects=entry)).first()
         if correction is not None:
             raise ValidationError(_first(token, correction))
-        if RegisterCorrection.objects.filter(corrects=entry).exists():
-            raise ValidationError(CORRECTION_PROPOSED)
         blocking = _blocking(register, entry)
         if blocking is not None:
             raise ValidationError(_first(token, blocking))

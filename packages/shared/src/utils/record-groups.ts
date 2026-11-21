@@ -54,8 +54,6 @@ export const ISSUE_GROUPS = decisionGroups('Issued', 'issues');
 
 export const TRANSFER_GROUPS = decisionGroups('Transferred', 'transfers');
 
-export const CORRECTION_GROUPS = decisionGroups('Corrected', 'corrections');
-
 export const PARTICULARS_GROUPS: RecordGrouping = [
   { key: 'all', more: { show: (count) => moreLabel(false, count, 'changes'), hide: moreLabel(true, 0, 'changes') } },
 ];

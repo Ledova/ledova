@@ -1,24 +1,12 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-  type RefObject,
-} from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useNavigation, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  CORRECTION_GROUPS,
   DESTINATIONS,
-  REGISTER_CORRECTION_COPY as COPY,
+  REGISTER_ENTRY_COPY,
   REGISTER_IMPORT_COPY,
-  allPeopleKey,
-  correctionsKey,
   entriesKey,
   entryLabel,
   entryWithPeople,
@@ -28,7 +16,6 @@ import {
   ownAppointmentsKey,
   registerHoldersKey,
   registerSteps,
-  useClassCorrections,
   useOwnAppointments,
   useRegisterEntries,
   useRegisterEntryDeletion,
@@ -37,7 +24,6 @@ import {
   useUserPreferences,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
-  type RecordRow,
   type RegisterEntry,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -56,14 +42,12 @@ import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
 import { ClassEntries } from './ClassEntries';
-import { CorrectionRecord } from './CorrectionRecord';
-import { GroupedRecords } from './GroupedRecords';
 import { ImportRecord } from './ImportRecord';
 import { ParticularsChanges } from './ParticularsChanges';
 import { useLedgerStyles } from './useLedgerStyles';
 
 const TITLE = DESTINATIONS.companyRegister.tasks.corrections;
-const LEDE = 'Prepare and review changes while preserving the original records.';
+const LEDE = 'Review the register’s changes and delete a mistaken entry.';
 
 type Landing = SignedInStackParamList['Corrections'];
 
@@ -130,7 +114,6 @@ function CompanyCorrections({
   const client = useQueryClient();
   const navigation = useNavigation<NativeStackNavigationProp<SignedInStackParamList>>();
   const page = useRef<ScrollView>(null);
-  const content = useRef<View>(null!);
   const source = useCompanyRegisters(owner, currentOwner, company, TITLE, available);
   const [chosen, setChosen] = useState(landing?.token ?? '');
   const [answered, setAnswered] = useState(landing);
@@ -146,18 +129,6 @@ function CompanyCorrections({
   const registers = source.registers ?? [];
   const register = registers.find(({ token }) => token.uuid === chosen) ?? registers[0];
   const toTop = useCallback(() => page.current?.scrollTo({ y: 0, animated: false }), []);
-  const focusRecord = useCallback((record: View) => {
-    if (!content.current) return;
-    try {
-      record.measureLayout(
-        content.current,
-        (_left, top) => page.current?.scrollTo({ y: top, animated: false }),
-        () => undefined,
-      );
-    } catch {
-      return;
-    }
-  }, []);
   const refreshRecords = async () => {
     source.guard();
     await client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
@@ -168,7 +139,6 @@ function CompanyCorrections({
   return (
     <Page
       ref={page}
-      innerViewRef={content}
       testID="corrections-scroll"
       title={TITLE}
       lede={LEDE}
@@ -242,7 +212,7 @@ function CompanyCorrections({
         </Text>
       )}
       {register && (
-        <ClassCorrections
+        <ClassChanges
           key={`${company}/${register.token.uuid}`}
           owner={owner}
           company={company}
@@ -250,12 +220,10 @@ function CompanyCorrections({
           guard={source.guard}
           accountGuard={source.accountGuard}
           sourceReady={source.sourceReady}
-          landing={landing?.token === register.token.uuid ? landing : undefined}
           refreshRef={refreshClass}
           onBusyChange={setBusy}
           onReviewChange={setReviewing}
           onOpen={toTop}
-          onFocusRecord={focusRecord}
           onSetup={() =>
             navigation.navigate('RegisterSetup', { company, token: register.token.uuid, from: 'Corrections' })
           }
@@ -277,19 +245,17 @@ function CompanyCorrections({
   );
 }
 
-function ClassCorrections({
+function ClassChanges({
   owner,
   company,
   register,
   guard,
   accountGuard,
   sourceReady,
-  landing,
   refreshRef,
   onBusyChange,
   onReviewChange,
   onOpen,
-  onFocusRecord,
   onSetup,
 }: {
   owner: OrderSubmissionOwner;
@@ -298,12 +264,10 @@ function ClassCorrections({
   guard: () => void;
   accountGuard: () => void;
   sourceReady: boolean;
-  landing: Landing;
   refreshRef: RefObject<() => Promise<unknown>>;
   onBusyChange: (busy: boolean) => void;
   onReviewChange: (open: boolean) => void;
   onOpen: () => void;
-  onFocusRecord: (record: View) => void;
   onSetup: () => void;
 }) {
   const card = useCardStyles();
@@ -333,7 +297,6 @@ function ClassCorrections({
   );
   const enabled = readable && !appointments.isFetching && sourceReady;
   const history = useRegisterEntries(owner, token, check, enabled, orderSubmissionSession);
-  const corrections = useClassCorrections(owner, token, check, enabled, orderSubmissionSession);
   const imports = useRegisterImports(owner, token, check, enabled, orderSubmissionSession);
   const removal = useRegisterEntryDeletion({ owner, token, guard: check, session: orderSubmissionSession });
   const [deleting, setDeleting] = useState<RegisterEntry | null>(null);
@@ -341,7 +304,6 @@ function ClassCorrections({
   const readOnly = !!steps && !Object.values(steps).some(Boolean);
   const settled = sourceReady && readable && appointments.fetchStatus === 'idle';
   const entriesReady = settled && !history.isPending && !history.hasError && !history.isFetching;
-  const correctionsReady = settled && corrections.isSuccess && corrections.fetchStatus === 'idle';
   const importsReady = settled && imports.isSuccess && imports.fetchStatus === 'idle';
   const settledGuard = (queryKey: readonly unknown[], noun: string) => () => {
     check();
@@ -349,12 +311,7 @@ function ClassCorrections({
     if (state?.status !== 'success' || state.fetchStatus !== 'idle')
       throw new Error(`Refresh the ${noun} before continuing.`);
   };
-  const correctionGuard = settledGuard(correctionsKey(owner, token), 'corrections');
   const importGuard = settledGuard(importsKey(owner, token), 'opening records');
-  const [reviewing, setReviewing] = useState<string | null>(null);
-  const reviewChanged = useCallback((uuid: string, open: boolean) => {
-    setReviewing((current) => (open ? uuid : current === uuid ? null : current));
-  }, []);
   const [openingReview, setOpeningReview] = useState<string | null>(null);
   const openingChanged = useCallback((uuid: string, open: boolean) => {
     setOpeningReview((current) => (open ? uuid : current === uuid ? null : current));
@@ -370,7 +327,7 @@ function ClassCorrections({
     });
   }, []);
   const held = heldRecords.size > 0;
-  const open = !!reviewing || !!openingReview;
+  const open = !!openingReview;
   useEffect(() => {
     onBusyChange(open || held);
   }, [onBusyChange, open, held]);
@@ -387,18 +344,6 @@ function ClassCorrections({
   useEffect(() => {
     if (open) onOpen();
   }, [open, onOpen]);
-  const refresh = async () => {
-    guard();
-    await appointments.refetch({ throwOnError: true });
-    check();
-    await corrections.refetch({ throwOnError: true });
-    check();
-    await Promise.all(
-      [allPeopleKey(owner), registerHoldersKey(owner), entriesKey(owner, token)].map((queryKey) =>
-        client.invalidateQueries({ queryKey }),
-      ),
-    );
-  };
   const openingSettled = async (keys: readonly unknown[][]) => {
     try {
       guard();
@@ -409,50 +354,16 @@ function ClassCorrections({
   };
   const openingChanges = [importsKey(owner, token), registerHoldersKey(owner), entriesKey(owner, token)];
   useLayoutEffect(() => {
-    refreshRef.current = () =>
-      Promise.allSettled([
-        history.refresh(),
-        corrections.refetch({ cancelRefetch: false }),
-        imports.refetch({ cancelRefetch: false }),
-      ]);
+    refreshRef.current = () => Promise.allSettled([history.refresh(), imports.refetch({ cancelRefetch: false })]);
   });
-  const records = corrections.data ?? [];
-  const rows: RecordRow<ReactNode>[] = records.map((correction) => ({
-    uuid: correction.proposal.uuid,
-    stage: correction.proposal.stage,
-    companyEventOn: correction.proposal.effectiveOn,
-    createdAt: correction.proposal.createdAt,
-    shown: correctionsReady,
-    held: heldRecords.has(correction.proposal.uuid),
-    render: ({ collapsed, ruled }) => (
-      <CorrectionRecord
-        correction={correction}
-        steps={steps ?? {}}
-        guard={correctionGuard}
-        visible={correctionsReady}
-        collapsed={collapsed}
-        focusKey={landing?.record === correction.proposal.uuid ? correction.proposal.uuid : undefined}
-        onFocus={onFocusRecord}
-        outcome={landing?.record === correction.proposal.uuid ? landing.outcome : undefined}
-        onHeldChange={recordHeld}
-        onSettled={refresh}
-        reviewing={reviewing}
-        onReviewChange={reviewChanged}
-        ruled={ruled}
-      />
-    ),
-  }));
-  const browsing = !reviewing;
   const link = importsReady && !held ? openingRecordsLink(register, imports.data) : null;
   return (
     <>
-      <View style={openingReview ? look.hidden : reviewing ? undefined : card.card}>
-        {browsing && (
-          <Text accessibilityRole="header" style={card.title}>
-            Changes
-          </Text>
-        )}
-        <View style={[look.stack, !browsing && look.hidden]}>
+      <View style={openingReview ? look.hidden : card.card}>
+        <Text accessibilityRole="header" style={card.title}>
+          Changes
+        </Text>
+        <View style={look.stack}>
           {appointments.isError && (
             <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
               Your appointments could not be loaded.
@@ -505,39 +416,9 @@ function ClassCorrections({
             />
           )}
         </View>
-        <View
-          style={
-            reviewing
-              ? undefined
-              : !readable || (corrections.isSuccess && records.length === 0)
-                ? look.hidden
-                : look.group
-          }
-        >
-          {browsing && (
-            <Text accessibilityRole="header" style={look.title}>
-              {COPY.TITLE}
-            </Text>
-          )}
-          {browsing && readOnly && <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>}
-          {browsing &&
-            (corrections.isPending ? (
-              <Loading>Loading corrections…</Loading>
-            ) : corrections.isError ? (
-              <LoadError retry={() => corrections.refetch()} busy={corrections.isFetching}>
-                Corrections could not be loaded.
-              </LoadError>
-            ) : null)}
-          <GroupedRecords
-            grouping={CORRECTION_GROUPS}
-            rows={rows}
-            requested={landing?.record ? { key: landing.record, record: landing.record } : undefined}
-            browsing={browsing}
-          />
-        </View>
       </View>
       {readable && (
-        <View style={reviewing ? look.hidden : openingReview ? undefined : card.card}>
+        <View style={openingReview ? undefined : card.card}>
           {!openingReview && (
             <>
               <Text accessibilityRole="header" style={card.title}>
@@ -581,7 +462,7 @@ function ClassCorrections({
       )}
       <CustomModal
         visible={!!deleting}
-        title={`Delete this ${deleting ? (COPY.ENTRY_KINDS[deleting.kind] ?? 'entry').toLowerCase() : 'entry'}?`}
+        title={`Delete this ${deleting ? (REGISTER_ENTRY_COPY.ENTRY_KINDS[deleting.kind] ?? 'entry').toLowerCase() : 'entry'}?`}
         busy={removal.busy}
         onClose={() => setDeleting(null)}
         actions={

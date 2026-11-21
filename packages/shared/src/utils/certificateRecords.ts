@@ -1,4 +1,4 @@
-import { REGISTER_CORRECTION_COPY } from '../constants';
+import { REGISTER_ENTRY_COPY } from '../constants';
 import type { RegisterEntry, RegisterEntryKind } from '../types';
 import { formatShortDate } from './date';
 
@@ -36,7 +36,7 @@ export function certificateFacts(
   const ledgerDate =
     companyDated && entry.effectiveOn !== entry.companyEventOn ? formatShortDate(entry.effectiveOn) : null;
   return {
-    entry: `${REGISTER_CORRECTION_COPY.ENTRY_KINDS[kind as RegisterEntryKind] ?? 'Register change'} · ${symbol ?? ''}`,
+    entry: `${REGISTER_ENTRY_COPY.ENTRY_KINDS[kind as RegisterEntryKind] ?? 'Register change'} · ${symbol ?? ''}`,
     date,
     ledgerDate,
     dates: ledgerDate ? `${date} · ledger date ${ledgerDate}` : date,

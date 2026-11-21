@@ -167,7 +167,7 @@ retained issues, which platform staff review and apply ([settled transfers](regi
 
 ### Named directors
 
-Issues (grants and allotments), company-recorded transfers, openings, corrections and
+Issues (grants and allotments), company-recorded transfers, openings and
 wallet links rest on documentary authority: the company names the approving director and uploads
 the director resolution, or a court order where one applies. A company appointment supplies the
 capability to record the decision; it does not make the appointee that director. The director need
@@ -221,7 +221,7 @@ own records and account, and lists the same companies as the web: a company's ad
 register readers see its ownership overview and each class's shareholders there, its share classes on
 Ledger with each class's page, class rights and shareholder documents, set up its ledger, prepare,
 approve and record its share issues and non-paid transfers under Issue shares and Transfer shares,
-prepare, approve and apply corrections, bring in, review and confirm the opening records and read the
+delete a mistaken entry, bring in, review and confirm the opening records and read the
 particulars changes under Corrections, list its
 shareholders, open each one's page, add a person, change particulars, record employee awards and their
 vesting and manage member access under Shareholders, and prepare its certificates and inspection
@@ -314,8 +314,8 @@ Follow a company and its participants through Ledova:
    declaration, the team, company information and documents, and company status.
 2. [Investors and members](participants.md): accounts and identity checks, the API's wallet
    nominations and approvals, and monitoring.
-3. [Register of members](register.md): opening the mirror from company records, corrections,
-   particulars, transfers and former members, with the API's openings from the chain, wallet links
+3. [Register of members](register.md): opening the mirror from company records, deleting a mistaken
+   entry, particulars, transfers and former members, with the API's openings from the chain, wallet links
    and reconciliation.
 4. [Issuing shares](issuing-shares.md): share classes, employee awards and vesting,
    grants and externally arranged allotments.

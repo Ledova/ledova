@@ -11,7 +11,6 @@ import {
   COMPANY_TOKEN_ENDPOINTS as URLS,
   REGISTER_ALLOTMENT_COPY,
   REGISTER_AWARD_COPY,
-  REGISTER_CORRECTION_COPY,
   REGISTER_GRANT_COPY,
   REGISTER_IMPORT_COPY,
   REGISTER_TRANSFER_COPY,
@@ -45,8 +44,6 @@ import {
   type RegisterAwardPreparation,
   type RegisterAwardVesting,
   type RegisterAwardVestingPreparation,
-  type RegisterCorrection,
-  type RegisterCorrectionPreparation,
   type RegisterDecideRequest,
   type RegisterEntry,
   type RegisterGrant,
@@ -89,7 +86,6 @@ import { destinationOf } from '../../components/notifications/NotificationsPanel
 import { CertificatesScreen } from '../documents/CertificatesScreen';
 import { CompanyPackScreen } from '../documents/CompanyPackScreen';
 import { InspectionCopiesScreen } from '../documents/InspectionCopiesScreen';
-import { CorrectionPreparationScreen } from '../ledger/CorrectionPreparationScreen';
 import { CorrectionsScreen } from '../ledger/CorrectionsScreen';
 import { IssueSharesScreen } from '../ledger/IssueSharesScreen';
 import { LedgerScreen } from '../ledger/LedgerScreen';
@@ -400,42 +396,10 @@ const CERTIFIED: RegisterEntry = {
   recordedAt: '2026-10-26T00:00:00Z',
   corrects: null,
   correctedBy: null,
-  correctable: true,
   deletable: true,
   changes: [{ member: 'holder-1', name: 'Synthetic Holder 1', shares: '5' }],
 };
 const DIGEST = 'b'.repeat(64);
-const correctionFrom = ({
-  operationId,
-  correctsId,
-  appointment,
-  ...request
-}: RegisterCorrectionPreparation): RegisterCorrection => ({
-  ...request,
-  uuid: operationId,
-  company: ADMINISTERED.uuid,
-  register: FOUNDERS.uuid,
-  corrects: correctsId,
-  changes: CERTIFIED.changes.map(({ member, shares }) => ({ member, shares: String(-BigInt(shares)) })),
-  approvingDirector: request.approvingDirector ?? '',
-  preparingAppointment: appointment,
-  preparedByName: 'Synthetic Preparer',
-  providedBy: 'company',
-  status: 'submitted',
-  stage: 'submitted',
-  decisions: [],
-  baseHash: 'a'.repeat(64),
-  baseSequence: 13,
-  appliedEntry: null,
-  evidenceFingerprint: 'a'.repeat(64),
-  evidenceSnapshot: {},
-  sourceDocument: null,
-  rejectionReason: '',
-  reviewedAt: null,
-  reviewedBy: null,
-  submittedBy: 1,
-  createdAt: '2026-11-04T05:00:00Z',
-});
 const OPENING: RegisterImport = {
   uuid: '49494949-4949-4949-8949-494949494949',
   company: ADMINISTERED.uuid,
@@ -594,7 +558,6 @@ const supportingDocuments: RegisterMemberDocument[] = [];
 let allotments: RegisterAllotment[];
 let grants: RegisterGrant[];
 let transfers: RegisterTransfer[];
-let corrections: RegisterCorrection[];
 let imports: RegisterImport[];
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <QueryClientProvider client={client}>
@@ -689,7 +652,6 @@ beforeEach(async () => {
   allotments = [];
   grants = [];
   transfers = [];
-  corrections = [];
   imports = [OPENING];
   client.setQueryData(AUTH_QUERY_KEY, { data: { valid: true } });
   client.setQueryData(USER_PREFERENCES_QUERY_KEY, { data: preferences });
@@ -803,7 +765,6 @@ beforeEach(async () => {
     if (url === URLS.REGISTER_GRANTS) return page(grants);
     if (url === URLS.REGISTER_ALLOTMENTS) return page(allotments);
     if (url === URLS.REGISTER_TRANSFERS) return page(transfers);
-    if (url === URLS.REGISTER_CORRECTIONS) return page(corrections);
     if (url === URLS.REGISTER_IMPORTS) {
       if (importsWait) await importsWait;
       if (importsReadFailure) throw new Error('Synthetic imports read refusal');
@@ -1215,10 +1176,6 @@ beforeEach(async () => {
       ];
       return { data: transfers[0] };
     }
-    if (url === URLS.REGISTER_CORRECTIONS) {
-      corrections = [correctionFrom(value as RegisterCorrectionPreparation)];
-      return { data: corrections[0] };
-    }
     if (url === URLS.BASE) {
       const request = value as TokenCreate;
       const detail = { chain: null, contractAddress: null, deployedAt: null, deploymentTxHash: null };
@@ -1277,39 +1234,6 @@ beforeEach(async () => {
       const decided = { ...opening, ...applied, decisions: [...opening.decisions, decision] };
       imports = imports.map((proposal) => (proposal.uuid === opening.uuid ? decided : proposal));
       return { data: decided };
-    }
-    if (corrections[0] && url === URLS.REGISTER_CORRECTION_PREVIEW(corrections[0].uuid)) {
-      const { changes, effectiveOn } = corrections[0];
-      const originalChanges = CERTIFIED.changes.map(({ member, shares }) => ({ member, shares }));
-      const preview = { changes, effectiveOn, originalChanges, previewDigest: DIGEST, registerSequence: 13 };
-      return { data: { ...preview, canDecide: true, unmetRequirements: [] } };
-    }
-    if (corrections[0] && url === URLS.REGISTER_CORRECTION_DECIDE(corrections[0].uuid)) {
-      const request = value as RegisterDecideRequest;
-      const decidedAt = request.kind === 'apply' ? '2026-11-04T06:00:00Z' : '2026-11-04T05:30:00Z';
-      const decision = {
-        uuid: request.idempotencyKey,
-        appointment: request.appointment,
-        kind: request.kind,
-        digest: request.previewDigest,
-        idempotencyKey: request.idempotencyKey,
-        reason: request.reason ?? '',
-        decidedAt,
-        decidedBy: 1,
-        decidedByName: PROFILE.fullName,
-      };
-      const applied =
-        request.kind === 'apply'
-          ? {
-              status: 'applied' as const,
-              stage: 'applied',
-              appliedEntry: '52525252-5252-4252-8252-525252525252',
-              reviewedAt: decidedAt,
-              reviewedBy: 1,
-            }
-          : { stage: 'approved' };
-      corrections = [{ ...corrections[0], ...applied, decisions: [...corrections[0].decisions, decision] }];
-      return { data: corrections[0] };
     }
     if (url === URLS.REGISTER_MEMBER_DOCUMENTS) {
       const request = value as RegisterMemberDocumentRequest;
@@ -1611,14 +1535,6 @@ it('associates a member by invitation code, switches to their company on Dashboa
     <IssueSharesScreen key="issues" route={{ key: 'issues', name: 'IssueShares', params: undefined }} />,
     <TransferSharesScreen key="transfers" route={{ key: 'transfers', name: 'TransferShares', params: undefined }} />,
     <CorrectionsScreen key="corrections" route={{ key: 'corrections', name: 'Corrections', params: undefined }} />,
-    <CorrectionPreparationScreen
-      key="correction"
-      route={{
-        key: 'correction',
-        name: 'CorrectionPreparation',
-        params: { company: MEMBER_RECORD.company.uuid, token, entry: MEMBER_ENTRY.uuid },
-      }}
-    />,
     <ShareClassScreen
       key="setup"
       route={{ key: 'setup', name: 'RegisterSetup', params: { company: MEMBER_RECORD.company.uuid } }}
@@ -1649,7 +1565,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   }
   const peopleReads = () =>
     api.get.mock.calls.filter(([url]) =>
-      /\/(register-people|register-award[a-z-]*|register-allotments|register-grants|register-transfers|register-corrections|register-imports|register-particulars-changes|member-invitations|member-associations)\//.test(
+      /\/(register-people|register-award[a-z-]*|register-allotments|register-grants|register-transfers|register-imports|register-particulars-changes|member-invitations|member-associations)\//.test(
         url,
       ),
     );
@@ -2289,26 +2205,11 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByRole('button', { name: /^(Transfer shares \(|Issue shares$)/ })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Add (documents)' })).toBeNull();
   expect(transferPosts()).toHaveLength(3);
-  corrections = [
-    correctionFrom({
-      operationId: '51515151-5151-4151-8151-515151515151',
-      correctsId: CERTIFIED.uuid,
-      appointment: ADMINISTRATION.uuid,
-      authorityEvidence: evidence,
-      effectiveOn: utcToday(),
-      authority: 'director_resolution',
-      approvingDirector: 'Synthetic Director',
-      authorityReference: 'Synthetic minute',
-      reason: 'Issued in error',
-    }),
-  ];
   await view.rerender(
     <CorrectionsScreen route={{ key: 'read-only-corrections', name: 'Corrections', params: undefined }} />,
   );
   await act(async () => screen.getByTestId('corrections-scroll').props.refreshControl.props.onRefresh());
-  expect(await screen.findByText(REGISTER_CORRECTION_COPY.READ_ONLY_NOTE)).toBeTruthy();
-  const corrected = `Correction of the issue of ${formatShortDate(CERTIFIED.companyEventOn)} to Synthetic Holder 1`;
-  await waitFor(() => expect(screen.getAllByText(corrected)).toHaveLength(1));
+  expect(await screen.findByText(REGISTER_IMPORT_COPY.READ_ONLY_NOTE)).toBeTruthy();
   await settled();
   expect(screen.getByLabelText('Share movements: Synthetic Holder 1: +5')).toBeTruthy();
   expect(screen.getAllByText('Copied opening correction')).toHaveLength(1);

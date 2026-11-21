@@ -10,7 +10,6 @@ export type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissi
 export { hasProblems, useErrorSummary, useFocusClaim } from './useErrorSummary';
 export type { FieldCheck, Problems } from './useErrorSummary';
 export {
-  REGISTER_CORRECTION_DECISIONS,
   REGISTER_IMPORT_DECISIONS,
   REGISTER_GRANT_DECISIONS,
   REGISTER_TRANSFER_DECISIONS,
@@ -117,18 +116,9 @@ export { useTransferPreparation } from './useTransferPreparation';
 export type { TransferDocumentKind, TransferPreparationOptions } from './useTransferPreparation';
 export { useTransferRecordDownload } from './useTransferRecordDownload';
 export { useRegisterEntries } from './useRegisterEntries';
-export { correctionsKey, useClassCorrections } from './useClassCorrections';
-export type { ClassCorrection } from './useClassCorrections';
 export { importsKey, useRegisterImports } from './useRegisterImports';
 export { useRegisterParticulars } from './useRegisterParticulars';
-export { useCorrectionPreparation } from './useCorrectionPreparation';
-export type { CorrectionPreparationOptions } from './useCorrectionPreparation';
-export { useCorrectionEntry } from './useCorrectionEntry';
-export {
-  useCorrectionRecordDownload,
-  useImportRecordDownload,
-  useParticularsRecordDownload,
-} from './useRegisterRecordDownload';
+export { useImportRecordDownload, useParticularsRecordDownload } from './useRegisterRecordDownload';
 export { importRegisterKey, useImportRegister } from './useImportRegister';
 export { useStartedClasses } from './useStartedClasses';
 export { useNewShareClass } from './useNewShareClass';

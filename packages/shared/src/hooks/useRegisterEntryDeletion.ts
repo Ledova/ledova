@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { deleteRegisterEntry } from '../services/register-entries';
 import type { RegisterEntry } from '../types';
 import { createUserFriendlyError, failureSentence } from '../utils/errors';
-import { entryWithPeople } from '../utils/register-corrections';
+import { entryWithPeople } from '../utils/register-entries';
 import { useApiClient } from './useApiClient';
 import { registerKey } from './useCompanyOwnership';
 import type { OrderSubmissionOwner, OrderSubmissionSession } from './useSubmissionOwner';

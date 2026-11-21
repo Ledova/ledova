@@ -95,8 +95,8 @@ kind or contract function for either exists, and shares are whole units at every
 | Register       | `RegisterPosition.shares` and `ShareRegister.issued_supply` are `DecimalField(decimal_places=0)` (`backend/tokens/models/register.py`)                                    |
 | Register event | The register entry guard (`tokens_guard_register_entry` in `backend/tokens/database_guards.sql`) requires every change's `shares` to be a whole, non-zero, signed integer |
 
-`RegisterInstructionKind` has `issue` and `transfer` only; a `cessation` must reach exactly zero, a
-`correction` must exactly invert an earlier entry, and `backend/tokens/database_mirror_guards.sql`
+`RegisterInstructionKind` has `issue` and `transfer` only; a `cessation` must reach exactly zero, no
+new `correction` is admitted, and `backend/tokens/database_mirror_guards.sql`
 confines a `mirror_correction`'s signed differences to an imported register's applied snapshot
 before deployment and any entry other than the opening and earlier mirror corrections. No kind can
 reduce a holding partially on a live class. `mint`, `setAuthorizedShares` and `pause` are

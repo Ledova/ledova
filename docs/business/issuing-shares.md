@@ -148,8 +148,7 @@ Only a draft class of an active company can be deployed, once. A class with no r
 opened register holding no shares, can be deployed; an unopened or unreadable register, or issued
 shares, refuse it,
 because deployment cannot mirror populated holdings. Deployment never resets an empty register or
-creates a second opening, and while it is admitted the register cannot change, including imports and
-corrections. Company share operations grant no crypto on-ramp purchase permission. How the signer
+creates a second opening, and while it is admitted the register cannot change, including imports. Company share operations grant no crypto on-ramp purchase permission. How the signer
 executes it is in [engineering](../engineering/chain.md#share-class-deployment).
 
 ### Raising the authorised shares
@@ -238,8 +237,9 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
   separately from agreement, terms, vesting and receipt dates. It enters the exact review and
   resulting entry; Ledova's recording and approval timestamps stay actual. The date must be no later
   than today (UTC) and no earlier than the applicable opening or latest effective event
-  ([register dates](register.md#register-entries)). Earlier events need correction or reconciliation,
-  not a replay through the normal issue path. Chain issues keep their existing execution dates.
+  ([register dates](register.md#register-entries)). An earlier event means deleting the later entries
+  and recording them again, or correcting the copied opening when it comes before the opening; the
+  normal issue path doesn't replay history. Chain issues keep their existing execution dates.
 - The issue must fit within the authorised shares; quantities are whole, and a chain request is at
   most 2,147,483,647.
 - A payment or receipt never authorises an issue, and non-paid terms never create an amount paid.
@@ -345,7 +345,8 @@ that uploaded a separate matching copy.
 
 Applying rechecks the authority, evidence, vested quantity still available, particulars, register
 and authorised shares, then records the Issue once. Pending or approved grants reserve neither
-vested nor authorised shares, and a later transfer or correction returns no shares to the award.
+vested nor authorised shares. A later transfer returns no shares to the award, but deleting the
+issue makes its vested shares available to grant again.
 Later grants use the recipient's existing member record, including a former-member record.
 
 New vesting, endings, reversals and newly applied linked issues cannot precede the latest accepted

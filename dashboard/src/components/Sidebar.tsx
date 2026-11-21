@@ -66,7 +66,6 @@ const IDLE_CLASS = 'text-text-secondary hover:bg-surface-tertiary hover:text-tex
 const CURRENT_CLASS = 'bg-brand-mid/10 text-brand-light dark:bg-brand-tint';
 const LEDGER_TASK_PARENTS: Partial<Record<DestinationKey, LedgerTask>> = {
   companyRegisterTransfer: 'transfer',
-  companyRegisterCorrection: 'corrections',
   companyRegisterParticulars: 'corrections',
 };
 

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { AxiosInstance } from 'axios';
 import { READ_TIMING } from '../constants/api';
 import { getRegisterAwards } from '../services/register-awards';
-import { getRegisterEntries } from '../services/register-corrections';
+import { getRegisterEntries } from '../services/register-entries';
 import { firstOfEach, readEveryPage } from '../utils/pagination';
 import { hasValidRegisterAwardTotals } from '../utils/register-awards';
 import { useApiClient } from './useApiClient';

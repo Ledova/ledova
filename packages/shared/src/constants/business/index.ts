@@ -4,7 +4,7 @@ export * from './register-grants';
 export * from './register-awards';
 export * from './register-transfers';
 export * from './register-imports';
-export * from './register-corrections';
+export * from './register-entries';
 export * from './register-particulars';
 export * from './company-authority';
 export * from './signup';

@@ -82,14 +82,6 @@ export {
   downloadRegisterImportFile,
 } from './register-imports';
 export {
-  getRegisterEntries,
-  getRegisterCorrections,
-  prepareRegisterCorrection,
-  previewRegisterCorrectionDecision,
-  decideRegisterCorrection,
-  downloadRegisterCorrectionFile,
-} from './register-corrections';
-export {
   getRegisterParticularsChanges,
   editRegisterParticulars,
   downloadRegisterParticularsChangeFile,

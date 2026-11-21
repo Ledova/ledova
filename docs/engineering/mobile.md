@@ -69,8 +69,8 @@ and member access form, the employee scheme's award, vesting and grant reads, aw
 entitlement-change forms and award document downloads, a share class's read, class rights and
 shareholder documents, Issue shares' allotment and grant reads, preparation forms, decision steps
 and document downloads, Transfer shares' transfer read, preparation form and document download, and
-Corrections' entries, corrections, opening records and particulars changes reads, its correction
-form and entry read and their document downloads, and register setup's preparation, new class,
+Corrections' entries, opening records and particulars changes reads, its entry delete and their
+document downloads, and register setup's preparation, new class,
 register and started-class reads and draft checks live in `packages/shared`, with native session,
 result and transport policies kept in the client: the app passes its session to each shared read and
 request.
@@ -116,8 +116,7 @@ company or Filters) and the notifications bell. A page with a parent shows a bac
 menu button (`topBar` with a back target): Back to Account on Representative authority, Back to
 Representative authority on an authority request, Back to Ledger on a share class and Set up your
 ledger, Back to Employee share scheme on an award, Back to Shareholders on a shareholder's page, Back to
-shareholder on a particulars change, Back to Transfer shares on a non-paid transfer and Back to
-Corrections on a correction. The arrow returns to the previous page, as Android's Back and the iOS
+shareholder on a particulars change and Back to Transfer shares on a non-paid transfer. The arrow returns to the previous page, as Android's Back and the iOS
 swipe do, and reads Back; only a page with nothing beneath it in the stack opens that parent in its
 place, under the parent's name. The menu's pages replace the stack above Dashboard; Ledger's **Add** opens the class workflow above Ledger. A parent that needs
 params for that fallback gets them from the page (`keepParams`). A non-paid transfer locks Cancel while a submission is
@@ -270,10 +269,11 @@ original retry) blocks leaving its page by the back gesture, the back arrow or t
 and is true only for the request, not for an open form or confirmation. It covers the Ledger and
 class pages; a class's opening records and their decisions, including a copied opening in
 Corrections; adding a person on Shareholders; a shareholder's documents; Member access; Employee
-scheme and an award; preparing and deciding share issues, transfers and corrections; Change
+scheme and an award; preparing and deciding share issues and transfers; deleting a register entry;
+Change
 particulars; Team's invitation create, accept and revoke; a representative authority request and
 its withdraw, revoke and admit; Inspection copies; Company pack; and the company details form. The pages that
-leave by themselves after a save (preparing a transfer or a correction, Change particulars, saving
+leave by themselves after a save (preparing a transfer, Change particulars, saving
 or applying opening records) do so only once the request has settled, so the guard does not cancel
 that step. A decision or opening-records retry blocks only while its record is on screen; once its
 review is closed, or the form is hidden (a company switch, a failed reread, lost authority), only a
@@ -286,7 +286,7 @@ backgrounding the app cannot be blocked.
 
 Company registry tasks keep an existing form mounted during a same-account access reread or failure:
 Team, shareholder records and member access, the employee scheme and awards, share classes, issues,
-transfers, corrections, particulars changes, ledger setup, Company pack and Inspection copies. `useRetainedScope.ts` in
+transfers, particulars changes, ledger setup, Company pack and Inspection copies. `useRetainedScope.ts` in
 `mobile/src/hooks` retains only the confirmed company/record scope under the exact account and
 session epoch. `Page` hides private content and its accessibility tree while showing the access
 status in the same frame; actions and private reads stay blocked by live guards. A changed account,
@@ -398,22 +398,15 @@ Share class is locked while a review or held decision is open, and pulling down 
 person's appointments and the transfers while none is.
 Corrections (`CorrectionsScreen.tsx`) is the web's Corrections at phone width for a register reader
 of the selected company, read through `useCompanyRegisters.ts` and the shared `useRegisterEntries`,
-`useClassCorrections`, `useRegisterImports` and `useRegisterParticulars`, with decisions through
+`useRegisterImports` and `useRegisterParticulars`, with opening-record decisions through
 `useRegisterDecision`: the selected class's name, with **Share class** in Filters as on Transfer
 shares, then Changes, the class's register entries newest first (`ClassEntries.tsx`), each the web's
-compact row: its kind and short date, with **Delete**, a compact red text `Action`, at the end of a
-row the person may delete (an issue, transfer or correction, for someone who can prepare the register),
-confirmed once in the web's dialog, then any ledger date, reversal or entry it
-corrects, and its first two signed share movements with **Show all** for the rest, with **Load more
-register entries** for later pages. Its Corrections follow under the web's groups (Needs a decision,
-Corrected and Rejected, from `CORRECTION_GROUPS`), each (`CorrectionRecord.tsx`) the web's summary
-of the entry it reverses, a button that shows or hides the stage, preparation, effective date, the
-entry and its compensating changes, the authority, reason, evidence, decision trail and **Download**,
-which goes to the share sheet; an unfinished correction adds its status
-and **Reject**, **Approve** and **Apply** for the steps the person's appointments hold. A decision
-replaces the records with the web's dialog content in place (Approve correction, Apply correction
-with the web's compensation note, or Reject correction with its reason), keeping its retry of an
-uncertain decision. Opening records (`ImportRecord.tsx`) lists the class's copied openings as the
+compact row: its kind and short date, with a red **Delete**, a compact destructive `Action`, at the
+end of a row a current preparer can delete, then any ledger date, reversal or entry it corrects, and
+its first two signed share movements with **Show all** for the rest, with **Load more register
+entries** for later pages. **Delete** asks once in the web's dialog, which names the entry and its
+people, through the shared `useRegisterEntryDeletion`; the outcome or refusal shows under the list.
+Opening records (`ImportRecord.tsx`) lists the class's copied openings as the
 web's summaries (kind and shares, then record date and members), each opening its details, **Show
 the shareholders** (each shareholder's allotments and documents behind **Show allotments**) and the
 register and ASIC downloads; an unfinished one adds its status and **Reject**, **Review** and
@@ -427,7 +420,7 @@ changes**, each the web's summary (the member, then what changed and its as-at d
 made it and when, the particulars before and after, and an earlier change's supporting document.
 A read-only appointment gets the web's notes and no actions. Share class is locked while a review or
 held decision is open, and pulling down rereads the classes, the person's appointments, the entries,
-corrections, opening records and particulars changes while none is.
+opening records and particulars changes while none is.
 Class setup (`ClassSetup.tsx`, rendered by `ShareClassScreen.tsx`) is the web's register setup at phone width, through the
 shared `useImportPreparation`, `useNewShareClass`, `useImportRegister` and `useStartedClasses`
 (`ImportForm.tsx`, `ImportShareholders.tsx`). Opened from Ledger's **Add**, it is the web's four
@@ -663,7 +656,7 @@ A representative authority request's evidence, an employee award's agreement and
 vesting and entitlement changes, a share class's rights documents and shareholder documents, a
 share issue's authority, agreement, receipt, terms and acceptance documents, a register setup's
 source copies and shareholder documents, a share transfer's
-instrument and authority, and a correction's authority document are picked with
+instrument and authority are picked with
 `expo-file-system`'s own picker (`File.pickFileAsync`,
 through `FileField`), so no picker module returns. On iOS it hands over a copy in the temporary
 folder's `-Inbox` folder. Each form owns its selected file value, so hiding or remounting a field
@@ -696,9 +689,9 @@ content type, since React Native's Android blobs carry none, and shared under th
 award's agreement and event evidence take the same route through the shared `useAwardRecordDownload`,
 and a share class's rights documents and shareholder documents through the shared `useClassRights`
 and `useMemberDocuments`, an issue's documents through the shared `useAllotmentRecordDownload`
-and `useGrantRecordDownload`, a transfer's through `useTransferRecordDownload`, and a correction's, an
-opening record's and a particulars change's through `useCorrectionRecordDownload`,
-`useImportRecordDownload` and `useParticularsRecordDownload`, under their retained file names.
+and `useGrantRecordDownload`, a transfer's through `useTransferRecordDownload`, and an opening
+record's and a particulars change's through `useImportRecordDownload` and
+`useParticularsRecordDownload`, under their retained file names.
 Documents' outputs, an award's documents, a class's documents, an issue's, transfer's or Corrections'
 documents and the authority evidence, shared from their pages, go through `shareFile`: a
 sheet that fails to open reports the failure, and one still open after 1.5 seconds counts as
