@@ -142,7 +142,8 @@ foreign invitation and revoked association refusals. One
 output case covers real company certificate PDFs, a register reader who lists no member invitations
 or associations and whose access ends with their appointment, pack provenance, an empty class's rights, details history and governing documents, file integrity,
 and the purge of export records after the retention floor. Two mirror cases cover complete copied
-holdings and allotments, once-only opening corrections, retained earlier snapshots, stale and
+holdings and allotments, once-only opening corrections, retained earlier snapshots, a deleted
+setup attachment marked unattached and refused in a later or waiting correction, stale and
 incomplete requests, and refusal after later ownership or member-access activity. They exercise
 the API and PostgreSQL guards; they establish no genuine legal register or source verification.
 The existing class journey also covers metadata editing and class deletion, stale versions,

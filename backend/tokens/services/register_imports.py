@@ -50,6 +50,7 @@ from tokens.services.register_evidence import (
 from tokens.services.register_instructions import APPROVED
 from tokens.services.register_member_documents import (
     check_import_documents,
+    deleted_import_documents,
     document_rows,
     link_import_documents,
     retain_import_documents,
@@ -621,6 +622,8 @@ def _effect_requirements(proposal):
             matching_bytes(proposal.asic_file, proposal.asic_snapshot["file_size"], proposal.asic_fingerprint)
     except ValidationError:
         unmet.append("evidence_unavailable")
+    if deleted_import_documents(proposal):
+        unmet.append("document_deleted")
     token = proposal.token
     if proposal.correction_of_id is not None:
         unmet.extend(_correction_requirements(proposal))

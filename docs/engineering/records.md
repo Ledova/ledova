@@ -314,7 +314,8 @@ requirement codes:
   opening); `holdings_differ` (the class was opened from the chain and its stored holdings differ);
   `former_member_after_opening`; `former_member_before_retention` (ceased before the retention
   cutoff); `empty_non_tokenised_opening_required` (an empty snapshot is only for a genuinely unopened
-  non-tokenised class, never a correction or former-member import). An opening correction adds
+  non-tokenised class, never a correction or former-member import); `document_deleted` (a row names a
+  shareholder attachment deleted since an applied import listed it). An opening correction adds
   `register_changed`, `mirror_snapshot_changed` (the corrected
   import is no longer the latest applied one), and `mirror_correction_activity` and
   `mirror_correction_member_activity` (class or company activity that
