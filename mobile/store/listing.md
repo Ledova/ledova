@@ -6,8 +6,8 @@ What Ledova's iOS App Store page shows. This file and the screenshots beside it 
 Connect holds the live one, so a merged change here is then copied there by hand, on the owner's direction. App
 Review's sign-in, contact details and notes, and the App Store Connect identifiers, stay out of this repository.
 
-**Status:** entered in App Store Connect on 20 November 2026 for version 1.0.4 with build 91. It has not been submitted
-to App Review; [#1586](https://github.com/Ledova/ledova/issues/1586) sets the launch order.
+**Status:** entered in App Store Connect on 20 November 2026 for version 1.0.4. Build 92 replaced build 91 the same day.
+It has not been submitted to App Review; [#1586](https://github.com/Ledova/ledova/issues/1586) sets the launch order.
 
 ## Product page
 
@@ -73,17 +73,14 @@ Each data type is linked to the user's account, used only to run the app and not
 | -------------------- | -------------------------------------------------------------------------- |
 | Name                 | The account holder's name and the names a company records                  |
 | Email Address        | Sign-in, invitations and the addresses a company records                   |
-| Phone Number         | The phone number the app's sign-up asks for                                |
-| Physical Address     | The residential address the app's sign-up asks for, and recorded addresses |
+| Phone Number         | The phone number in a company's details                                    |
+| Physical Address     | The address a person keeps in Profile, and the addresses a company records |
 | Other Financial Info | Shares, awards and the records behind them                                 |
 | Other User Content   | Documents people upload                                                    |
 | User ID              | The account                                                                |
-| Other Data Types     | The date of birth the app's sign-up asks for                               |
 
-Once a build with the name-only sign-up ([#1711](https://github.com/Ledova/ledova/issues/1711)) is attached,
-the app no longer asks for a birth date, a personal phone number or an address at sign-up. Other Data Types can
-then come off, Phone Number covers only the phone in a company's details, and Physical Address covers the
-Profile address and recorded addresses.
+Other Data Types, the birth date, came off on 20 November 2026, when build 92 replaced build 91. From that build
+the app's sign-up asks only for the full name ([#1711](https://github.com/Ledova/ledova/issues/1711)).
 
 ## Screenshots
 

@@ -56,7 +56,7 @@ export const REGISTER_ALLOTMENT_UNMET_COPY: Record<string, string> = {
     'The company event date was not recorded. Reject this preparation and prepare it again with the company’s date.',
   company_event_date_in_future: 'The company event date cannot be after today (UTC).',
   effective_date_before_latest_entry:
-    'The company event date is before a later register event. Use the company’s correction or reconciliation process.',
+    'The company event date is before a later register event. Delete the later entries first, or correct the copied opening for a date before it.',
   approving_director_conflict: 'The recipient cannot be the approving director.',
   member_reference_conflict: 'This new member already exists. Prepare a new instruction.',
   identified_company_member_required: 'Select an identified member of this company.',

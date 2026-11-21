@@ -23,22 +23,6 @@ EMAIL_BACKEND = (
     "django.core.mail.backends.console.EmailBackend" if DEBUG else "django.core.mail.backends.smtp.EmailBackend"
 )
 
-KYC_PROVIDER = os.environ.get("KYC_PROVIDER", "")
-
-KYCAID_API_TOKEN = os.environ.get("KYCAID_API_TOKEN", "")
-KYCAID_BASE_URL = os.environ.get("KYCAID_BASE_URL", "")
-KYCAID_FORM_ID = os.environ.get("KYCAID_FORM_ID", "")
-KYCAID_CRYPTO_MONITORING_ENABLED = os.environ.get("KYCAID_CRYPTO_MONITORING_ENABLED", "false").lower() == "true"
-
-SUMSUB_API_KEY = os.environ.get("SUMSUB_API_KEY", "")
-SUMSUB_SECRET_KEY = os.environ.get("SUMSUB_SECRET_KEY", "")
-SUMSUB_BASE_URL = os.environ.get("SUMSUB_BASE_URL", "")
-SUMSUB_LEVEL_NAME = os.environ.get("SUMSUB_LEVEL_NAME", "basic-kyc-level")
-SUMSUB_WEBHOOK_SECRET = os.environ.get("SUMSUB_WEBHOOK_SECRET", "")
-
-CRYPTO_RISK_THRESHOLD_MEDIUM = float(os.environ.get("CRYPTO_RISK_THRESHOLD_MEDIUM", "0.25"))
-CRYPTO_RISK_THRESHOLD_HIGH = float(os.environ.get("CRYPTO_RISK_THRESHOLD_HIGH", "0.6"))
-
 ALCHEMY_ETH_URL = os.environ.get("ALCHEMY_ETH_URL", "")
 ALCHEMY_BTC_URL = os.environ.get("ALCHEMY_BTC_URL", "")
 ALCHEMY_BASE_URL = os.environ.get("ALCHEMY_BASE_URL", "")

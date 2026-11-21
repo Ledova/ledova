@@ -1,10 +1,11 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
 from django.db import IntegrityError
 from django.db.models import Q
+from django.db.models.deletion import Collector, ProtectedError, RestrictedError
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -14,15 +15,8 @@ from authentication.models import TermsAcceptance
 from authentication.services import TokenService
 from authentication.services.sessions import resolve_signup_email
 from companies.models import CompanyAppointment, CompanyAuthorityRequest
-from compliance.constants import ALERT_TYPE_PERIODIC_REVIEW, IDENTITY_SCREENING_RULE
-from compliance.models import (
-    ComplianceAlert,
-    CustomerRiskAssessment,
-    TransactionScreening,
-)
-from integrations.kyc.constants import PROVIDER_KYCAID, PROVIDER_SUMSUB
 from portfolios.models import Portfolio
-from shared.db import atomic, use_operator
+from shared.db import atomic, current_alias, use_operator
 from shared.utils.token_amounts import plain_amount
 from users.models import (
     DeviceToken,
@@ -33,7 +27,7 @@ from users.models import (
     UserProfile,
 )
 from users.models.user_account import AccountRole
-from users.services.erasure import identity_retention_case, queue_provider_erasure
+from users.services.accounts import lock_active_profile
 from wallets.models import Transaction, Wallet
 from whitelist.services.eligibility_invalidation import invalidation_writer_context
 from whitelist.services.refresh import enqueue_for_account
@@ -55,7 +49,6 @@ def delete_account(user, *, automated=False):
         cause_fields = [field for field in ("is_active", "is_email_verified") if getattr(user, field)]
 
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        completion_email = user.email
         tombstone = normalize_email(f"deleted_{user.id}_{timestamp}_{uuid4().hex}@deleted.invalid")
         if user.__class__.objects.resolve_email(tombstone).state is not EmailLookupState.ABSENT:
             raise serializers.ValidationError({"error": ["Account deletion could not be completed."]})
@@ -86,34 +79,12 @@ def delete_account(user, *, automated=False):
 
         try:
             profile = UserProfile.objects.select_for_update(no_key=True).get(user=user)
-            held_case = identity_retention_case(account)
-            for provider, field in (
-                (PROVIDER_KYCAID, "kycaid_applicant_id"),
-                (PROVIDER_SUMSUB, "sumsub_applicant_id"),
-            ):
-                queue_provider_erasure(
-                    user,
-                    provider,
-                    getattr(profile, field),
-                    completion_email,
-                )
-            for field, value in {**SIGNUP_ANSWERS, **IDENTITY_ANSWERS}.items():
+            for field, value in SIGNUP_ANSWERS.items():
                 setattr(profile, field, value)
             profile.full_name = "Deleted User"
-            profile.save(update_fields=[*SIGNUP_ANSWERS, *IDENTITY_ANSWERS, "updated_at"])
+            profile.save(update_fields=[*SIGNUP_ANSWERS, "updated_at"])
             FinancialProfile.objects.filter(user_profile=profile).delete()
             UserPreferences.objects.filter(user_profile=profile).delete()
-            if account is not None:
-                if held_case is None:
-                    CustomerRiskAssessment.objects.filter(user_account=account).delete()
-                    TransactionScreening.objects.filter(user_account=account).update(raw_response={}, error_message="")
-                ComplianceAlert.objects.filter(
-                    Q(triggered_rule=IDENTITY_SCREENING_RULE) | Q(alert_type=ALERT_TYPE_PERIODIC_REVIEW),
-                    user_account=account,
-                    transaction__isnull=True,
-                    smr_required=False,
-                    smr_filed_at__isnull=True,
-                ).delete()
         except UserProfile.DoesNotExist:
             pass
 
@@ -128,19 +99,6 @@ SIGNUP_ANSWERS = {
     "residential_address": None,
     "citizenship_country": None,
     "residence_country": None,
-}
-
-IDENTITY_ANSWERS = {
-    "id_document_type": None,
-    "id_document_country": None,
-    "is_id_verified": False,
-    "verification_status": None,
-    "review_result": None,
-    "rejection_labels": None,
-    "verified_at": None,
-    "kycaid_applicant_id": None,
-    "sumsub_applicant_id": None,
-    "sumsub_verification_status": None,
 }
 
 
@@ -238,7 +196,6 @@ def export_account_data(user):
         "phone_number": profile.phone_number,
         "residential_address": profile.residential_address,
         "citizenship_country": profile.citizenship_country.name if profile.citizenship_country else None,
-        "is_id_verified": profile.is_id_verified,
         "created_at": profile.created_at,
     }
 
@@ -325,3 +282,40 @@ def _latest_chain_observation(tx):
         "finality": observation.finality,
         "policy": observation.policy,
     }
+
+
+def purge_abandoned_signups(now=None):
+    cutoff = (now or timezone.now()) - timedelta(days=30)
+    removed = 0
+    with use_operator():
+        candidates = (
+            UserProfile.objects.filter(is_signup_completed=False, updated_at__lt=cutoff, user__date_joined__lt=cutoff)
+            .filter(Q(user__last_login__isnull=True) | Q(user__last_login__lt=cutoff))
+            .exclude(user__email__endswith="@deleted.invalid")
+            .order_by("created_at", "pk")
+            .iterator(chunk_size=100)
+        )
+        for profile in candidates:
+            with atomic():
+                user = lock_active_profile(profile)
+                if (
+                    user is None
+                    or profile.is_signup_completed
+                    or profile.updated_at >= cutoff
+                    or user.date_joined >= cutoff
+                    or (user.last_login is not None and user.last_login >= cutoff)
+                ):
+                    continue
+                try:
+                    collector = Collector(using=current_alias())
+                    collector.collect([user])
+                except (ProtectedError, RestrictedError):
+                    continue
+                account = getattr(profile, "user_account", None)
+                if account is not None and account.wallets.exists():
+                    continue
+                delete_account(user, automated=True)
+                removed += 1
+                if removed >= 100:
+                    break
+    return removed

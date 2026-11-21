@@ -66,3 +66,6 @@ export const revokeMemberAssociation = (
   data: MemberAssociationRevoke,
   config: AxiosRequestConfig = {},
 ) => api.post<MemberAssociation>(URLS.MEMBER_ASSOCIATION_REVOKE(uuid), data, config);
+
+export const deleteMemberInvitation = (api: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  api.delete<void>(`${URLS.MEMBER_INVITATIONS}${uuid}/`, config);

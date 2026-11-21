@@ -252,17 +252,12 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
         with use_operator():
             self.profile.refresh_from_db()
             self.foreign_profile.refresh_from_db()
-            for target, change in (
-                (self.profile, {"is_id_verified": False}),
-                (self.foreign_profile, {"full_name": "Forged"}),
-            ):
-                bypassed = Unguarded(target, data=change, partial=True)
-                self.assertTrue(bypassed.is_valid(), bypassed.errors)
-                with self.assertRaises(IntegrityError):
-                    save_profile(self.owner, bypassed)
+            bypassed = Unguarded(self.foreign_profile, data={"full_name": "Forged"}, partial=True)
+            self.assertTrue(bypassed.is_valid(), bypassed.errors)
+            with self.assertRaises(IntegrityError):
+                save_profile(self.owner, bypassed)
             self.profile.refresh_from_db()
             self.foreign_profile.refresh_from_db()
-        self.assertTrue(self.profile.is_id_verified)
         self.assertEqual(self.profile.full_name, "Synthetic Updated Member")
         self.assertEqual(self.foreign_profile.full_name, "Synthetic core-foreign")
 
@@ -613,6 +608,7 @@ class ScopedAccessTest(CoreFixtures, APITransactionTestCase):
             self.assertEqual(owner_read.exception.__cause__.sqlstate, "42501")
         reset_principal(APP_ALIAS)
         self.assertEqual(self.client.get(f"/api/v1/tokens/member-records/{association_id}/").status_code, 404)
+        self.appoint_admin()
         revoke_company_appointment(requester=self.owner, appointment_id=self.appointment.pk)
         for suffix in ("", "file/", "agreement-file/", "receipt-file/"):
             self.assertEqual(self.client.get(f"{capital_detail}{suffix}").status_code, 404)

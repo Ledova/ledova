@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import {
   ENTRY_CHANGES_CAP,
-  REGISTER_CORRECTION_COPY as COPY,
+  REGISTER_ENTRY_COPY as COPY,
   entryDate,
   entryName,
   formatDate,

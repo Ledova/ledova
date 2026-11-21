@@ -217,6 +217,7 @@ export function TransferRecord({
           if (kind === 'approve' && !steps.apply)
             throw new Error('Company authority to record share transfers is required.');
         }}
+        noun="non-paid transfer"
         context={context}
         onDecided={onSettled}
         onRefused={onSettled}

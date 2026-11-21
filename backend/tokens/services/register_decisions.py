@@ -9,7 +9,6 @@ from rest_framework.exceptions import NotFound, ValidationError
 from companies.models import CompanyCapability
 from companies.services.administration import company_operation
 from companies.services.authority_requests import _requester_principal
-from operators.models import Operator
 from shared.db import current_alias, use_operator
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterDecisionKind
@@ -127,7 +126,7 @@ def preview(family, details, *, actor, proposal_id, appointment, kind, reason):
         proposal = family.model.objects.select_related("company").get(pk=initial.pk)
         current_actor = type(actor).objects.get(pk=actor.pk)
         profile = UserProfile.objects.filter(user=current_actor).first()
-        source = register_appointment(proposal.company, current_actor, profile, Operator.get(), appointment)
+        source = register_appointment(proposal.company, current_actor, profile, appointment)
         unmet = _requirements(family, proposal, kind, source, reason, checked)
         return proposal, {
             "preview_digest": _digest(family, proposal, kind, current_actor, source, reason),
@@ -164,7 +163,6 @@ def decide(family, *, actor, proposal_id, appointment, kind, idempotency_key, pr
         company,
         current_actor,
         profile,
-        operator,
     ):
         prior = family.decision_model.objects.filter(decided_by=current_actor, idempotency_key=idempotency_key).first()
         if prior is not None:
@@ -186,7 +184,7 @@ def decide(family, *, actor, proposal_id, appointment, kind, idempotency_key, pr
             if not family.model.objects.register_readable_by(current_actor).filter(pk=decided).exists():
                 raise NotFound(f"Register {family.subject} not found.")
             return family.model.objects.get(pk=decided)
-        source = register_appointment(company, current_actor, profile, operator, appointment)
+        source = register_appointment(company, current_actor, profile, appointment)
         proposal = family.lock(initial)
         if _digest(family, proposal, kind, current_actor, source, reason) != preview_digest:
             raise RegisterChangeConflict()

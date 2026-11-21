@@ -53,9 +53,7 @@ HELPERS = {
                     AND profile.user_id = actor.id AND appointment.capabilities @> '["admin"]'::jsonb
                     AND (appointment.expires_at IS NULL OR appointment.expires_at > clock_timestamp())
                     AND NOT EXISTS (SELECT 1 FROM companies_companyappointmentrevocation revoked
-                        WHERE revoked.appointment_id = appointment.uuid)
-                    AND (NOT COALESCE((SELECT issuer_kyc_required FROM operators_operator WHERE id = 1), false)
-                        OR profile.is_id_verified)))
+                        WHERE revoked.appointment_id = appointment.uuid)))
     """,
 }
 
@@ -148,7 +146,6 @@ POLICIES = {
     ),
     "tokens_ordersubmission": (_owned("owner_account_id"), _owned("owner_account_id")),
     "tokens_swaporder": (A_PARTY_TO_THE_SWAP, "false"),
-    "compliance_customerriskassessment": (_owned("user_account_id"), _owned("user_account_id")),
     "holdings": (THROUGH_ITS_WALLET, THROUGH_ITS_WALLET),
     "tokens_ordermodificationlog": (THROUGH_THE_ORDER_IT_MODIFIED, THROUGH_THE_ORDER_IT_MODIFIED),
     "tokens_shareissuance": (THROUGH_ITS_TOKEN, "false"),
@@ -309,21 +306,22 @@ FRAMEWORK = {
 }
 
 OPERATOR_ONLY = {
-    "companies_companydisposal": "Company-exit review receipts and retryable private-file disposal. Only the "
-    "schema-maintenance credential reads or writes them; both runtime roles lack grants. Exact transaction-bound "
-    "manifests admit reviewed company DELETE operations only, never ordinary history edits.",
-    "users_accounterasureworkitem": "Provider-erasure follow-up for closed accounts or unused duplicate provider "
-    "profiles. The bounded account "
-    "closure service records the minimum applicant identifier and completion contact on the operator connection; "
-    "the operator command confirms permanent provider deletion, delivers confirmation and clears both fields. "
-    "The app role has no grants or direct rows.",
+    "companies_companydisposal": "Deletion receipts for a company, one of its share classes, a pending proposal, "
+    "an unaccepted invitation, a shareholder document, a person without shares or a register entry. The company's "
+    "own delete commands write them on the operator connection, and their trigger admits a company receipt only for "
+    "a current administrator or a draft company's owner, a class, proposal, document or entry receipt only for a "
+    "current preparer, an invitation receipt only for a current administrator, and a person receipt for a current "
+    "preparer, or an administrator when it removes access, in the same transaction; the app role has no grants. An "
+    "exact transaction-bound manifest admits that delete's rows only, and an entry receipt lets the register's own "
+    "triggers re-link its later entries and recompute its holdings, never ordinary history edits.",
     "tokens_registerpersonregistration": "Append-only company-person registration provenance, with no share effect. "
     "Exact-company reader and prepare commands retain current personal authority, actor and initial particulars; "
     "the app role receives no direct table grant.",
-    "tokens_registermemberdocument": "Append-only company-private shareholder and share-class document links. "
-    "Current exact-company register readers list and download them through register_member_document views on the "
-    "operator connection. Bounded prepare commands add links, and exact applied opening records retain their links; "
-    "neither public nor member projections expose the files.",
+    "tokens_registermemberdocument": "Company-private shareholder and share-class document links. Current "
+    "exact-company register readers list and download them through register_member_document views on the operator "
+    "connection. Bounded prepare commands add links, exact applied opening records create theirs, and the bounded "
+    "document delete command removes one under a document receipt; neither public nor member projections expose "
+    "the files.",
     "tokens_classdetailsrevision": "Append-only class-detail changes, generated atomically by the database with "
     "exact before and after values, personal actor, appointment and timestamp. Permitted company-pack exports "
     "read them on the operator connection; the app role has no direct table grant.",
@@ -349,7 +347,7 @@ OPERATOR_ONLY = {
     "appointment serialization reads only that appointee's exact receipt on that connection. The app role has "
     "no grants and forced row-level security admits no direct rows.",
     "companies_companyactivation": "Retained company activation receipts from before activation was removed, one "
-    "per company, each binding the administrator, their appointment, the declaration and their identity status. "
+    "per company, each binding the administrator, their appointment and the declaration. "
     "Nothing writes new receipts; only the admin reads them on the operator connection. The app role has no grants "
     "and forced row-level security admits no direct rows.",
     "tokens_memberinvitation": "Immutable intended-recipient company member invitations issued by current "
@@ -424,16 +422,17 @@ OPERATOR_ONLY = {
     "uploader's own prepare commands accept them through own_evidence_bytes, as does the company owner's retained "
     "register instruction, submitted while a current administrator, and grant preparation also accepts an "
     "award's retained agreement evidence. Action-specific proposals, agreements, receipts, awards, vestings, endings "
-    "and reversals keep their own copies; shareholder attachments retain immutable links to the original file. "
+    "and reversals keep their own copies; shareholder attachments link to the original file until deleted. "
     "The pause and capital _state checks, run for their proposals "
     "and execution workers, re-read the original, and the company pack and staff admin pages read the rows through "
     "the records that cite them, all on the operator connection.",
     "tokens_registerimportdecision": "Append-only company approvals, applications and rejections of register "
     "imports, each bound to the deciding appointment and written by the bounded register command on the operator "
     "connection. Register readers see them through the import on the operator connection.",
-    "tokens_registercorrectiondecision": "Append-only company approvals, applications and rejections of register "
-    "corrections, each bound to the deciding appointment and written by the bounded register command on the "
-    "operator connection. Register readers see them through the correction on the operator connection.",
+    "tokens_registercorrectiondecision": "Retained company approvals and applications of register corrections "
+    "applied before mistaken entries became deletable, each bound to the deciding appointment. The database "
+    "refuses every new or changed row; a decision is deleted with its correction's entry. The company pack reads "
+    "them on the operator connection.",
     "tokens_registeropeningdecision": "Append-only company approvals, applications and rejections of register "
     "openings, each bound to the deciding appointment and written by the bounded register command on the operator "
     "connection. Register readers see them through the opening on the operator connection.",
@@ -472,7 +471,7 @@ OPERATOR_ONLY = {
     "are fixed at insert and whose status only moves forward, with their outgoing-operation associations. Company "
     "register readers see their own targets on the operator connection; public membership reads never read this "
     "recovery journal.",
-    "whitelist_whitelisteligibilityinvalidation": "Retained account, identity and wallet invalidation facts and "
+    "whitelist_whitelisteligibilityinvalidation": "Retained account and wallet invalidation facts and "
     "actual human or automatic attribution, written in the original bounded operator transaction. Only the "
     "invalidation worker reads these private cause records.",
     "tokens_registerexport": "Immutable records of who prepared an inspection copy, a certificate, notice figures or a "
@@ -491,12 +490,10 @@ OPERATOR_ONLY = {
     "register readers or administrators only the inspection copies and packs whose produced_through records the "
     "company's own pages, never one produced in platform admin. Only tokens/services/former_holders.py "
     "purge_register_exports deletes them, on the retention clock.",
-    "compliance_compliancealert": "Raised automatically by the screening, monitoring and periodic review tasks and "
-    "the KYCAID webhooks, or by compliance staff, and worked by staff in admin, all on the operator connection. It "
+    "compliance_compliancealert": "Raised automatically by the monitoring tasks or by compliance staff, and worked "
+    "by staff in admin, all on the operator connection. It "
     "carries user_account_id but no queryset scopes it, so a policy would be a new rule rather than a "
     "translation of one.",
-    "compliance_transactionscreening": "Created by the screening worker and updated by the KYCAID crypto webhook "
-    "and staff in admin: the same connection and the same reason.",
     "compliance_alertproceduretemplate": "Operator-authored procedure text, the same for every tenant.",
     "compliance_alertprocedurestep": "A step of that operator-authored text, reached through its template.",
     "compliance_alertchecklistitem": "A checklist item staff add and work against an alert in admin, with no tenant "

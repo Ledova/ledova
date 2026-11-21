@@ -14,7 +14,10 @@ from tokens.serializers.register_member_document import (
     RegisterMemberDocumentSerializer,
 )
 from tokens.services.register_evidence import matching_bytes
-from tokens.services.register_member_documents import add_member_document
+from tokens.services.register_member_documents import (
+    add_member_document,
+    delete_member_document,
+)
 
 
 @extend_schema_view(
@@ -31,12 +34,12 @@ class RegisterMemberDocumentViewSet(AuthenticatedReadOnlyViewSet):
     queryset = RegisterMemberDocument.objects.none()
     serializer_class = RegisterMemberDocumentSerializer
     scoped_model = RegisterMemberDocument
-    operator_actions = frozenset({"list", "retrieve", "create", "file"})
+    operator_actions = frozenset({"list", "retrieve", "create", "destroy", "file"})
     operator_actions_because = (
         "Private retained shareholder attachments are read only through current exact-company register authority. "
         "Each write uses the actor-bound company command and validates the member, class and immutable evidence."
     )
-    http_method_names = ["get", "post", "head", "options"]
+    http_method_names = ["get", "post", "delete", "head", "options"]
 
     def narrow(self, queryset):
         return queryset.readable_by(self.request.user)
@@ -61,6 +64,10 @@ class RegisterMemberDocumentViewSet(AuthenticatedReadOnlyViewSet):
         serializer.is_valid(raise_exception=True)
         document, created = add_member_document(actor=request.user, **serializer.validated_data)
         return Response(RegisterMemberDocumentSerializer(document).data, status=201 if created else 200)
+
+    def destroy(self, request, uuid=None):
+        delete_member_document(actor=request.user, document=self.get_object())
+        return Response(status=204)
 
     @extend_schema(responses={(200, "*/*"): OpenApiTypes.BINARY})
     @action(detail=True, methods=["get"])

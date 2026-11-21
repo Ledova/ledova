@@ -156,11 +156,8 @@ def prepare_grant(
             company,
             current_actor,
             profile,
-            operator,
         ):
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             token = ShareToken.objects.select_for_update().filter(pk=token_id, company=company).first()
             if token is None:
                 raise NotFound("Share class not found.")

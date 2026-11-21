@@ -11,12 +11,6 @@ def install(apps, schema_editor):
     source = Path(__file__).with_suffix(".sql").read_text()
     with schema_editor.connection.cursor() as cursor:
         cursor.execute(
-            "SELECT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = 'tokens_sharetoken'::regclass "
-            "AND attname = 'deleted_at' AND NOT attisdropped)"
-        )
-        if not cursor.fetchone()[0]:
-            return
-        cursor.execute(
             "SELECT quote_literal(%s), quote_literal(%s), quote_ident(%s), quote_ident(%s)",
             [
                 settings.RLS_ROLES["operator"],
@@ -47,11 +41,3 @@ def install(apps, schema_editor):
 
         cursor.execute("REVOKE ALL ON FUNCTION tokens_class_history_empty(uuid) FROM PUBLIC")
         cursor.execute(f"GRANT EXECUTE ON FUNCTION tokens_class_history_empty(uuid) TO {operator_role}, {migrate_role}")
-
-        cursor.execute(
-            "REVOKE ALL ON FUNCTION tokens_class_review_retirement(uuid, bigint, uuid, uuid, uuid, text) FROM PUBLIC"
-        )
-        cursor.execute(
-            "GRANT EXECUTE ON FUNCTION tokens_class_review_retirement(uuid, bigint, uuid, uuid, uuid, text) "
-            f"TO {operator_role}, {migrate_role}"
-        )

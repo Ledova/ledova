@@ -94,9 +94,7 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
       )}
       {isEditing && (
         <View style={look.form}>
-          <Text style={styles.muted}>
-            These details are provided by you. Editing them does not verify your identity.
-          </Text>
+          <Text style={styles.muted}>These details are provided by you.</Text>
           <Field
             label="Full name"
             value={fullName}

@@ -14,7 +14,6 @@ procedures belong in private [Ledova/infra](https://github.com/Ledova/infra).
 - [Chain](#chain)
 - [Storage, uploads and retention](#storage-uploads-and-retention)
 - [Market data and chain providers](#market-data-and-chain-providers)
-- [Identity verification providers](#identity-verification-providers)
 - [Email](#email)
 - [On-ramp](#on-ramp)
 - [Push notifications](#push-notifications)
@@ -33,7 +32,6 @@ otherwise.
 
 `DEBUG`, `COOKIE_SECURE` and `EVM_ASSET_TRANSFER_HISTORY_ENABLED` accept `true` or `false` in any
 case and with surrounding spaces; anything else raises `ImproperlyConfigured` at startup.
-`KYCAID_CRYPTO_MONITORING_ENABLED` is on only for `true`, in any case.
 
 In the local stack, `docker-compose.yml` gives `migrate`, `backend` and `worker` one
 `x-backend-environment` anchor: `POSTGRES_HOST=postgres`,
@@ -192,31 +190,6 @@ webhook balances and block numbers are not settlement evidence.
 
 While `ALCHEMY_ETH_URL` and `ALCHEMY_BTC_URL` are empty, Ethereum and Bitcoin wallets keep their
 stored balances and the hourly wallet sync logs a warning for each.
-
-## Identity verification providers
-
-| Variable                                                 | Default           | Required                                                  |
-| -------------------------------------------------------- | ----------------- | --------------------------------------------------------- |
-| `KYC_PROVIDER`                                           | empty             | Yes to enable identity verification; `kycaid` or `sumsub` |
-| `KYCAID_API_TOKEN`, `KYCAID_BASE_URL`, `KYCAID_FORM_ID`  | empty             | Yes for KYCAID                                            |
-| `KYCAID_CRYPTO_MONITORING_ENABLED`                       | `false`           | No                                                        |
-| `SUMSUB_API_KEY`, `SUMSUB_SECRET_KEY`, `SUMSUB_BASE_URL` | empty             | Yes for Sum&Sub                                           |
-| `SUMSUB_LEVEL_NAME`                                      | `basic-kyc-level` | No                                                        |
-| `SUMSUB_WEBHOOK_SECRET`                                  | empty             | Yes to accept `/webhooks/sumsub/`                         |
-| `CRYPTO_RISK_THRESHOLD_MEDIUM`                           | `0.25`            | No                                                        |
-| `CRYPTO_RISK_THRESHOLD_HIGH`                             | `0.6`             | No                                                        |
-
-Identity verification is off until configured: with any other `KYC_PROVIDER` value, blank
-included, the integration answers `503 Service not configured`, and the operator's
-`issuer_kyc_required` needs a configured provider
-([operator configuration](operator-console.md#operator-configuration)). Only KYCAID screens
-addresses; under Sum&Sub every screening fails
-([transaction monitoring](../business/participants.md#transaction-monitoring)). With
-`KYCAID_CRYPTO_MONITORING_ENABLED` off, screenings fail with "Crypto monitoring is disabled"; after
-turning it on, retry them from the screening admin
-([crypto address screening](../engineering/backend.md#crypto-address-screening)). How each
-provider's results, scores and callbacks are read is in
-[identity providers](../engineering/backend.md#identity-providers).
 
 ## Email
 

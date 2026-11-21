@@ -47,6 +47,9 @@ export const createRegisterMemberDocument = (
       return { ...response, data: response.data };
     });
 
+export const deleteRegisterMemberDocument = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.delete<void>(`${COMPANY_TOKEN_ENDPOINTS.REGISTER_MEMBER_DOCUMENTS}${uuid}/`, config);
+
 export const downloadRegisterMemberDocumentFile = (
   apiClient: AxiosInstance,
   uuid: string,

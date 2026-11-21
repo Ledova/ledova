@@ -44,7 +44,7 @@ class Command(BaseCommand):
 
         obsolete = AlertProcedureTemplate.objects.exclude(
             alert_type__in=[template["alert_type"] for template in PROCEDURE_TEMPLATES]
-        )
+        ).exclude(steps__checklist_items__isnull=False)
         deleted = obsolete.count()
         if verbosity >= 2:
             for template in obsolete:

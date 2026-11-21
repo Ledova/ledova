@@ -3,6 +3,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   FIELD_LIMITS,
+  failureSentence,
+  useConfirmedDeletion,
   useRegisterDecision,
   type RegisterDecisionFamily,
   type RegisterDecisionKind,
@@ -148,8 +150,14 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   const reject = useRegisterDecision(family, proposal, options('reject'));
   const decisions = { approve, apply, reject };
   const decision = active ? decisions[active] : null;
-  const busy = approve.busy || apply.busy || reject.busy;
-  const held = busy || !!approve.recovery || !!apply.recovery || !!reject.recovery || !!active;
+  const [deleting, setDeleting] = useState(false);
+  const removal = useConfirmedDeletion(
+    (apiClient, uuid: string) => family.remove(apiClient, uuid, { ledovaSubmissionGuard: guard }),
+    onRefused,
+  );
+  const deletable = proposal.status === 'submitted' && !!steps.prepare;
+  const busy = approve.busy || apply.busy || reject.busy || removal.isPending;
+  const held = busy || !!approve.recovery || !!apply.recovery || !!reject.recovery || !!active || deleting;
   useEffect(() => {
     onHeldChange?.(proposal.uuid, held);
     return () => onHeldChange?.(proposal.uuid, false);
@@ -205,6 +213,19 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
       onClick={() => begin(kind)}
     />
   ));
+  const deleteButton = deletable ? (
+    <PageAction
+      key="delete"
+      destructive
+      label="Delete"
+      context={context ?? noun}
+      disabled={busy || !!active}
+      onClick={() => {
+        removal.reset();
+        setDeleting(true);
+      }}
+    />
+  ) : null;
   const content = active && decision && (
     <div className={pageReview ? 'flex flex-col gap-5' : 'flex flex-col gap-3'}>
       {!pageReview && <p className="text-sm text-text-primary">{copy.CONFIRMATIONS[active]}</p>}
@@ -309,11 +330,17 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
   if (!visible) return null;
   return (
     <>
-      {available.length > 0 &&
+      {(available.length > 0 || deletable) &&
         (recordActions ? (
-          <FormActions>{actionButtons}</FormActions>
+          <FormActions>
+            {deleteButton}
+            {actionButtons}
+          </FormActions>
         ) : (
-          <div className="flex flex-wrap gap-2">{actionButtons}</div>
+          <div className="flex flex-wrap gap-2">
+            {actionButtons}
+            {deleteButton}
+          </div>
         ))}
       {KINDS.map(
         (kind) =>
@@ -333,6 +360,26 @@ export function RegisterDecisions<Shown extends Proposal, Previewed extends Prev
           ),
       )}
       {review}
+      <Modal
+        isOpen={deleting}
+        onClose={() => {
+          if (!removal.isPending) setDeleting(false);
+        }}
+        title={`Delete ${noun}?`}
+        showFooter
+        confirmLabel="Delete"
+        destructive
+        busy={removal.isPending}
+        busyLabel="Deleting…"
+        onConfirm={() => removal.mutate(proposal.uuid, { onSuccess: () => setDeleting(false) })}
+      >
+        <p className="text-sm text-text-primary">
+          This deletes the {noun} and its decisions for everyone. This can’t be undone.
+        </p>
+        {removal.isError && (
+          <Failure>{failureSentence(removal.error, `The ${noun} was not deleted. Try again.`)}</Failure>
+        )}
+      </Modal>
     </>
   );
 }

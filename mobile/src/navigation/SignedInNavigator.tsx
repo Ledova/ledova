@@ -12,7 +12,6 @@ import { CompanyPackScreen } from '../screens/documents/CompanyPackScreen';
 import { InspectionCopiesScreen } from '../screens/documents/InspectionCopiesScreen';
 import { DashboardScreen } from '../screens/holdings/DashboardScreen';
 import { InvitationScreen } from '../screens/holdings/InvitationScreen';
-import { CorrectionPreparationScreen } from '../screens/ledger/CorrectionPreparationScreen';
 import { CorrectionsScreen } from '../screens/ledger/CorrectionsScreen';
 import { IssueSharesScreen } from '../screens/ledger/IssueSharesScreen';
 import { LedgerScreen } from '../screens/ledger/LedgerScreen';
@@ -43,8 +42,7 @@ export type SignedInStackParamList = {
   IssueShares: { company: string; token: string; member?: string; award?: string; record?: string } | undefined;
   TransferShares: { company: string; token: string; record?: string; outcome?: string } | undefined;
   TransferPreparation: { company: string; token: string; fromMember?: string };
-  Corrections: { company: string; token: string; record?: string; outcome?: string } | undefined;
-  CorrectionPreparation: { company: string; token: string; entry: string };
+  Corrections: { company: string; token: string } | undefined;
   RegisterSetup: {
     company: string;
     token?: string;
@@ -126,11 +124,6 @@ export function SignedInNavigator() {
               })}
             />
             <Stack.Screen name="Corrections" component={CorrectionsScreen} options={topBar('Ledger')} />
-            <Stack.Screen
-              name="CorrectionPreparation"
-              component={CorrectionPreparationScreen}
-              options={topBar('Ledger', { route: 'Corrections', label: 'Back to Corrections', keepParams: true })}
-            />
             <Stack.Screen
               name="RegisterSetup"
               component={ShareClassScreen}

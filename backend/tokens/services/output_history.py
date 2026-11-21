@@ -23,8 +23,8 @@ def _names(user_ids):
 
 
 def inspection_copy_history(*, actor, token):
-    with register_output_access(actor, token, "register_inspection_copy") as (company, actor, profile, operator, token):
-        current_register_reader(company, actor, profile, operator)
+    with register_output_access(actor, token, "register_inspection_copy") as (company, actor, profile, token):
+        current_register_reader(company, actor, profile)
         rows = list(
             RegisterExport.objects.filter(
                 token=token, kind=RegisterExportKind.INSPECTION_COPY, produced_through=RegisterExportRoute.COMPANY
@@ -48,16 +48,16 @@ def inspection_copy_history(*, actor, token):
 
 
 def company_pack_history(*, actor, company_id):
-    with register_command(actor, company_id, "company_pack_history") as (company, actor, profile, operator):
+    with register_command(actor, company_id, "company_pack_history") as (company, actor, profile):
         appointment = (
-            CompanyAppointment.objects.current_for(actor, company.pk, at=timezone.now(), identity_required=False)
+            CompanyAppointment.objects.current_for(actor, company.pk, at=timezone.now())
             .holding_any([CompanyCapability.ADMIN])
             .order_by("uuid")
             .first()
         )
         if appointment is None:
             raise NotFound(APPOINTMENT_NOT_FOUND)
-        register_appointment(company, actor, profile, operator, appointment.pk, CompanyCapability.ADMIN)
+        register_appointment(company, actor, profile, appointment.pk, CompanyCapability.ADMIN)
         rows = list(
             RegisterExport.objects.filter(
                 kind=RegisterExportKind.COMPANY_PACK,

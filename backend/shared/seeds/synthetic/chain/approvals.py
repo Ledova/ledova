@@ -5,7 +5,6 @@ from django.utils import timezone
 
 from companies.models import CompanyAppointment, CompanyCapability
 from companies.services.authority_requests import _requester_principal
-from operators.models import Operator
 from shared.db import use_operator
 from shared.seeds.synthetic import keys
 from shared.seeds.synthetic.chain.classes import ChainStepFailed
@@ -55,12 +54,7 @@ def approve_participant_wallet(company, wallet, keyring):
         raise ChainStepFailed(f"The wallet holder is not a current participant: {', '.join(unmet)}.")
     with use_operator(), _requester_principal(company.owner_id):
         appointment = (
-            CompanyAppointment.objects.current_for(
-                company.owner,
-                company.pk,
-                at=timezone.now(),
-                identity_required=Operator.get().issuer_kyc_required,
-            )
+            CompanyAppointment.objects.current_for(company.owner, company.pk, at=timezone.now())
             .filter(capabilities__contains=[CompanyCapability.ADMIN])
             .order_by("pk")
             .first()

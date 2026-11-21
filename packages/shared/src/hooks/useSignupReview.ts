@@ -12,7 +12,6 @@ import { getUserProfiles, updateUserProfileCompletion } from '../services/users'
 import type { AccountRole, ReviewData } from '../types';
 import { apiErrorSentence, describeFailure } from '../utils/errors';
 import { useApiClient } from './useApiClient';
-import { OPERATOR_QUERY_KEY, useOperator } from './useOperator';
 import type { OrderSubmissionSession } from './useSubmissionOwner';
 import { useSignupCompanyAuthority, SIGNUP_AUTHORITY_QUERY_KEY } from './useSignupCompanyAuthority';
 
@@ -58,10 +57,6 @@ export function useSignupReview(
     staleTime: CACHE_TIMING.DEFAULT_STALE_TIME,
   });
   const company = selectedUuid && detailQuery.data?.data.uuid === selectedUuid ? detailQuery.data.data : null;
-  const operatorQuery = useOperator({ enabled: isCompany });
-  const identityRequired = Boolean(
-    isCompany && operatorQuery.data?.data?.issuerKycRequired && userProfile && !userProfile.isIdVerified,
-  );
   const authority = useSignupCompanyAuthority(
     company,
     userProfile,
@@ -74,12 +69,10 @@ export function useSignupReview(
 
   const isLoading = Boolean(
     userProfileQuery.isLoading ||
-    (isCompany &&
-      (companyQuery.isLoading || detailQuery.isLoading || operatorQuery.isLoading || authority.authorityLoading)),
+    (isCompany && (companyQuery.isLoading || detailQuery.isLoading || authority.authorityLoading)),
   );
 
-  const loadFailure =
-    userProfileQuery.error ?? (isCompany ? (companyQuery.error ?? detailQuery.error ?? operatorQuery.error) : null);
+  const loadFailure = userProfileQuery.error ?? (isCompany ? (companyQuery.error ?? detailQuery.error) : null);
   const error = loadFailure
     ? apiErrorSentence(loadFailure, SIGNUP_LOAD_FAILED, SIGNUP_LOAD_FAILED)
     : isCompany && selectedUuid && detailQuery.isSuccess && !company
@@ -91,9 +84,7 @@ export function useSignupReview(
     authority.completionOwnerReady &&
     !error &&
     !authority.authorityError &&
-    (isCompany
-      ? Boolean(userProfile && company && authority.canEstablishAuthority && !identityRequired)
-      : Boolean(userProfile));
+    (isCompany ? Boolean(userProfile && company && authority.canEstablishAuthority) : Boolean(userProfile));
 
   const completeSignupMutation = useMutation({
     mutationFn: async () => {
@@ -142,7 +133,6 @@ export function useSignupReview(
       ...(isCompany
         ? [
             queryClient.invalidateQueries({ queryKey: AUTH_QUERY_ROOT }),
-            queryClient.invalidateQueries({ queryKey: OPERATOR_QUERY_KEY }),
             queryClient.invalidateQueries({ queryKey: USER_PREFERENCES_QUERY_KEY }),
             queryClient.invalidateQueries({ queryKey: SIGNUP_AUTHORITY_QUERY_KEY }),
           ]
@@ -155,7 +145,6 @@ export function useSignupReview(
     data,
     company,
     isCompany,
-    identityRequired,
     isLoading,
     error,
     completionError: completeSignupMutation.isError

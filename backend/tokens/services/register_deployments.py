@@ -14,7 +14,6 @@ from companies.models import (
     CompanyStatus,
 )
 from companies.services.company import primary_wallet_for
-from operators.models import Operator
 from shared.constants import BLOCKCHAIN_BASE
 from shared.registry_scope import refuse_deferred_execution
 from shared.tasks.queue import defer
@@ -228,7 +227,6 @@ def prepare_deployment(*, actor, operation_id, appointment, token):
             company,
             current_actor,
             profile,
-            operator,
         ):
             existing = RegisterDeployment.objects.filter(pk=operation_id).first()
             if existing is not None:
@@ -249,9 +247,7 @@ def prepare_deployment(*, actor, operation_id, appointment, token):
                 ).exists():
                     raise RegisterChangeConflict()
                 return existing
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             current = ShareToken.objects.select_for_update(of=("self",)).get(pk=token_id, company=company)
             current.company = company
             list(ShareRegister.objects.select_for_update().filter(token=current).values_list("uuid", flat=True))
@@ -524,7 +520,6 @@ def signing_source(deployment, claim):
             .filter(pk__in=profile_ids)
             .order_by("uuid")
         )
-        Operator.objects.select_for_update().get(pk=1)
         list(
             CompanyAppointment.objects.select_for_update()
             .filter(pk__in=[row.pk for row in appointments])

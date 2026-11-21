@@ -99,13 +99,15 @@ App writes to Company, authority requests, appointments, invitations and
 legacy-owner sources are denied, and the app role has no grants on activation receipts; the
 actor-bound services in `companies/services/` (`administration.py`, `editing.py`,
 `authority.py`, `authority_requests.py`, `team.py`) carry the
-caller's principal, lock the company before the live account, profile, identity requirement and
-appointments, and check the clock after the wait. Policies scope authority requests to their
+caller's principal, lock the company before the live account, profile and appointments, and check
+the clock after the wait. Policies scope authority requests to their
 requester, appointments to their appointee and invitations to their inviter; team reads go
 through the administration check and exclude private identity, financial and authority evidence.
 Triggers attached in `companies/database_guards.sql`, with functions there and in
 `companies/authority_guards.sql`, refuse any update or deletion of authority requests, withdrawals,
-appointments, invitations, revocations and legacy-owner sources, and check admission, withdrawal,
+appointments, invitations, revocations and legacy-owner sources, except when the whole company is
+deleted ([company deletion](#account-closure-and-export)) or an administrator deletes an invitation
+that was never accepted, and check admission, withdrawal,
 acceptance and revocation, including admission making the company Active; those in
 `companies/activation_guards.sql` keep earlier activation receipts read-only.
 
@@ -195,12 +197,10 @@ A Profile save is a bounded operator write. `PATCH /api/user-profiles/<uuid>/` r
 connection so that a saved full name or residential address reaches every register that currently
 links the person in the same transaction
 ([particulars from Profile](../business/member-records.md#particulars-from-profile)). `narrow()` binds
-it to the signed-in person's own locked row, and the serializer keeps provider identity results and
-the email read-only. The save also marks its transaction with the person's ID in `app.profile_save`
-for the profile update alone, and the `users_provider_identity` trigger checks a marked write as it
-checks an app-role one: it refuses any change to provider identity results and any row but the
-saving person's own. Unmarked operator writes, the verification service's and account deletion's,
-are unchanged. The register guards accept a member's change only through the person's own
+it to the signed-in person's own locked row, and the serializer keeps the email read-only. The save
+also marks its transaction with the person's ID in `app.profile_save` for the profile update alone,
+and the `users_profile_save` trigger refuses a marked write to any row but the saving person's own.
+Unmarked operator writes, such as account deletion's, are unchanged. The register guards accept a member's change only through the person's own
 current association for that company and member, with each value taken from their profile or kept,
 as an applied change over the exact current particulars, and they refuse a company's edit of a
 member who has a current association
@@ -277,23 +277,10 @@ classified as retained, with a reason.
 
 The `delete-account` action in [lifecycle.py](../../backend/users/services/lifecycle.py)
 replaces the sign-in email, disables the account and password, clears unused email-verification
-codes and revokes sessions. It erases personal profile and identity-provider metadata, financial
-answers, preferences, device tokens and inbox notifications. Account-only risk assessments and
-identity/periodic-review alerts are removed unless linked to an identified retained compliance
-case. Executed transaction journals and specific flagged/filed case evidence remain separate.
-Provider callbacks, profile and account writers recheck the fresh active user under account locks;
-inactive callbacks cannot repopulate erased details. Company-first profile locking is preserved.
-
-If a provider holds an applicant, closure creates a private operator-only erasure work item before
-clearing the profile. A signed callback for an unused duplicate provider profile is tracked in
-the same queue rather than overwriting the current applicant. An operator must request
-**permanent** supplier deletion, not reversible
-deactivation, and record genuine confirmation. The target is thirty days. Applicant IDs and the
-completion address are kept only for that follow-through, then cleared after confirmation and
-notice. A specific legal hold needs its case, reason and review date; it is not a blanket exemption
-for registry users. Pending, overdue and held items remain visible to the operator. No supplier
-request is silently treated as completed. An active account’s current applicant cannot be
-completed as erased; an unused duplicate additionally needs explicit operator confirmation.
+codes and revokes sessions. It erases the personal profile, financial answers, preferences, device
+tokens and inbox notifications. Executed transaction journals and compliance case evidence remain
+separate. Profile and account writers recheck the fresh active user under account locks, so a late
+write cannot repopulate erased details. Company-first profile locking is preserved.
 
 Stable user, profile and account identifiers remain for protected references. Company member
 particulars, associations, decisions, evidence and copied snapshots are retained separately for the
@@ -309,34 +296,50 @@ remain. No web or native signup sends financial-profile answers.
 Signup, on the web and in the app, submits only the full name through the shared profile hook;
 birth date, phone and address are not requested or sent, including when resuming a profile that
 already holds them. Profile edits only name and address on both clients, preserving historical
-phone and identity data for their existing display/export and erasure paths. Address supports
-linked member particulars and can be postal; it is not required of every company administrator.
-Identity providers accept missing account DOB and can collect their required details in their own
-verification flow; verified extraction may populate the profile. No identity check is bypassed by
-reducing signup collection.
+phone, birth date and citizenship for their existing display, export and erasure paths. Address
+supports linked member particulars and can be postal; it is not required of every company
+administrator.
 
-Company exit is separate from account deletion. The maintenance-only
-[company-disposal command](../operations/operator-console.md#company-exit) requires verified
-company instruction, export handover and purpose/hold review. It supports the non-chain registry
-graph, including copied history and evidence, while preserving sign-ins and other companies.
-Runtime application/operator roles cannot use its private receipt or deletion admission. The
-schema-maintenance credential supplies a reviewed, exact-row manifest bound to one company and
-transaction; guards admit only those DELETEs, never ordinary history edits. Unknown relationships
-and retained execution history refuse disposal. Current authority is rechecked before deletion
-and expiry before commit; a stale preview or failed database-deletion transaction removes no
-company rows or files.
+Company deletion is separate from account deletion. A current company administrator, or the owner
+of a draft under the draft setup exception, deletes the company from Settings
+([Deleting a company](../business/companies.md#deleting-a-company)). The delete is one operator
+command bound to that person, the company and the `company_delete` operation. Inside one
+transaction it locks the company, rechecks that person's authority and records a receipt (company,
+person, appointment and transaction) whose exact-row manifest lists every company-scoped row. The
+receipt's own trigger admits it only for a current administrator, or the draft owner, of that
+company. Guards admit a DELETE only for a row in that manifest, in that transaction, by that person,
+and never ordinary history edits; the application role can neither read nor write receipts. Wallet,
+chain or execution history, running member notifications and any relationship outside the supported
+company graph refuse the delete, which then removes nothing. Sign-ins and other companies stay.
+The command builds the manifest from company-scoped queries, or for a share class from that class's
+foreign-key dependants; the database checks the receipt's company, person, transaction and
+authority, and does not re-derive each listed row's company, so keeping companies apart there rests
+on those queries. Deleting a pending proposal or an unaccepted invitation uses the same path with a
+`proposal` or `invitation` receipt: the database admits only that one record of the company, still
+pending, with its decisions (and an allotment's agreement and contribution), and requires current
+preparation authority for a proposal and administration for an invitation. Deleting a
+shareholder document uses a `document` receipt: one document of the company, and at most that
+document's own evidence, under current preparation authority. Foreign keys refuse evidence another
+row still uses; the delete command also keeps evidence that an opening record's shareholder rows
+name. Deleting a person uses a `person` receipt: the database refuses a person with any holding,
+cessation, wallet, instruction, award, grant, allotment, transfer, opening record or wallet-link
+mapping naming them, binds each listed row to that person, requires every invitation and access
+record of the person to be listed, and needs administration when any are. Deleting a register entry
+uses an `entry` receipt: one issue, transfer or correction of the company, in a draft class with no
+chain fields, deployment journal or issuance execution and not corrected by a later entry, under
+current preparation authority. The receipt names the entry's register, and every listed allotment,
+grant, transfer or correction, approval, agreement, receipt, cessation and detached particulars row
+must belong to that entry. Only the register's own triggers may then renumber and re-hash the later
+entries, recalculate positions and the head, and clear a cessation return the entry recorded.
 
-Files are removed only after database commit, with a private retryable list. Database disposal and
-current-storage completion are separate states; neither proves delivery to the company or erasure
-of support mail, logs, supplier copies or retained archives. The operator must review those copies,
-record any lawful remaining purpose/expiry and drain in-flight company work before disposal.
-No command disables triggers or substitutes a universal seven-year period. The
+Files under the company's private storage prefix are removed after the database commit, and any
+that fail go with the daily sweep of unreferenced uploads. Deleting a company does not erase support
+mail, logs, supplier copies or retained archives, and no command disables triggers. The
 [supplier assessment](../legal/positions.md#registry-only-launch-preparation) records the current
 processing and copy limitations, including the 9 November support-mail and Vault verification.
 Support group history and mailbox copies have no automatic age expiry or applicable Vault
-retention/holds at that review. The operator rechecks holds for each actual disposal and removes
-unneeded copies when their recorded purpose ends; mailbox recovery and supplier deletion remain
-separate stages. Operational mail delivery and copy-lifecycle acceptance remain under
+retention/holds at that review; mailbox recovery and supplier deletion remain separate stages.
+Operational mail delivery and copy-lifecycle acceptance remain under
 [#1586](https://github.com/Ledova/ledova/issues/1586).
 
 Versioned Terms acceptance is recorded separately in immutable operator-only
@@ -346,14 +349,14 @@ company Terms and appointments are preserved. Public versions remain accessible.
 
 ### Retention clocks
 
-| Record                                                                 | Clock                                               | Purge                                               |
-| ---------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
-| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below        |
-| Register decisions, uploads and copies; authority-request uploads      | Purpose/hold review; no automatic expiry            | Reviewed maintenance-only company exit, above       |
-| Uncompleted signup without protected history or a provider follow-up   | Thirty days without signup/login activity           | Existing daily maintenance erases account-only data |
-| Expired JWT and Django session rows                                    | Token/session expiry                                | Existing daily maintenance removes expired rows     |
-| Successful / unsuccessful jobs                                         | Seven / thirty days                                 | Existing job maintenance                            |
-| Unreferenced private uploads                                           | At least 24 hours unchanged                         | Existing orphan sweep                               |
+| Record                                                                 | Clock                                               | Purge                                                                               |
+| ---------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Former members, member particulars and unbound register export records | `FORMER_MEMBER_RETENTION_DAYS`, at least 2,557 days | `purge_former_members_past_the_clock`, below                                        |
+| Register decisions, uploads and copies; authority-request uploads      | No automatic expiry                                 | Deleted with their company; decisions and copies also with their share class, above |
+| Uncompleted signup without protected history                           | Thirty days without signup/login activity           | Existing daily maintenance erases account-only data                                 |
+| Expired JWT and Django session rows                                    | Token/session expiry                                | Existing daily maintenance removes expired rows                                     |
+| Successful / unsuccessful jobs                                         | Seven / thirty days                                 | Existing job maintenance                                                            |
+| Unreferenced private uploads                                           | At least 24 hours unchanged                         | Existing orphan sweep                                                               |
 
 2,557 days is seven years including two leap days. `FORMER_MEMBER_RETENTION_DAYS` has a floor:
 `retention_cutoff` raises `ImproperlyConfigured` below 2,557 days, so the floor cannot be
@@ -376,15 +379,16 @@ change also keeps its own copy of the recorded name and residential address and,
 step or from a linked member's Profile, of the particulars it replaced; and a staff-era proposal or
 retained instruction keeps its copy of the staff-verified company document, which was itself
 deleted when company documents were [removed](../decisions.md#company-documents-removed). The
-database refuses ordinary deletion of these rows; only copies left by a rolled-back or interrupted
-preparation fall under the orphan sweep.
+database refuses ordinary deletion of these rows. A current preparer or administrator can delete a
+proposal still awaiting a decision, with its decisions and its document copies, through a `proposal`
+receipt; the evidence uploads stay. Only copies left by a rolled-back or interrupted preparation fall
+under the orphan sweep.
 
 The account periods and service Terms were accepted by the owner on 9 November under
 [#1589](https://github.com/Ledova/ledova/issues/1589). The former-member clock implements the
 company-register assumption; it does not erase older names/addresses embedded in immutable
-imports, decisions or evidence. Reviewed company exit can remove the supported company-scoped
-records and current storage separately; retained archives and supplier copies need their own
-reviewed treatment. The live supplier/retention assessment remains a release gate. No
+imports, decisions or evidence. Deleting a company removes its supported company-scoped records and
+current storage; retained archives and supplier copies need their own reviewed treatment. The live supplier/retention assessment remains a release gate. No
 implementation here authorises real-data use.
 
 ## Upload validation

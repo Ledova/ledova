@@ -273,11 +273,8 @@ def prepare_transfer(
             company,
             current_actor,
             profile,
-            operator,
         ):
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             token = ShareToken.objects.select_for_update().filter(pk=token_id, company=company).first()
             if token is None:
                 raise NotFound("Share class not found.")
@@ -498,16 +495,13 @@ def preview_transfer_decision(
         company,
         current_actor,
         profile,
-        operator,
     ):
         proposal = _lock(initial)
         if complete_transfer:
             if kind != RegisterDecisionKind.APPROVE or reason:
                 raise ValidationError("Completion requires approval without a rejection reason.")
-            approval = register_appointment(company, current_actor, profile, operator, appointment)
-            application = register_appointment(
-                company, current_actor, profile, operator, apply_appointment or appointment
-            )
+            approval = register_appointment(company, current_actor, profile, appointment)
+            application = register_appointment(company, current_actor, profile, apply_appointment or appointment)
             unmet = _completion_requirements(proposal, approval, application)
             return proposal, {
                 "complete_transfer": True,
@@ -579,7 +573,6 @@ def _complete_transfer(
         company,
         current_actor,
         profile,
-        operator,
     ):
         prior = RegisterTransferDecision.objects.filter(
             decided_by=current_actor, idempotency_key=idempotency_key
@@ -604,8 +597,8 @@ def _complete_transfer(
             if not RegisterTransfer.objects.register_readable_by(current_actor).filter(pk=initial.pk).exists():
                 raise NotFound("Register transfer not found.")
             return RegisterTransfer.objects.get(pk=initial.pk)
-        approval = register_appointment(company, current_actor, profile, operator, appointment)
-        application = register_appointment(company, current_actor, profile, operator, apply_appointment)
+        approval = register_appointment(company, current_actor, profile, appointment)
+        application = register_appointment(company, current_actor, profile, apply_appointment)
         proposal = _lock(initial)
         if _completion_digest(proposal, current_actor, approval, application) != preview_digest:
             raise RegisterChangeConflict()

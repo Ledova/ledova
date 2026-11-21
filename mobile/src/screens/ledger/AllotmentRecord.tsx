@@ -157,6 +157,7 @@ export function AllotmentRecord({
             newEffectGuard('apply');
           }
         }}
+        noun="external allotment"
         context={context}
         onDecided={onSettled}
         onRefused={onSettled}

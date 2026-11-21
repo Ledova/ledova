@@ -41,12 +41,20 @@ class RegisterImportViewSet(RegisterProposalViewSet):
     queryset = RegisterImport.objects.none()
     serializer_class = RegisterImportSerializer
     scoped_model = RegisterImport
-    operator_actions = RegisterProposalViewSet.operator_actions | {"create", "asic_file", "decision_preview", "decide"}
+    http_method_names = RegisterProposalViewSet.deletable_methods
+    operator_actions = RegisterProposalViewSet.operator_actions | {
+        "destroy",
+        "create",
+        "asic_file",
+        "decision_preview",
+        "decide",
+    }
     operator_actions_because = (
         "Retained import reads require this request's company owner or a current appointment holding "
         "administration or a register capability. The queryset binds every proposal and file to those companies. "
         "Preparation, previews and decisions run the bounded company register command, which checks the caller's "
-        "current appointment under the company lock, and their responses read the operator-only decisions."
+        "current appointment under the company lock, and their responses read the operator-only decisions. "
+        "A delete of one still awaiting a decision runs the bounded delete command under current preparation authority."
     )
 
     def filter_queryset(self, queryset):

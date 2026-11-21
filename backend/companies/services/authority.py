@@ -8,7 +8,6 @@ from rest_framework.exceptions import ValidationError
 from companies.exceptions import (
     AuthorityAdmissionConflictException,
     AuthorityRequestConflictException,
-    IssuerIdentityVerificationRequiredException,
 )
 from companies.models import (
     Company,
@@ -18,13 +17,15 @@ from companies.models import (
     CompanyCapability,
     CompanyStatus,
 )
-from companies.services.administration import company_operation
+from companies.services.administration import (
+    company_operation,
+    require_another_administrator,
+)
 from companies.services.authority_requests import (
     _requester_principal,
     _require_requester,
     _snapshots,
 )
-from operators.models import Operator
 from shared.db import atomic, current_alias, use_app, use_operator
 from users.models import UserProfile
 
@@ -33,10 +34,10 @@ DECLARATION_TEXT = (
     "I am authorised to act for this company. The company is responsible for the company and share information "
     "it provides, its ASIC filings and legal obligations."
 )
-SIGNUP_DECLARATION_VERSION = "2026-11-15"
+SIGNUP_DECLARATION_VERSION = "2026-11-21"
 SIGNUP_DECLARATION_TEXT = (
     "I am authorised to act for this company, including setting up and administering its workspace and users, "
-    "and I accept the Terms of Service (version 2026-11-15) on its behalf. The company is responsible for its "
+    "and I accept the Terms of Service (version 2026-11-21) on its behalf. The company is responsible for its "
     "records and decisions, its legal and regulatory obligations, who may hold its shares and the identity checks "
     "it needs, and Ledova does not review or approve them."
 )
@@ -75,8 +76,6 @@ def _require_initial_admission(actor, profile, company, proposal):
     )
     if proposal.requester_profile_id != profile.pk or snapshots != retained:
         raise AuthorityRequestConflictException()
-    if Operator.get().issuer_kyc_required and not profile.is_id_verified:
-        raise IssuerIdentityVerificationRequiredException()
 
 
 def _existing_admission(company, proposal):
@@ -133,12 +132,7 @@ def admit_authority_request(*, requester, request_id, declaration_version, accep
 def is_company_appointment_effective(appointment):
     with use_app(), _requester_principal(appointment.appointee_id):
         return (
-            CompanyAppointment.objects.current_for(
-                appointment.appointee,
-                appointment.company_id,
-                at=timezone.now(),
-                identity_required=Operator.get().issuer_kyc_required,
-            )
+            CompanyAppointment.objects.current_for(appointment.appointee, appointment.company_id, at=timezone.now())
             .filter(pk=appointment.pk)
             .exists()
         )
@@ -153,5 +147,6 @@ def revoke_authority_request(*, requester, request_id):
         appointment = CompanyAppointment.objects.select_for_update().filter(request=proposal).first()
         if appointment is None:
             raise ValidationError({"request": "This request has no admitted appointment to revoke."})
+        require_another_administrator(appointment)
         CompanyAppointmentRevocation.objects.get_or_create(appointment=appointment, defaults={"revoked_by": actor})
         return _retained_request(proposal.pk)

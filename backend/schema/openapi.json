@@ -1746,6 +1746,11 @@
             "readOnly": true,
             "type": "boolean"
           },
+          "revocationBlockedReason": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "revokedAt": {
             "format": "date-time",
             "nullable": true,
@@ -1775,6 +1780,7 @@
           "delegatableCapabilities",
           "expiresAt",
           "isEffective",
+          "revocationBlockedReason",
           "revokedAt",
           "status",
           "uuid"
@@ -2619,6 +2625,11 @@
             "readOnly": true,
             "type": "string"
           },
+          "revocationBlockedReason": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "revokedAt": {
             "format": "date-time",
             "nullable": true,
@@ -2657,6 +2668,7 @@
           "expiresAt",
           "isEffective",
           "name",
+          "revocationBlockedReason",
           "revokedAt",
           "source",
           "status",
@@ -3858,9 +3870,6 @@
             "nullable": true,
             "type": "string"
           },
-          "isIdVerified": {
-            "type": "boolean"
-          },
           "phoneCountryCode": {
             "nullable": true,
             "type": "string"
@@ -3879,7 +3888,6 @@
           "createdAt",
           "dateOfBirth",
           "fullName",
-          "isIdVerified",
           "phoneCountryCode",
           "phoneNumber",
           "residentialAddress"
@@ -4052,32 +4060,6 @@
           "name",
           "nativeBalance",
           "uuid"
-        ],
-        "type": "object"
-      },
-      "ExtractedApplicantData": {
-        "properties": {
-          "address": {
-            "nullable": true,
-            "type": "string"
-          },
-          "dateOfBirth": {
-            "nullable": true,
-            "type": "string"
-          },
-          "fullName": {
-            "nullable": true,
-            "type": "string"
-          },
-          "residenceCountry": {
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "address",
-          "dateOfBirth",
-          "fullName"
         ],
         "type": "object"
       },
@@ -4634,93 +4616,6 @@
         ],
         "type": "integer"
       },
-      "IdentityVerificationSession": {
-        "properties": {
-          "accessToken": {
-            "nullable": true,
-            "type": "string"
-          },
-          "applicantId": {
-            "nullable": true,
-            "type": "string"
-          },
-          "formUrl": {
-            "nullable": true,
-            "type": "string"
-          },
-          "provider": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "accessToken",
-          "applicantId",
-          "formUrl",
-          "provider"
-        ],
-        "type": "object"
-      },
-      "IdentityVerificationStatus": {
-        "properties": {
-          "applicantId": {
-            "nullable": true,
-            "type": "string"
-          },
-          "extractedData": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ExtractedApplicantData"
-              }
-            ],
-            "nullable": true
-          },
-          "isVerified": {
-            "type": "boolean"
-          },
-          "needsRetry": {
-            "type": "boolean"
-          },
-          "provider": {
-            "type": "string"
-          },
-          "rejectionLabels": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "reviewAnswer": {
-            "nullable": true,
-            "type": "string"
-          },
-          "reviewResult": {
-            "nullable": true,
-            "type": "string"
-          },
-          "status": {
-            "nullable": true,
-            "type": "string"
-          },
-          "verifiedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "applicantId",
-          "extractedData",
-          "isVerified",
-          "needsRetry",
-          "provider",
-          "rejectionLabels",
-          "reviewAnswer",
-          "reviewResult",
-          "status",
-          "verifiedAt"
-        ],
-        "type": "object"
-      },
       "IntendedUseEnum": {
         "description": "* `long_term_investment` - Long-term investment\n* `trading_crypto` - Trading crypto currencies\n* `savings` - Savings\n* `other` - Other",
         "enum": [
@@ -4739,14 +4634,6 @@
           "bonus",
           "dividend",
           "transfer"
-        ],
-        "type": "string"
-      },
-      "KycProviderEnum": {
-        "description": "* `sumsub` - Sumsub\n* `kycaid` - KYCAID",
-        "enum": [
-          "sumsub",
-          "kycaid"
         ],
         "type": "string"
       },
@@ -5805,10 +5692,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "investorKycRequired": {
-            "readOnly": true,
-            "type": "boolean"
-          },
           "issuedStablecoin": {
             "allOf": [
               {
@@ -5817,10 +5700,6 @@
             ],
             "nullable": true,
             "readOnly": true
-          },
-          "issuerKycRequired": {
-            "readOnly": true,
-            "type": "boolean"
           },
           "legalName": {
             "readOnly": true,
@@ -5846,9 +5725,7 @@
         "required": [
           "abn",
           "contactEmail",
-          "investorKycRequired",
           "issuedStablecoin",
-          "issuerKycRequired",
           "legalName",
           "name",
           "supportedSettlementAssets",
@@ -6687,6 +6564,11 @@
             "readOnly": true,
             "type": "boolean"
           },
+          "revocationBlockedReason": {
+            "nullable": true,
+            "readOnly": true,
+            "type": "string"
+          },
           "revokedAt": {
             "format": "date-time",
             "nullable": true,
@@ -6737,6 +6619,7 @@
           "delegatableCapabilities",
           "expiresAt",
           "isEffective",
+          "revocationBlockedReason",
           "revokedAt",
           "signupTerms",
           "source",
@@ -7491,37 +7374,6 @@
           "results": {
             "items": {
               "$ref": "#/components/schemas/RegisterCapitalIncrease"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "count",
-          "results"
-        ],
-        "type": "object"
-      },
-      "PaginatedRegisterCorrectionList": {
-        "properties": {
-          "count": {
-            "example": 123,
-            "type": "integer"
-          },
-          "next": {
-            "example": "http://api.example.org/accounts/?page=4",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "previous": {
-            "example": "http://api.example.org/accounts/?page=2",
-            "format": "uri",
-            "nullable": true,
-            "type": "string"
-          },
-          "results": {
-            "items": {
-              "$ref": "#/components/schemas/RegisterCorrection"
             },
             "type": "array"
           }
@@ -11020,187 +10872,6 @@
         ],
         "type": "object"
       },
-      "RegisterCorrection": {
-        "properties": {
-          "appliedEntry": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "approvingDirector": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "authority": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "authorityEvidence": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "authorityReference": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "baseHash": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "baseSequence": {
-            "readOnly": true,
-            "type": "integer"
-          },
-          "changes": {
-            "readOnly": true
-          },
-          "company": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "corrects": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "createdAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "decisions": {
-            "items": {
-              "$ref": "#/components/schemas/RegisterCorrectionDecision"
-            },
-            "readOnly": true,
-            "type": "array"
-          },
-          "effectiveOn": {
-            "format": "date",
-            "readOnly": true,
-            "type": "string"
-          },
-          "evidenceFingerprint": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "evidenceSnapshot": {
-            "readOnly": true
-          },
-          "preparedByName": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "preparingAppointment": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "providedBy": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "reason": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "register": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "rejectionReason": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "reviewedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "reviewedBy": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "integer"
-          },
-          "sourceDocument": {
-            "format": "uuid",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "stage": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "status": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RegisterCorrectionStatusEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "submittedBy": {
-            "readOnly": true,
-            "type": "integer"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appliedEntry",
-          "approvingDirector",
-          "authority",
-          "authorityEvidence",
-          "authorityReference",
-          "baseHash",
-          "baseSequence",
-          "changes",
-          "company",
-          "corrects",
-          "createdAt",
-          "decisions",
-          "effectiveOn",
-          "evidenceFingerprint",
-          "evidenceSnapshot",
-          "preparedByName",
-          "preparingAppointment",
-          "providedBy",
-          "reason",
-          "register",
-          "rejectionReason",
-          "reviewedAt",
-          "reviewedBy",
-          "sourceDocument",
-          "stage",
-          "status",
-          "submittedBy",
-          "uuid"
-        ],
-        "type": "object"
-      },
       "RegisterCorrectionAuthorityEnum": {
         "description": "* `director_resolution` - Director resolution\n* `court_order` - Court order",
         "enum": [
@@ -11208,238 +10879,6 @@
           "court_order"
         ],
         "type": "string"
-      },
-      "RegisterCorrectionChange": {
-        "properties": {
-          "member": {
-            "type": "string"
-          },
-          "shares": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "member",
-          "shares"
-        ],
-        "type": "object"
-      },
-      "RegisterCorrectionCreateRequest": {
-        "properties": {
-          "appointment": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "approvingDirector": {
-            "default": "",
-            "maxLength": 255,
-            "type": "string"
-          },
-          "authority": {
-            "$ref": "#/components/schemas/RegisterCorrectionAuthorityEnum"
-          },
-          "authorityEvidence": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "authorityReference": {
-            "maxLength": 255,
-            "minLength": 1,
-            "type": "string"
-          },
-          "correctsId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "effectiveOn": {
-            "format": "date",
-            "type": "string"
-          },
-          "operationId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "reason": {
-            "maxLength": 1000,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appointment",
-          "authority",
-          "authorityEvidence",
-          "authorityReference",
-          "correctsId",
-          "effectiveOn",
-          "operationId",
-          "reason"
-        ],
-        "type": "object"
-      },
-      "RegisterCorrectionDecideRequest": {
-        "properties": {
-          "appointment": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "confirmation": {
-            "type": "boolean"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
-          },
-          "previewDigest": {
-            "minLength": 1,
-            "pattern": "^[0-9a-f]{64}$",
-            "type": "string"
-          },
-          "reason": {
-            "default": "",
-            "maxLength": 1000,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appointment",
-          "confirmation",
-          "idempotencyKey",
-          "kind",
-          "previewDigest"
-        ],
-        "type": "object"
-      },
-      "RegisterCorrectionDecision": {
-        "properties": {
-          "appointment": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "decidedAt": {
-            "format": "date-time",
-            "readOnly": true,
-            "type": "string"
-          },
-          "decidedBy": {
-            "readOnly": true,
-            "type": "integer"
-          },
-          "decidedByName": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "digest": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "idempotencyKey": {
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          },
-          "kind": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/RegisterDecisionKindEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "reason": {
-            "readOnly": true,
-            "type": "string"
-          },
-          "uuid": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "readOnly": true,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appointment",
-          "decidedAt",
-          "decidedBy",
-          "decidedByName",
-          "digest",
-          "idempotencyKey",
-          "kind",
-          "reason",
-          "uuid"
-        ],
-        "type": "object"
-      },
-      "RegisterCorrectionDecisionPreview": {
-        "properties": {
-          "canDecide": {
-            "type": "boolean"
-          },
-          "changes": {
-            "items": {
-              "$ref": "#/components/schemas/RegisterCorrectionChange"
-            },
-            "type": "array"
-          },
-          "effectiveOn": {
-            "format": "date",
-            "type": "string"
-          },
-          "originalChanges": {
-            "items": {
-              "$ref": "#/components/schemas/RegisterCorrectionChange"
-            },
-            "type": "array"
-          },
-          "previewDigest": {
-            "type": "string"
-          },
-          "registerSequence": {
-            "type": "integer"
-          },
-          "unmetRequirements": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "canDecide",
-          "changes",
-          "effectiveOn",
-          "originalChanges",
-          "previewDigest",
-          "registerSequence",
-          "unmetRequirements"
-        ],
-        "type": "object"
-      },
-      "RegisterCorrectionDecisionRequestRequest": {
-        "properties": {
-          "appointment": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/RegisterDecisionKindEnum"
-          },
-          "reason": {
-            "default": "",
-            "maxLength": 1000,
-            "type": "string"
-          }
-        },
-        "required": [
-          "appointment",
-          "kind"
-        ],
-        "type": "object"
       },
       "RegisterCorrectionStatusEnum": {
         "description": "* `submitted` - Submitted\n* `applied` - Applied\n* `rejected` - Rejected",
@@ -14634,6 +14073,10 @@
           "currentShares": {
             "type": "string"
           },
+          "deletable": {
+            "description": "Whether the company can delete this person now: no shares and no register records naming them.",
+            "type": "boolean"
+          },
           "enteredOn": {
             "format": "date",
             "nullable": true,
@@ -17355,15 +16798,6 @@
         },
         "type": "object"
       },
-      "ReviewResultEnum": {
-        "description": "* `GREEN` - Approved\n* `RED` - Rejected\n* `YELLOW` - Retry",
-        "enum": [
-          "GREEN",
-          "RED",
-          "YELLOW"
-        ],
-        "type": "string"
-      },
       "RoleEnum": {
         "description": "* `investor` - Investor\n* `company` - Company\n* `both` - Both",
         "enum": [
@@ -17374,9 +16808,9 @@
         "type": "string"
       },
       "ServiceTermsVersionEnum": {
-        "description": "* `2026-11-15` - 2026-11-15",
+        "description": "* `2026-11-21` - 2026-11-21",
         "enum": [
-          "2026-11-15"
+          "2026-11-21"
         ],
         "type": "string"
       },
@@ -18610,9 +18044,6 @@
             "nullable": true,
             "type": "string"
           },
-          "correctable": {
-            "type": "boolean"
-          },
           "correctedBy": {
             "format": "uuid",
             "nullable": true,
@@ -18622,6 +18053,9 @@
             "format": "uuid",
             "nullable": true,
             "type": "string"
+          },
+          "deletable": {
+            "type": "boolean"
           },
           "effectiveOn": {
             "format": "date",
@@ -18645,9 +18079,9 @@
         "required": [
           "changes",
           "companyEventOn",
-          "correctable",
           "correctedBy",
           "corrects",
+          "deletable",
           "effectiveOn",
           "kind",
           "recordedAt",
@@ -20384,29 +19818,12 @@
             "readOnly": true,
             "type": "boolean"
           },
-          "isIdVerified": {
-            "readOnly": true,
-            "type": "boolean"
-          },
           "isSignupCompleted": {
             "type": "boolean"
           },
           "isStaff": {
             "readOnly": true,
             "type": "boolean"
-          },
-          "kycProvider": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/KycProviderEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "kycaidApplicantId": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
           },
           "lastLogin": {
             "format": "date-time",
@@ -20424,14 +19841,6 @@
             "nullable": true,
             "type": "string"
           },
-          "rejectionLabels": {
-            "items": {
-              "type": "string"
-            },
-            "nullable": true,
-            "readOnly": true,
-            "type": "array"
-          },
           "residenceCountry": {
             "description": "Unique identifier (primary key)",
             "format": "uuid",
@@ -20446,35 +19855,6 @@
           "residentialAddress": {
             "nullable": true,
             "type": "string"
-          },
-          "reviewResult": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ReviewResultEnum"
-              },
-              {
-                "$ref": "#/components/schemas/NullEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "sumsubApplicantId": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
-          "sumsubVerificationStatus": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/UserVerificationStatusEnum"
-              },
-              {
-                "$ref": "#/components/schemas/NullEnum"
-              }
-            ],
-            "readOnly": true
           },
           "termsAcceptance": {
             "allOf": [
@@ -20491,24 +19871,6 @@
           "uuid": {
             "readOnly": true,
             "type": "string"
-          },
-          "verificationStatus": {
-            "nullable": true,
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/UserVerificationStatusEnum"
-              },
-              {
-                "$ref": "#/components/schemas/NullEnum"
-              }
-            ],
-            "readOnly": true
-          },
-          "verifiedAt": {
-            "format": "date-time",
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
           }
         },
         "required": [
@@ -20517,20 +19879,11 @@
           "dateJoined",
           "email",
           "isActive",
-          "isIdVerified",
           "isStaff",
-          "kycProvider",
-          "kycaidApplicantId",
           "lastLogin",
-          "rejectionLabels",
           "residenceCountryName",
-          "reviewResult",
-          "sumsubApplicantId",
-          "sumsubVerificationStatus",
           "termsAcceptance",
-          "uuid",
-          "verificationStatus",
-          "verifiedAt"
+          "uuid"
         ],
         "type": "object"
       },
@@ -20647,18 +20000,6 @@
           "passwordConfirm"
         ],
         "type": "object"
-      },
-      "UserVerificationStatusEnum": {
-        "description": "* `init` - Initialized\n* `pending` - Pending Review\n* `queued` - Queued for Review\n* `completed` - Review Completed\n* `onHold` - On Hold\n* `prechecked` - Pre-checked",
-        "enum": [
-          "init",
-          "pending",
-          "queued",
-          "completed",
-          "onHold",
-          "prechecked"
-        ],
-        "type": "string"
       },
       "ValueSourceEnum": {
         "description": "* `market` - Market price\n* `nav` - NAV\n* `par` - Par\n* `unpriced` - Unpriced",
@@ -21440,10 +20781,6 @@
           "lastName": {
             "maxLength": 100,
             "minLength": 1,
-            "type": "string"
-          },
-          "phone": {
-            "maxLength": 30,
             "type": "string"
           }
         },
@@ -23725,64 +23062,6 @@
         ]
       }
     },
-    "/api/users/identity-verification/status/": {
-      "get": {
-        "operationId": "api_users_identity_verification_status_retrieve",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IdentityVerificationStatus"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/users/identity-verification/token/": {
-      "post": {
-        "operationId": "api_users_identity_verification_token_create",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IdentityVerificationSession"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/v1/companies/": {
       "get": {
         "operationId": "api_v1_companies_list",
@@ -23924,6 +23203,39 @@
       }
     },
     "/api/v1/companies/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_companies_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_companies_retrieve",
         "parameters": [
@@ -24476,6 +23788,41 @@
               }
             },
             "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/company-authority/invitations/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_company_authority_invitations_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
           }
         },
         "security": [
@@ -25619,6 +24966,39 @@
       }
     },
     "/api/v1/tokens/member-invitations/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_member_invitations_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_member_invitations_retrieve",
         "parameters": [
@@ -25995,6 +25375,39 @@
       }
     },
     "/api/v1/tokens/register-allotments/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_allotments_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_allotments_retrieve",
         "parameters": [
@@ -27475,362 +26888,6 @@
         ]
       }
     },
-    "/api/v1/tokens/register-corrections/": {
-      "get": {
-        "operationId": "api_v1_tokens_register_corrections_list",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "company",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Which field to use when ordering the results.",
-            "in": "query",
-            "name": "ordering",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "description": "A page number within the paginated result set.",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "description": "Number of results to return per page.",
-            "in": "query",
-            "name": "page_size",
-            "required": false,
-            "schema": {
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "register",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "status",
-            "schema": {
-              "enum": [
-                "applied",
-                "rejected",
-                "submitted"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "token",
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaginatedRegisterCorrectionList"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      },
-      "post": {
-        "operationId": "api_v1_tokens_register_corrections_create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterCorrectionCreateRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterCorrectionCreateRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterCorrectionCreateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterCorrection"
-                }
-              }
-            },
-            "description": ""
-          },
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterCorrection"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/tokens/register-corrections/{uuid}/": {
-      "get": {
-        "operationId": "api_v1_tokens_register_corrections_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterCorrection"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/tokens/register-corrections/{uuid}/decide/": {
-      "post": {
-        "operationId": "api_v1_tokens_register_corrections_decide_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterCorrectionDecideRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterCorrectionDecideRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterCorrectionDecideRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterCorrection"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/tokens/register-corrections/{uuid}/decision-preview/": {
-      "post": {
-        "operationId": "api_v1_tokens_register_corrections_decision_preview_create",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterCorrectionDecisionRequestRequest"
-              }
-            },
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterCorrectionDecisionRequestRequest"
-              }
-            },
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterCorrectionDecisionRequestRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterCorrectionDecisionPreview"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": [],
-            "csrfCookie": [],
-            "csrfHeader": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
-    "/api/v1/tokens/register-corrections/{uuid}/file/": {
-      "get": {
-        "operationId": "api_v1_tokens_register_corrections_file_retrieve",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "uuid",
-            "required": true,
-            "schema": {
-              "description": "Unique identifier (primary key)",
-              "format": "uuid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "*/*": {
-                "schema": {
-                  "format": "binary",
-                  "type": "string"
-                }
-              }
-            },
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          },
-          {
-            "cookieAuth": []
-          }
-        ],
-        "tags": [
-          "api"
-        ]
-      }
-    },
     "/api/v1/tokens/register-deployments/": {
       "get": {
         "operationId": "api_v1_tokens_register_deployments_list",
@@ -28330,6 +27387,39 @@
       }
     },
     "/api/v1/tokens/register-grants/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_grants_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_grants_retrieve",
         "parameters": [
@@ -28760,6 +27850,39 @@
       }
     },
     "/api/v1/tokens/register-imports/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_imports_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_imports_retrieve",
         "parameters": [
@@ -30138,6 +29261,39 @@
       }
     },
     "/api/v1/tokens/register-member-documents/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_member_documents_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_member_documents_retrieve",
         "parameters": [
@@ -30710,6 +29866,39 @@
       }
     },
     "/api/v1/tokens/register-particulars-changes/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_particulars_changes_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_particulars_changes_retrieve",
         "parameters": [
@@ -31252,6 +30441,50 @@
         ]
       }
     },
+    "/api/v1/tokens/register-people/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_people_destroy",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "company",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The person's member ID.",
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
     "/api/v1/tokens/register-reconciliations/": {
       "get": {
         "operationId": "api_v1_tokens_register_reconciliations_list",
@@ -31597,6 +30830,39 @@
       }
     },
     "/api/v1/tokens/register-transfers/{uuid}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_transfers_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      },
       "get": {
         "operationId": "api_v1_tokens_register_transfers_retrieve",
         "parameters": [
@@ -32647,6 +31913,50 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/register/entries/{entry}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_entries_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

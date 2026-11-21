@@ -7,7 +7,6 @@ export const CACHE_TIMING = {
   SHORT_STALE_TIME: 2 * 60 * 1000,
   DEFAULT_STALE_TIME: 5 * 60 * 1000,
   MEDIUM_GC_TIME: 5 * 60 * 1000,
-  LONG_GC_TIME: 10 * 60 * 1000,
   EXTRA_LONG_GC_TIME: 24 * 60 * 60 * 1000,
 } as const;
 
@@ -43,10 +42,6 @@ export const USER_PREFERENCES_ENDPOINTS = { BASE: '/api/user-preferences/' } as 
 export const USER_ACCOUNT_ENDPOINTS = {
   BASE: '/api/user-accounts/',
   DETAIL: (uuid: string) => `/api/user-accounts/${uuid}/` as const,
-} as const;
-export const IDENTITY_VERIFICATION_ENDPOINTS = {
-  TOKEN: '/api/users/identity-verification/token/',
-  STATUS: '/api/users/identity-verification/status/',
 } as const;
 export const DEVICE_TOKEN_ENDPOINTS = {
   REGISTER: '/api/device-tokens/register/',
@@ -138,11 +133,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_IMPORT_ASIC_FILE: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/asic-file/` as const,
   REGISTER_IMPORT_PREVIEW: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/decision-preview/` as const,
   REGISTER_IMPORT_DECIDE: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/decide/` as const,
-  REGISTER_CORRECTIONS: '/api/v1/tokens/register-corrections/',
-  REGISTER_CORRECTION_FILE: (uuid: string) => `/api/v1/tokens/register-corrections/${uuid}/file/` as const,
-  REGISTER_CORRECTION_PREVIEW: (uuid: string) =>
-    `/api/v1/tokens/register-corrections/${uuid}/decision-preview/` as const,
-  REGISTER_CORRECTION_DECIDE: (uuid: string) => `/api/v1/tokens/register-corrections/${uuid}/decide/` as const,
   REGISTER_PARTICULARS_CHANGES: '/api/v1/tokens/register-particulars-changes/',
   REGISTER_PARTICULARS_CHANGE_FILE: (uuid: string) =>
     `/api/v1/tokens/register-particulars-changes/${uuid}/file/` as const,

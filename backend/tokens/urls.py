@@ -14,7 +14,6 @@ from tokens.views.register_award import (
     RegisterAwardViewSet,
 )
 from tokens.views.register_capital_increase import RegisterCapitalIncreaseViewSet
-from tokens.views.register_correction import RegisterCorrectionViewSet
 from tokens.views.register_deployment import RegisterDeploymentViewSet
 from tokens.views.register_evidence import RegisterEvidenceViewSet
 from tokens.views.register_grant import RegisterGrantViewSet
@@ -43,7 +42,6 @@ router.register(r"register-pause-changes", RegisterPauseChangeViewSet, basename=
 router.register(r"register-capital-increases", RegisterCapitalIncreaseViewSet, basename="register-capital-increases")
 router.register(r"register-deployments", RegisterDeploymentViewSet, basename="register-deployments")
 router.register(r"register-issues", RegisterIssueViewSet, basename="register-issues")
-router.register(r"register-corrections", RegisterCorrectionViewSet, basename="register-corrections")
 router.register(r"register-openings", RegisterOpeningViewSet, basename="register-openings")
 router.register(r"register-links", RegisterWalletLinkViewSet, basename="register-links")
 router.register(r"register-allotments", RegisterAllotmentViewSet, basename="register-allotments")

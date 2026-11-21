@@ -84,9 +84,8 @@ trigger `tokens_guard_register_entry` then:
 - keeps every holding and the issued supply within 0 to 2^256 − 1, lets an opening or issue only
   add, and requires a cessation to remove the whole holding;
 - requires one change for an issue or cessation and two summing to zero for a transfer;
-- requires a correction's changes to be the exact inverse of the entry its `corrects` names in the
-  same register; only a correction may name one, and `corrects` is one-to-one, so an entry is
-  compensated at most once;
+- refuses a new entry that names an earlier one in `corrects`: no `correction` is recorded any more,
+  and one recorded earlier keeps naming the entry it compensates;
 - for a class with an applied company deployment, freezes the empty register until the deployment's
   original projection and admits only the company's genuine chain opening;
 - assigns the sequence, `previous_hash` and `entry_hash`.
@@ -98,7 +97,13 @@ date uses the actual entry recording day in UTC. `tokens_register_transition_on`
 both projection and verification; older entries keep their prior projection convention.
 Triggers refuse entry and member rewrites and deletes, position and head writes outside
 the projection (`tokens_guard_register_position`, `tokens_guard_share_register`) and moving a
-registered class to another company. Entries carry member UUIDs and share changes, never names or
+registered class to another company. The exception is an `entry` deletion receipt
+([deletion protection](#deletion-protection)): after its one listed entry is deleted,
+`tokens_reproject_register` renumbers each later entry, recomputes its `previous_hash` and
+`entry_hash`, recalculates every position (dropping one no entry names any more), clears a cessation
+return the entry recorded and resets the head. The guards admit only those writes, at trigger depth,
+for that receipt's register, and the trigger refuses any later running balance below zero, a
+cessation entry that no longer empties a holding or a recorded cessation that no longer holds. Entries carry member UUIDs and share changes, never names or
 residential addresses.
 
 A `mirror_correction` is written only by an applied import correction. `tokens_guard_mirror_entry`
@@ -237,22 +242,20 @@ application role writes them. The purge is in [retention clocks](security.md#ret
 
 The register spine `Company -> ShareToken -> {ShareIssuance, ShareIssuanceRequest,
 CapitalIncreaseRequest, TransferOrder}` and `SwapOrder.share_token` use `PROTECT`, which admin
-removal of test data still respects. The API refuses company deletion (405), and unused-class
-deletion requires current company authority, an unchanged version and no actual ownership activity
-or outstanding work. It removes the class from active use, retaining its identity, deletion actor/time
-and abandoned setup drafts with their decisions and evidence
-([class lifecycle](backend.md#company-workflow-api)). An empty register stub or confirmed empty opening
-is allowed, with the opening entry retained; a zero balance alone is not proof that a class is unused.
-Company audit outputs and maintenance disposal include these retained classes. Deleting a wallet cascades its whitelist entry and that entry's company approvals and
-leaves the approval on chain; durable [whitelist commands](chain.md#whitelist-changes) keep their
-own identity. Allotment identity stamps keep the identity resolved at issue, which treasury
-relabelling or a current profile guess must not replace. Retained activation receipts are application
-evidence, not membership rows.
-
-The separate [company-exit command](../operations/operator-console.md#company-exit) is the narrow
-maintenance exception for reviewed disposal of a complete non-chain company scope. It retains
-guards, foreign-key checks, a transaction-bound row manifest and a minimal private receipt. It
-does not grant delete access to the API/admin or erase an account, another company or chain history.
+removal of test data still respects. The database guards refuse ordinary deletes. Company delete
+commands are the exceptions, each through a receipt whose exact-row manifest the guards check: an
+administrator [deletes the company](security.md#account-closure-and-export) or an invitation never
+accepted, and a preparer deletes a share class with all its records
+([class lifecycle](backend.md#company-workflow-api)), a proposal still awaiting a decision, a
+shareholder document, a person nothing on the register names (administration when it removes
+their access) or an issue, transfer or correction entry with the record behind it. Each
+needs current company authority, and a class delete also needs an unchanged version. They keep guards and
+foreign-key checks, refuse on-chain and execution history, grant no delete access to the admin and do
+not erase an account, another company or chain history. Deleting a wallet cascades its whitelist
+entry and that entry's company approvals and leaves the approval on chain; durable
+[whitelist commands](chain.md#whitelist-changes) keep their own identity. Allotment identity stamps
+keep the identity resolved at issue, which treasury relabelling or a current profile guess must not
+replace. Retained activation receipts are application evidence, not membership rows.
 
 ## Register commands
 
@@ -261,8 +264,7 @@ workflow API](backend.md#company-workflow-api), with the shared decision routes 
 codes of [register decisions](backend.md#register-decisions); who may take each step is in [how a
 company decision works](../business/README.md#how-a-company-decision-works). Routes are under
 `/api/v1/tokens/` ([urls.py](../../backend/tokens/urls.py)). Preparation refuses a record of a
-company where the caller holds no current appointment, and every command meets the
-[`issuer_kyc_required`](../operations/operator-console.md#operator-configuration) identity check.
+company where the caller holds no current appointment.
 
 ### Evidence uploads
 
@@ -272,7 +274,7 @@ different file conflicts. The upload is checked like every upload and kept priva
 `companies/<company>/register-evidence/<uuid>/<uuid>.bin`; `tokens_guard_register_evidence` requires
 the uploader's current preparing appointment, a PDF, PNG or JPEG, and that path. Its `kind` is
 `share_register` or `asic_extract` (an import's optional copies), `authority` (the director
-resolution or court order behind an opening, correction, wallet link, grant, transfer, allotment or
+resolution or court order behind an opening, wallet link, grant, transfer, allotment or
 chain family) or `supporting` (grant terms and acceptance, a transfer instrument, an award
 agreement, a vesting event, an allotment's agreement and receipt; particulars changes made before
 the one-step edit keep theirs). The
@@ -292,15 +294,12 @@ Each family prepares with `POST` under its `operation_id`, lists and details the
 companies whose register the caller may read, serves each retained copy as an authenticated
 attachment and takes the shared decision routes (what admin shows of them is in [who runs
 what](../business/register.md#who-runs-what)); the subject of the shared `<subject>_decided` code is
-`correction`, `opening`, `link`, `import`, `grant`, `transfer` or `allotment`. A particulars change
+`opening`, `link`, `import`, `grant`, `transfer` or `allotment`. A particulars change
 is a one-step edit with no decision routes ([particulars changes API](#particulars-changes-api)).
 Beyond the
 shared bindings, each preview digest binds the state named below, and each family adds its own
 requirement codes:
 
-- **Correction** (`register-corrections/`): for application, the register sequence and head hash.
-  `deployment_pending` (a deployment of the class is pending), `register_changed` (the sequence or
-  head moved since preparation), `entry_already_corrected`, `position_would_go_negative`.
 - **Opening** (`register-openings/`): the boundary block hash and, for application, the class's
   register state. `deployment_pending`; `boundary_changed` (the boundary block is no longer
   canonical or covered by the finality policy, or the policy or chain changed);
@@ -315,7 +314,8 @@ requirement codes:
   opening); `holdings_differ` (the class was opened from the chain and its stored holdings differ);
   `former_member_after_opening`; `former_member_before_retention` (ceased before the retention
   cutoff); `empty_non_tokenised_opening_required` (an empty snapshot is only for a genuinely unopened
-  non-tokenised class, never a correction or former-member import). An opening correction adds
+  non-tokenised class, never a correction or former-member import); `document_deleted` (a row names a
+  shareholder attachment deleted since an applied import listed it). An opening correction adds
   `register_changed`, `mirror_snapshot_changed` (the corrected
   import is no longer the latest applied one), and `mirror_correction_activity` and
   `mirror_correction_member_activity` (class or company activity that
@@ -348,14 +348,6 @@ Recording an award also refuses `imported_non_tokenised_register_required`. The 
 (`register-issues/`, `register-deployments/`,
 `register-capital-increases/`, `register-pause-changes/`) are in [signing
 families](chain.md#signing-families).
-
-### Corrections API
-
-What a correction does: [compensating
-corrections](../business/register.md#compensating-corrections). Preparation derives the exact
-inverse changes and captures the register's sequence and head hash; an entry is `correctable` while
-it has changes and no correction reverses it. The compensating entry's operation id is the
-correction's UUID, and nothing is broadcast.
 
 ### Openings API
 
@@ -538,7 +530,8 @@ transfer. Omitting the combined flag keeps the separate API decisions.
 New non-tokenised grants, allotments and direct transfers require an explicit `company_event_on`.
 It is immutable on the proposal, part of exact retries and decision digests, and becomes the new
 entry’s `effective_on`. It cannot be after today in UTC or before any existing effective entry in
-the class, including its opening; earlier facts need a separately scoped correction or reconciliation.
+the class, including its opening; an earlier fact means deleting the later entries and recording them again,
+or, before the opening, correcting the copied opening.
 Agreement, receipt, terms, vesting, signing and lodgement dates do not supply this date automatically.
 Preparation, decision and entry creation timestamps remain actual Ledova timestamps. New particulars
 and cessation/return clocks retain the actual application day, so an older company date cannot
@@ -690,8 +683,9 @@ deltas. The register's member rows carry `follows_profile`, true while the membe
 association, without naming the account. Accepting brings the register up to the person's profile
 ([particulars changes API](#particulars-changes-api)).
 
-Fresh migrations install the association and the append-only invitation and revocation records with
-RLS forced and no application-role grants. Their guards require current company administration and
+Fresh migrations install the association and the invitation and revocation records with RLS forced
+and no application-role grants. Invitations and revocations are append-only, except that a current
+administrator can delete an invitation that was never accepted, through an `invitation` receipt. Their guards require current company administration and
 one exact recorded member and recipient for an invitation; the exact invited recipient, current
 source and an owned account for acceptance; and exact current company revocation to end an
 association. Constraint triggers recheck identity and authority at commit.
@@ -709,7 +703,7 @@ instructions](../business/register.md#retained-issue-instructions) and [settled-
 instructions](../business/register.md#settled-transfer-instructions). `POST register-instructions/`
 submits the company owner's instruction as a bounded company command on the operator connection.
 The owner must be a current administrator of the company (a current personal `admin` appointment,
-with a verified identity where the operator requires it, or the draft setup exception), as
+or the draft setup exception), as
 `require_company_administration` checks; an identical retry returns the retained instruction
 first. `authority_evidence` names an `authority` upload (`POST register-evidence/`) the owner made
 for the company, of which the instruction keeps its own copy, upload snapshot and SHA-256, as

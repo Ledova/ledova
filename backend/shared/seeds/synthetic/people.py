@@ -4,15 +4,6 @@ from decimal import Decimal
 
 from django.contrib.auth import get_user_model
 
-from compliance.constants import (
-    ASSESSMENT_STATUS_COMPLETE,
-    ASSESSMENT_STATUS_PENDING,
-    PEP_TYPE_NONE,
-)
-from compliance.models import CustomerRiskAssessment
-from compliance.services.risk_assessment import RiskAssessmentService
-from integrations.kyc.pep import pep_data_from_labels
-from integrations.sumsub.client import SumSubService
 from portfolios.models import Portfolio
 from shared.db import atomic, use_migrate
 from shared.seeds.synthetic import keys
@@ -69,9 +60,6 @@ def _adopt_identity(person, user, seeded):
         UserAccount.objects.filter(pk=account.pk).update(created_at=person.joined_at)
         Portfolio.objects.filter(pk=portfolio.pk).update(created_at=person.joined_at)
         UserPreferences.objects.filter(pk=preferences.pk).update(created_at=person.joined_at)
-        CustomerRiskAssessment.objects.filter(user_account=account, assessment_status=ASSESSMENT_STATUS_PENDING).update(
-            created_at=person.joined_at
-        )
     seeded.users[person.key] = user
     seeded.accounts[person.key] = account
     return user
@@ -84,7 +72,6 @@ def apply_person(person, seeded):
         account = profile.user_account
         _sign_up(person, user, profile, account, seeded)
         _financial_profile(person, profile)
-        _identity_check(person, profile, account)
         UserPreferences.objects.filter(user_profile=profile).update(transaction_alerts=person.alerts_enabled)
         for plan in person.wallets:
             _wallet(plan, account, seeded)
@@ -154,59 +141,6 @@ def _financial_profile(person, profile):
                 "intended_use_other_text": financial.intended_other or None,
             },
         )
-
-
-def _identity_check(person, profile, account):
-    kyc = person.kyc
-    if kyc is None:
-        return
-    with frozen(kyc.decided_at):
-        profile.kyc_provider = kyc.provider
-        profile.verification_status = kyc.status
-        profile.review_result = kyc.result
-        profile.rejection_labels = list(kyc.labels) or None
-        profile.id_document_type = kyc.document_type
-        profile.id_document_country = kyc.document_country
-        if kyc.provider == "sumsub":
-            profile.sumsub_verification_status = kyc.status
-        if kyc.result == "GREEN":
-            profile.is_id_verified = True
-            profile.verified_at = kyc.decided_at
-        profile.save()
-        if kyc.result != "GREEN":
-            return
-        account.account_status = "rejected" if person.rejection_reason else "active"
-        account.rejection_reason = person.rejection_reason
-        if not person.rejection_reason:
-            account.activation_date = kyc.decided_at
-        account.save(update_fields=["account_status", "rejection_reason", "activation_date", "updated_at"])
-        complete = CustomerRiskAssessment.objects.filter(
-            user_account=account, assessment_status=ASSESSMENT_STATUS_COMPLETE
-        ).exists()
-        if not person.rejection_reason and not complete:
-            evidence = [f"{kyc.pep_type}_pep"] if kyc.pep_type != PEP_TYPE_NONE else []
-            pep_data = pep_data_from_labels(evidence)
-            if kyc.provider == "sumsub" and kyc.pep_type != PEP_TYPE_NONE:
-                pep_data = (
-                    SumSubService()
-                    .normalize_webhook(
-                        {
-                            "reviewStatus": "completed",
-                            "reviewResult": {"reviewAnswer": "GREEN"},
-                            "amlCase": {
-                                "hits": [
-                                    {
-                                        "id": "synthetic-pep",
-                                        "review": {"matchStatus": "true_positive"},
-                                        "riskLabels": ["pep"],
-                                    }
-                                ]
-                            },
-                        }
-                    )
-                    .pep_data
-                )
-            RiskAssessmentService.calculate_and_create(user_account=account, pep_data=pep_data)
 
 
 def _wallet(plan, account, seeded):

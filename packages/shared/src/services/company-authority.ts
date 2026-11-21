@@ -127,3 +127,6 @@ export const acceptCompanySignupTerms = (apiClient: AxiosInstance, uuid: string,
     } satisfies AcceptCompanySignupTermsRequest,
     config,
   );
+
+export const deleteCompanyTeamInvitation = (apiClient: AxiosInstance, uuid: string, config: AxiosRequestConfig = {}) =>
+  apiClient.delete<void>(`${INVITATIONS}${uuid}/`, config);

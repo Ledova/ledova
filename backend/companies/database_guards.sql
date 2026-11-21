@@ -7,7 +7,7 @@ DECLARE
     appointment companies_companyappointment;
     principal bigint;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -42,17 +42,14 @@ DECLARE
     appointment companies_companyappointment;
     actor authentication_customuser;
     profile users_userprofile;
-    requires_identity boolean;
 BEGIN
     SELECT * INTO appointment FROM companies_companyappointment
         WHERE uuid = source_id AND company_id = issuer_id FOR SHARE;
     IF appointment.uuid IS NULL THEN RETURN false; END IF;
     SELECT * INTO actor FROM authentication_customuser WHERE id = appointment.appointee_id FOR SHARE;
     SELECT * INTO profile FROM users_userprofile WHERE uuid = appointment.appointee_profile_id FOR SHARE;
-    SELECT issuer_kyc_required INTO requires_identity FROM operators_operator WHERE id = 1 FOR SHARE;
     RETURN actor.id IS NOT NULL AND actor.is_active AND actor.is_email_verified
         AND profile.user_id IS NOT DISTINCT FROM actor.id
-        AND (NOT COALESCE(requires_identity, false) OR profile.is_id_verified)
         AND (appointment.expires_at IS NULL OR appointment.expires_at > clock_timestamp())
         AND NOT EXISTS (SELECT 1 FROM companies_companyappointmentrevocation WHERE appointment_id = appointment.uuid);
 END;
@@ -70,7 +67,7 @@ DECLARE
     principal bigint;
     current_source boolean;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF TG_OP <> 'INSERT' THEN
@@ -125,7 +122,6 @@ DECLARE
     source companies_companyappointment;
     actor authentication_customuser;
     profile users_userprofile;
-    requires_identity boolean;
     principal bigint;
     current_source boolean;
 BEGIN
@@ -137,12 +133,10 @@ BEGIN
     SELECT * INTO actor FROM authentication_customuser WHERE id = candidate.appointee_id;
     SELECT * INTO profile FROM users_userprofile WHERE uuid = candidate.appointee_profile_id FOR UPDATE;
     SELECT * INTO source FROM companies_companyappointment WHERE uuid = invitation.inviter_appointment_id FOR SHARE;
-    SELECT issuer_kyc_required INTO requires_identity FROM operators_operator WHERE id = 1 FOR SHARE;
     current_source := companies_current_team_appointment(source.uuid, candidate.company_id);
     IF current_user = @APP_ROLE@ OR principal IS DISTINCT FROM actor.id
         OR actor.id IS NULL OR NOT actor.is_active OR NOT actor.is_email_verified
         OR profile.user_id IS DISTINCT FROM actor.id
-        OR COALESCE(requires_identity, false) AND NOT profile.is_id_verified
         OR candidate.request_id IS NOT NULL
         OR invitation.uuid IS NULL OR invitation.company_id IS DISTINCT FROM candidate.company_id
         OR candidate.appointee_id IS NOT DISTINCT FROM invitation.inviter_id
@@ -183,7 +177,7 @@ CREATE OR REPLACE FUNCTION public.companies_guard_legacy_owner_source()
  LANGUAGE plpgsql
 AS $function$
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     RAISE EXCEPTION 'Retain immutable legacy owner sources' USING ERRCODE = '23514';
@@ -213,14 +207,12 @@ DECLARE
     issuer companies_company;
     actor authentication_customuser;
     profile users_userprofile;
-    identity_required boolean;
     principal bigint;
 BEGIN
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     SELECT * INTO issuer FROM companies_company WHERE uuid = issuer_id FOR UPDATE;
     SELECT * INTO actor FROM authentication_customuser WHERE id = principal FOR SHARE;
     SELECT * INTO profile FROM users_userprofile WHERE user_id = principal FOR SHARE;
-    SELECT issuer_kyc_required INTO identity_required FROM operators_operator WHERE id = 1 FOR SHARE;
     PERFORM 1 FROM companies_companyappointment
         WHERE company_id = issuer_id AND appointee_id = principal ORDER BY uuid FOR SHARE;
     IF actor.id IS NULL OR NOT actor.is_active OR NOT actor.is_email_verified OR issuer.uuid IS NULL THEN
@@ -234,7 +226,6 @@ BEGIN
         WHERE appointment.company_id = issuer_id AND appointment.appointee_id = actor.id
             AND appointment.appointee_profile_id = profile.uuid AND profile.user_id = actor.id
             AND appointment.capabilities @> '["admin"]'::jsonb
-            AND (NOT COALESCE(identity_required, false) OR profile.is_id_verified)
             AND (appointment.expires_at IS NULL OR appointment.expires_at > clock_timestamp())
             AND NOT EXISTS (SELECT 1 FROM companies_companyappointmentrevocation WHERE appointment_id = appointment.uuid));
 END;
@@ -254,7 +245,7 @@ DECLARE
     wallet_account customer_accounts_account;
     wallet_profile users_userprofile;
 BEGIN
-    IF TG_OP = 'DELETE' AND current_user = @MIGRATE_ROLE@ THEN
+    IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
     IF current_user = @MIGRATE_ROLE@ THEN

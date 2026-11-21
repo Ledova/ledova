@@ -6,12 +6,7 @@ from django.urls.resolvers import URLPattern, URLResolver
 PARAMETER = re.compile(r"\(\?P<[^>]+>[^)]*\)")
 IGNORED_PREFIXES = ("/admin", "/static", "/media", "/api-auth", "/health")
 BODYLESS = {"head", "options", "trace"}
-PROVIDER_EXCLUSIONS = {
-    ("post", "/webhooks/alchemy/"),
-    ("post", "/webhooks/kycaid/"),
-    ("post", "/webhooks/kycaid/crypto/"),
-    ("post", "/webhooks/sumsub/"),
-}
+PROVIDER_EXCLUSIONS = {("post", "/webhooks/alchemy/")}
 HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
 
 

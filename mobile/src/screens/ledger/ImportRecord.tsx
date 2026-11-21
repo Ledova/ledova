@@ -301,6 +301,7 @@ export function ImportRecord({
         proposal={proposal}
         steps={steps}
         guard={guard}
+        noun="import"
         context={context}
         onDecided={onDecided}
         onRefused={onRefused}

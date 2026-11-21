@@ -5,7 +5,6 @@ export const CompanyAuthorityPage = lazy(() => import('@pages/company/authority'
 export const CompanyAuthorityRequestPage = lazy(() => import('@pages/company/authority/request'));
 export const CompanyPage = lazy(() => import('@pages/company'));
 export const CompanyRegisterAwardPage = lazy(() => import('@pages/company/ledger/award'));
-export const CompanyRegisterCorrectionPage = lazy(() => import('@pages/company/ledger/correct'));
 export const CompanyRegisterPage = lazy(() => import('@pages/company/ledger'));
 export const CompanyRegisterParticularsPage = lazy(() => import('@pages/company/ledger/particulars'));
 export const CompanyRegisterTransferPage = lazy(() => import('@pages/company/ledger/transfer'));

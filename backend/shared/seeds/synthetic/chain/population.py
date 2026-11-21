@@ -66,10 +66,9 @@ def _investor(account, wallets, active):
     holder = account.user_profile.user
     with use_operator(), _requester_principal(holder.pk):
         admitted = frozenset(key for key, company in active.items() if not participant_requirements(account, company))
-    verified = account.user_profile.verified_at
     return {
         "companies": admitted,
-        "ready_at": verified if admitted else None,
+        "ready_at": wallets[0].verified_at if admitted else None,
     }
 
 

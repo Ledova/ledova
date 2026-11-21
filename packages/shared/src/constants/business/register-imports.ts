@@ -9,6 +9,8 @@ export const REGISTER_IMPORT_UNMET_COPY: Record<string, string> = {
   approval_required: 'Review these records before confirming the mirror.',
   approval_lapsed: 'The reviewer’s appointment has ended. Review these records again before confirming the mirror.',
   evidence_unavailable: 'A retained evidence copy no longer matches its record. Prepare a new import.',
+  document_deleted:
+    'A shareholder document in these records was deleted. Reject this import and prepare a new one without it.',
   class_has_applied_import: 'This share class already has an applied import.',
   empty_non_tokenised_opening_required:
     'An empty opening needs an unopened class without a contract or former members. It cannot erase an existing register.',
