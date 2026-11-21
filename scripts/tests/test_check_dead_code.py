@@ -20,6 +20,8 @@ class BackendDeadCode(unittest.TestCase):
                 "demo/helper.py": "value = 1\n",
                 "demo/worker.py": "value = 1\n",
                 "demo/apps.py": "name = 'demo'\n",
+                "plugin/__init__.py": "value = 1\n",
+                "plugin/apps.py": "name = 'plugin'\n",
                 "demo/models/__init__.py": "from .record import Record\n",
                 "demo/models/record.py": "class Record: pass\n",
                 "demo/admin.py": "from .models import Record\n",

@@ -129,7 +129,8 @@ def backend_findings(root=ROOT, *, workers=WORKERS, documented=DOCUMENTED_ENTRY_
             reach(dependency)
 
     for name in roots:
-        reach(name)
+        for entry in targets(name):
+            reach(entry)
     for name, path in files.items():
         if name not in reached and trees[name].body:
             findings.append(f"{path.relative_to(root)}: unused backend module")
