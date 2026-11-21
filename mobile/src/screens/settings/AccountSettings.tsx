@@ -31,16 +31,14 @@ function SettingRow({
   detail,
   value,
   action,
-  accessibilityLabel,
 }: {
   label?: string;
   detail?: ReactNode;
   value?: string;
   action?: ReactNode;
-  accessibilityLabel?: string;
 }) {
   const look = useAccountStyles();
-  const spoken = accessibilityLabel ?? (value ? `${label}: ${value}` : undefined);
+  const spoken = value ? `${label}: ${value}` : undefined;
   return (
     <View style={look.setting}>
       <View accessible={!!spoken} accessibilityLabel={spoken} style={look.text}>

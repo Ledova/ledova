@@ -7,7 +7,6 @@ export const CACHE_TIMING = {
   SHORT_STALE_TIME: 2 * 60 * 1000,
   DEFAULT_STALE_TIME: 5 * 60 * 1000,
   MEDIUM_GC_TIME: 5 * 60 * 1000,
-  LONG_GC_TIME: 10 * 60 * 1000,
   EXTRA_LONG_GC_TIME: 24 * 60 * 60 * 1000,
 } as const;
 

@@ -10,7 +10,7 @@ function subscribe(listener: () => void) {
   };
 }
 
-export function currentTheme(): ThemeName {
+function currentTheme(): ThemeName {
   return parseTheme(document.documentElement.dataset.theme);
 }
 
