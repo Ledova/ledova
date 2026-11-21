@@ -18,7 +18,7 @@ export const REGISTER_TRANSFER_UNMET_COPY: Record<string, string> = {
     'The company event date was not recorded. Reject this preparation and prepare it again with the company’s date.',
   company_event_date_in_future: 'The company event date cannot be after today (UTC).',
   effective_date_before_latest_entry:
-    'The company event date is before a later register event. To record it, delete the later entries first.',
+    'The company event date is before a later register event. Delete the later entries first, or correct the copied opening for a date before it.',
   identified_company_member_required: 'Both parties must be identified members of this company.',
   member_particulars_changed: 'A party’s particulars changed. Reject this transfer and prepare a new one.',
   member_reference_conflict:

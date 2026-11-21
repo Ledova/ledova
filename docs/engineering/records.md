@@ -530,7 +530,8 @@ transfer. Omitting the combined flag keeps the separate API decisions.
 New non-tokenised grants, allotments and direct transfers require an explicit `company_event_on`.
 It is immutable on the proposal, part of exact retries and decision digests, and becomes the new
 entry’s `effective_on`. It cannot be after today in UTC or before any existing effective entry in
-the class, including its opening; an earlier fact means deleting the later entries and recording them again.
+the class, including its opening; an earlier fact means deleting the later entries and recording them again,
+or, before the opening, correcting the copied opening.
 Agreement, receipt, terms, vesting, signing and lodgement dates do not supply this date automatically.
 Preparation, decision and entry creation timestamps remain actual Ledova timestamps. New particulars
 and cessation/return clocks retain the actual application day, so an older company date cannot

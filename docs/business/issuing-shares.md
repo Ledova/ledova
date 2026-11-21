@@ -238,7 +238,8 @@ Each path is a [company decision](README.md#how-a-company-decision-works); in ad
   resulting entry; Ledova's recording and approval timestamps stay actual. The date must be no later
   than today (UTC) and no earlier than the applicable opening or latest effective event
   ([register dates](register.md#register-entries)). An earlier event means deleting the later entries
-  and recording them again, not a replay through the normal issue path. Chain issues keep their existing execution dates.
+  and recording them again, or correcting the copied opening when it comes before the opening; the
+  normal issue path doesn't replay history. Chain issues keep their existing execution dates.
 - The issue must fit within the authorised shares; quantities are whole, and a chain request is at
   most 2,147,483,647.
 - A payment or receipt never authorises an issue, and non-paid terms never create an amount paid.

@@ -92,7 +92,8 @@ New non-tokenised grants, investor allotments and direct transfers require the c
 the actual issue or transfer date. It is separate from terms, agreement, receipt, signing and
 lodgement dates and from Ledova's immutable preparation, approval and recording timestamps. The
 company date must be no later than today (UTC) and no earlier than the applicable opening or latest
-effective event; an earlier event means deleting the later entries and recording them again. The normal
+effective event; an earlier event means deleting the later entries and recording them again, or, before
+the opening, correcting the copied opening. The normal
 path does not replay history. Chain issues retain their existing execution and finality dates.
 
 Review, details and history show the supplied company date separately from the ledger date where
