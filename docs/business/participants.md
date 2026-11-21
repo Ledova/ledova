@@ -208,16 +208,17 @@ under company [Shareholders](register.md#the-register-page), on the web and in t
 permissions; personal changes do not edit company information, but linked member particulars follow
 the Profile change described above.
 
-**Account** shows **Security** (the password with **Change**), **Account details** (**Member since**, such as "21 Oct 2026", and **Last
-login**, such as "2 Nov 2026, 1:38 pm"), **Terms of Service**, **Invitations** and **Your appointments**.
+**Account** shows **Security** (the password with **Change**), **Account details** (**Member
+since**, such as "21 Oct 2026", and **Last login**, such as "2 Nov 2026, 1:38 pm"), **Terms of
+Service**, **Invitations** and **Your appointments**.
 Terms shows the accepted version’s timestamp or an explicit **Accept** action beside the
 versioned text; earlier booleans are not treated as acceptance. Invitations has a
 **Shareholder invitation** row whose **Accept** opens Member invitation, and a **Company officer
 invitation** row whose **Accept** opens Team's accept form (owner, 3 and 5 November 2026). Your
 appointments lists your company appointments, with **Show the declaration** where one was recorded
 and **Revoke** until it is revoked, and, for a company's owner, **Representative authority**
-([appointments](companies.md#team-invitations-and-appointments)). The theme is the **Dark theme** switch beside Sign
-out (remembered in this browser with Paper as the default); the web app no longer offers transaction
+([appointments](companies.md#team-invitations-and-appointments)). The theme is the **Dark theme**
+switch beside Sign out (remembered in this browser with Paper as the default); the web app no longer offers transaction
 alerts ([#1452](https://github.com/Ledova/ledova/issues/1452)).
 
 **Data and privacy** holds the less frequent actions, in the same rows as Account: each names the

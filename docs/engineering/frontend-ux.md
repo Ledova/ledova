@@ -740,8 +740,7 @@ document types and some statuses ("Under Review", "Awaiting Payment"), keep its 
 mobile's own copy, such as sign-up and its native alerts, use title case or three dots; the shared
 strings it shows follow this.
 
-Copy and tone maps meant for both clients live in `packages/shared`. The web also reads the identity
-verification outcomes (`IDENTITY_OUTCOME_COPY`) and their tones (`VERIFICATION_TONES`) there.
+Copy and tone maps meant for both clients live in `packages/shared`.
 
 ## Choosing a person
 
