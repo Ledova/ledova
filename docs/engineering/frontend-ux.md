@@ -251,7 +251,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   switch named by its label, disabled while saving; a refusal keeps the saved value and shows an alert
   in the card. The theme switch is the icon beside Sign out on web and in the app, not a row. A choice
   saved with a form stays a checkbox.
-- `Status` is words after a small mark, read as words only; `Timeline` (web) dates each event. Each
+- `Status` is words after a small mark, read as words only. Each
   status family has its own tone map. A status always names what it describes, and where a
   column header is hidden at phone width, the row carries the label.
 
