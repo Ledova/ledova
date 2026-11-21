@@ -1710,7 +1710,28 @@ it('associates a member by invitation code, switches to their company on Dashboa
   expect(screen.queryByText('Synthetic Elsewhere Holder')).toBeNull();
   await fireEvent.press(screen.getByRole('button', { name: 'Synthetic Holder A' }));
   expect(mockNavigate).toHaveBeenCalledWith('Shareholder', shareholder);
+  let finishAccessRead: () => void = () => undefined;
+  appointmentsWait = new Promise<void>((resolve) => {
+    finishAccessRead = resolve;
+  });
+  let accessRead: Promise<void> = Promise.resolve();
+  await act(async () => {
+    accessRead = client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
+  });
   await view.rerender(<MemberAccessScreen route={{ key: 'access', name: 'MemberAccess', params: undefined }} />);
+  expect(screen.getByText('Loading the register…')).toBeTruthy();
+  expect(screen.queryByText('The selected company is unavailable for this page. ')).toBeNull();
+  await act(async () => {
+    appointmentsWait = null;
+    finishAccessRead();
+    await accessRead;
+  });
+  await view.rerender(dashboard);
+  const finishAccessAccountRead = await pauseAccountRead();
+  await view.rerender(<MemberAccessScreen route={{ key: 'access', name: 'MemberAccess', params: undefined }} />);
+  expect(screen.getByText('Loading the register…')).toBeTruthy();
+  expect(screen.queryByText('The selected company is unavailable for this page. ')).toBeNull();
+  await finishAccessAccountRead();
   await fireEvent.press(
     await screen.findByRole('button', { name: 'Revoke access (Synthetic Holder A, holder-a@example.test)' }),
   );

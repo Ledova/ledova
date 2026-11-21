@@ -3285,6 +3285,39 @@ it('shows an account without register access a calm empty state, reads no member
   await waitFor(() => expect(client.isFetching()).toBe(0));
   expect(readUrls().sort()).toEqual([REGISTER, APPOINTMENTS, PROFILES].sort());
   expect(screen.queryByRole('button', { name: 'Ledger' })).toBeNull();
+  cleanup();
+  let finishAccessRead!: (response: ReturnType<typeof page>) => void;
+  api.get.mockImplementation((url: string) =>
+    url === APPOINTMENTS
+      ? new Promise((resolve) => {
+          finishAccessRead = resolve;
+        })
+      : Promise.resolve(page([])),
+  );
+  let accessRead!: Promise<void>;
+  await act(async () => {
+    accessRead = client.refetchQueries({
+      queryKey: ownAppointmentsKey({ userUuid: 'profile-one', ownerAccountUuid: 'account-one' }),
+      type: 'all',
+    });
+  });
+  show(
+    'investor',
+    <LedgerNavigationProvider>
+      <CompanyContextProvider>
+        <CompanyRegisterPage />
+      </CompanyContextProvider>
+    </LedgerNavigationProvider>,
+    'Member access',
+    { entry: '/?company=harbour#member-access' },
+  );
+  expect(await screen.findByText('Loading the register…')).toBeTruthy();
+  expect(screen.queryByText(/The selected company is unavailable/)).toBeNull();
+  await act(async () => {
+    finishAccessRead(page([]));
+    await accessRead;
+  });
+  expect(await screen.findByText(/The selected company is unavailable/)).toBeTruthy();
 
   cleanup();
   client.clear();
