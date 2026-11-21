@@ -359,7 +359,10 @@ execution in [signing families](chain.md#signing-families).
 and private supporting `RegisterEvidence`; an attachment made during setup also names its applied
 `RegisterImport`. Import member rows freeze each attachment's evidence, category and file snapshot
 at preparation, recheck the bytes before application, and create the links only after the actual
-members exist. This copies existing holdings without manufacturing an issuance.
+members exist. This copies existing holdings without manufacturing an issuance. An applied
+import's read marks each row attachment `attached` while its link remains, so a copied-opening
+correction leaves deleted attachments out. Rows that name one are refused at preparation, approval and
+application (`document_deleted`).
 
 `/api/v1/tokens/register-member-documents/` lists attachments with pagination and optional `company`,
 `member` and `token` filters. POST adds one to an existing holding under a current preparation

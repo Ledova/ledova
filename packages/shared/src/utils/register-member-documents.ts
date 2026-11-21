@@ -52,7 +52,8 @@ export function isRegisterImportMemberDocuments(
         typeof row.evidence === 'string' &&
         isUuid(row.evidence) &&
         CATEGORIES.includes(row.category as RegisterMemberDocumentCategory) &&
-        isSnapshot(row.snapshot, row.evidence, company),
+        isSnapshot(row.snapshot, row.evidence, company) &&
+        (row.attached === undefined || typeof row.attached === 'boolean'),
     ) &&
     new Set(value.map((row) => row.evidence)).size === value.length
   );
