@@ -74,6 +74,10 @@ the seed fails. Outside Compose, run `python manage.py seed_demo` from `backend/
 `DEBUG`; `--force` is only for a throwaway database deliberately running without it. It is never
 part of the Compose migration chain.
 
+The command requires the configured migration connection to write synthetic historical fixtures;
+the app and operator roles keep their normal restrictions. Seeded wallets are database fixtures,
+not new wallet registrations or permission to execute deferred features.
+
 The password comes from `--password`, `LEDOVA_DEMO_PASSWORD`, or a generated value the command
 prints. Every run applies it to every seeded account: the testers, the synthetic staff and the
 synthetic people.
