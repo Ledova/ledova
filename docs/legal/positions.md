@@ -24,8 +24,10 @@ Read the provision before relying on a summary of it; the
 Positions 1 to 5 were carried over from the previous [legal note](https://github.com/Ledova/ledova/blob/6ddae7f87ba05d6d7271b43225d261a42b25e111/docs/legal.md) and
 reviewed on 2026-09-15; position 4 was rewritten because a registry that only
 records changes its shape. Position 5 records the owner-directed licence change
-of 2026-09-20. Positions 6 to 9 and 11 retain their dated draft status. Position 4 was
-reassessed on 9 November; position 10 records the accepted privacy direction.
+of 2026-09-20. Positions 7 to 9 and 11 retain their dated draft status. Position 6
+records the owner-approved mirror wording of 22 November; statutory sufficiency remains
+unestablished. Position 4 was reassessed on 9 November; position 10 records the
+accepted privacy direction.
 Neither owner acceptance nor source review is professional legal clearance.
 Position 12 records the 9 November 2026 replacement of the earlier PyMuPDF dependency;
 its historical licensing analysis remains in Git history.
@@ -41,7 +43,7 @@ position says so.
 | 3   | Evidence retention period                            | The first real identity document held                                           | A and B, once investor onboarding or the issuer KYC switch is on | Reviewed                                                      |
 | 4   | Financial-services boundaries | Actual real-data activity, before any fee | Current service; historical A/B | Source-based assessment, 2026-11-09 |
 | 5   | Software licensing and commercial permission         | Any commercial use or use of the code for a competing product or service        | A, B and third-party users                                       | Licence policy approved by owner 2026-09-20; not legal advice |
-| 6   | Where and in what form the register is kept          | The first real register                                                         | A and B, with different forms to lodge                           | Drafted                                                       |
+| 6   | Where and in what form the register is kept          | The first real register                                                         | Current mirror; historical A/B                                   | Mirror wording approved 2026-11-22; statutory sufficiency unestablished |
 | 7   | Whether a register is a financial market             | Any feature where holders post offers to one another                            | A and B, with a different registrant                             | Drafted                                                       |
 | 8   | AML/CTF obligations of the operator                  | Acting for a company in a transaction; holding an AFSL; touching virtual assets | B; a company acting for itself is not engaged                    | Drafted                                                       |
 | 9   | Digital assets and custody                           | Any wallet whose keys Ledova holds for a member                                 | A and B                                                          | Drafted                                                       |
@@ -397,21 +399,23 @@ and when, from the register and those records; it records nothing, and does not
 know what the company lodged or delivered. See
 [outputs due](../business/member-records.md#the-due-list).
 
-**The position.** The stored database record is the register; anything on a
-chain is at most a mirror of it. Three provisions decide that: s175, because an
-immutable ledger cannot honour a court-ordered correction except by a
-compensating entry that a reader must know to apply; s173, because a register
-that returns an error when a third-party node is unreachable is not available
-for inspection; and s1306(3), because a hash-chained, append-only event log is
-the "reasonable precaution" against and for the discovery of falsification that
-the section asks for, and it can be kept without a chain. The register is hosted
-in an Australian region; the operator's Australian office is the place where the
-work of maintaining it is done under s172(1)(c); the company lodges Form 909
-and, because the record is stored on a computer elsewhere, Form 991. Both are
-onboarding steps, not product features. In a
-[company-hosted instance](company-hosted-instance.md) the company lodges only
-the computer-storage notice, and only if the record sits away from its
-registered office.
+**The position.** Ledova is offered as a company-controlled ownership mirror, without
+replacing the company's legal register, historical records, lawful access arrangements
+or filings. The company remains responsible for those arrangements; filing information
+with ASIC does not replace its own members register. [ASIC: company share and shareholder rules](https://www.asic.gov.au/for-business-and-companies/companies/company-share-and-shareholder-rules-and-changes).
+Electronic statutory books must be reproducible in writing and protected by all
+reasonable precautions under s1306. That section does not prescribe a blockchain or
+append-only log. Ledova permits authorised deletion, recalculates holdings and rehashes
+later entries; its metadata receipt does not preserve the deleted contents. We therefore
+do not rely on hash-chain consistency as proof of unchanged history or sufficient
+compliance with s1306(3). Describing a record as a mirror does not itself exempt
+company-affairs books from s1307's restrictions on destruction or falsification.
+[Corporations Act, ss1306–1307](https://www.legislation.gov.au/C2004A00818/2026-09-19/2026-09-19/text/original/epub/OEBPS/document_6/document_6.html).
+Statutory register location, inspection and notice requirements depend on the company's
+actual arrangements under ss168–175 and 1301; Australian hosting alone establishes
+neither the statutory location nor an automatic requirement for both location notices.
+[Corporations Act, ss168–175](https://www.legislation.gov.au/C2004A00818/2026-09-19/2026-09-19/text/original/epub/OEBPS/document_1/document_1.html),
+[s1301](https://www.legislation.gov.au/C2004A00818/2026-09-19/2026-09-19/text/original/epub/OEBPS/document_6/document_6.html).
 
 **The obligations the register has to make easy**, because they are the
 company's and the product either serves them or causes them to be missed:
@@ -435,18 +439,21 @@ indicates their intention. Whether an instrument of transfer signed in-app
 satisfies s1071B's "proper instrument of transfer", whose required details are
 set by regulation, has not been checked against those regulations.
 
-**What would show this wrong.** ASIC approving a distributed ledger as a form of
-register under s1306(1)(c), or declaring an on-ledger transfer sufficient under
-Part 7.11 — which is precisely the relief a [pathway](../regulatory-pathway.md)
-route would seek, and the reason the ledger question is the novel one.
+**What would show this wrong.** Evidence that a company actually relies on
+Ledova as its statutory register, or an applicable requirement that the actual
+reproduction, retention, access or safeguards fail to meet. A consistent hash
+chain and a company-authorised deletion do not settle those questions.
 
-**Which way to be wrong.** A correctable record that is also mirrored on a chain
-wastes a mirror. A chain that is the only record cannot be corrected, inspected
-offline, or reproduced in writing when its node is down.
+**Which way to be wrong.** An additional mirror duplicates recordkeeping.
+Treating a deletable mirror as a sufficient statutory register could instead
+lose required history or access. The company remains responsible for the
+required records; a deletion receipt is not a replacement for their contents.
 
 **Trigger.** The first real register.
 
-**Status.** Drafted 2026-09-15, awaiting the owner's sign-off.
+**Status.** Mirror wording approved by the owner on 2026-11-22 under
+[#1737](https://github.com/Ledova/ledova/issues/1737). Statutory sufficiency remains
+unestablished; this is not professional legal clearance or a live-launch approval.
 
 ## 7. A register is not a financial market
 
