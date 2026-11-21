@@ -2796,15 +2796,18 @@ Like v2026-11-15, they were prepared without legal review. Three sections change
   service. An administrator can delete the company with all its records and stored files. Each
   deletion needs one confirmation and cannot be undone. Deleting does not end the company's duty to
   keep the records the law requires. A company with records on a blockchain cannot be deleted this
-  way. Ledova keeps the records it needs for its own obligations, including a short record of each
-  deletion.
+  way. Deleting a company does not delete people's own accounts or their Terms acceptances, and
+  Ledova keeps a short record of each deletion.
 - **What the company is responsible for** extends the record-keeping duty to any record the company
   deletes from Ledova.
 - **Liability** applies the exclusion and the indemnity to records a company or its users delete,
   as well as those they enter.
 
 The Privacy policy names the short record each deletion leaves: its kind, the company, who made it
-and when, but not the deleted contents. Acceptance works as for v2026-11-15. An account stays under
+and when, but not the deleted contents. It is kept indefinitely, because the database refuses to
+delete a deletion receipt. The independent review found the draft's sentence on kept records partly
+inaccurate: a company's own signup acceptance goes with the company, and deleting a sign-in erases
+identity-check data. The owner approved the corrected Terms and Privacy sentences on the same day. Acceptance works as for v2026-11-15. An account stays under
 the version it accepted until it accepts the new one in the web's **Settings → Account**. A
 company's acceptance at signup is not renewed. The signup declaration names the new version, and
 earlier declarations stay valid for the appointments made under them.
