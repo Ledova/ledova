@@ -84,9 +84,8 @@ trigger `tokens_guard_register_entry` then:
 - keeps every holding and the issued supply within 0 to 2^256 − 1, lets an opening or issue only
   add, and requires a cessation to remove the whole holding;
 - requires one change for an issue or cessation and two summing to zero for a transfer;
-- requires a correction's changes to be the exact inverse of the entry its `corrects` names in the
-  same register; only a correction may name one, and `corrects` is one-to-one, so an entry is
-  compensated at most once;
+- refuses a new entry that names an earlier one in `corrects`: no `correction` is recorded any more,
+  and one recorded earlier keeps naming the entry it compensates;
 - for a class with an applied company deployment, freezes the empty register until the deployment's
   original projection and admits only the company's genuine chain opening;
 - assigns the sequence, `previous_hash` and `entry_hash`.
@@ -276,7 +275,7 @@ different file conflicts. The upload is checked like every upload and kept priva
 `companies/<company>/register-evidence/<uuid>/<uuid>.bin`; `tokens_guard_register_evidence` requires
 the uploader's current preparing appointment, a PDF, PNG or JPEG, and that path. Its `kind` is
 `share_register` or `asic_extract` (an import's optional copies), `authority` (the director
-resolution or court order behind an opening, correction, wallet link, grant, transfer, allotment or
+resolution or court order behind an opening, wallet link, grant, transfer, allotment or
 chain family) or `supporting` (grant terms and acceptance, a transfer instrument, an award
 agreement, a vesting event, an allotment's agreement and receipt; particulars changes made before
 the one-step edit keep theirs). The
@@ -296,15 +295,12 @@ Each family prepares with `POST` under its `operation_id`, lists and details the
 companies whose register the caller may read, serves each retained copy as an authenticated
 attachment and takes the shared decision routes (what admin shows of them is in [who runs
 what](../business/register.md#who-runs-what)); the subject of the shared `<subject>_decided` code is
-`correction`, `opening`, `link`, `import`, `grant`, `transfer` or `allotment`. A particulars change
+`opening`, `link`, `import`, `grant`, `transfer` or `allotment`. A particulars change
 is a one-step edit with no decision routes ([particulars changes API](#particulars-changes-api)).
 Beyond the
 shared bindings, each preview digest binds the state named below, and each family adds its own
 requirement codes:
 
-- **Correction** (`register-corrections/`): for application, the register sequence and head hash.
-  `deployment_pending` (a deployment of the class is pending), `register_changed` (the sequence or
-  head moved since preparation), `entry_already_corrected`, `position_would_go_negative`.
 - **Opening** (`register-openings/`): the boundary block hash and, for application, the class's
   register state. `deployment_pending`; `boundary_changed` (the boundary block is no longer
   canonical or covered by the finality policy, or the policy or chain changed);
@@ -352,14 +348,6 @@ Recording an award also refuses `imported_non_tokenised_register_required`. The 
 (`register-issues/`, `register-deployments/`,
 `register-capital-increases/`, `register-pause-changes/`) are in [signing
 families](chain.md#signing-families).
-
-### Corrections API
-
-Where corrections stand: [deleting a register
-entry](../business/register.md#deleting-a-register-entry). Preparation derives the exact
-inverse changes and captures the register's sequence and head hash; an entry is `correctable` while
-it has changes and no correction reverses it. The compensating entry's operation id is the
-correction's UUID, and nothing is broadcast.
 
 ### Openings API
 

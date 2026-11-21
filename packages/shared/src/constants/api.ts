@@ -138,11 +138,6 @@ export const COMPANY_TOKEN_ENDPOINTS = {
   REGISTER_IMPORT_ASIC_FILE: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/asic-file/` as const,
   REGISTER_IMPORT_PREVIEW: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/decision-preview/` as const,
   REGISTER_IMPORT_DECIDE: (uuid: string) => `/api/v1/tokens/register-imports/${uuid}/decide/` as const,
-  REGISTER_CORRECTIONS: '/api/v1/tokens/register-corrections/',
-  REGISTER_CORRECTION_FILE: (uuid: string) => `/api/v1/tokens/register-corrections/${uuid}/file/` as const,
-  REGISTER_CORRECTION_PREVIEW: (uuid: string) =>
-    `/api/v1/tokens/register-corrections/${uuid}/decision-preview/` as const,
-  REGISTER_CORRECTION_DECIDE: (uuid: string) => `/api/v1/tokens/register-corrections/${uuid}/decide/` as const,
   REGISTER_PARTICULARS_CHANGES: '/api/v1/tokens/register-particulars-changes/',
   REGISTER_PARTICULARS_CHANGE_FILE: (uuid: string) =>
     `/api/v1/tokens/register-particulars-changes/${uuid}/file/` as const,

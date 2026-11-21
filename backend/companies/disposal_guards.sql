@@ -313,7 +313,8 @@ BEGIN
                         WHERE appointment.invitation_id = (NEW.manifest->subject->>0)::uuid)
                     THEN 'accepted' ELSE 'submitted' END;
             END IF;
-            IF owner IS DISTINCT FROM NEW.company_id OR state IS DISTINCT FROM 'submitted' THEN
+            IF owner IS DISTINCT FROM NEW.company_id OR (state IS DISTINCT FROM 'submitted'
+                AND NOT (migrating AND subject = 'tokens_registercorrection' AND state = 'rejected')) THEN
                 RAISE EXCEPTION 'Only a deletable record of this company can be deleted' USING ERRCODE = '23514';
             END IF;
         END IF;

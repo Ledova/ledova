@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   REGISTER_COPY,
-  REGISTER_CORRECTION_COPY,
+  REGISTER_ENTRY_COPY,
   type RegisterEntryKind,
   formatShareCount,
   type TokenHoldersResponse,
@@ -55,7 +55,7 @@ function FormerMembers({
                 {former.sourceEntrySequence !== null && <Row label="Cessation entry">{former.sourceEntrySequence}</Row>}
                 {former.sourceEntryKind && (
                   <Row label="Cessation entry kind">
-                    {REGISTER_CORRECTION_COPY.ENTRY_KINDS[former.sourceEntryKind as RegisterEntryKind]}
+                    {REGISTER_ENTRY_COPY.ENTRY_KINDS[former.sourceEntryKind as RegisterEntryKind]}
                   </Row>
                 )}
                 {former.sourceEffectiveOn && (

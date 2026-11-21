@@ -330,29 +330,26 @@ place of the records.
 
 Web Corrections starts with one full-width `Section` titled **Changes**. Below `md` each entry is
 two lines: the kind, then " · " and the short date in muted text (the company date for an issue or
-transfer, the ledger effective date for other kinds), with **Delete** at the end of a row the
-account may delete; then the first two signed movements, with **Show all N share changes** for the
-rest. **Delete** is a compact red text action with a 44 px target (`compact` and `destructive` on
-`PageAction`, and on the app's `Action`), confirmed once in a dialog that names the entry and its people. A ledger date that differs and any correction or reversal,
+transfer, the ledger effective date for other kinds), with a red **Delete** at the end of a row a
+current preparer can delete; then the first two signed movements, with **Show all N share changes**
+for the rest. **Delete** is a compact destructive text action with a 44 px target (`compact` and
+`destructive` on `PageAction`, and on the app's `Action`), confirmed once in a dialog that names the
+entry and its people. A ledger date that differs and any correction or reversal recorded earlier,
 named by kind and date, sit in muted text beneath the first line. From `md` the rows keep their grid
 under **Change**, **Date** and **Share movements**, with **Delete** in its own column. Rows don't
-expand. The records below use Issue shares' summary: corrections under **Needs a decision**,
-**Corrected** and **Rejected** (`CORRECTION_GROUPS`), newest effective date first, with **Show all N
-corrections** or **Show all N rejected corrections** after five, each reading "Correction of the
-issue of 26 Oct 2026 to …" (`correctionSummary`, with a single compensating movement's shares on the
-right), then "Correction" and the short effective date; opening records, newest first, with the kind
+expand. The records below use Issue shares' summary: opening records, newest first, with the kind
 and shares, then the short record date and member count; and particulars changes under one untitled
 group (`PARTICULARS_GROUPS`), newest as-at date first, five then **Show all N changes**, with the
 member's name, then what changed (`particularsChanged`) and the short as-at date. Only an unfinished
 record, a rejected opening record, or a particulars change that was not applied shows its status
 beneath its summary, followed by any decision actions; its details hold the rest, its downloads
 included.
-Entries stay immutable; current register readers can
+Entries are never edited; current register readers can
 inspect retained supporting records and permitted downloads. The same view holds capability-guarded
-correction, copied-opening and particulars workflows. Certificate
+copied-opening and particulars workflows. Certificate
 preparation belongs in Documents. Keep maintenance controllers mounted so unfinished work and original-request recovery
-survive navigation. The app's Corrections has the same rows and records at phone width, with each
-decision's review in place of the records, the opening records' decisions included. Documents has one
+survive navigation. The app's Corrections has the same rows and records at phone width, with an
+opening record's decision reviewed in place of the records. Documents has one
 **Certificates** page for company and member records, plus
 **Inspection copies** and **Company pack** where company access permits them, on the web and, at
 phone width, in the app. Inspection
@@ -610,11 +607,9 @@ shareholder by name, and until then Corrections. A non-paid transfer locks Cance
 is unresolved, and hides its arrow then too, so the phone top bar shows the menu button instead.
 
 A way back to a Ledger class or task carries the place it means, built by `registerPlace`
-(`dashboard/src/pages/company/ledger/shared/registerPlace.ts`): a correction returns to that
-class's Corrections view, a class's own page to Ledger and a non-paid transfer to that class's
+(`dashboard/src/pages/company/ledger/shared/registerPlace.ts`): a class's own page returns to Ledger and a non-paid transfer to that class's
 Transfer shares. A shareholder's page links back to Shareholders with its company through `Page`'s
-parent link. Preparing a correction or
-making a particulars change lands on its new record under Corrections; a non-paid transfer lands under
+parent link. Making a particulars change lands on its new record under Corrections; a non-paid transfer lands under
 Transfer shares. Each keeps its class and task, with focus and one line naming what was prepared
 ([feedback](#feedback)). A preparation started from a shareholder's page also lands on its record in
 Ledger, since a shareholder's page doesn't list prepared records.
@@ -667,9 +662,9 @@ original save**); links named after the page they open (**Open Employee share sc
 particulars**); the app Dashboard's **Accept invitation**, whose card doesn't name an invitation; a
 feed's **Load more …** ([Feeds](#lists-search-filters-and-paging)); the register forms' submits that
 name what they prepare or record (**Prepare allotment**, **Prepare transfer**, **Prepare grant**,
-**Prepare issue**, **Prepare correction**, **Record award**, **Record vesting**, setup's **Record
+**Prepare issue**, **Record award**, **Record vesting**, setup's **Record
 review**); a register decision's confirm, which names the decision (**Reject transfer**, **Record
-issue**, **Apply correction**, **Confirm import** and the like). An irreversible step says so in its
+issue**, **Confirm import** and the like). An irreversible step says so in its
 dialog, not its button: **Revoke** answers "Revoke appointment permanently?".
 
 `busy` and `busyLabel` disable an action and name its work, such as "Preparing allotment…" or
@@ -727,7 +722,7 @@ rather than its identifier. It reports:
 - a recorded team invitation, an accepted invitation and a representative authority request;
 - member access's recorded invitation;
 - deleted share classes, at the top of Ledger's Share classes card;
-- a prepared correction or non-paid transfer, or a made particulars change, on the record you land
+- a prepared non-paid transfer, or a made particulars change, on the record you land
   on in Ledger.
 
 Identity verification shows its result in its own dialog, and sign-in and sign-up keep their boxed
@@ -871,7 +866,6 @@ question, with one native radio button per answer and one answer per line, at le
 arrow keys move between answers. The app's `Choices` (`mobile/src/components/Field.tsx`) lays its
 answers out the same way, each row at least 44px tall. Both ask for:
 
-- the authority for a correction;
 - a new share class's **Start with** preset;
 - the type of a new share class set up as **Another class** (the app also uses it when a class's details are edited; the web uses a select there);
 - the kind of issue on Ledger's Issue shares task, which opens that kind's form in place.
@@ -994,7 +988,7 @@ reads every page. Other lists still read every page
 ([frontend](frontend.md#lists-figures-and-currency)).
 
 **The register's records are the one stated exception.** Each share class's allotments, transfers,
-imports, corrections, particulars changes, awards and grants, and company member access, read every
+imports, particulars changes, awards and grants, and company member access, read every
 page. Each record keeps its own recovery for an uncertain reply, and a newer record shifting the
 pages would unmount the oldest loaded one and lose it; these lists grow only with one company's
 register decisions. The owner chose this on 21 October 2026,
@@ -1046,7 +1040,7 @@ a search or filter says what matched instead, such as "No shareholders match you
 requests match."
 
 A class's awards, imports and non-paid transfers take their empty sentence from
-shared copy in `packages/shared/src/constants/business/`. On the web, a section with no corrections,
+shared copy in `packages/shared/src/constants/business/`. On the web, a section with no
 register entries or particulars changes is hidden instead. Other empty sentences are each client's
 own. A sentence that reports a state rather than an empty list keeps its own words, such as "No
 current holding." A class's awards, grants, allotments and non-paid transfers, and an award's
@@ -1240,9 +1234,9 @@ by a local helper or a browser `toLocale…` call:
 - **Status codes** read as words, never as the code or a code with its underscores replaced: the
   server's `statusDisplay` where a record carries one (companies), else a
   shared label map (`packages/shared/src/constants/business/labels.ts` for member invitations and
-  appointments, and `REGISTER_CORRECTION_COPY.ENTRY_KINDS` for register entry kinds). Mobile shows no status codes and uses the same shared maps.
-- **Identifiers.** Records show names, dates and amounts. Issue, transfer, award, import and
-  correction records, former shareholders, certificates, inspection copies, member access, Team,
+  appointments, and `REGISTER_ENTRY_COPY.ENTRY_KINDS` for register entry kinds). Mobile shows no status codes and uses the same shared maps.
+- **Identifiers.** Records show names, dates and amounts. Issue, transfer, award and import
+  records, former shareholders, certificates, inspection copies, member access, Team,
   representative authority and Profile show no internal references, register
   sequences, block numbers, gas or fingerprints, and have no **Record details** or **Technical
   details** section; an award shows who recorded it and when as one muted line under
@@ -1251,7 +1245,8 @@ by a local helper or a browser `toLocale…` call:
   the same, the screen shows `shortReference` (`packages/shared/src/utils/formatting.ts`, the first
   eight characters), never the full UUID, including in choices and screen-reader context. Internal
   user numbers are not shown. Corrections names each change by its kind and date, with no register
-  sequence: a correction reads **Corrects the issue of …**, a reversed change **Reversed on …**, and
+  sequence: a correction recorded earlier reads **Corrects the issue of …**, a reversed change
+  **Reversed on …**, and
   the copied opening sits in its own **Opening records** card, its decisions reading **Review** and
   **Confirm**, its history **Reviewed** and **Confirmed**, and its shareholders behind **Show the
   shareholders**.

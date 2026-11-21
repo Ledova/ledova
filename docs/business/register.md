@@ -60,7 +60,7 @@ changes have no admin page.
 
 Every change except a [particulars change](#changing-a-members-particulars) rests on evidence the
 company provides ([company-provided evidence](README.md#company-provided-evidence)). The authority
-document behind an opening, correction, wallet link, transfer or
+document behind an opening, wallet link, transfer or
 [retained instruction](#retained-director-instructions) is a director resolution naming the
 approving director or, except for a transfer or instruction, a court order with its reference. Uploads are PDF,
 PNG or JPEG files within the upload limit (10 MB by default); evidence downloads are not logged.
@@ -77,7 +77,7 @@ Every change is an entry:
 | Issue                      | Adds a positive whole number of shares to one member                             |
 | Transfer                   | Moves shares between members; issued shares do not change                        |
 | Cessation                  | Removes a member's entire holding in this class; no current workflow records one |
-| Compensating correction    | Exactly reverses every change of one earlier entry                               |
+| Compensating correction    | Exactly reverses every change of one earlier entry; none is made any more        |
 | Copied opening correction  | Records the exact difference when the company corrects the opening's records     |
 
 Entries are never edited, and each is linked to the one before, so altered history is detected when
@@ -388,9 +388,11 @@ after its correction. The opening can't be deleted (delete the share class to st
 copied opening correction (correct the copied opening again) or an entry of a class with on-chain
 records.
 
-Correct is no longer offered on entries. Corrections already prepared stay listed under Corrections
-and can still be approved and applied, until #1723 removes that workflow; an applied correction is
-an entry like any other and can be deleted.
+Compensating corrections are no longer made. One recorded earlier stays in the history as a
+**Compensating correction** entry naming the entry it reverses, and can be deleted like any other
+entry; its record, decisions and evidence stay in the [company pack](member-records.md#the-company-pack)
+until then. Corrections that never changed the register, still waiting for a decision or rejected,
+were removed when the workflow was retired.
 
 ### Changing a member's particulars
 
@@ -679,7 +681,7 @@ preparer can delete, then its first two signed shareholder movements, with Show 
 the company date for an issue or transfer (ledger effective date for other kinds), with the ledger
 date beneath when it differs, and any correction or reversal is named beneath by kind and date. On
 wide screens the rows align under Change, Date and Share movements. Rows don't expand. An older
-issue or transfer with no company date says Date not recorded. Retained source imports, corrections
+issue or transfer with no company date says Date not recorded. Retained source imports
 and particulars records stay listed with their details and permitted evidence downloads; chain
 openings, reconciliations and wallet links are read through the API since
 [#1452](https://github.com/Ledova/ledova/issues/1452). Entries are never edited. Current register
@@ -688,21 +690,17 @@ respective company appointments.
 The former web History address opens Corrections with the same company and class. Certificates are
 prepared in [Documents](member-records.md#preparing-a-certificate).
 
-The same view holds the existing append-only correction and maintenance workflows: corrections,
-source opening records and particulars changes. Each record is a compact summary, as on Issue
-shares; selecting it shows or hides its snapshot, documents and decision trail. Only an unfinished
-record, a rejected opening record, or a particulars change that was not applied shows its status
-beneath it, with any decisions. Corrections sit under **Needs a
-decision**, **Corrected** and **Rejected**, the last two showing five with **Show all** for the
-rest; each reads like "Correction of the issue of 26 Oct 2026 to …", with the shares when it has one
-compensating change, then its effective date. An opening record shows its kind and shares, then its
+The same view holds the source opening records and particulars changes. Each record is a compact
+summary, as on Issue shares; selecting it shows or hides its snapshot, documents and decision trail.
+Only an unfinished record, a rejected opening record, or a particulars change that was not applied
+shows its status beneath it, with any decisions. An opening record shows its kind and shares, then its
 record date and member count; its shareholders sit behind **Show the shareholders**, open while it
 awaits a decision. A particulars change shows the member, then what changed and its as-at date, five
 at a time; its details show who changed the particulars and when, with the particulars before and
 after; one a linked member made reads Changed by: The member, in their Ledova profile. Stages read
 Prepared, Approved, Applied or Rejected (for an import, Reviewed and Confirmed; for a particulars
 change from before the one-step edit that was never applied, Prepared, not applied or Approved, not
-applied), and an import, a correction or such an earlier particulars change has an Evidence row
+applied), and an import or such an earlier particulars change has an Evidence row
 reading Provided by the company or, before the work became company-run, "Verified by Ledova staff".
 A section that read successfully with nothing to show is left out. An unfinished request keeps its
 class and exact request, and while one is held the company, task and class cannot be changed; its

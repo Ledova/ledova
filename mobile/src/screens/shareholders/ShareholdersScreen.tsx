@@ -7,7 +7,7 @@ import {
   FIELD_LIMITS,
   PAGE_SIZE,
   REGISTER_COPY,
-  REGISTER_CORRECTION_COPY,
+  REGISTER_ENTRY_COPY,
   formatDate,
   formatShareCount,
   needsIdentityReview,
@@ -542,7 +542,7 @@ function FormerMembers({
                   )}
                   {!!former.sourceEntryKind && (
                     <Fact label="Cessation entry kind">
-                      {REGISTER_CORRECTION_COPY.ENTRY_KINDS[former.sourceEntryKind as RegisterEntryKind]}
+                      {REGISTER_ENTRY_COPY.ENTRY_KINDS[former.sourceEntryKind as RegisterEntryKind]}
                     </Fact>
                   )}
                   {!!former.sourceEffectiveOn && (

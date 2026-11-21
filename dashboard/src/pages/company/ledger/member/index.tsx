@@ -5,7 +5,7 @@ import {
   DESTINATIONS,
   HOLDER_TYPE_LABELS,
   REGISTER_COPY,
-  REGISTER_CORRECTION_COPY,
+  REGISTER_ENTRY_COPY,
   REGISTER_PARTICULARS_COPY,
   USER_PREFERENCES_QUERY_KEY,
   appointmentForParticularsEdit,
@@ -319,7 +319,7 @@ function OwnShareholder({
                   {data.entries.data.map(({ token, entry }) => (
                     <li key={entry.uuid} className="flex flex-col gap-1 py-3 text-sm">
                       <p className="flex items-baseline justify-between gap-3 font-medium text-text-primary">
-                        <span className="min-w-0 break-words">{REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind]}</span>
+                        <span className="min-w-0 break-words">{REGISTER_ENTRY_COPY.ENTRY_KINDS[entry.kind]}</span>
                         <span className="shrink-0 whitespace-nowrap tabular-nums">
                           {signedShares(
                             entry.changes

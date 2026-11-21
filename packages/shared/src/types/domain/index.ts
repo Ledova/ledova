@@ -12,7 +12,7 @@ export * from './register-grant';
 export * from './register-award';
 export * from './register-transfer';
 export * from './register-import';
-export * from './register-correction';
+export * from './register-entries';
 export * from './register-particulars';
 export * from './operator';
 

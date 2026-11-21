@@ -8,7 +8,6 @@ import { isRegisterAllotmentDecisionReceipt } from '../utils/register-allotments
 import type { RegisterAllotment, RegisterAllotmentDecisionPreview } from '../types';
 import { useEffect, useRef, useState } from 'react';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { REGISTER_CORRECTION_COPY, REGISTER_CORRECTION_UNMET_COPY } from '../constants/business/register-corrections';
 import { REGISTER_IMPORT_COPY, REGISTER_IMPORT_UNMET_COPY } from '../constants/business/register-imports';
 import { REGISTER_GRANT_COPY, REGISTER_GRANT_UNMET_COPY } from '../constants/business/register-grants';
 import { REGISTER_TRANSFER_COPY, REGISTER_TRANSFER_UNMET_COPY } from '../constants/business/register-transfers';
@@ -19,18 +18,11 @@ import {
 } from '../services/register-transfers';
 import { decideRegisterGrant, deleteRegisterGrant, previewRegisterGrantDecision } from '../services/register-grants';
 import {
-  decideRegisterCorrection,
-  deleteRegisterCorrection,
-  previewRegisterCorrectionDecision,
-} from '../services/register-corrections';
-import {
   decideRegisterImport,
   deleteRegisterImport,
   previewRegisterImportDecision,
 } from '../services/register-imports';
 import type {
-  RegisterCorrection,
-  RegisterCorrectionDecisionPreview,
   RegisterDecideRequest,
   RegisterDecisionKind,
   RegisterDecisionRequest,
@@ -43,7 +35,6 @@ import type {
 } from '../types';
 import { failureStatus, createUserFriendlyError, refusalSentence, failureSentence } from '../utils/errors';
 import { isRegisterDecisionReceipt } from '../utils/register-commands';
-import { isRegisterCorrectionDecisionReceipt } from '../utils/register-corrections';
 import { isRegisterGrantDecisionReceipt } from '../utils/register-grants';
 import { isRegisterTransferDecisionReceipt } from '../utils/register-transfers';
 import { useApiClient } from './useApiClient';
@@ -105,18 +96,6 @@ export const REGISTER_TRANSFER_DECISIONS: RegisterDecisionFamily<RegisterTransfe
   isReceipt: isRegisterTransferDecisionReceipt,
   unmet: REGISTER_TRANSFER_UNMET_COPY,
   copy: REGISTER_TRANSFER_COPY,
-};
-
-export const REGISTER_CORRECTION_DECISIONS: RegisterDecisionFamily<
-  RegisterCorrection,
-  RegisterCorrectionDecisionPreview
-> = {
-  preview: previewRegisterCorrectionDecision,
-  decide: decideRegisterCorrection,
-  remove: deleteRegisterCorrection,
-  isReceipt: isRegisterCorrectionDecisionReceipt,
-  unmet: REGISTER_CORRECTION_UNMET_COPY,
-  copy: REGISTER_CORRECTION_COPY,
 };
 
 type RegisterDecisionTarget<Preview> = {

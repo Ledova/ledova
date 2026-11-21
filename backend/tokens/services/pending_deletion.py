@@ -22,7 +22,6 @@ PROPOSAL_DECISIONS = {
     "RegisterTransfer": "RegisterTransferDecision",
     "RegisterGrant": "RegisterGrantDecision",
     "RegisterImport": "RegisterImportDecision",
-    "RegisterCorrection": "RegisterCorrectionDecision",
     "RegisterParticularsChange": "RegisterParticularsChangeDecision",
 }
 ALLOTMENT_PARTS = ("agreement", "contribution")

@@ -36,7 +36,6 @@ export const OUTPUT_ENTRY: RegisterEntry = {
   recordedAt: MEMBER_ENTRY.createdAt,
   corrects: null,
   correctedBy: null,
-  correctable: true,
   deletable: false,
   changes: [{ member: MEMBER_RECORD.member, name: MEMBER_RECORD.name, shares: '10' }],
 };

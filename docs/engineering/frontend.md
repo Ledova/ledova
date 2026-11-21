@@ -632,13 +632,14 @@ The server side, including how identical and changed retries are answered, is th
 ## The shared register client layer
 
 `packages/shared` holds the client layer for the company-run register commands the web app runs
-(imports, corrections, particulars changes, grants, transfers and allotments); the chain and wallet
+(imports, particulars changes, grants, transfers and allotments) and the register entry delete; the
+chain and wallet
 commands' client layer went with their pages under
 [#1452](https://github.com/Ledova/ledova/issues/1452). It has:
 
 - a service for each list, preview, decision, preparation and document download;
 - a check of each prepared proposal against every field of its request
-  (`isPreparedRegisterImport` and siblings for corrections, grants, transfers and allotments), and
+  (`isPreparedRegisterImport` and siblings for grants, transfers and allotments), and
   of a particulars change against its one-step edit (`isRegisterParticularsEditReceipt`);
 - the decision families for `useRegisterDecision` (`REGISTER_*_DECISIONS` in
   `packages/shared/src/hooks/useRegisterDecision.ts`) with the generic receipt check;
@@ -671,8 +672,8 @@ step; a different externally selected saved record still gets its own form.
 New classes at `/company/ledger/setup` and explicit imports at `/company/ledger/:uuid/import` use
 the same page entry. An explicit import keeps its saved-record or opening-correction context;
 ordinary class selection does not start a replacement opening. Setup chooses or creates a class,
-then prepares its mirror import, preserving exact-request recovery. Correction and transfer stay
-under `/company/ledger/:uuid/` (`correct/:entry`, `transfer`), and particulars at
+then prepares its mirror import, preserving exact-request recovery. Transfer stays under
+`/company/ledger/:uuid/transfer`, and particulars at
 `/company/ledger/members/:member/particulars`. The particulars
 change, titled with the shareholder's name, is one step: it sends the name and address the page read as `expected` and, once applied,
 lands on its record under Corrections (in the app, back on the shareholder's page). Its form logic is
@@ -767,7 +768,7 @@ saying so with its confirmation disabled. Form inputs are described with each pr
 The web register's repeated row wrappers, stage rows and download failures use
 `dashboard/src/pages/company/ledger/shared/RecordShell.tsx`, and the Ledger's records show their
 decisions through `dashboard/src/pages/company/ledger/DecisionTrail.tsx`; a particulars change shows its
-before and after instead, and an earlier one its retained decisions. Four records (import, correction, particulars change and transfer) use
+before and after instead, and an earlier one its retained decisions. Three records (import, particulars change and transfer) use
 `useRegisterTaskGuard.ts` for their existing visible-task check, while grant, allotment and award
 keep their distinct guards and wrappers. The preparation pages share `PreparationShell.tsx` for
 the account-check page and read-only paragraphs, and
@@ -926,7 +927,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   also stay mounted across the Shareholders views. Held work disables its controls.
   Controllers
   report held work (an unfinished form, or a decision busy or awaiting recovery) under keys naming
-  their task, class and any record (`allotments/`, `transfer/`, `corrections/`, `awards/`, `grants/`;
+  their task, class and any record (`allotments/`, `transfer/`, `corrections/` for opening records, `awards/`, `grants/`;
   member access separately). While anything is held, the page keeps its retained company and class
   scope, prevents company changes, disables class selection and other sidebar tasks, and pins held task
   work to its task and class. The held task's sidebar link remains available from a sibling view
@@ -939,8 +940,9 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   (or the class's company), class and task hash and focuses that class; with a record it focuses that
   record instead and shows its outcome line. `inviteMember` chooses the invitation's recipient on
   Member access.
-  Corrections shows immutable recorded entries in rows that don't expand, and retained supporting records
-  as compact summaries that open their details and permitted downloads, alongside their capability-guarded append-only maintenance workflows. Register-read
+  Corrections shows recorded entries in rows that don't expand, each with **Delete** for a current
+  preparer, and retained supporting records as compact summaries that open their details and permitted
+  downloads, alongside their capability-guarded maintenance workflows. Register-read
   access alone grants no mutation. Inspection copies keeps class inspection-copy preparation;
   Company pack stays at company scope. Their forms and prepared lists use the shared
   `useClassInspectionCopy`, `useCompanyPackAuthority`, `useCompanyPack`, `useInspectionCopies` and
@@ -972,12 +974,11 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   prepared transfer to the page instead of navigating) and its document download
   (`useTransferRecordDownload`) are shared the same way; the app's Transfer shares renders the same
   records and reviews, with the preparation on its own page. Corrections' reads (`useRegisterEntries`,
-  `useClassCorrections` with `correctionsKey`, `useRegisterImports` with `importsKey` and
-  `useRegisterParticulars`), its correction form (`useCorrectionPreparation`, which hands the prepared
-  correction to the page) and entry read (`useCorrectionEntry`), its record downloads
-  (`useCorrectionRecordDownload`, `useImportRecordDownload`, `useParticularsRecordDownload`) and the
-  entry helpers (`entryLabel`, `describeEntry` and their siblings) are shared too; the app's Corrections
-  renders the same rows and records with their decisions, and the correction form on its own page. A
+  `useRegisterImports` with `importsKey` and `useRegisterParticulars`), its entry delete
+  (`useRegisterEntryDeletion`), its record downloads (`useImportRecordDownload`,
+  `useParticularsRecordDownload`) and the entry helpers (`entryLabel`, `entryWithPeople`,
+  `describeEntry` and their siblings) are shared too; the app's Corrections renders the same rows and
+  records with their decisions. A
   section whose
   read succeeded empty is omitted, while a failed read keeps its
   retry and an uncertain decision its recovery. Private content renders only while its view is
@@ -1036,7 +1037,7 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   and its entries). Entries load newest first, a page per Load more: an entry a later page repeats
   is listed once, a page with a non-whole share change fails, and a corrected or reversing entry
   reads as not loaded yet until its page arrives. A proposal of another company or class, an
-  unreadable holding and a correction lookup answering with entries it was not asked for fail the
+  unreadable holding and an entry lookup answering with entries it was not asked for fail the
   read. Each repeated control is named for screen readers after its visible label and its entry or
   proposal.
 - Team (`dashboard/src/pages/company/team`, and the app's Team screen,

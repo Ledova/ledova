@@ -40,8 +40,8 @@ def install(apps, schema_editor):
         1,
     )
     entry = _function(source, "tokens_guard_register_entry").replace(
-        "('opening', 'issue', 'transfer', 'cessation', 'correction')",
-        "('opening', 'issue', 'transfer', 'cessation', 'correction', 'mirror_correction')",
+        "('opening', 'issue', 'transfer', 'cessation')",
+        "('opening', 'issue', 'transfer', 'cessation', 'mirror_correction')",
     )
     with schema_editor.connection.cursor() as cursor:
         cursor.execute(

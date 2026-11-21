@@ -2313,30 +2313,6 @@ BEGIN
 END;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.tokens_check_correction_register_entry()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-DECLARE proposal tokens_registercorrection; decision tokens_registercorrectiondecision; token_uuid uuid; at_time timestamptz;
-BEGIN
-    IF NEW.kind <> 'correction' THEN RETURN NULL; END IF;
-    SELECT token_id INTO token_uuid FROM tokens_shareregister WHERE uuid = NEW.register_id;
-    IF NOT EXISTS (SELECT 1 FROM tokens_registerimport source JOIN tokens_sharetoken token ON token.uuid = source.token_id
-        WHERE source.token_id = token_uuid AND source.status = 'applied' AND NULLIF(token.contract_address, '') IS NULL) THEN RETURN NULL; END IF;
-    SELECT * INTO proposal FROM tokens_registercorrection WHERE uuid = NEW.operation_id;
-    SELECT * INTO decision FROM tokens_registercorrectiondecision WHERE register_correction_id = proposal.uuid AND kind = 'apply';
-    at_time := clock_timestamp();
-    IF proposal.uuid IS NULL OR proposal.preparing_appointment_id IS NULL OR proposal.status <> 'applied'
-        OR proposal.applied_entry_id IS DISTINCT FROM NEW.uuid OR proposal.register_id IS DISTINCT FROM NEW.register_id
-        OR proposal.reviewed_by_id IS DISTINCT FROM NEW.recorded_by_id OR decision.decided_by_id IS DISTINCT FROM NEW.recorded_by_id
-        OR decision.uuid IS NULL OR NOT tokens_register_appointment_current(decision.appointment_id, proposal.company_id,
-            decision.decided_by_id, 'apply', at_time) OR NOT tokens_register_correction_approved(proposal.uuid, at_time)
-    THEN RAISE EXCEPTION 'A non-tokenised correction must retain current authority through its bounded command' USING ERRCODE = '23514'; END IF;
-    RETURN NULL;
-END;
-$function$;
-
 CREATE OR REPLACE FUNCTION public.tokens_check_deployment_signature()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -2367,27 +2343,6 @@ BEGIN
         RAISE EXCEPTION 'Imported registers require attributed issuance before a fresh signature' USING ERRCODE = '23514';
     END IF;
     RETURN NEW;
-END;
-$function$;
-
-CREATE OR REPLACE FUNCTION public.tokens_check_register_correction_decision()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-DECLARE
-    proposal tokens_registercorrection;
-BEGIN
-    SELECT * INTO proposal FROM tokens_registercorrection WHERE uuid = NEW.register_correction_id;
-    IF (NEW.kind = 'approve' AND proposal.status <> 'submitted')
-        OR (NEW.kind <> 'approve' AND (proposal.status <> CASE NEW.kind WHEN 'apply' THEN 'applied' ELSE 'rejected' END
-            OR proposal.reviewed_by_id IS DISTINCT FROM NEW.decided_by_id
-            OR proposal.reviewed_at IS DISTINCT FROM NEW.decided_at
-            OR (NEW.kind = 'reject' AND proposal.rejection_reason IS DISTINCT FROM NEW.reason)))
-    THEN
-        RAISE EXCEPTION 'A register correction decision must carry exactly its own effect' USING ERRCODE = '23514';
-    END IF;
-    RETURN NULL;
 END;
 $function$;
 
@@ -3008,38 +2963,6 @@ BEGIN
 END;
 $function$;
 
-CREATE OR REPLACE FUNCTION public.tokens_guard_correction_register_entry()
- RETURNS trigger
- LANGUAGE plpgsql
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-DECLARE proposal tokens_registercorrection; principal bigint; issuer uuid; token_uuid uuid;
-BEGIN
-    IF NEW.kind <> 'correction' THEN RETURN NEW; END IF;
-    SELECT company_id, token_id INTO issuer, token_uuid FROM tokens_shareregister WHERE uuid = NEW.register_id;
-    IF current_setting('app.company_operation', true) IS DISTINCT FROM 'register_correction_apply'
-        AND NOT EXISTS (SELECT 1 FROM tokens_registerimport source JOIN tokens_sharetoken token ON token.uuid = source.token_id
-            WHERE source.token_id = token_uuid AND source.status = 'applied' AND NULLIF(token.contract_address, '') IS NULL) THEN RETURN NEW; END IF;
-    principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
-    SELECT * INTO proposal FROM tokens_registercorrection WHERE uuid = NEW.operation_id;
-    IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL OR proposal.uuid IS NULL
-        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_correction_apply'
-        OR current_setting('app.company_id', true) IS DISTINCT FROM issuer::text
-        OR proposal.company_id IS DISTINCT FROM issuer OR proposal.register_id IS DISTINCT FROM NEW.register_id
-        OR proposal.status <> 'submitted' OR proposal.preparing_appointment_id IS NULL OR NEW.recorded_by_id IS DISTINCT FROM principal
-        OR NEW.corrects_id IS DISTINCT FROM proposal.corrects_id OR NEW.changes IS DISTINCT FROM proposal.changes
-        OR NEW.effective_on IS DISTINCT FROM proposal.effective_on
-        OR NOT EXISTS (SELECT 1 FROM tokens_shareregister register WHERE register.uuid = NEW.register_id
-            AND register.sequence = proposal.base_sequence AND register.head_hash = proposal.base_hash)
-        OR NOT tokens_register_correction_approved(proposal.uuid, clock_timestamp())
-        OR NOT EXISTS (SELECT 1 FROM tokens_registercorrectiondecision decision WHERE decision.register_correction_id = proposal.uuid
-            AND decision.kind = 'apply' AND decision.decided_by_id = principal
-            AND tokens_register_appointment_current(decision.appointment_id, issuer, principal, 'apply', clock_timestamp()))
-    THEN RAISE EXCEPTION 'A non-tokenised correction entry needs its exact current company application' USING ERRCODE = '23514'; END IF;
-    RETURN NEW;
-END;
-$function$;
-
 CREATE OR REPLACE FUNCTION public.tokens_guard_grant_member()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -3364,88 +3287,11 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_correction()
  LANGUAGE plpgsql
  SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
-DECLARE
-    original tokens_registerentry;
-    applied tokens_registerentry;
-    head tokens_shareregister;
-    principal bigint;
-    at_time timestamptz;
-    authority_copy tokens_registerevidence;
-    inverse jsonb;
 BEGIN
     IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
-    IF TG_OP = 'DELETE' THEN
-        RAISE EXCEPTION 'Retain correction proposals and their authority evidence' USING ERRCODE = '23514';
-    END IF;
-    principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
-    at_time := clock_timestamp();
-    IF TG_OP = 'INSERT' THEN
-        PERFORM 1 FROM companies_company WHERE uuid = NEW.company_id FOR UPDATE;
-        SELECT * INTO authority_copy FROM tokens_registerevidence WHERE uuid = NEW.authority_evidence_id;
-        SELECT * INTO head FROM tokens_shareregister WHERE uuid = NEW.register_id FOR UPDATE;
-        SELECT * INTO original FROM tokens_registerentry WHERE uuid = NEW.corrects_id;
-        SELECT jsonb_agg(jsonb_build_object('member', value->>'member',
-            'shares', (-(value->>'shares')::numeric)::text) ORDER BY value->>'member')
-            INTO inverse FROM jsonb_array_elements(original.changes);
-        IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL
-            OR NEW.submitted_by_id IS DISTINCT FROM principal
-            OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_correction_prepare'
-            OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text
-            OR NOT tokens_register_appointment_current(NEW.preparing_appointment_id, NEW.company_id, principal,
-                'prepare', at_time)
-            OR NEW.status <> 'submitted' OR NEW.reviewed_by_id IS NOT NULL OR NEW.reviewed_at IS NOT NULL
-            OR NEW.applied_entry_id IS NOT NULL OR NEW.rejection_reason <> ''
-            OR head.company_id IS DISTINCT FROM NEW.company_id
-            OR original.register_id IS DISTINCT FROM NEW.register_id
-            OR NEW.base_sequence IS DISTINCT FROM head.sequence OR NEW.base_hash IS DISTINCT FROM head.head_hash
-            OR inverse IS NULL OR NEW.changes IS DISTINCT FROM inverse
-            OR EXISTS (SELECT 1 FROM tokens_registerentry WHERE corrects_id = NEW.corrects_id)
-            OR NEW.authority NOT IN ('director_resolution', 'court_order')
-            OR (NEW.authority = 'director_resolution') <> (length(btrim(NEW.approving_director)) > 0)
-            OR length(btrim(NEW.authority_reference)) = 0 OR length(btrim(NEW.reason)) = 0
-            OR NEW.effective_on > current_date
-            OR NEW.file !~ ('^companies/' || NEW.company_id || '/register-corrections/' || NEW.uuid || '/[0-9a-f-]{36}[.]bin$')
-            OR authority_copy.uuid IS NULL OR authority_copy.company_id <> NEW.company_id
-            OR authority_copy.kind <> 'authority' OR authority_copy.uploaded_by_id <> principal
-            OR NEW.evidence_fingerprint IS DISTINCT FROM authority_copy.sha256
-            OR NEW.evidence_snapshot IS DISTINCT FROM tokens_register_evidence_snapshot(authority_copy)
-        THEN
-            RAISE EXCEPTION 'Correction preparations require exact current intent, company authority and evidence'
-                USING ERRCODE = '23514';
-        END IF;
-    ELSE
-        IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR OLD.status <> 'submitted'
-            OR NEW.status NOT IN ('applied', 'rejected')
-            OR (to_jsonb(NEW) - ARRAY['status', 'reviewed_by_id', 'reviewed_at', 'rejection_reason', 'applied_entry_id', 'updated_at'])
-                IS DISTINCT FROM
-                (to_jsonb(OLD) - ARRAY['status', 'reviewed_by_id', 'reviewed_at', 'rejection_reason', 'applied_entry_id', 'updated_at'])
-            OR NEW.reviewed_at IS NULL OR NEW.reviewed_by_id IS DISTINCT FROM principal
-            OR NOT EXISTS (SELECT 1 FROM tokens_registercorrectiondecision decision
-                WHERE decision.register_correction_id = NEW.uuid AND decision.decided_by_id = NEW.reviewed_by_id
-                    AND decision.decided_at = NEW.reviewed_at
-                    AND decision.kind = CASE NEW.status WHEN 'applied' THEN 'apply' ELSE 'reject' END
-                    AND (NEW.status = 'applied' OR decision.reason = NEW.rejection_reason))
-        THEN
-            RAISE EXCEPTION 'Only the exact company decision may decide an immutable correction'
-                USING ERRCODE = '23514';
-        END IF;
-        IF NEW.status = 'applied' THEN
-            SELECT * INTO applied FROM tokens_registerentry WHERE uuid = NEW.applied_entry_id;
-            IF applied.uuid IS NULL OR applied.register_id <> NEW.register_id OR applied.kind <> 'correction'
-                OR applied.operation_id <> NEW.uuid OR applied.corrects_id IS DISTINCT FROM NEW.corrects_id
-                OR applied.changes IS DISTINCT FROM NEW.changes OR applied.effective_on <> NEW.effective_on
-                OR applied.recorded_by_id <> NEW.reviewed_by_id
-                OR applied.previous_hash <> NEW.base_hash OR applied.sequence <> NEW.base_sequence + 1
-                OR NEW.rejection_reason <> '' THEN
-                RAISE EXCEPTION 'Application must record the matching compensating entry' USING ERRCODE = '23514';
-            END IF;
-        ELSIF NEW.applied_entry_id IS NOT NULL OR length(btrim(NEW.rejection_reason)) = 0 THEN
-            RAISE EXCEPTION 'Rejection requires a reason and no applied entry' USING ERRCODE = '23514';
-        END IF;
-    END IF;
-    RETURN NEW;
+    RAISE EXCEPTION 'Corrections are no longer recorded; delete the mistaken entry instead' USING ERRCODE = '23514';
 END;
 $function$;
 
@@ -3454,43 +3300,11 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_correction_decision()
  LANGUAGE plpgsql
  SET search_path TO 'pg_catalog', 'public', 'pg_temp'
 AS $function$
-DECLARE
-    principal bigint;
-    at_time timestamptz;
-    proposal tokens_registercorrection;
 BEGIN
     IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
     END IF;
-    IF TG_OP <> 'INSERT' THEN
-        RAISE EXCEPTION 'Register correction decisions are append-only' USING ERRCODE = '23514';
-    END IF;
-    principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
-    at_time := clock_timestamp();
-    SELECT * INTO proposal FROM tokens_registercorrection WHERE uuid = NEW.register_correction_id;
-    PERFORM 1 FROM companies_company WHERE uuid = proposal.company_id FOR UPDATE;
-    SELECT * INTO proposal FROM tokens_registercorrection WHERE uuid = NEW.register_correction_id FOR UPDATE;
-    IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR principal IS NULL OR proposal.uuid IS NULL
-        OR NEW.decided_by_id IS DISTINCT FROM principal
-        OR current_setting('app.company_operation', true) IS DISTINCT FROM 'register_correction_' || NEW.kind
-        OR current_setting('app.company_id', true) IS DISTINCT FROM proposal.company_id::text
-        OR proposal.status <> 'submitted' OR NEW.kind NOT IN ('approve', 'apply', 'reject')
-        OR (NEW.kind = 'reject') <> (length(btrim(NEW.reason)) > 0)
-        OR (NEW.kind <> 'reject' AND proposal.preparing_appointment_id IS NULL)
-        OR NEW.digest IS DISTINCT FROM tokens_register_correction_decision_digest(proposal.uuid, NEW.kind,
-            principal, NEW.appointment_id, NEW.reason)
-        OR NOT tokens_register_appointment_current(NEW.appointment_id, proposal.company_id, principal,
-            CASE NEW.kind WHEN 'apply' THEN 'apply' ELSE 'approve' END, at_time)
-        OR (NEW.kind = 'approve' AND tokens_register_correction_approved(proposal.uuid, at_time))
-        OR (NEW.kind = 'apply' AND NOT tokens_register_correction_approved(proposal.uuid, at_time))
-    THEN
-        RAISE EXCEPTION 'Register correction decisions need the exact current company authority'
-            USING ERRCODE = '23514';
-    END IF;
-    NEW.decided_at := at_time;
-    NEW.created_at := at_time;
-    NEW.updated_at := at_time;
-    RETURN NEW;
+    RAISE EXCEPTION 'Corrections are no longer recorded; delete the mistaken entry instead' USING ERRCODE = '23514';
 END;
 $function$;
 
@@ -3573,7 +3387,6 @@ CREATE OR REPLACE FUNCTION public.tokens_guard_register_entry()
 AS $function$
 DECLARE
     head tokens_shareregister;
-    original tokens_registerentry;
     deployment_source tokens_registerdeployment;
     deployment_journal tokens_tokendeployment;
     effect jsonb;
@@ -3582,7 +3395,6 @@ DECLARE
     held numeric;
     total numeric := 0;
     previous_member text := '';
-    inverse jsonb;
     maximum numeric := 115792089237316195423570985008687907853269984665640564039457584007913129639935;
 BEGIN
     IF TG_OP = 'DELETE' THEN
@@ -3642,7 +3454,7 @@ BEGIN
                 AND (opening.boundary->>'chain_id')::bigint = (deployment_journal.intent->>'chain_id')::bigint
         ) THEN RAISE EXCEPTION 'A company deployment requires its genuine original chain opening' USING ERRCODE = '23514'; END IF;
     END IF;
-    IF NEW.kind NOT IN ('opening', 'issue', 'transfer', 'cessation', 'correction')
+    IF NEW.kind NOT IN ('opening', 'issue', 'transfer', 'cessation')
         OR (NEW.kind = 'opening') <> (head.sequence = 0)
         OR jsonb_typeof(NEW.changes) IS DISTINCT FROM 'array' THEN
         RAISE EXCEPTION 'The register requires one opening followed by typed changes' USING ERRCODE = '23514';
@@ -3681,20 +3493,8 @@ BEGIN
         OR head.issued_supply + total < 0 OR head.issued_supply + total > maximum THEN
         RAISE EXCEPTION 'The register change has an invalid shape or supply' USING ERRCODE = '23514';
     END IF;
-    IF NEW.kind = 'correction' THEN
-        SELECT * INTO original FROM tokens_registerentry
-            WHERE uuid = NEW.corrects_id AND register_id = head.uuid;
-        IF NOT FOUND THEN
-            RAISE EXCEPTION 'A correction must identify an earlier entry in this register' USING ERRCODE = '23514';
-        END IF;
-        SELECT jsonb_agg(jsonb_build_object('member', value->>'member',
-            'shares', (-(value->>'shares')::numeric)::text) ORDER BY value->>'member')
-            INTO inverse FROM jsonb_array_elements(original.changes);
-        IF NEW.changes IS DISTINCT FROM inverse THEN
-            RAISE EXCEPTION 'A correction must compensate the original entry exactly' USING ERRCODE = '23514';
-        END IF;
-    ELSIF NEW.corrects_id IS NOT NULL THEN
-        RAISE EXCEPTION 'Only a correction can compensate an earlier entry' USING ERRCODE = '23514';
+    IF NEW.corrects_id IS NOT NULL THEN
+        RAISE EXCEPTION 'A new entry cannot compensate an earlier one' USING ERRCODE = '23514';
     END IF;
     NEW.sequence := head.sequence + 1;
     NEW.previous_hash := head.head_hash;
@@ -5827,33 +5627,6 @@ AS $function$
         WHERE proposal.uuid = proposal_uuid), false);
 $function$;
 
-CREATE OR REPLACE FUNCTION public.tokens_register_correction_approved(correction_uuid uuid, at_time timestamp with time zone)
- RETURNS boolean
- LANGUAGE sql
- STABLE
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-    SELECT EXISTS (SELECT 1 FROM tokens_registercorrectiondecision decision
-        JOIN tokens_registercorrection proposal ON proposal.uuid = decision.register_correction_id
-        WHERE decision.register_correction_id = correction_uuid AND decision.kind = 'approve'
-            AND tokens_register_appointment_current(decision.appointment_id, proposal.company_id,
-                decision.decided_by_id, 'approve', at_time));
-$function$;
-
-CREATE OR REPLACE FUNCTION public.tokens_register_correction_decision_digest(correction_uuid uuid, decision_kind text, actor bigint, appointment_uuid uuid, decision_reason text)
- RETURNS text
- LANGUAGE sql
- STABLE
- SET search_path TO 'pg_catalog', 'public', 'pg_temp'
-AS $function$
-    SELECT encode(sha256(convert_to(jsonb_build_object('version', '1', 'correction', correction_uuid::text,
-        'kind', decision_kind, 'actor', actor, 'appointment', appointment_uuid::text, 'reason', decision_reason,
-        'register', CASE WHEN decision_kind = 'apply' THEN (SELECT jsonb_build_object('sequence', register.sequence,
-            'head', register.head_hash) FROM tokens_shareregister register
-            JOIN tokens_registercorrection proposal ON proposal.register_id = register.uuid
-            WHERE proposal.uuid = correction_uuid) END)::text, 'UTF8')), 'hex');
-$function$;
-
 CREATE OR REPLACE FUNCTION public.tokens_register_deployment_approval(proposal_uuid uuid, at_time timestamp with time zone)
  RETURNS uuid
  LANGUAGE sql
@@ -7040,8 +6813,6 @@ CREATE CONSTRAINT TRIGGER tokens_company_capital_decision_effect AFTER INSERT ON
 
 CREATE TRIGGER tokens_register_correction_identity BEFORE INSERT OR DELETE OR UPDATE ON tokens_registercorrection FOR EACH ROW EXECUTE FUNCTION tokens_guard_register_correction();
 
-CREATE CONSTRAINT TRIGGER tokens_register_correction_decision_effect AFTER INSERT ON tokens_registercorrectiondecision DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_register_correction_decision();
-
 CREATE TRIGGER tokens_register_correction_decision_guard BEFORE INSERT OR DELETE OR UPDATE ON tokens_registercorrectiondecision FOR EACH ROW EXECUTE FUNCTION tokens_guard_register_correction_decision();
 
 CREATE CONSTRAINT TRIGGER tokens_register_deployment_preparation AFTER INSERT ON tokens_registerdeployment DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_register_deployment_preparation();
@@ -7053,10 +6824,6 @@ CREATE TRIGGER tokens_register_deployment_decision BEFORE INSERT OR DELETE OR UP
 CREATE CONSTRAINT TRIGGER tokens_register_deployment_effect AFTER INSERT ON tokens_registerdeploymentdecision DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_register_deployment_decision();
 
 CREATE TRIGGER tokens_company_issue_entry BEFORE INSERT ON tokens_registerentry FOR EACH ROW EXECUTE FUNCTION tokens_guard_company_issue_entry();
-
-CREATE TRIGGER tokens_register_correction_entry BEFORE INSERT ON tokens_registerentry FOR EACH ROW EXECUTE FUNCTION tokens_guard_correction_register_entry();
-
-CREATE CONSTRAINT TRIGGER tokens_register_correction_entry_effect AFTER INSERT ON tokens_registerentry DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION tokens_check_correction_register_entry();
 
 CREATE TRIGGER tokens_register_entry_cessation AFTER INSERT ON tokens_registerentry FOR EACH ROW EXECUTE FUNCTION tokens_record_member_cessations();
 

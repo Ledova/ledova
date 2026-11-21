@@ -92,17 +92,13 @@ export {
   type PreparationDraft,
 } from './register-import-drafts';
 export {
-  correctionSummary,
   describeEntry,
   entryDate,
-  entryInverse,
   entryLabel,
   entryName,
   entryWithPeople,
   formatRegisterChanges,
-  isPreparedRegisterCorrection,
-  isRegisterCorrectionDecisionReceipt,
-} from './register-corrections';
+} from './register-entries';
 export { isRegisterParticularsEditReceipt, particularsChanged, registerMembers } from './register-particulars';
 export { isPreparedRegisterGrant } from './register-grants';
 export {
@@ -118,7 +114,6 @@ export {
 } from './register-awards';
 export { isPreparedRegisterTransfer } from './register-transfers';
 export {
-  CORRECTION_GROUPS,
   ISSUE_GROUPS,
   PARTICULARS_GROUPS,
   ENTRY_CHANGES_CAP,

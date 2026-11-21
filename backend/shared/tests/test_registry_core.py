@@ -50,7 +50,6 @@ from shared.tests.core_fixtures import (
     import_payload,
     pdf_bytes,
     person,
-    retained_evidence,
 )
 from tokens.models import (
     ClassDetailsRevision,
@@ -532,29 +531,6 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(self.client.get(history_path).json(), history.json())
         with use_operator():
             original = RegisterEntry.objects.get(register__token=self.token, kind="opening")
-        authority = retained_evidence(self.owner, self.appointment, RegisterEvidenceKind.AUTHORITY)
-        correction = self.client.post(
-            "/api/v1/tokens/register-corrections/",
-            {
-                "operation_id": str(uuid4()),
-                "appointment": str(self.appointment.pk),
-                "corrects_id": str(original.pk),
-                "authority_evidence": str(authority.pk),
-                "effective_on": timezone.now().date().isoformat(),
-                "authority": "director_resolution",
-                "approving_director": "Synthetic Director",
-                "authority_reference": "SYNTHETIC-COMPENSATING-RECORD",
-                "reason": "Compensate a recorded opening without erasing history",
-            },
-            format="json",
-        )
-        self.assertEqual(correction.status_code, 201, correction.content)
-        self.decision("/api/v1/tokens/register-corrections/", correction.json()["uuid"], "approve")
-        self.decision("/api/v1/tokens/register-corrections/", correction.json()["uuid"], "apply")
-        with use_operator():
-            register = ShareRegister.objects.get(token=self.token)
-            self.assertEqual((register.sequence, int(register.issued_supply)), (2, 0))
-            self.assertEqual(RegisterPosition.objects.get(register=register).shares, 0)
         recorded = self.client.get(current_path).json()
         self.assertFalse(recorded["canEditDetails"])
         self.assertTrue(recorded["canDelete"])
