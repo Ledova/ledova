@@ -151,6 +151,19 @@ it('matches the complete company mirror and retained correction source without i
   });
   expect(isPreparedRegisterImport(withDocuments, documentRequest)).toBe(true);
   expect(isPreparedRegisterImport(withDocuments, request)).toBe(false);
+  const kept = '10000000-0000-4000-8000-000000000002';
+  const correction = registerImportOf({
+    ...record,
+    status: 'applied',
+    members: proposal.members.map((member) => ({
+      ...member,
+      documents: [
+        { ...attachment, attached: false },
+        { ...attachment, evidence: kept, snapshot: { ...attachment.snapshot, evidence: kept }, attached: true },
+      ],
+    })),
+  });
+  expect(initialMembers(REGISTER, correction)[0]!.documents.map((document) => document.evidence)).toEqual([kept]);
   expect(isPreparedRegisterImport(proposal, documentRequest)).toBe(false);
   expect(
     isPreparedRegisterImport(
@@ -171,6 +184,7 @@ it('matches the complete company mirror and retained correction source without i
     [{ ...attachment, snapshot: { ...attachment.snapshot, evidence: 'another-file' } }],
     [{ ...attachment, snapshot: undefined }],
     [{ ...attachment, snapshot: { ...attachment.snapshot, sha256: 'invalid' } }],
+    [{ ...attachment, attached: 'yes' }],
   ])
     expect(() =>
       registerImportOf({

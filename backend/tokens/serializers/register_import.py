@@ -5,6 +5,7 @@ from tokens.models import (
     RegisterEvidenceKind,
     RegisterImport,
     RegisterImportDecision,
+    RegisterMemberDocument,
 )
 from tokens.serializers.register_decision import (
     RegisterDecidedSerializer,
@@ -108,6 +109,15 @@ class RegisterImportDecisionSerializer(RegisterDecisionSerializer):
         model = RegisterImportDecision
 
 
+def _marked(row, attached):
+    if "documents" not in row:
+        return row
+    documents = [
+        {**document, "attached": (row["member"], document["evidence"]) in attached} for document in row["documents"]
+    ]
+    return {**row, "documents": documents}
+
+
 class RegisterImportSerializer(RegisterDecidedSerializer):
     correction_allowed = serializers.SerializerMethodField()
 
@@ -117,6 +127,14 @@ class RegisterImportSerializer(RegisterDecidedSerializer):
         return correction_allowed(obj)
 
     decisions = RegisterImportDecisionSerializer(many=True, read_only=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.status == "applied" and any(row.get("documents") for row in instance.members):
+            links = RegisterMemberDocument.objects.filter(token_id=instance.token_id)
+            attached = {(str(member), str(evidence)) for member, evidence in links.values_list("member", "evidence")}
+            data["members"] = [_marked(row, attached) for row in data["members"]]
+        return data
 
     class Meta:
         model = RegisterImport
