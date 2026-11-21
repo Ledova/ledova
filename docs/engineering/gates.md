@@ -28,6 +28,8 @@ naming no script fails.
 | `check-error-bodies.py`       | [The error body gate](#the-error-body-gate)                          | yes          | Source and client checks |
 | `check-logging.py`            | [The logging privacy gate](#the-logging-privacy-gate)                | yes          | Source and client checks |
 | `check-docs.py`               | [The documentation gate](#the-documentation-gate)                    | yes          | Source and client checks |
+| `check-dead-code.mjs`         | [The dead-code gate](#the-dead-code-gate)                            | yes          | Source and client checks |
+| `check-backend-modules.py`    | [The dead-code gate](#the-dead-code-gate)                            | yes          | Source and client checks |
 | `check-pr-metadata.py`        | [The PR metadata gate](#the-pr-metadata-gate)                        | no           | PR metadata              |
 | `check-api-schema.py`         | [The API type drift gate](#the-api-type-drift-gate)                  | no           | Backend verification     |
 | `check-api-types.mjs`         | [The API type drift gate](#the-api-type-drift-gate)                  | yes          | Source and client checks |
@@ -47,6 +49,29 @@ helper.
 Rules name reference implementations and enforcement. Existing gate debt is counted separately from
 justified exceptions; counts may shrink and stale pins must be removed. Do not add an exception
 merely to make a check green.
+
+## The dead-code gate
+
+`make check-dead-code` runs in `make check`, CI and preflight. Its TypeScript compiler graph covers
+the dashboard, website, mobile and shared source trees, plus shared tests and the mobile root
+entry files. It reports unreachable files and exports with no reference outside their defining
+module, resolving the dashboard aliases and shared package from source. Application entry points,
+tests and ambient declarations are roots; the generated API snapshot is retained as generated
+contract data. Literal lazy imports, `require`, module namespace types and namespace values conservatively keep the loaded
+module's exports. Re-exporting a name alone does not establish a consumer.
+
+The Python AST graph reports unreachable backend modules. Django models/admin entry modules,
+apps, settings, migrations, management commands, template tags, tests and Procrastinate task entry
+modules are discovery roots. Imports, relative imports and literal dotted configuration references
+connect them to their dependencies, including database guard installers. Upload subprocesses have
+explicit edges tied to their filename references; the optional worker launcher and the task
+authority catalogue have documented external consumers. Missing consumers or stale exceptions fail
+the check. An empty source tree or unparseable source also fails.
+
+This is a static aid, not proof that every function, class member, dependency or runtime path is
+used. Computed imports and configuration require review; build configuration and native test
+harnesses outside the source trees are not scanned. Check consumers before deleting a finding.
+Keep a justified framework or external entry point explicit rather than adding a blanket exemption.
 
 ## The PR metadata gate
 
