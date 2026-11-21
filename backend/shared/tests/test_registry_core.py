@@ -8,10 +8,12 @@ from uuid import uuid4
 
 from django.apps import apps
 from django.conf import settings
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, connection, connections
+from django.test import RequestFactory
 from django.utils import timezone
 from eth_account import Account
 from eth_account.messages import encode_defunct
@@ -41,6 +43,7 @@ from companies.services.team import (
     issue_team_invitation,
     revoke_company_appointment,
 )
+from compliance.models import ComplianceAlert
 from feature_flags.models import FeatureFlag
 from shared.database_setup import seed_reference_rows
 from shared.db import atomic, current_alias, use_migrate, use_operator
@@ -919,6 +922,33 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
             PermissionDenied, "Company recovery requires the current model change permission."
         ):
             transition_company(self.company, "suspend", actor=staff, reason="Synthetic reason")
+        request = RequestFactory().post("/admin/compliance/compliancealert/add/")
+        request.user = staff
+        form_type = admin.site._registry[ComplianceAlert].get_form(request)
+        with use_operator():
+            account = UserAccount.objects.get(user_profile=self.profile)
+            data = {
+                "user_account": str(account.pk),
+                "triggered_rule": "MANUAL",
+                "alert_type": "manual",
+                "severity": "low",
+                "description": "Synthetic manual alert",
+                "status": "new",
+                "alert_data": "{}",
+            }
+            form = form_type(data)
+            self.assertTrue(form.is_valid(), form.errors)
+            alert = form.save()
+            self.assertEqual(alert.alert_data, {})
+            form = form_type({**data, "alert_data": ""}, instance=alert)
+            self.assertTrue(form.is_valid(), form.errors)
+            form.save().refresh_from_db()
+            self.assertEqual(alert.alert_data, {})
+            invalid = form_type({**data, "alert_data": "not JSON"}, instance=alert)
+            self.assertFalse(invalid.is_valid())
+            self.assertIn("alert_data", invalid.errors)
+            read_only = admin.site._registry[ComplianceAlert].get_form(request, alert, change=True)
+            self.assertNotIn("alert_data", read_only(instance=alert).fields)
 
     def test_company_team_invitation_records_the_invitees_exact_capability(self):
         response = self.client.post(
