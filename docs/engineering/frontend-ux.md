@@ -672,7 +672,6 @@ request, on pages and in dialogs, including:
 
 - downloads ("Downloading…", on the one document being fetched);
 - previews and preparations;
-- identity verification;
 - establishing an appointment;
 - member invitations and access;
 - register setup's review step (editing the records, loading and confirming the decision).
@@ -724,8 +723,7 @@ rather than its identifier. It reports:
 - a prepared non-paid transfer, or a made particulars change, on the record you land
   on in Ledger.
 
-Identity verification shows its result in its own dialog, and sign-in and sign-up keep their boxed
-outcomes.
+Sign-in and sign-up keep their boxed outcomes.
 Ledger's other forms don't use `Outcome`. Mobile reports saved personal details, Documents'
 downloads, an added person, member access's recorded invitation and deleted share classes with
 `Outcome` as the web does, a
