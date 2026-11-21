@@ -99,14 +99,14 @@ account is active with a verified email, the company's
 met, and the appointment has neither expired nor been revoked
 ([appointments](companies.md#what-an-appointment-records)).
 
-| Capability (app label)                                   | What it permits today                                                                                                                                                                                                                                                  |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Capability (app label)                                   | What it permits today                                                                                                                                                                                                                            |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Manage company information and team                      | Edit company information and documents, invite, read and revoke the team, invite members to member access and revoke it, and produce the core company pack. It also counts as each register capability below (prepare, approve, apply and read). |
-| Prepare register changes (includes reading the register) | Upload company evidence and prepare register changes, issues, wallet instructions and other company commands.                                                                                                                                                          |
-| Approve register changes (includes reading the register) | Approve or reject a prepared change and acknowledge a reconciliation discrepancy.                                                                                                                                                                                      |
-| Apply authorised changes (includes reading the register) | Apply an approved change so that its effect is recorded.                                                                                                                                                                                                               |
-| Manage company payments                                  | Recorded and delegable. No delivered workflow requires it yet; payment recording stays with platform staff.                                                                                                                                                            |
-| Read company register                                    | Read the register, its history, proposals, decisions and evidence copies, and prepare inspection copies and unsigned certificates.                                                                                                                                     |
+| Prepare register changes (includes reading the register) | Upload company evidence and prepare register changes, issues, wallet instructions and other company commands.                                                                                                                                    |
+| Approve register changes (includes reading the register) | Approve or reject a prepared change and acknowledge a reconciliation discrepancy.                                                                                                                                                                |
+| Apply authorised changes (includes reading the register) | Apply an approved change so that its effect is recorded.                                                                                                                                                                                         |
+| Manage company payments                                  | Recorded and delegable. No delivered workflow requires it yet; payment recording stays with platform staff.                                                                                                                                      |
+| Read company register                                    | Read the register, its history, proposals, decisions and evidence copies, and prepare inspection copies and unsigned certificates.                                                                                                               |
 
 Anyone holding prepare, approve or apply reads the full register, including residential addresses
 in inspection copies and retained evidence copies, because they work from member details; the
@@ -187,13 +187,14 @@ it ([what stays with the company](#what-ledova-does-and-what-stays-with-the-comp
 ### Nothing is overwritten
 
 Decisions, withdrawals and revocations are kept with the actual person, appointment and time.
-Register entries cannot be edited or deleted: a correction is a new entry that names the one it
-reverses ([compensating corrections](register.md#compensating-corrections);
+Register entries cannot be edited. A mistaken issue, transfer or correction is deleted by a current
+preparer after one confirmation, and the later entries are linked again
+([deleting a register entry](register.md#deleting-a-register-entry);
 [how entries are protected](../engineering/records.md#entries-and-the-hash-chain)). A proposal
 still awaiting a decision can be rejected, or deleted with its decisions by a current preparer or
 administrator after one confirmation
 ([decision](../decisions.md#companies-may-delete-what-they-record)). An applied proposal stays
-with the register entry it made.
+with the register entry it made, and goes when that entry is deleted.
 
 ### When the outcome is uncertain
 

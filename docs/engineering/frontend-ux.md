@@ -218,7 +218,7 @@ The ledger blocks (`dashboard/src/components/Ledger.tsx`, `mobile/src/components
   each shows its facts and any status it needs, with its permitted action right-aligned at the row's
   end. On wide screens the action has its own fixed-width column (from `xl` for Certificates and
   Member access); on narrower screens, and for Team at every width, it sits beneath the row's facts,
-  still at the right edge, except Changes' compact **Correct**, which stays at the end of the row's
+  still at the right edge, except Changes' compact red **Delete**, which stays at the end of the row's
   first line. Member access's **Revoke**, Certificates' **Prepare** and Team's
   **Revoke** are compact text actions, placed like the others.
   A shareholder's Holdings and History rows don't expand either: the class, or the
@@ -330,12 +330,12 @@ place of the records.
 
 Web Corrections starts with one full-width `Section` titled **Changes**. Below `md` each entry is
 two lines: the kind, then " · " and the short date in muted text (the company date for an issue or
-transfer, the ledger effective date for other kinds), with **Correct** at the end of a row the
-account may correct; then the first two signed movements, with **Show all N share changes** for the
-rest. **Correct** is a compact text action in the brand colour with a 44 px target (`compact` on
-`PageLink`, and on the app's `Action`). A ledger date that differs and any correction or reversal,
+transfer, the ledger effective date for other kinds), with **Delete** at the end of a row the
+account may delete; then the first two signed movements, with **Show all N share changes** for the
+rest. **Delete** is a compact red text action with a 44 px target (`compact` and `destructive` on
+`PageAction`, and on the app's `Action`), confirmed once in a dialog that names the entry and its people. A ledger date that differs and any correction or reversal,
 named by kind and date, sit in muted text beneath the first line. From `md` the rows keep their grid
-under **Change**, **Date** and **Share movements**, with **Correct** in its own column. Rows don't
+under **Change**, **Date** and **Share movements**, with **Delete** in its own column. Rows don't
 expand. The records below use Issue shares' summary: corrections under **Needs a decision**,
 **Corrected** and **Rejected** (`CORRECTION_GROUPS`), newest effective date first, with **Show all N
 corrections** or **Show all N rejected corrections** after five, each reading "Correction of the
@@ -767,7 +767,9 @@ class; a recipient may hold another class, be a former holder, have an award or 
 class is added. It uses the existing inline form and right-aligned collection action. People without
 shares are distinguished from current shareholders, with no invented holding or award. A person
 without shares whom nothing on the register names shows a compact red **Delete** to a current
-preparer (to an administrator when it would remove their access), with one confirmation. Initial
+preparer (to an administrator when it would remove their access), with one confirmation. In
+Corrections, each issue, transfer or correction entry a current preparer can delete ends its row with
+a compact red **Delete** and one confirmation; a refusal names the later entry, with its people, to delete first. Initial
 ledger setup, investor and non-paid issues and employee awards keep their explicit new-person
 paths; invitations select existing records. A named director in external authority evidence is
 not automatically a shareholder or a Ledova user and remains a documentary field.

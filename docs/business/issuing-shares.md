@@ -216,14 +216,14 @@ setup on the web first.
 
 ### What each record changes
 
-| Record                                                         | Effect on issued shares and holdings                                                                                                |
-| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Copying existing records (the opening)                         | Sets the opening balance; it is never an issue                                                                                      |
-| Employee award and vesting                                     | None: an award is a promised entitlement and vesting a company record                                                               |
-| Investor agreement and receipt                                 | None on their own; completing the approved allotment makes the issue                                                                |
-| Any issue: grant, award-linked grant, allotment or chain grant | Increases the issued shares and the recipient's holding once                                                                        |
-| Transfer                                                       | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members)) |
-| Correction                                                     | Keeps the earlier entry and records an exact reversal or opening difference ([corrections](register.md#compensating-corrections))   |
+| Record                                                         | Effect on issued shares and holdings                                                                                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Copying existing records (the opening)                         | Sets the opening balance; it is never an issue                                                                                                                |
+| Employee award and vesting                                     | None: an award is a promised entitlement and vesting a company record                                                                                         |
+| Investor agreement and receipt                                 | None on their own; completing the approved allotment makes the issue                                                                                          |
+| Any issue: grant, award-linked grant, allotment or chain grant | Increases the issued shares and the recipient's holding once                                                                                                  |
+| Transfer                                                       | Moves shares between members; the class's issued shares stay the same ([transfers](register.md#non-paid-transfers-between-members))                           |
+| Correction                                                     | Exactly reverses an earlier entry, or records an opening difference; a mistaken issue or transfer is [deleted](register.md#deleting-a-register-entry) instead |
 
 Investor and employee issues use the same register: one member, one set of holdings and one history
 serve both.

@@ -21,6 +21,7 @@ import {
   correctionsKey,
   entriesKey,
   entryLabel,
+  entryWithPeople,
   hasCurrentRegisterReadAuthority,
   importsKey,
   openingRecordsLink,
@@ -30,22 +31,26 @@ import {
   useClassCorrections,
   useOwnAppointments,
   useRegisterEntries,
+  useRegisterEntryDeletion,
   useRegisterImports,
   useSubmissionOwner,
   useUserPreferences,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type RecordRow,
+  type RegisterEntry,
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
 import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { FilterPopover } from '../../components/FilterPopover';
-import { Action, LinkRow, LoadError, LoadMore, Loading, Rows, useCardStyles } from '../../components/Ledger';
+import { Action, LinkRow, LoadError, LoadMore, Loading, Outcome, Rows, useCardStyles } from '../../components/Ledger';
+import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
 import { SelectField } from '../../components/SelectField';
 import { useAppTheme, useMemberRecordsState } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
+import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useRetainedScope } from '../../hooks/useRetainedScope';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
@@ -251,9 +256,6 @@ function CompanyCorrections({
           onReviewChange={setReviewing}
           onOpen={toTop}
           onFocusRecord={focusRecord}
-          onCorrect={(entry) =>
-            navigation.navigate('CorrectionPreparation', { company, token: register.token.uuid, entry })
-          }
           onSetup={() =>
             navigation.navigate('RegisterSetup', { company, token: register.token.uuid, from: 'Corrections' })
           }
@@ -288,7 +290,6 @@ function ClassCorrections({
   onReviewChange,
   onOpen,
   onFocusRecord,
-  onCorrect,
   onSetup,
 }: {
   owner: OrderSubmissionOwner;
@@ -303,11 +304,11 @@ function ClassCorrections({
   onReviewChange: (open: boolean) => void;
   onOpen: () => void;
   onFocusRecord: (record: View) => void;
-  onCorrect: (entry: string) => void;
   onSetup: () => void;
 }) {
   const card = useCardStyles();
   const look = useLedgerStyles();
+  const form = useCompanyStyles();
   const client = useQueryClient();
   const token = register.token.uuid;
   const source = useRef(sourceReady);
@@ -334,6 +335,8 @@ function ClassCorrections({
   const history = useRegisterEntries(owner, token, check, enabled, orderSubmissionSession);
   const corrections = useClassCorrections(owner, token, check, enabled, orderSubmissionSession);
   const imports = useRegisterImports(owner, token, check, enabled, orderSubmissionSession);
+  const removal = useRegisterEntryDeletion({ owner, token, guard: check, session: orderSubmissionSession });
+  const [deleting, setDeleting] = useState<RegisterEntry | null>(null);
   const steps = appointments.isSuccess ? registerSteps(appointments.data, company) : null;
   const readOnly = !!steps && !Object.values(steps).some(Boolean);
   const settled = sourceReady && readable && appointments.fetchStatus === 'idle';
@@ -473,17 +476,24 @@ function ClassCorrections({
             entries={history.entries}
             visible={entriesReady}
             renderAction={(entry) =>
-              entriesReady && !history.moreFailed && correctionsReady && steps?.prepare && entry.correctable ? (
+              entriesReady && !history.moreFailed && steps?.prepare && entry.deletable ? (
                 <Action
                   compact
-                  label="Correct"
-                  accessibilityLabel={`Correct (${entryLabel(entry)})`}
-                  disabled={held}
-                  onPress={() => onCorrect(entry.uuid)}
+                  destructive
+                  label="Delete"
+                  accessibilityLabel={`Delete (${entryLabel(entry)})`}
+                  disabled={held || removal.busy}
+                  onPress={() => setDeleting(entry)}
                 />
               ) : null
             }
           />
+          {!!removal.outcome && <Outcome>{removal.outcome}</Outcome>}
+          {!!removal.error && (
+            <Text accessibilityRole="alert" style={form.error}>
+              {removal.error}
+            </Text>
+          )}
           {readable && (
             <LoadMore
               noun="register entries"
@@ -569,6 +579,28 @@ function ClassCorrections({
           </View>
         </View>
       )}
+      <CustomModal
+        visible={!!deleting}
+        title={`Delete this ${deleting ? (COPY.ENTRY_KINDS[deleting.kind] ?? 'entry').toLowerCase() : 'entry'}?`}
+        busy={removal.busy}
+        onClose={() => setDeleting(null)}
+        actions={
+          <Action
+            label={removal.busy ? 'Deleting…' : 'Delete'}
+            accessibilityLabel={`${removal.busy ? 'Deleting…' : 'Delete'} (entry)`}
+            destructive
+            disabled={removal.busy}
+            onPress={() => {
+              if (deleting) void removal.remove(deleting).finally(() => setDeleting(null));
+            }}
+          />
+        }
+      >
+        <Text style={form.text}>
+          The {deleting ? entryWithPeople(deleting) : 'entry'} is removed for everyone, with the records behind it. This
+          can’t be undone.
+        </Text>
+      </CustomModal>
     </>
   );
 }

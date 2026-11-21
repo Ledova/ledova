@@ -341,7 +341,13 @@ row still uses; the delete command also keeps evidence that an opening record's 
 name. Deleting a person uses a `person` receipt: the database refuses a person with any holding,
 cessation, wallet, instruction, award, grant, allotment, transfer, opening record or wallet-link
 mapping naming them, binds each listed row to that person, requires every invitation and access
-record of the person to be listed, and needs administration when any are.
+record of the person to be listed, and needs administration when any are. Deleting a register entry
+uses an `entry` receipt: one issue, transfer or correction of the company, in a draft class with no
+chain fields, deployment journal or issuance execution and not corrected by a later entry, under
+current preparation authority. The receipt names the entry's register, and every listed allotment,
+grant, transfer or correction, approval, agreement, receipt, cessation and detached particulars row
+must belong to that entry. Only the register's own triggers may then renumber and re-hash the later
+entries, recalculate positions and the head, and clear a cessation return the entry recorded.
 
 Files under the company's private storage prefix are removed after the database commit, and any
 that fail go with the daily sweep of unreferenced uploads. Deleting a company does not erase support

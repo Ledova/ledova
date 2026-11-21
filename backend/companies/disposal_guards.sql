@@ -36,6 +36,13 @@ BEGIN
         allowed := subjects || ARRAY['tokens_registermemberparticulars', 'tokens_registerpersonregistration',
             'tokens_registerparticularschange', 'tokens_registerparticularschangedecision', 'tokens_memberinvitation',
             'tokens_memberassociation', 'tokens_memberassociationrevocation'];
+    ELSIF scope = 'entry' THEN
+        subjects := ARRAY['tokens_registerentry'];
+        allowed := subjects || ARRAY['tokens_registerallotment', 'tokens_registerallotmentdecision',
+            'tokens_registeragreement', 'tokens_registercontribution', 'tokens_registergrant',
+            'tokens_registergrantdecision', 'tokens_registertransfer', 'tokens_registertransferdecision',
+            'tokens_registercorrection', 'tokens_registercorrectiondecision', 'tokens_registermembercessation',
+            'tokens_registermemberparticulars#detach', 'tokens_shareregister#rechain'];
     ELSE
         RETURN NULL;
     END IF;
@@ -73,10 +80,11 @@ BEGIN
             OR COALESCE(operation = CASE receipt.scope
                 WHEN 'company' THEN 'company_delete' WHEN 'share_class' THEN 'register_class_delete'
                 WHEN 'proposal' THEN 'register_proposal_delete' WHEN 'invitation' THEN 'invitation_delete'
-                WHEN 'document' THEN 'register_document_delete' WHEN 'person' THEN 'register_person_delete' END,
+                WHEN 'document' THEN 'register_document_delete' WHEN 'person' THEN 'register_person_delete'
+                WHEN 'entry' THEN 'register_entry_delete' END,
                 false))
-        OR receipt.scope NOT IN ('company', 'share_class', 'proposal', 'invitation', 'document', 'person')
-        OR (receipt.scope IN ('proposal', 'invitation', 'document', 'person')
+        OR receipt.scope NOT IN ('company', 'share_class', 'proposal', 'invitation', 'document', 'person', 'entry')
+        OR (receipt.scope IN ('proposal', 'invitation', 'document', 'person', 'entry')
             AND companies_receipt_subject(receipt.scope, receipt.manifest) IS NULL)
         OR (receipt.scope = 'company'
             AND receipt.manifest->'companies_company' IS DISTINCT FROM jsonb_build_array(receipt.company_id::text))
@@ -88,22 +96,42 @@ END;
 $$;
 REVOKE ALL ON FUNCTION companies_disposal_allows(text, uuid) FROM PUBLIC;
 
+CREATE OR REPLACE FUNCTION companies_entry_disposal_register()
+RETURNS uuid LANGUAGE plpgsql STABLE SECURITY INVOKER
+SET search_path = pg_catalog, public, pg_temp AS $$
+DECLARE receipt record; selected text;
+BEGIN
+    selected := NULLIF(current_setting('app.company_disposal', true), '');
+    IF selected IS NULL OR to_regclass('public.companies_companydisposal') IS NULL THEN RETURN NULL; END IF;
+    SELECT * INTO receipt FROM companies_companydisposal WHERE uuid = selected::uuid;
+    IF NOT FOUND OR receipt.scope IS DISTINCT FROM 'entry'
+        OR jsonb_typeof(receipt.manifest->'tokens_shareregister#rechain') IS DISTINCT FROM 'array'
+        OR jsonb_array_length(receipt.manifest->'tokens_shareregister#rechain') <> 1
+        OR NOT companies_disposal_allows('tokens_registerentry', (receipt.manifest->'tokens_registerentry'->>0)::uuid)
+    THEN RETURN NULL; END IF;
+    RETURN (receipt.manifest->'tokens_shareregister#rechain'->>0)::uuid;
+END;
+$$;
+REVOKE ALL ON FUNCTION companies_entry_disposal_register() FROM PUBLIC;
+
 CREATE OR REPLACE FUNCTION companies_guard_disposal()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER
 SET search_path = pg_catalog, public, pg_temp AS $$
 DECLARE principal bigint; operation text; migrating boolean; subject text; owner uuid; state text;
-    target uuid; link text; listed text; stray integer; agreement uuid; contribution uuid;
+    target uuid; link text; listed text; stray integer; agreement uuid; contribution uuid; source uuid;
 BEGIN
     principal := NULLIF(current_setting('app.user_id', true), '')::bigint;
     operation := current_setting('app.company_operation', true);
     migrating := COALESCE(current_user = @MIGRATE_ROLE@ AND operation = 'schema_migration', false);
     IF TG_OP = 'DELETE' OR current_user NOT IN (@OPERATOR_ROLE@, @MIGRATE_ROLE@) OR principal IS NULL
         OR NEW.actor_id IS DISTINCT FROM principal OR NEW.transaction_id IS DISTINCT FROM txid_current()
-        OR NEW.scope IS NULL OR NEW.scope NOT IN ('company', 'share_class', 'proposal', 'invitation', 'document', 'person')
+        OR NEW.scope IS NULL
+        OR NEW.scope NOT IN ('company', 'share_class', 'proposal', 'invitation', 'document', 'person', 'entry')
         OR NOT (migrating OR COALESCE(operation = CASE NEW.scope
             WHEN 'company' THEN 'company_delete' WHEN 'share_class' THEN 'register_class_delete'
             WHEN 'proposal' THEN 'register_proposal_delete' WHEN 'invitation' THEN 'invitation_delete'
-            WHEN 'document' THEN 'register_document_delete' WHEN 'person' THEN 'register_person_delete' END, false))
+            WHEN 'document' THEN 'register_document_delete' WHEN 'person' THEN 'register_person_delete'
+            WHEN 'entry' THEN 'register_entry_delete' END, false))
         OR current_setting('app.company_id', true) IS DISTINCT FROM NEW.company_id::text THEN
         RAISE EXCEPTION 'Only the company''s own delete command records its deletion' USING ERRCODE = '23514';
     END IF;
@@ -118,7 +146,7 @@ BEGIN
         THEN
             RAISE EXCEPTION 'A share class deletion names exactly one class of its company' USING ERRCODE = '23514';
         END IF;
-        IF NEW.scope IN ('proposal', 'invitation', 'document', 'person') THEN
+        IF NEW.scope IN ('proposal', 'invitation', 'document', 'person', 'entry') THEN
             subject := companies_receipt_subject(NEW.scope, NEW.manifest);
             IF subject IS NULL THEN
                 RAISE EXCEPTION 'A record deletion names exactly one record of its scope' USING ERRCODE = '23514';
@@ -171,6 +199,75 @@ BEGIN
                         AND NOT COALESCE(NEW.manifest->'tokens_memberassociation', '[]'::jsonb) @> jsonb_build_array(item.uuid::text)) THEN
                     RAISE EXCEPTION 'A person deletion lists exactly that person''s own records' USING ERRCODE = '23514';
                 END IF;
+            ELSIF NEW.scope = 'entry' THEN
+                target := (NEW.manifest->subject->>0)::uuid;
+                SELECT register.company_id, CASE WHEN entry.kind IN ('issue', 'transfer', 'correction')
+                        AND NEW.manifest->'tokens_shareregister#rechain' = jsonb_build_array(entry.register_id::text)
+                        AND NOT EXISTS (SELECT 1 FROM tokens_registerentry later WHERE later.corrects_id = entry.uuid)
+                        AND token.status = 'draft' AND NULLIF(token.contract_address, '') IS NULL
+                        AND token.deployment_id IS NULL AND token.deployment_transaction_id IS NULL
+                        AND NULLIF(token.deployment_tx_hash, '') IS NULL AND token.deployed_at IS NULL
+                        AND NULLIF(token.chain, '') IS NULL
+                        AND NOT EXISTS (SELECT 1 FROM tokens_tokendeployment journal WHERE journal.token_id = token.uuid)
+                        AND NOT EXISTS (SELECT 1 FROM tokens_shareissuanceexecution execution
+                            WHERE execution.token_id = token.uuid)
+                        THEN 'submitted' END
+                    INTO owner, state
+                    FROM tokens_registerentry entry JOIN tokens_shareregister register ON register.uuid = entry.register_id
+                    JOIN tokens_sharetoken token ON token.uuid = register.token_id
+                    WHERE entry.uuid = target;
+                SELECT COALESCE(
+                    (SELECT item.uuid FROM tokens_registerallotment item WHERE item.register_entry_id = target
+                        AND NEW.manifest->'tokens_registerallotment' = jsonb_build_array(item.uuid::text)),
+                    (SELECT item.uuid FROM tokens_registergrant item WHERE item.register_entry_id = target
+                        AND NEW.manifest->'tokens_registergrant' = jsonb_build_array(item.uuid::text)),
+                    (SELECT item.uuid FROM tokens_registertransfer item WHERE item.register_entry_id = target
+                        AND NEW.manifest->'tokens_registertransfer' = jsonb_build_array(item.uuid::text)),
+                    (SELECT item.uuid FROM tokens_registercorrection item WHERE item.applied_entry_id = target
+                        AND NEW.manifest->'tokens_registercorrection' = jsonb_build_array(item.uuid::text)))
+                    INTO source;
+                SELECT count(*) INTO stray FROM (
+                    SELECT 1 FROM unnest(ARRAY['tokens_registerallotment', 'tokens_registergrant',
+                            'tokens_registertransfer', 'tokens_registercorrection']) AS kinds(name),
+                        jsonb_array_elements_text(COALESCE(NEW.manifest->kinds.name, '[]'::jsonb)) AS listed(id)
+                        WHERE listed.id::uuid IS DISTINCT FROM source
+                    UNION ALL SELECT 1 FROM jsonb_array_elements_text(COALESCE(
+                            NEW.manifest->'tokens_registerallotmentdecision', '[]'::jsonb)) AS listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registerallotmentdecision item
+                            WHERE item.uuid = listed.id::uuid AND item.register_allotment_id = source)
+                    UNION ALL SELECT 1 FROM jsonb_array_elements_text(COALESCE(
+                            NEW.manifest->'tokens_registergrantdecision', '[]'::jsonb)) AS listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registergrantdecision item
+                            WHERE item.uuid = listed.id::uuid AND item.register_grant_id = source)
+                    UNION ALL SELECT 1 FROM jsonb_array_elements_text(COALESCE(
+                            NEW.manifest->'tokens_registertransferdecision', '[]'::jsonb)) AS listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registertransferdecision item
+                            WHERE item.uuid = listed.id::uuid AND item.register_transfer_id = source)
+                    UNION ALL SELECT 1 FROM jsonb_array_elements_text(COALESCE(
+                            NEW.manifest->'tokens_registercorrectiondecision', '[]'::jsonb)) AS listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registercorrectiondecision item
+                            WHERE item.uuid = listed.id::uuid AND item.register_correction_id = source)
+                    UNION ALL SELECT 1 FROM jsonb_array_elements_text(COALESCE(
+                            NEW.manifest->'tokens_registeragreement', '[]'::jsonb)) AS listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registerallotment item
+                            WHERE item.uuid = source AND item.agreement_id = listed.id::uuid)
+                    UNION ALL SELECT 1 FROM jsonb_array_elements_text(COALESCE(
+                            NEW.manifest->'tokens_registercontribution', '[]'::jsonb)) AS listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registerallotment item
+                            WHERE item.uuid = source AND item.contribution_id = listed.id::uuid)
+                    UNION ALL SELECT 1 FROM jsonb_array_elements_text(COALESCE(
+                            NEW.manifest->'tokens_registermembercessation', '[]'::jsonb)) AS listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registermembercessation item
+                            WHERE item.uuid = listed.id::uuid AND item.entry_id = target)
+                    UNION ALL SELECT 1 FROM jsonb_array_elements_text(COALESCE(
+                            NEW.manifest->'tokens_registermemberparticulars#detach', '[]'::jsonb)) AS listed(id)
+                        WHERE NOT EXISTS (SELECT 1 FROM tokens_registermemberparticulars item
+                            WHERE item.uuid = listed.id::uuid
+                                AND source IN (item.source_allotment_id, item.source_grant_id, item.source_transfer_id))
+                ) AS strays;
+                IF source IS NULL OR stray > 0 THEN
+                    RAISE EXCEPTION 'An entry deletion lists only that entry''s own records' USING ERRCODE = '23514';
+                END IF;
             ELSIF NEW.scope = 'proposal' THEN
                 target := (NEW.manifest->subject->>0)::uuid;
                 EXECUTE format('SELECT company_id, status FROM %I WHERE uuid = $1', subject)
@@ -221,7 +318,7 @@ BEGIN
             END IF;
         END IF;
         IF migrating THEN RETURN NEW; END IF;
-        IF NEW.scope IN ('share_class', 'proposal', 'document') AND NOT (NEW.appointment_id IS NOT NULL
+        IF NEW.scope IN ('share_class', 'proposal', 'document', 'entry') AND NOT (NEW.appointment_id IS NOT NULL
             AND tokens_register_appointment_current(NEW.appointment_id, NEW.company_id, principal, 'prepare',
                 clock_timestamp())) THEN
             RAISE EXCEPTION 'Deleting this record requires current preparation authority' USING ERRCODE = '23514';

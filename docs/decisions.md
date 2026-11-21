@@ -1278,6 +1278,15 @@ So that someone can still manage or delete a company, its only administrator can
 appointment. Asked on 20 November 2026 about account closure, the owner chose to keep it as it
 is: closing the only administrator's account still leaves the company without one.
 
+Asked on 21 November 2026 which register entries can be deleted, the owner chose "Issues and
+transfers": an issue, a transfer or an applied correction can be deleted, while the opening stays
+(delete the share class to start again), a copied opening correction is fixed by correcting the
+copied opening again, and a class with on-chain records keeps its entries. Asked what happens to
+corrections already recorded, the owner chose "Keep applied, drop pending": deleting an entry
+replaces preparing a compensating correction, an applied correction stays in the history and can be
+deleted like any entry (before the entry it corrects), and corrections still awaiting a decision or
+rejected are removed when that change is released.
+
 ### Member invitations and account association
 
 **Owner decision, 11 October 2026**, supplied directly in the active Codex

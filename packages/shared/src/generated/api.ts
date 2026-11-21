@@ -1023,6 +1023,22 @@ export interface ApiPaths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/tokens/{uuid}/register/entries/{entry}/': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: ApiOperations['api_v1_tokens_register_entries_destroy'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/tokens/{uuid}/register/inspection-copies/': {
     parameters: {
       query?: never;
@@ -7208,6 +7224,7 @@ export interface ApiComponents {
       correctable: boolean;
       correctedBy: string | null;
       corrects: string | null;
+      deletable: boolean;
       effectiveOn: string;
       kind: ApiComponents['schemas']['ShareRegisterEntryKindEnum'];
       recordedAt: string;
@@ -9693,6 +9710,26 @@ export interface ApiOperations {
         content: {
           'application/json': ApiComponents['schemas']['PaginatedShareRegisterEntryList'];
         };
+      };
+    };
+  };
+  api_v1_tokens_register_entries_destroy: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        entry: string;
+        uuid: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

@@ -1021,6 +1021,7 @@ it('reads every class page and groups exact holdings by member identity with sea
               corrects: null,
               correctedBy: null,
               correctable: true,
+              deletable: false,
             },
           ],
           count: 1,
@@ -2003,6 +2004,7 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       corrects: null,
       correctedBy: null,
       correctable: true,
+      deletable: true,
     },
   ];
   appointment = { ...appointment, capabilities: ['prepare', 'approve', 'apply'] };
@@ -2166,11 +2168,25 @@ it('brings complete mirror records, recovers uncertain requests and confirms one
       exact: false,
     })
   ).closest('li')!;
-  expect(
-    within(correctionEntry).getByRole('link', {
-      name: `Correct (transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
+  api.delete.mockResolvedValueOnce({ status: 204 });
+  fireEvent.click(
+    within(correctionEntry).getByRole('button', {
+      name: `Delete (transfer of ${formatDate('2026-10-20')}, Example Shareholder and 1 more)`,
     }),
+  );
+  fireEvent.click(
+    within(await screen.findByRole('dialog', { name: 'Delete this transfer?' })).getByRole('button', {
+      name: 'Delete',
+    }),
+  );
+  expect(
+    await screen.findByText(`Transfer of ${formatDate('2026-10-20')} for Example Shareholder and Taylor Demo deleted.`),
   ).toBeTruthy();
+  expect(api.delete).toHaveBeenCalledWith(
+    `${COMPANY_TOKEN_ENDPOINTS.REGISTER_ENTRIES(token.uuid)}transfer-entry/`,
+    expect.anything(),
+  );
+  api.delete.mockClear();
   expect(screen.queryByRole('button', { name: /Prepare \(certificate for/ })).toBeNull();
   expect(screen.queryByRole('textbox', { name: 'Instruction reference' })).toBeNull();
   const approveCorrection = screen.getByRole('button', {

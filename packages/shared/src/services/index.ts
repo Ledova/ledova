@@ -100,3 +100,4 @@ export * from './register-allotments';
 
 export * from './member-access';
 export * from './register-people';
+export * from './register-entries';

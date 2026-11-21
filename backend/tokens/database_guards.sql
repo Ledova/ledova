@@ -3245,6 +3245,15 @@ BEGIN
         THEN RAISE EXCEPTION 'A member cessation must remain through its retention floor and continued membership' USING ERRCODE = '23514'; END IF;
         RETURN OLD;
     END IF;
+    IF TG_OP = 'UPDATE' AND pg_trigger_depth() >= 2
+        AND companies_entry_disposal_register() IS NOT DISTINCT FROM OLD.register_id
+        AND OLD.returned_entry_id IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM tokens_registerentry entry WHERE entry.uuid = OLD.returned_entry_id)
+        AND NEW.returned_entry_id IS NULL AND NEW.returned_on IS NULL AND NEW.returned_at IS NULL
+        AND (to_jsonb(NEW) - ARRAY['returned_entry_id', 'returned_on', 'returned_at', 'updated_at'])
+            = (to_jsonb(OLD) - ARRAY['returned_entry_id', 'returned_on', 'returned_at', 'updated_at']) THEN
+        RETURN NEW;
+    END IF;
     IF TG_OP = 'UPDATE' THEN
         IF current_user NOT IN (__OPERATOR__, __MIGRATE__) OR pg_trigger_depth() < 2
             OR OLD.returned_entry_id IS NOT NULL OR OLD.returned_on IS NOT NULL OR OLD.returned_at IS NOT NULL
@@ -3578,6 +3587,16 @@ DECLARE
 BEGIN
     IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+    END IF;
+    IF TG_OP = 'UPDATE' AND pg_trigger_depth() >= 2
+        AND companies_entry_disposal_register() IS NOT DISTINCT FROM OLD.register_id
+        AND NEW.sequence = OLD.sequence - 1
+        AND (to_jsonb(NEW) - ARRAY['sequence', 'previous_hash', 'entry_hash'])
+            = (to_jsonb(OLD) - ARRAY['sequence', 'previous_hash', 'entry_hash'])
+        AND NEW.previous_hash = COALESCE((SELECT earlier.entry_hash FROM tokens_registerentry earlier
+            WHERE earlier.register_id = NEW.register_id AND earlier.sequence = NEW.sequence - 1), repeat('0', 64))
+        AND NEW.entry_hash = tokens_register_entry_hash(NEW) THEN
+        RETURN NEW;
     END IF;
     IF TG_OP <> 'INSERT' THEN
         RAISE EXCEPTION 'Register entries cannot be rewritten or deleted' USING ERRCODE = '23514';
@@ -4786,6 +4805,9 @@ AS $function$
 BEGIN
     IF TG_OP = 'DELETE' THEN
         IF companies_disposal_allows(TG_TABLE_NAME, OLD.uuid) THEN RETURN OLD; END IF;
+        IF pg_trigger_depth() >= 2 AND companies_entry_disposal_register() IS NOT DISTINCT FROM OLD.register_id THEN
+            RETURN OLD;
+        END IF;
     END IF;
     IF pg_trigger_depth() < 2 THEN
         RAISE EXCEPTION 'Only register entries may change holdings' USING ERRCODE = '23514';

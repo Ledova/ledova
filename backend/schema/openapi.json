@@ -18645,6 +18645,9 @@
             "nullable": true,
             "type": "string"
           },
+          "deletable": {
+            "type": "boolean"
+          },
           "effectiveOn": {
             "format": "date",
             "type": "string"
@@ -18670,6 +18673,7 @@
           "correctable",
           "correctedBy",
           "corrects",
+          "deletable",
           "effectiveOn",
           "kind",
           "recordedAt",
@@ -33041,6 +33045,50 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "api"
+        ]
+      }
+    },
+    "/api/v1/tokens/{uuid}/register/entries/{entry}/": {
+      "delete": {
+        "operationId": "api_v1_tokens_register_entries_destroy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "description": "Unique identifier (primary key)",
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "cookieAuth": [],
+            "csrfCookie": [],
+            "csrfHeader": []
           }
         ],
         "tags": [

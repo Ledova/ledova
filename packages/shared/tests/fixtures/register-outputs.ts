@@ -37,6 +37,7 @@ export const OUTPUT_ENTRY: RegisterEntry = {
   corrects: null,
   correctedBy: null,
   correctable: true,
+  deletable: false,
   changes: [{ member: MEMBER_RECORD.member, name: MEMBER_RECORD.name, shares: '10' }],
 };
 export const OUTPUT_PREVIEW: RegisterCertificatePreview = {

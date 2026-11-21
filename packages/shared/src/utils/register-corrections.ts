@@ -31,6 +31,12 @@ export function entryLabel(entry: EntryDates & Pick<RegisterEntry, 'changes'>) {
   return who ? `${entryName(entry)}, ${who}` : entryName(entry);
 }
 
+export function entryWithPeople(entry: EntryDates & Pick<RegisterEntry, 'changes'>) {
+  const names = [...new Set(entry.changes.flatMap((change) => (change.name ? [change.name] : [])))];
+  const who = names.length > 2 ? `${names[0]} and ${names.length - 1} others` : names.join(' and ');
+  return who ? `${entryName(entry)} for ${who}` : entryName(entry);
+}
+
 export function describeEntry(entry: EntryDates) {
   const kind = REGISTER_CORRECTION_COPY.ENTRY_KINDS[entry.kind] ?? 'Register change';
   const date = entryDate(entry);
