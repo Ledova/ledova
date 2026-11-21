@@ -15,19 +15,20 @@ stay here as history and are marked where they appear.
 | [Registry-only public release under Blueberry Money](#registry-only-public-release-under-blueberry-money)          | 8 November 2026                                | Preparation authorised; website first, then TestFlight and App Store; current preview remains synthetic-only                       |
 | [Company-managed registers and one product](#company-managed-registers-and-one-product)                            | 3 October 2026                                 | Current; replaces routine register work by platform staff                                                                          |
 | [Company-run register authority and evidence](#company-run-register-authority-and-evidence)                        | 5 October 2026                                 | Current; particulars change rule amended 1 November (#1476) and for linked members 2 November (#1492)                              |
-| [Company representative verification](#company-representative-verification)                                        | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148, removed 2 November (#1491)                                                       |
+| [Company representative verification](#company-representative-verification)                                        | 4 October 2026                                 | Current; ABR lookup moved to activation by #1148, removed 2 November (#1491); identity check removed 21 November (#1739)                                          |
 | [Combined company signup and initial authority](#combined-company-signup-and-initial-authority)                    | 14 October 2026                                | Current; amended by #1022; ABR lookup moved to activation by #1148, removed 2 November (#1491); activation removed 14 November (#1567) |
 | [Simple signup, documents and team after registration](#simple-signup-documents-and-team-after-registration)       | 14 October 2026                                | Current; #1022; ABR lookup moved to activation by #1148, removed 2 November; company documents removed 2 November (#1491); activation removed 14 November (#1567) |
-| [Identity verification after signup](#identity-verification-after-signup)                                          | 19 October 2026                                | Current; #1141                                                                                                                     |
+| [Identity verification after signup](#identity-verification-after-signup)                                          | 19 October 2026                                | Superseded 21 November 2026; identity verification removed (#1739)                                                                                                |
 | [Verified email and email changes during signup](#verified-email-and-email-changes-during-signup)                  | 19 October 2026                                | Current; #1146                                                                                                                     |
 | [ABR company lookup at activation](#abr-company-lookup-at-activation)                                              | 19 October 2026                                | Superseded 2 November 2026; the ABR check was removed (#1491)                                                                      |
 | [Existing register mirror and simple setup](#existing-register-mirror-and-simple-setup)                            | 14 October 2026                                | Current; setup amended by #1029                                                                                                    |
 | [Manual register setup: shares before shareholders](#manual-register-setup-shares-before-shareholders)             | 14 October 2026                                | Current; #1029, CSV entry removed under #1036, Import placeholder removed 19 November (#1702)                                      |
-| [Eligibility and ownership records](#eligibility-and-ownership-records)                                            | September to 6 October 2026                    | Eligibility superseded 2 November (#1491); offering parts removed under #1421                                                      |
-| [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Current; #1491; supersedes classification, eligibility, payslips, the ABR check and company documents                              |
+| [Eligibility and ownership records](#eligibility-and-ownership-records)                                            | September to 6 October 2026                    | Eligibility superseded 2 November (#1491); offering parts removed under #1421; `issuer_kyc_required` removed 21 November (#1739)                                  |
+| [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Removals stand (#1491); keeping ID verification superseded 21 November 2026 (#1739)                                                                               |
 | [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; activation itself removed 14 November (#1567)                                                                                             |
 | [Company documents removed](#company-documents-removed)                                                            | 2 November 2026                                | Current; #1491 step 3; retained instructions take the company's own evidence                                                       |
 | [Company activation removed](#company-activation-removed)                                                          | 14 November 2026                               | Current; #1567; a company is Active when its signup completes, with no activation step or review                                                                 |
+| [Identity verification removed](#identity-verification-removed)                                                    | 21 November 2026                               | Current; #1739, delivered in steps                                                                                                                                |
 | [Terms as technology infrastructure](#terms-as-technology-infrastructure)                                          | 14 November 2026                               | Current; #1567; Terms v2026-11-15, prepared without legal review; v2026-11-21 replaces it for new acceptance                                                                             |
 | [Retired company review removed](#retired-company-review-removed)                                                  | 15 November 2026                               | Current; #1567; review states and fields deleted, companies left in them return to Draft                                                                         |
 | [The stored register](#the-stored-register)                                                                        | September 2026; staff review retired 5 October | Current                                                                                                                            |
@@ -223,7 +224,8 @@ authority in the initial admission workflow. The existing representative identit
 check and ABR company lookup remain unchanged, as do tenant isolation and
 signed-transaction safeguards; the lookup later moved from admission to
 activation ([19 October](#abr-company-lookup-at-activation)) and was removed on
-2 November 2026 ([ABR company check removed](#abr-company-check-removed)). The
+2 November 2026 ([ABR company check removed](#abr-company-check-removed)), and the identity check
+was removed on 21 November 2026 ([identity verification removed](#identity-verification-removed)). The
 [authority guide](business/companies.md)
 describes the delivered admission, invitation, delegation and revocation
 workflows.
@@ -320,6 +322,9 @@ the new flow is shown directly in Chrome. This increment authorises no live
 deployment or further backup work.
 
 ### Identity verification after signup
+
+_Superseded on 21 November 2026: identity verification was removed
+([identity verification removed](#identity-verification-removed))._
 
 On 19 October 2026 the owner removed the identity verification step from web
 and mobile signup ([#1141](https://github.com/Ledova/ledova/issues/1141)) to
@@ -485,8 +490,9 @@ outside its scope. The issue records each delivered increment.
 
 _Its eligibility parts were superseded on 2 November 2026 by
 [verification limited to ID checks](#verification-limited-to-id-checks): classification claims,
-payslips and company eligibility decisions were removed. The amount-paid rule and the
-`issuer_kyc_required` switch below stand._
+payslips and company eligibility decisions were removed. The amount-paid rule below stands; the
+`issuer_kyc_required` switch was removed on 21 November 2026
+([identity verification removed](#identity-verification-removed))._
 
 Under the 3 October decision, company
 activation ([removed 14 November](#company-activation-removed)) and
@@ -539,11 +545,13 @@ that the `issuer_kyc_required` switch gates two points only, submitting a
 company for review and activating it, with every later action relying on that
 gate rather than checking again. Since staff review was retired the switch is
 checked wherever an appointment is exercised: admission, invitation acceptance,
-activation, eligibility decisions and each register command;
-[the representative identity requirement](business/companies.md#representative-identity-requirement)
-states where it applies.
+activation, eligibility decisions and each register command, until the switch was removed on
+21 November 2026 ([identity verification removed](#identity-verification-removed)).
 
 ### Verification limited to ID checks
+
+_Keeping ID verification was superseded on 21 November 2026
+([identity verification removed](#identity-verification-removed)); the removals below stand._
 
 **Owner decision, 2 November 2026**, given in the session while reviewing the investor's
 Verification page and tracked in [#1491](https://github.com/Ledova/ledova/issues/1491): "We dont
@@ -650,7 +658,39 @@ When wallet features return, the representative's verified identity is enough, w
 activation review. This supersedes the activation parts of the
 [ABR company check removed](#abr-company-check-removed),
 [combined signup](#combined-company-signup-and-initial-authority) and
-[simple signup](#simple-signup-documents-and-team-after-registration) decisions.
+[simple signup](#simple-signup-documents-and-team-after-registration) decisions. _The identity check
+itself was removed on 21 November 2026 ([identity verification removed](#identity-verification-removed))._
+
+### Identity verification removed
+
+**Owner decision, 21 November 2026**, given in the session and tracked in
+[#1739](https://github.com/Ledova/ledova/issues/1739): "We dont need id verification to use this app
+so everything related to it should be deleted".
+
+Ledova no longer checks anyone's identity. Everything that existed only for identity checks goes,
+one focused pull request at a time:
+
+1. **The identity requirements:** the operator's switches requiring a verified identity for company
+   representatives (`issuer_kyc_required`) and for participants (`investor_kyc_required`), every
+   check that read them, and the signup gating on the web and in the app.
+2. **The identity check on the web and in the app:** Verify your identity and the identity check in
+   **Settings → Account**.
+3. **The identity check in the backend:** the identity providers (Sumsub and KYCAID, including
+   KYCAID's crypto-address screening), PEP and sanctions screening, the customer risk ratings built
+   from identity results, the identity fields on profiles, the account-erasure work that asks a
+   provider to erase an applicant, and their admin views. The migrations delete these records.
+
+A company stays responsible for any identity checks it needs. The Terms of Service mention identity
+checks only conditionally; a new version waits for the owner's approval of its wording. The local
+walkthrough database is migrated only on the owner's word, with a copy kept, and ledova.io and the
+app need the owner's go.
+
+This supersedes keeping ID verification in [verification limited to ID checks](#verification-limited-to-id-checks),
+[identity verification after signup](#identity-verification-after-signup), the
+`issuer_kyc_required` switch of the [eligibility and ownership records](#eligibility-and-ownership-records),
+the representative identity check that the [4 October](#company-representative-verification)
+decision kept, and the native identity journey kept as
+[#1562](https://github.com/Ledova/ledova/issues/1562), closed on 21 November. Their history stays.
 
 ## The stored register
 
@@ -2354,7 +2394,8 @@ the App Store rather than showing the web app inside one. Each phase is its own 
    information, authority and Terms. The same shared hooks retain saved details, settle retries and
    require a current administrator appointment before completion. The owner kept the native
    provider identity journey as separate work under [#1562](https://github.com/Ledova/ledova/issues/1562)
-   on 5 November; configured identity requirements continue to block completion.
+   on 5 November; configured identity requirements continue to block completion. _Both went on
+   21 November 2026 ([identity verification removed](#identity-verification-removed))._
 
 **Phase 2, also decided on 31 October 2026.** After comparing the web in Chrome's phone view with the
 app page by page for the same account, the owner chose the web's per-company model for the pages a

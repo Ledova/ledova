@@ -279,18 +279,18 @@ def discard(files):
             continue
 
 
-def current_appointment(actor, company_id, operator, capabilities):
-    appointments = CompanyAppointment.objects.current_for(
-        actor, company_id, at=timezone.now(), identity_required=operator.issuer_kyc_required
-    ).holding_any(capabilities)
+def current_appointment(actor, company_id, capabilities):
+    appointments = CompanyAppointment.objects.current_for(actor, company_id, at=timezone.now()).holding_any(
+        capabilities
+    )
     return appointments.order_by("uuid").values_list("pk", "expires_at").first() or (None, None)
 
 
 def delete_company(*, actor, company_id):
     with company_operation(actor, company_id, "company_delete"), atomic(durable=True):
-        company, current_actor, profile, operator = lock_company_actor(actor, company_id)
-        require_company_administration(company, current_actor, profile, operator)
-        appointment, expires_at = current_appointment(current_actor, company.pk, operator, [CompanyCapability.ADMIN])
+        company, current_actor, profile = lock_company_actor(actor, company_id)
+        require_company_administration(company, current_actor, profile)
+        appointment, expires_at = current_appointment(current_actor, company.pk, [CompanyCapability.ADMIN])
         rows = _company_rows(company)
         files = stored_files(rows, prefix=f"companies/{company.pk}/")
         receipt = remove(

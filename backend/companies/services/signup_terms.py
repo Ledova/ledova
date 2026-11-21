@@ -11,7 +11,6 @@ from companies.services.authority_requests import (
     _require_requester,
 )
 from companies.services.team import _current, _locked_actor
-from operators.models import Operator
 from shared.db import atomic, use_app, use_operator
 
 
@@ -56,7 +55,6 @@ def accept_signup_terms(*, requester, appointment_id, declaration_version, accep
     with use_operator(), _requester_principal(requester.pk), atomic():
         company = get_object_or_404(Company.objects.select_for_update(), pk=source.company_id)
         actor, profile = _locked_actor(requester)
-        Operator.objects.select_for_update().get(pk=Operator.get().pk)
         appointment = get_object_or_404(
             _current(actor, company.pk)
             .select_for_update(of=("self",))

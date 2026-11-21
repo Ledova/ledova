@@ -4604,9 +4604,7 @@ export interface ApiComponents {
     Operator: {
       abn: string;
       contactEmail: string;
-      investorKycRequired: boolean;
       issuedStablecoin: ApiComponents['schemas']['SettlementAsset'] | null;
-      issuerKycRequired: boolean;
       legalName: string;
       name: string;
       supportedSettlementAssets: ApiComponents['schemas']['SettlementAsset'][];

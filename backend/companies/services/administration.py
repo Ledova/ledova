@@ -14,7 +14,6 @@ from companies.models import (
     CompanyStatus,
 )
 from companies.services.authority_requests import _requester_principal
-from operators.models import Operator
 from shared.db import current_alias, use_operator
 from users.models import UserProfile
 
@@ -55,26 +54,22 @@ def lock_company_actor(actor, company_id):
     company = get_object_or_404(Company.objects.select_for_update(), pk=company_id)
     current_actor = get_object_or_404(get_user_model().objects.select_for_update(), pk=actor.pk)
     profile = UserProfile.objects.select_for_update().filter(user=current_actor).first()
-    Operator.get()
-    operator = Operator.objects.select_for_update().get(pk=1)
     list(
         CompanyAppointment.objects.select_for_update()
         .filter(company=company, appointee=current_actor)
         .order_by("uuid")
         .values_list("uuid", flat=True)
     )
-    return company, current_actor, profile, operator
+    return company, current_actor, profile
 
 
-def require_company_administration(company, actor, profile, operator):
+def require_company_administration(company, actor, profile):
     if not actor.is_active or not actor.is_email_verified:
         raise NotFound("Company not found or permission denied")
     if company.owner_id == actor.pk and company.status == CompanyStatus.DRAFT and not has_authority_root(company):
         return
     if profile and (
-        CompanyAppointment.objects.current_for(
-            actor, company.pk, at=timezone.now(), identity_required=operator.issuer_kyc_required
-        )
+        CompanyAppointment.objects.current_for(actor, company.pk, at=timezone.now())
         .filter(capabilities__contains=[CompanyCapability.ADMIN])
         .exists()
     ):
@@ -99,11 +94,7 @@ def last_administrator(appointment):
         )
         if not administrators.filter(pk=appointment.pk, revocation__isnull=True).exists():
             return False
-        return not (
-            administrators.current(at=now, identity_required=Operator.get().issuer_kyc_required)
-            .exclude(pk=appointment.pk)
-            .exists()
-        )
+        return not administrators.current(at=now).exclude(pk=appointment.pk).exists()
 
 
 def require_another_administrator(appointment):
@@ -118,11 +109,9 @@ def company_administrative_access(company, actor):
         current_actor = get_user_model().objects.filter(pk=actor.pk, is_active=True, is_email_verified=True).first()
         if current_actor is None:
             return {"capabilities": [], "draft_setup": False}
-        Operator.get()
-        identity_required = Operator.objects.values_list("issuer_kyc_required", flat=True).get(pk=1)
-        personal = CompanyAppointment.objects.current_for(
-            current_actor, company.pk, at=timezone.now(), identity_required=identity_required
-        ).values_list("capabilities", flat=True)
+        personal = CompanyAppointment.objects.current_for(current_actor, company.pk, at=timezone.now()).values_list(
+            "capabilities", flat=True
+        )
         capabilities = sorted({capability for scope in personal for capability in scope})
         draft_setup = (
             company.owner_id == current_actor.pk

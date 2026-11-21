@@ -10,8 +10,7 @@ from rest_framework.test import APITransactionTestCase
 from companies.models import CompanyAppointment, CompanyCapability
 from companies.services.authority import DECLARATION_VERSION
 from companies.services.team import revoke_company_appointment
-from operators.models import Operator
-from shared.db import atomic, current_alias, use_migrate, use_operator
+from shared.db import atomic, current_alias, use_operator
 from shared.tests.core_fixtures import CoreFixtures, person, retained_evidence
 from tokens.models import (
     RegisterAward,
@@ -126,20 +125,6 @@ class EmployeeAwardTest(CoreFixtures, APITransactionTestCase):
         with use_operator():
             self.assertEqual(RegisterMember.objects.filter(pk=award["member"]).count(), 1)
             self.assertFalse(RegisterPosition.objects.filter(member_id=award["member"]).exists())
-        with use_migrate():
-            Operator.get()
-            Operator.objects.filter(pk=1).update(issuer_kyc_required=True)
-        with use_operator():
-            self.profile.is_id_verified = False
-            self.profile.save(update_fields=["is_id_verified"])
-        unawarded = self.client.get(f"/api/v1/tokens/{self.token.pk}/register/members/").json()
-        self.assertNotIn(award["member"], json.dumps(unawarded))
-        self.assertIn(str(self.member.pk), [row["member"] for row in unawarded["members"]])
-        self.assertEqual(
-            {row["member"]: row["onRegister"] for row in unawarded["members"]},
-            {str(self.member.pk): True, str(awaiting.pk): False},
-        )
-        self.assertFalse(any(row["hasAwards"] for row in unawarded["members"]))
 
     def test_vesting_cannot_exceed_the_promise_and_transfers_do_not_recycle_issued_entitlement(self):
         yesterday = (timezone.now().date() - timedelta(days=1)).isoformat()

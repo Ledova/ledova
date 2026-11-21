@@ -53,9 +53,7 @@ HELPERS = {
                     AND profile.user_id = actor.id AND appointment.capabilities @> '["admin"]'::jsonb
                     AND (appointment.expires_at IS NULL OR appointment.expires_at > clock_timestamp())
                     AND NOT EXISTS (SELECT 1 FROM companies_companyappointmentrevocation revoked
-                        WHERE revoked.appointment_id = appointment.uuid)
-                    AND (NOT COALESCE((SELECT issuer_kyc_required FROM operators_operator WHERE id = 1), false)
-                        OR profile.is_id_verified)))
+                        WHERE revoked.appointment_id = appointment.uuid)))
     """,
 }
 
@@ -355,7 +353,7 @@ OPERATOR_ONLY = {
     "appointment serialization reads only that appointee's exact receipt on that connection. The app role has "
     "no grants and forced row-level security admits no direct rows.",
     "companies_companyactivation": "Retained company activation receipts from before activation was removed, one "
-    "per company, each binding the administrator, their appointment, the declaration and their identity status. "
+    "per company, each binding the administrator, their appointment and the declaration. "
     "Nothing writes new receipts; only the admin reads them on the operator connection. The app role has no grants "
     "and forced row-level security admits no direct rows.",
     "tokens_memberinvitation": "Immutable intended-recipient company member invitations issued by current "
@@ -479,7 +477,7 @@ OPERATOR_ONLY = {
     "are fixed at insert and whose status only moves forward, with their outgoing-operation associations. Company "
     "register readers see their own targets on the operator connection; public membership reads never read this "
     "recovery journal.",
-    "whitelist_whitelisteligibilityinvalidation": "Retained account, identity and wallet invalidation facts and "
+    "whitelist_whitelisteligibilityinvalidation": "Retained account and wallet invalidation facts and "
     "actual human or automatic attribution, written in the original bounded operator transaction. Only the "
     "invalidation worker reads these private cause records.",
     "tokens_registerexport": "Immutable records of who prepared an inspection copy, a certificate, notice figures or a "

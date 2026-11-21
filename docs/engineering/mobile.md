@@ -105,10 +105,7 @@ Company details uses `useSignupCompanyRegistration`, and review uses `useSignupR
 `useSignupCompanyAuthority`, with the native session and request keys. They reuse saved company
 details, retain the authority request and Terms outcome across interrupted replies, and finish
 only after a current administrator appointment is confirmed. Company types come from
-`packages/shared/src/constants/business/company-types.ts` on both clients. A required representative
-identity check still blocks completion: the app reports that requirement but does not yet start
-the provider's identity journey. The owner kept that journey separate under
-[#1562](https://github.com/Ledova/ledova/issues/1562).
+`packages/shared/src/constants/business/company-types.ts` on both clients.
 
 The signed-in app (`SignedInNavigator`) is one stack with the web's phone frame. Every page shows
 the web's phone top bar (`TopBar`): the menu button, the page's title, its action (such as Switch

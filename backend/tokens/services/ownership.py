@@ -8,7 +8,6 @@ from rest_framework.exceptions import ValidationError
 
 from companies.models import Company
 from companies.services.administration import company_operation
-from operators.models import Operator
 from tokens.exceptions import RegisterChangeConflict
 from tokens.models import RegisterEntry, RegisterPosition, ShareRegister, ShareToken
 from tokens.services.register import _snapshot
@@ -26,7 +25,7 @@ def _company_snapshot(actor, company_id):
         company = get_object_or_404(Company.objects, pk=company_id)
         profile = UserProfile.objects.filter(user=current_actor).first()
         if company.owner_id != current_actor.pk:
-            current_register_reader(company, current_actor, profile, Operator.objects.get(pk=1))
+            current_register_reader(company, current_actor, profile)
         yield company
 
 

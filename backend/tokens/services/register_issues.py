@@ -243,9 +243,9 @@ def _command(actor, initial, operation, recorded=False):
                 actor_ids.add(approval.decided_by_id)
                 appointments += list(CompanyAppointment.objects.filter(pk=approval.appointment_id))
         associations = snapshot["private"] if not recorded and operation != "register_issue_reject" else None
-        operator, _ = _lock_context(company, actor_ids, associations, appointments)
+        _lock_context(company, actor_ids, associations, appointments)
         current_actor = get_user_model().objects.get(pk=actor.pk)
-        yield company, current_actor, UserProfile.objects.filter(user=current_actor).first(), operator
+        yield company, current_actor, UserProfile.objects.filter(user=current_actor).first()
         if not recorded and operation == "register_issue_reject":
             rejected = RegisterInstruction.objects.get(pk=initial.pk)
             request = ShareIssuanceRequest.objects.get(pk=rejected.request_id)
@@ -360,10 +360,8 @@ def prepare_issue(
     )
     proposal = None
     try:
-        with _command(actor, initial, "register_issue_prepare") as (company, current_actor, profile, operator):
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+        with _command(actor, initial, "register_issue_prepare") as (company, current_actor, profile):
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             current = ShareToken.objects.select_for_update(of=("self",)).get(pk=token, company=company)
             list(ShareRegister.objects.select_for_update().filter(token=current).values_list("uuid", flat=True))
             replay = RegisterInstruction.objects.filter(pk=operation_id).first()

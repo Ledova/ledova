@@ -5528,13 +5528,11 @@ AS $function$
         JOIN authentication_customuser person ON person.id = appointment.appointee_id
         JOIN users_userprofile profile ON profile.uuid = appointment.appointee_profile_id
             AND profile.user_id = person.id
-        JOIN operators_operator configuration ON configuration.id = 1
         WHERE appointment.uuid = appointment_uuid AND appointment.company_id = issuer
             AND appointment.appointee_id = actor AND person.is_active AND person.is_email_verified
             AND (appointment.expires_at IS NULL OR appointment.expires_at > at_time)
             AND NOT EXISTS (SELECT 1 FROM companies_companyappointmentrevocation revocation
                 WHERE revocation.appointment_id = appointment.uuid)
-            AND (NOT configuration.issuer_kyc_required OR profile.is_id_verified)
             AND (appointment.capabilities @> jsonb_build_array('admin')
                 OR appointment.capabilities @> jsonb_build_array(capability)));
 $function$;

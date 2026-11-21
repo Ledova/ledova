@@ -885,7 +885,6 @@ class RegistryCoreTest(CoreFixtures, APITransactionTestCase):
         self.assertEqual(readiness(), [[]])
         profile = UserProfile.objects.filter(pk=nominee_profile.pk)
         for reason, rows, lapsed, restored in (
-            ("participant_identity_required", profile, {"is_id_verified": False}, {"is_id_verified": True}),
             (
                 "participant_account_inactive",
                 account,

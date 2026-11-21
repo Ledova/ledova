@@ -26,7 +26,6 @@ needs the add permission, and the row cannot be deleted.
 | --------------- | ---------------------------------------------------------------------------- |
 | Identity        | `name`, `legal_name`, `abn`, `contact_email`, `website`                      |
 | Settlement      | `receiving_wallet_chain`, `issued_stablecoin`, `supported_settlement_assets` |
-| Identity checks | `investor_kyc_required` (default on), `issuer_kyc_required` (default off)    |
 
 The model normalises the ABN. Ledova holds no payment instructions or receiving wallet:
 integrated AUD payments are deferred
@@ -38,12 +37,6 @@ Settlement assets must be stablecoins with an active contract deployment on
 `receiving_wallet_chain`; the form refuses any other. Order creation needs exactly one active,
 deployed asset in `supported_settlement_assets`: with none or several, order messages and
 executions are refused until the list holds one, and every created order records that asset.
-
-What the flags require is in [account standing](../business/participants.md#account-standing)
-(`investor_kyc_required`) and the
-[representative identity requirement](../business/companies.md#representative-identity-requirement)
-(`issuer_kyc_required`). Turn on `issuer_kyc_required` only with a
-[KYC provider configured](configuration.md#identity-verification-providers).
 
 ## The operator console
 

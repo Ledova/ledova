@@ -53,8 +53,8 @@ export function AcceptInvitationForm({
     >
       <ErrorSummary {...checks.summary} />
       <p className="text-sm text-text-muted">
-        Enter the code the company gave you. Acceptance uses your signed-in account and the existing account, email and
-        configured identity checks.
+        Enter the code the company gave you. Acceptance uses your signed-in account and the existing account and email
+        checks.
       </p>
       <Field {...checks.field('code')} label="Invitation code">
         <TextInput

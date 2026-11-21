@@ -31,7 +31,6 @@ let mockStoredRole = 'investor';
 let mockPreferencesError = false;
 let mockInterrupted = true;
 let mockFullName = 'Alex Member';
-let mockIdentityRequired = false;
 let mockAuthorityError: string | null = null;
 let mockCompanyDetails = {
   name: 'Example Company Pty Ltd',
@@ -118,7 +117,6 @@ jest.mock('@ledova/shared', () => {
         },
         company: mockCompany ? { uuid: 'company-one', ...mockCompanyDetails } : null,
         isCompany: mockCompany,
-        identityRequired: mockIdentityRequired,
         authorityError: mockAuthorityError,
         authorityRequest: mockAuthorityError ? { status: 'pending' } : null,
         isResettingAuthority: false,
@@ -127,7 +125,7 @@ jest.mock('@ledova/shared', () => {
         error: null,
         completionError: error,
         isSubmitting: false,
-        canCompleteSignup: !mockIdentityRequired && !mockAuthorityError,
+        canCompleteSignup: !mockAuthorityError,
         retryLoad: jest.fn(),
         completeSignup: async () => {
           mockComplete();
@@ -152,7 +150,6 @@ beforeEach(() => {
   mockPreferencesError = false;
   mockInterrupted = true;
   mockFullName = 'Alex Member';
-  mockIdentityRequired = false;
   mockAuthorityError = null;
   mockCompanyDetails = {
     name: 'Example Company Pty Ltd',
@@ -237,7 +234,7 @@ it('completes individual signup only through explicit Terms acceptance, resumes 
   client.clear();
 });
 
-it('takes a company representative through personal and company details, then requires explicit authority and Terms completion after identity and saved-setup checks', async () => {
+it('takes a company representative through personal and company details, then requires explicit authority and Terms completion after saved-setup checks', async () => {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity }, mutations: { retry: false, gcTime: Infinity } },
   });
@@ -302,7 +299,7 @@ it('takes a company representative through personal and company details, then re
   expect(mockNavigate).toHaveBeenLastCalledWith('Review');
   await company.unmount();
 
-  mockIdentityRequired = true;
+  mockAuthorityError = 'Your saved setup uses previous permissions or an expiry. Update the saved setup to continue.';
   const review = await render(<ReviewScreen />, { wrapper });
   expect(review.getByText('New Example Pty Ltd')).toBeTruthy();
   expect(review.getByText('Proprietary Limited (Pty Ltd)')).toBeTruthy();
@@ -312,10 +309,6 @@ it('takes a company representative through personal and company details, then re
   expect(review.getByRole('button', { name: 'Complete company setup' })).toBeDisabled();
   await fireEvent.press(review.getByRole('button', { name: 'Complete company setup' }));
   expect(mockComplete).not.toHaveBeenCalled();
-  mockIdentityRequired = false;
-  mockAuthorityError = 'Your saved setup uses previous permissions or an expiry. Update the saved setup to continue.';
-  await review.rerender(<ReviewScreen />);
-  expect(review.getByRole('button', { name: 'Complete company setup' })).toBeDisabled();
   await fireEvent.press(review.getByRole('button', { name: 'Update saved setup' }));
   expect(mockResetAuthority).toHaveBeenCalledTimes(1);
   mockAuthorityError = null;

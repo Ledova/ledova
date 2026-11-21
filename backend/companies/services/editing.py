@@ -65,8 +65,8 @@ def update_company(company, changes, *, actor):
             if wallet_profile is None or wallet_profile.user_id != current_actor.pk:
                 raise ValidationError({"operator_wallet": "Select one of your current verified EVM wallets."})
             changes = {**changes, "operator_wallet": wallet}
-        current, current_actor, profile, operator = lock_company_actor(actor, company.pk)
-        require_company_administration(current, current_actor, profile, operator)
+        current, current_actor, profile = lock_company_actor(actor, company.pk)
+        require_company_administration(current, current_actor, profile)
         return _update_company(current, changes, current_actor)
 
 

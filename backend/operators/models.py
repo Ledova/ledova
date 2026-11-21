@@ -46,9 +46,6 @@ class Operator(models.Model):
         "assets.Asset", blank=True, related_name="+", limit_choices_to=STABLECOIN_ONLY
     )
 
-    investor_kyc_required = models.BooleanField(default=True)
-    issuer_kyc_required = models.BooleanField(default=False)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

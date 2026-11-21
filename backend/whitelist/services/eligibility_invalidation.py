@@ -29,7 +29,6 @@ from whitelist.services.whitelist import open_approval, registry_for
 SETTING = "app.whitelist_invalidation"
 RETAINED = (
     WhitelistInvalidationCause.STANDING_LOSS,
-    WhitelistInvalidationCause.IDENTITY_LOSS,
     WhitelistInvalidationCause.WALLET_REMOVAL,
 )
 

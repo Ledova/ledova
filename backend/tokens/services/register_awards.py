@@ -167,11 +167,8 @@ def record_award(
             company,
             current_actor,
             profile,
-            operator,
         ):
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             token = ShareToken.objects.select_for_update().filter(pk=token_id, company=company).first()
             if token is None:
                 raise NotFound("Share class not found.")
@@ -260,11 +257,8 @@ def record_award_vesting(*, actor, operation_id, appointment, award, shares, ves
             company,
             current_actor,
             profile,
-            operator,
         ):
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             held, token = _lock_award(award, company)
             prior = RegisterAwardVesting.objects.filter(pk=operation_id).first()
             if prior is not None:
@@ -333,10 +327,8 @@ def _record_award_adjustment(*, actor, operation_id, appointment, award, vesting
         operation = (
             "register_award_end_record" if model is RegisterAwardEnd else "register_award_vesting_reversal_record"
         )
-        with register_command(actor, initial.company_id, operation) as (company, current_actor, profile, operator):
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+        with register_command(actor, initial.company_id, operation) as (company, current_actor, profile):
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             held, token = _lock_award(award, company)
             if vesting is not None:
                 original = RegisterAwardVesting.objects.filter(pk=vesting, award=held, company=company).first()

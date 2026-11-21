@@ -94,9 +94,7 @@ Platform staff still perform these tasks, each described where linked:
 A company appointment names one person and one company and records two separate sets of
 capabilities: those the person holds personally, and those they may delegate onward when inviting
 others. It may have an expiry and can be revoked. An appointment counts only while the person's
-account is active with a verified email, the company's
-[identity requirement for representatives](companies.md#representative-identity-requirement) is
-met, and the appointment has neither expired nor been revoked
+account is active with a verified email and the appointment has neither expired nor been revoked
 ([appointments](companies.md#what-an-appointment-records)).
 
 | Capability (app label)                                   | What it permits today                                                                                                                                                                                                                            |
@@ -144,8 +142,8 @@ approval and create at most one entry. Other decision families keep the separate
 
 Each step confirms an exact preview. If anything the step depends on changes before you confirm,
 such as the proposal, your appointment or the register, the step is refused and you review it
-again. Every step rechecks your appointment, including the identity requirement, at the moment it
-is recorded, so a revocation that lands first refuses the step and records nothing.
+again. Every step rechecks your appointment at the moment it is recorded, so a revocation that
+lands first refuses the step and records nothing.
 
 These company actions are taken in one step rather than prepared, approved and applied:
 

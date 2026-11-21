@@ -13,7 +13,6 @@ from companies.models import Company, CompanyAppointment, CompanyCapability
 from companies.services.administration import company_operation
 from companies.services.authority_requests import _requester_principal
 from integrations.base_chain import get_base_chain_client
-from operators.models import Operator
 from shared.db import atomic, use_operator
 from shared.registry_scope import refuse_deferred_execution
 from tokens.exceptions import (
@@ -149,13 +148,11 @@ def _lock_actors(company, actor_ids):
     list(
         UserProfile.objects.select_for_update(nowait=True, of=("self",)).filter(user_id__in=actor_ids).order_by("uuid")
     )
-    operator = Operator.objects.select_for_update().get(pk=1)
     list(
         CompanyAppointment.objects.select_for_update()
         .filter(company=company, appointee_id__in=actor_ids)
         .order_by("uuid")
     )
-    return operator
 
 
 @contextmanager
@@ -166,9 +163,9 @@ def _command(actor, initial, operation, recorded=False):
         actors = {actor.pk}
         if not recorded and not operation.endswith("_reject") and approval is not None:
             actors.add(approval.decided_by_id)
-        operator = _lock_actors(company, actors)
+        _lock_actors(company, actors)
         current_actor = get_user_model().objects.get(pk=actor.pk)
-        yield company, current_actor, UserProfile.objects.filter(user=current_actor).first(), operator
+        yield company, current_actor, UserProfile.objects.filter(user=current_actor).first()
         if not recorded and operation == "register_capital_reject":
             rejected = RegisterCapitalIncrease.objects.get(pk=initial.pk)
             request = CapitalIncreaseRequest.objects.get(pk=rejected.request_id)
@@ -241,7 +238,6 @@ def prepare_capital_increase(
             company,
             current_actor,
             profile,
-            operator,
         ):
             existing = RegisterCapitalIncrease.objects.select_related("request").filter(pk=operation_id).first()
             if existing is not None:
@@ -275,9 +271,7 @@ def prepare_capital_increase(
                 ):
                     raise RegisterChangeConflict()
                 return existing
-            source = register_appointment(
-                company, current_actor, profile, operator, appointment, CompanyCapability.PREPARE
-            )
+            source = register_appointment(company, current_actor, profile, appointment, CompanyCapability.PREPARE)
             current = ShareToken.objects.select_for_update(of=("self",)).get(pk=token, company=company)
             current.company = company
             if new_authorized_total != int(current.total_supply) + additional_shares:

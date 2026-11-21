@@ -13,9 +13,9 @@ to their own register records is in [member records](member-records.md).
 - [Profile and Settings](#profile-and-settings)
 
 Two facts stay separate throughout: whether an account is in good standing, and whether a
-particular company has approved a wallet to hold its shares. Neither implies the other. The only
-verification Ledova requires of a person is the identity check below; there are no investor
-classification claims, payslips or company eligibility decisions
+particular company has approved a wallet to hold its shares. Neither implies the other. Ledova
+requires no verified identity ([decision](../decisions.md#identity-verification-removed)), and there
+are no investor classification claims, payslips or company eligibility decisions
 ([decision](../decisions.md#verification-limited-to-id-checks)).
 
 New wallet nominations, company wallet instructions and chain whitelist changes are unavailable
@@ -33,10 +33,7 @@ original controls, not a supported new-action workflow.
    Terms of Service and Privacy Policy. Signup asks no eligibility questions and collects no
    financial-profile answers, on the web or in the app.
 
-Signup does not include identity verification. Complete it afterwards on the web with the identity
-check's **Review** in **Settings → Account**; while the investor identity requirement is on, wallet
-nominations and trading through the API wait for it ([account standing](#account-standing)). An
-unfinished account can sign in again and resume.
+Signup does not include identity verification. An unfinished account can sign in again and resume.
 
 ### Going back and changing your email
 
@@ -66,15 +63,9 @@ establish inbox delivery. This web increment adds no mobile reset screen.
 
 An account is Pending Verification, Active, Rejected, Suspended or Terminated. A wallet nomination,
 a company wallet approval and trading through the API need a current participant: an investing
-account with an active login and a verified email, in good standing:
-
-- With the investor identity requirement on (the default), the account must be Active and the
-  person's identity verified.
-- With it off, a Pending Verification account also qualifies and identity is not required.
-- Rejected, Suspended and Terminated accounts never qualify.
-
-A nomination's preview names any requirement not met. Company representatives have a separate
-[identity requirement](companies.md#representative-identity-requirement).
+account with an active login and a verified email, in good standing. A Pending Verification or
+Active account qualifies; Rejected, Suspended and Terminated accounts never do. A nomination's preview
+names any requirement not met.
 
 ### Identity check results
 
@@ -92,10 +83,8 @@ When a check is approved, the person's identity becomes verified and the account
   the FATF black list;
 - otherwise the account becomes Active and a risk assessment is recorded.
 
-When a check is declined or needs more information, the identity is not verified. If it had been
-verified and the investor identity requirement is on, the person's company wallet approvals are
-queued for removal ([automatic removal](#when-an-approval-is-removed-automatically)).
-The person is notified when the result changes, and the notice opens Profile.
+When a check is declined or needs more information, the identity is not verified. The person is
+notified when the result changes, and the notice opens Profile.
 
 ### PEP rules
 
@@ -180,13 +169,13 @@ a current participant whose wallet holds a live approval from that company ([tra
 ### When an approval is removed automatically
 
 An approval ends at its expiry, or when the company removes it. The platform also queues it for
-removal from the company's on-chain registry when the holder's account standing, configured
-identity or wallet is lost. Then:
+removal from the company's on-chain registry when the holder's account standing or wallet is lost.
+Then:
 
 - the platform refuses new orders and signatures for that company at once;
 - the removal records the actual cause; the platform only removes, never adds or renews, an
-  approval on its own. A lost standing or identity removes nothing once the participant is current
-  again, but a wallet that was removed or lost its verification loses its approval even then;
+  approval on its own. A lost standing removes nothing once the participant is current again, but a
+  wallet that was removed or lost its verification loses its approval even then;
 - until the removal lands on chain, a direct contract call could still move shares; pausing the
   share class is the available lever
   ([whitelist changes](../engineering/chain.md#whitelist-changes));

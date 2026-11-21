@@ -75,12 +75,11 @@ def retain_register_evidence(*, actor, company_id, appointment, kind, idempotenc
     digest = hashlib.sha256(raw).hexdigest()
     evidence = None
     try:
-        with register_command(actor, company_id, "register_evidence") as (company, current_actor, profile, operator):
+        with register_command(actor, company_id, "register_evidence") as (company, current_actor, profile):
             source = register_appointment(
                 company,
                 current_actor,
                 profile,
-                operator,
                 appointment,
                 CompanyCapability.ADMIN if kind == RegisterEvidenceKind.CLASS_RIGHTS else CompanyCapability.PREPARE,
             )

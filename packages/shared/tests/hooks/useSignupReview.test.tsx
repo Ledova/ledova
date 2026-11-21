@@ -80,7 +80,6 @@ it('accepts current company terms only on explicit completion, resumes setup wit
       return { data: { userProfile: profile.uuid, userAccount: { uuid: 'account-a', role: 'company' } } };
     }
     if (url === '/api/user-profiles/') return { data: { results: [profile] } };
-    if (url === '/api/operator/') return { data: { issuerKycRequired: false } };
     if (url === '/api/v1/companies/') return { data: { results: companySaved ? [company] : [] } };
     if (url === '/api/v1/companies/company-a/') return { data: company };
     if (url === '/api/v1/company-authority/requests/') {

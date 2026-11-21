@@ -264,8 +264,7 @@ workflow API](backend.md#company-workflow-api), with the shared decision routes 
 codes of [register decisions](backend.md#register-decisions); who may take each step is in [how a
 company decision works](../business/README.md#how-a-company-decision-works). Routes are under
 `/api/v1/tokens/` ([urls.py](../../backend/tokens/urls.py)). Preparation refuses a record of a
-company where the caller holds no current appointment, and every command meets the
-[`issuer_kyc_required`](../operations/operator-console.md#operator-configuration) identity check.
+company where the caller holds no current appointment.
 
 ### Evidence uploads
 
@@ -703,7 +702,7 @@ instructions](../business/register.md#retained-issue-instructions) and [settled-
 instructions](../business/register.md#settled-transfer-instructions). `POST register-instructions/`
 submits the company owner's instruction as a bounded company command on the operator connection.
 The owner must be a current administrator of the company (a current personal `admin` appointment,
-with a verified identity where the operator requires it, or the draft setup exception), as
+or the draft setup exception), as
 `require_company_administration` checks; an identical retry returns the retained instruction
 first. `authority_evidence` names an `authority` upload (`POST register-evidence/`) the owner made
 for the company, of which the instruction keeps its own copy, upload snapshot and SHA-256, as

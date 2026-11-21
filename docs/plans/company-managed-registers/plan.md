@@ -9,8 +9,10 @@ increments delivered under it and the remaining scope.
 
 Investor eligibility (classification claims, payslips and company eligibility decisions) was removed
 on 2 November 2026 ([decision](../../decisions.md#verification-limited-to-id-checks)). Where this
-plan names eligibility decisions or classification outcomes, Ledova no longer records them, and its
-only check of a person is the identity check.
+plan names eligibility decisions or classification outcomes, Ledova no longer records them. Identity
+verification was removed on 21 November 2026
+([decision](../../decisions.md#identity-verification-removed)); where this plan names an identity
+check or identity outcome, Ledova no longer requires one.
 
 ## Decision
 
