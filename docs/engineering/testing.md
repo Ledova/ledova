@@ -35,7 +35,7 @@ Backend accounting conservatively includes both discovered methods and every `su
 boundary keeps representative read/write and capability-family refusals instead of repeating every
 route/method combination. This replaces 96 boundary rows with 26 and leaves room for the PDF
 parser's thirteen meaningful hostile-input rows and the Terms/retention checks without increasing the cap.
-Two additional methods cover immutable Terms receipts and provider erasure/maintenance; the Terms
+Two additional methods cover immutable Terms receipts and account maintenance; the Terms
 case includes six explicit refusal/mutation rows. No existing core journey is removed.
 Company deletion keeps two methods and two runtime-role rows for tenant preservation, file removal,
 a failed class delete's rollback, the on-chain refusals and privileged-boundary refusals; the first
@@ -163,7 +163,7 @@ session and principal handling, foreign reads and writes, exact-company binding,
 and once-only issue. Exact-company binding includes class edits and deletion through real app and
 operator connections, foreign-class refusals and refusal of direct app-role SQL metadata changes.
 The own-profile case also checks that the operator-connection profile save, with
-its serializer bypassed, cannot change provider identity results or another person's row. The PR description records the executed count, the scoped count and any skips.
+its serializer bypassed, cannot change another person's row. The PR description records the executed count, the scoped count and any skips.
 
 ## Client suites
 

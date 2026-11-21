@@ -12,6 +12,7 @@ def remove_identity_guard(apps, schema_editor):
     apps.get_model("contenttypes", "ContentType").objects.using(alias).filter(
         app_label="users", model="accounterasureworkitem"
     ).delete()
+    apps.get_model("users", "Notification").objects.using(alias).filter(data__type="identity").delete()
     if schema_editor.connection.vendor != "postgresql":
         return
     with schema_editor.connection.cursor() as cursor:

@@ -55,9 +55,8 @@ export function PrivacyPolicy() {
                 <strong className={LABEL}>When you register:</strong> your email address, a password (kept only as a
                 one-way hash), and your full name. Signup, on the web or in the app, doesn&apos;t ask for a birth date,
                 phone number, address, occupation, source of funds or intended use. You can add or update an address in
-                Profile for linked shareholder particulars. Earlier preview records can retain these details. A
-                configured identity check can collect identity details separately; these do not determine company
-                ownership.
+                Profile for linked shareholder particulars. Earlier preview records can retain these details. Ledova
+                does not check your identity.
               </li>
               <li>
                 <strong className={LABEL}>What you record:</strong> company details, share classes, holdings and awards,
@@ -108,9 +107,8 @@ export function PrivacyPolicy() {
                 Ledova account does not automatically erase those provider copies.
               </li>
               <li>
-                Optional identity checks and native push can send information to the configured identity provider or
-                Expo. Their purposes, processing locations and retention must be confirmed before real information is
-                sent. Investment payments and trading are unavailable.
+                Native push can send information to Expo. Its purposes, processing locations and retention must be
+                confirmed before real information is sent. Investment payments and trading are unavailable.
               </li>
             </ul>
           </Section>
@@ -127,15 +125,6 @@ export function PrivacyPolicy() {
               copies need separate review and deletion when their support, security or specific legal purpose ends,
               subject to identified holds and recovery periods. Deleting a Ledova account does not delete them
               automatically.
-            </p>
-            <p>
-              If an identity provider holds an applicant, deletion starts a separate permanent-erasure request. Our
-              target is 30 days; the operator must obtain actual supplier confirmation. Pending applicant identifiers
-              and the completion email are kept only for that follow-through, then cleared after confirmation and
-              notice. An identified legal hold can delay specific deletion; we record its reason and review date.
-              Reversible provider deactivation is not treated as deletion. Identity checks are currently off in the
-              preview; if enabled, the configured provider is Sumsub or KYCAID, with its own notice and processing
-              locations to be confirmed before real identity information is collected.
             </p>
             <p>
               Company records are separate from your sign-in. Their particulars, documents, decisions and copied history

@@ -111,7 +111,7 @@ A later run finds the population, adds nothing and says so. Synthetic people use
 `@demo.ledova.test` addresses, ACMA fictional phone numbers and made-up addresses; the companies use
 ACNs in the unissued 9xx range with matching ABNs; wallet keys come from a namespaced hash, except
 the testers' development accounts. The seed sends nothing and queues no job: no email, push
-notification or identity check. To start over, run `make dev-clean`, then `make dev-up`
+notification. To start over, run `make dev-clean`, then `make dev-up`
 and `make dev-seed`; a run that stopped part-way says to start over.
 
 The chain layer ([`seeds/synthetic/chain/`](../backend/shared/seeds/synthetic/chain)) and the market

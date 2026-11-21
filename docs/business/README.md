@@ -77,7 +77,7 @@ Platform staff still perform these tasks, each described where linked:
   [retained issues](register.md#retained-issue-instructions));
 - issue a compliance warning, suspend, delist or reinstate a company
   ([staff company controls](companies.md#staff-company-controls));
-- review compliance alerts from identity screening and transaction monitoring
+- review compliance alerts from transaction monitoring
   ([participants](participants.md#transaction-monitoring)), and accounts that still hold a company
   wallet approval after losing their standing
   ([holder standing review](../operations/operator-console.md#holder-standing-review));
@@ -310,7 +310,7 @@ Follow a company and its participants through Ledova:
 
 1. [Company setup and authority](companies.md): signup, the representative's
    declaration, the team, company information and documents, and company status.
-2. [Investors and members](participants.md): accounts and identity checks, the API's wallet
+2. [Investors and members](participants.md): accounts, the API's wallet
    nominations and approvals, and monitoring.
 3. [Register of members](register.md): opening the mirror from company records, deleting a mistaken
    entry, particulars, transfers and former members, with the API's openings from the chain, wallet links
