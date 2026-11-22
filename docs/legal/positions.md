@@ -132,6 +132,13 @@ legal review, once companies could delete what they record. They describe
 deletion in the service, keep the company's record-keeping duty for anything it
 deletes, and extend the exclusion and indemnity to deleted records
 ([decision](../decisions.md#terms-for-companies-deleting-records)).
+On 22 November 2026 the owner approved Terms v2026-11-22 under
+[#1753](https://github.com/Ledova/ledova/issues/1753). They replace the former conditional
+identity-check sentences with “We do not check anyone’s identity.” and “Ledova’s features do
+not carry out these responsibilities for the company.” The other Terms paragraphs remain
+unchanged, including the company’s own identity checks, statutory record-keeping duties and
+the operator’s non-transferable obligations. Earlier versions remain published and existing
+acceptances are retained ([decision](../decisions.md#terms-without-identity-checks)).
 The [launch position](#registry-only-launch-preparation) records the remaining live
 supplier and legal assessment.
 

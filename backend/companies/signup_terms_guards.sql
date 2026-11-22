@@ -27,8 +27,8 @@ BEGIN
         OR NOT source.capabilities @> '["admin"]'::jsonb
         OR source.expires_at <= clock_timestamp()
         OR EXISTS (SELECT 1 FROM companies_companyappointmentrevocation WHERE appointment_id = source.uuid)
-        OR NEW.declaration_version IS DISTINCT FROM '2026-11-21'
-        OR NEW.declaration_text IS DISTINCT FROM 'I am authorised to act for this company, including setting up and administering its workspace and users, and I accept the Terms of Service (version 2026-11-21) on its behalf. The company is responsible for its records and decisions, its legal and regulatory obligations, who may hold its shares and the identity checks it needs, and Ledova does not review or approve them.'
+        OR NEW.declaration_version IS DISTINCT FROM '2026-11-22'
+        OR NEW.declaration_text IS DISTINCT FROM 'I am authorised to act for this company, including setting up and administering its workspace and users, and I accept the Terms of Service (version 2026-11-22) on its behalf. The company is responsible for its records and decisions, its legal and regulatory obligations, who may hold its shares and the identity checks it needs, and Ledova does not review or approve them.'
         OR source.request_id IS NOT NULL AND source.declaration_version = NEW.declaration_version
             AND source.declaration_text = NEW.declaration_text
     THEN

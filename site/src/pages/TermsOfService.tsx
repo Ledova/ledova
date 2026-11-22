@@ -5,7 +5,7 @@ import { INLINE_LINK, PAGE_SECTION } from '../styles';
 const TERMS = [
   [
     'The service',
-    'Blueberry Money Pty Ltd (ACN 691 391 214) provides Ledova, software that Australian private companies use to record and mirror their share ownership and related records. Ledova is technology infrastructure: we host the software and keep it running, and each company directs its own records and changes. We do not act as agent for a company, its shareholders or investors. We do not review or approve companies, their representatives’ authority, their decisions or the records they enter, with one exception: for a share class on a blockchain, our staff check each directors’ instruction a company submits against the directors’ approval before applying it, and may decline one that does not match; the decision remains the directors’. If the service asks a person to complete an identity check, our identity provider checks that person’s identity for their Ledova account; it does not confirm their authority, a company’s records or anyone’s eligibility to hold shares. We do not collect investment money, arrange or execute trades, hold assets or provide legal, financial, investment or tax advice. While the service is marked as a preview, use fictional records and disposable credentials only.',
+    'Blueberry Money Pty Ltd (ACN 691 391 214) provides Ledova, software that Australian private companies use to record and mirror their share ownership and related records. Ledova is technology infrastructure: we host the software and keep it running, and each company directs its own records and changes. We do not act as agent for a company, its shareholders or investors. We do not review or approve companies, their representatives’ authority, their decisions or the records they enter, with one exception: for a share class on a blockchain, our staff check each directors’ instruction a company submits against the directors’ approval before applying it, and may decline one that does not match; the decision remains the directors’. We do not check anyone’s identity. We do not collect investment money, arrange or execute trades, hold assets or provide legal, financial, investment or tax advice. While the service is marked as a preview, use fictional records and disposable credentials only.',
   ],
   [
     'Your account and authority',
@@ -13,7 +13,7 @@ const TERMS = [
   ],
   [
     'What the company is responsible for',
-    'The company is responsible for the accuracy, completeness and lawfulness of everything it records, and for keeping its register of members and other records as the law requires, whether or not it uses Ledova to do so and including any record it deletes from Ledova; using Ledova does not make us its agent or register keeper. The company is responsible for its decisions and approvals and the authority behind every change it records; for complying with the laws that apply to it, including corporations, fundraising and disclosure, employee share scheme, tax, anti-money laundering and privacy laws, and for its notices and filings with ASIC and other regulators; for deciding who may acquire or hold its shares or awards, including any investor eligibility or transfer restriction; and for any identity, eligibility or background checks it needs on its officers, members, investors or employees. Ledova’s features, including any identity check the service asks a person to complete, do not carry out these responsibilities for the company. Recording something in Ledova does not verify or approve it or establish legal ownership. Registration does not incorporate a company, appoint a director or issue shares, and an award is an entitlement, not issued shares.',
+    'The company is responsible for the accuracy, completeness and lawfulness of everything it records, and for keeping its register of members and other records as the law requires, whether or not it uses Ledova to do so and including any record it deletes from Ledova; using Ledova does not make us its agent or register keeper. The company is responsible for its decisions and approvals and the authority behind every change it records; for complying with the laws that apply to it, including corporations, fundraising and disclosure, employee share scheme, tax, anti-money laundering and privacy laws, and for its notices and filings with ASIC and other regulators; for deciding who may acquire or hold its shares or awards, including any investor eligibility or transfer restriction; and for any identity, eligibility or background checks it needs on its officers, members, investors or employees. Ledova’s features do not carry out these responsibilities for the company. Recording something in Ledova does not verify or approve it or establish legal ownership. Registration does not incorporate a company, appoint a director or issue shares, and an award is an entitlement, not issued shares.',
   ],
   [
     'Documents and privacy',
@@ -44,7 +44,7 @@ const TERMS = [
 export function TermsOfService() {
   return (
     <>
-      <PageHeader title="Terms of Service" lead="Version 2026-11-21" />
+      <PageHeader title="Terms of Service" lead="Version 2026-11-22" />
       <section className="border-t border-border-subtle">
         <div className={`${PAGE_SECTION} space-y-8 text-base leading-relaxed text-text-muted`}>
           <p>
@@ -63,6 +63,10 @@ export function TermsOfService() {
               Privacy policy
             </Link>{' '}
             and the earlier Terms,{' '}
+            <Link to="/terms-of-service/2026-11-21" className={INLINE_LINK}>
+              version 2026-11-21
+            </Link>
+            ,{' '}
             <Link to="/terms-of-service/2026-11-15" className={INLINE_LINK}>
               version 2026-11-15
             </Link>

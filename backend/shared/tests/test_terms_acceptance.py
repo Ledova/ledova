@@ -39,7 +39,7 @@ class TermsAcceptanceTest(APITransactionTestCase):
             {"is_signup_completed": True},
             {"terms_and_conditions": True, "is_signup_completed": True},
             {"terms_version": TERMS_VERSION},
-            {**acknowledgement, "terms_version": "2026-10-14"},
+            {**acknowledgement, "terms_version": "2026-11-21"},
         ):
             with self.subTest(payload=payload):
                 refused = self.client.patch(endpoint, payload, format="json")
@@ -107,15 +107,15 @@ class TermsAcceptanceTest(APITransactionTestCase):
                 .replace("@MIGRATE_ROLE@", migrate)
                 .replace("@APP_ROLE@", app)
             )
-            cursor.execute(current.replace(TERMS_VERSION, "2026-10-14"))
+            cursor.execute(current.replace(TERMS_VERSION, "2026-11-21"))
         try:
             with (
-                patch("companies.services.authority.SIGNUP_DECLARATION_VERSION", "2026-10-14"),
+                patch("companies.services.authority.SIGNUP_DECLARATION_VERSION", "2026-11-21"),
                 patch(
                     "companies.services.authority.SIGNUP_DECLARATION_TEXT",
-                    SIGNUP_DECLARATION_TEXT.replace(TERMS_VERSION, "2026-10-14"),
+                    SIGNUP_DECLARATION_TEXT.replace(TERMS_VERSION, "2026-11-21"),
                 ),
-                patch("shared.tests.core_fixtures.SIGNUP_DECLARATION_VERSION", "2026-10-14"),
+                patch("shared.tests.core_fixtures.SIGNUP_DECLARATION_VERSION", "2026-11-21"),
             ):
                 company, appointment = company_for(legacy_user, "Historical Terms Pty Ltd", "777888999")
         finally:
@@ -123,5 +123,5 @@ class TermsAcceptanceTest(APITransactionTestCase):
                 cursor.execute(current)
         self.assertTrue(is_company_appointment_effective(appointment))
         retained = CompanyAppointment.objects.get(company=company)
-        self.assertEqual(retained.declaration_version, "2026-10-14")
-        self.assertIn("version 2026-10-14", retained.declaration_text)
+        self.assertEqual(retained.declaration_version, "2026-11-21")
+        self.assertIn("version 2026-11-21", retained.declaration_text)
