@@ -1,6 +1,6 @@
 import { Field, TextArea, TextInput } from '@components/Field';
 import { useEffect, useRef, useState } from 'react';
-import { FIELD_LIMITS, formatDate, failureSentence } from '@ledova/shared';
+import { FIELD_LIMITS, failureSentence } from '@ledova/shared';
 import { Actions, FormActions, PageAction } from '@components/Page';
 import { Outcome, Row, Rows, Section, LoadError, Loading, Failure } from '@components/Ledger';
 import { useUserProfile } from '@hooks/useUserProfile';
@@ -79,24 +79,11 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
           <Row label="Email" inline>
             <span className="break-all">{userProfile.email || 'Not provided'}</span>
           </Row>
-          {userProfile.phoneNumber && (
-            <Row label="Phone" inline>
-              {`${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()}
-            </Row>
-          )}
-          {userProfile.dateOfBirth && (
-            <Row label="Date of birth" inline>
-              {formatDate(userProfile.dateOfBirth)}
-            </Row>
-          )}
           {!isEditing && (
             <Row label="Address" inline>
               <span className="break-words">{userProfile.residentialAddress || 'Not provided'}</span>
             </Row>
           )}
-          <Row label="Citizenship" inline>
-            {userProfile.citizenshipCountryName || 'Not provided'}
-          </Row>
         </Rows>
         <Outcome>{savedFor !== null && savedFor === ownerKey && 'Your personal details were saved.'}</Outcome>
         {isEditing ? (

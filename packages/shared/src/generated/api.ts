@@ -4210,12 +4210,8 @@ export interface ApiComponents {
       uuid: string;
     };
     ExportedProfile: {
-      citizenshipCountry: string | null;
       createdAt: string;
-      dateOfBirth: string | null;
       fullName: string | null;
-      phoneCountryCode: string | null;
-      phoneNumber: string | null;
       residentialAddress: string | null;
     };
     ExportedTermsAcceptance: {
@@ -5076,13 +5072,8 @@ export interface ApiComponents {
       role?: ApiComponents['schemas']['RoleEnum'];
     };
     PatchedUserProfileRequest: {
-      citizenshipCountry?: string;
-      dateOfBirth?: string | null;
       fullName?: string | null;
       isSignupCompleted?: boolean;
-      phoneCountryCode?: string | null;
-      phoneNumber?: string | null;
-      residenceCountry?: string;
       residentialAddress?: string | null;
       termsAndConditions?: boolean;
       termsVersion?: ApiComponents['schemas']['ServiceTermsVersionEnum'];
@@ -7319,33 +7310,21 @@ export interface ApiComponents {
       transactionAlerts?: boolean;
     };
     UserProfile: {
-      citizenshipCountry: string | null;
-      citizenshipCountryName: string | null;
       dateJoined: string;
-      dateOfBirth?: string | null;
       email: string;
       fullName?: string | null;
       isActive: boolean;
       isSignupCompleted?: boolean;
       isStaff: boolean;
       lastLogin: string | null;
-      phoneCountryCode?: string | null;
-      phoneNumber?: string | null;
-      residenceCountry?: string | null;
-      residenceCountryName: string | null;
       residentialAddress?: string | null;
       termsAcceptance: ApiComponents['schemas']['TermsAcceptance'] | null;
       termsAndConditions?: boolean;
       uuid: string;
     };
     UserProfileRequest: {
-      citizenshipCountry: string;
-      dateOfBirth?: string | null;
       fullName?: string | null;
       isSignupCompleted?: boolean;
-      phoneCountryCode?: string | null;
-      phoneNumber?: string | null;
-      residenceCountry?: string;
       residentialAddress?: string | null;
       termsAndConditions?: boolean;
       termsVersion?: ApiComponents['schemas']['ServiceTermsVersionEnum'];
@@ -8507,7 +8486,7 @@ export interface ApiOperations {
       path?: never;
       cookie?: never;
     };
-    requestBody: {
+    requestBody?: {
       content: {
         'application/json': ApiComponents['schemas']['UserProfileRequest'];
         'application/x-www-form-urlencoded': ApiComponents['schemas']['UserProfileRequest'];

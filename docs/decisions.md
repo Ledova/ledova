@@ -27,6 +27,7 @@ stay here as history and are marked where they appear.
 | [Verification limited to ID checks](#verification-limited-to-id-checks)                                            | 2 November 2026                                | Removals stand (#1491); keeping ID verification superseded 21 November 2026 (#1739)                                                                               |
 | [ABR company check removed](#abr-company-check-removed)                                                            | 2 November 2026                                | Current; #1491 step 2; activation itself removed 14 November (#1567)                                                                                             |
 | [Company documents removed](#company-documents-removed)                                                            | 2 November 2026                                | Current; #1491 step 3; retained instructions take the company's own evidence                                                       |
+| [Account-only profile details removed](#account-only-profile-details-removed) | 22 November 2026 | Current; #1747; names, addresses and separate company/member records stay |
 | [Company activation removed](#company-activation-removed)                                                          | 14 November 2026                               | Current; #1567; a company is Active when its signup completes, with no activation step or review                                                                 |
 | [Identity verification removed](#identity-verification-removed)                                                    | 21 November 2026                               | Current; #1739, delivered in steps                                                                                                                                |
 | [Terms as technology infrastructure](#terms-as-technology-infrastructure)                                          | 14 November 2026                               | Current; #1567; Terms v2026-11-15, prepared without legal review; v2026-11-22 replaces it for new acceptance                                                                             |
@@ -54,7 +55,8 @@ stay here as history and are marked where they appear.
 | [One-step particulars edit](#one-step-particulars-edit)                                                            | 1 November 2026                                | Current; #1476; members without a current account link since 2 November (#1492)                                                    |
 | [Member certificate requests removed](#member-certificate-requests-removed)                                        | 2 November 2026                                | Current; #1476; amounts paid and unpaid on certificates delivered 2 November                                                       |
 | [Register particulars follow the linked member's profile](#register-particulars-follow-the-linked-members-profile) | 2 November 2026                                | Current; #1492                                                                                                                     |
-| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                          | 11 October 2026                                | Current                                                                                                                            |
+| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                          | 11 October 2026                                | Current; forward-migration policy clarified 22 November                                                                             |
+| [Forward migrations after the fresh baseline](#forward-migrations-after-the-fresh-baseline)                       | 22 November 2026                               | Current; #1748                                                                                                                      |
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                      | 11 October 2026                                | Current                                                                                                                            |
 | [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                            | 11 October 2026                                | Current                                                                                                                            |
 | [Required CI and auto-merge on main](#required-ci-and-auto-merge-on-main)                                          | 29 October 2026                                | Current; #1409                                                                                                                     |
@@ -1296,7 +1298,24 @@ full name, as the web's has since [#1589](https://github.com/Ledova/ledova/issue
 with your recommendations". The app no longer asks for a birth date, phone number or residential
 address at sign-up, and its Profile edits the name and address as the web's does. Details an account
 already holds stay, and Profile shows a retained phone number or birth date only where the account
-has one ([#1711](https://github.com/Ledova/ledova/issues/1711)).
+has one ([#1711](https://github.com/Ledova/ledova/issues/1711)). Keeping those account-only details
+was superseded by the [22 November removal](#account-only-profile-details-removed).
+
+### Account-only profile details removed
+
+**Owner decision, 22 November 2026**, given in the session and tracked in
+[#1747](https://github.com/Ledova/ledova/issues/1747). After the recommendation to remove the
+account-only phone country code and number, birth date, citizenship country and residence country,
+the owner said "Proceed and deploy a new version to my phone". These details have no identified
+core registry purpose after identity verification was removed. Their fields, stored values, API
+properties, displays and supporting code are removed. Full name, address, company contact details,
+member particulars, associations, appointments and separately retained company and execution records
+stay. Applied migration history and profile-to-register name/address safeguards stay.
+
+The software change uses a forward migration and coordinated backend, web and native releases.
+The phone release is the owner's requested next delivery; its actual build and device acceptance
+are recorded separately. Dropping application columns does not erase backups, support mail or
+previously exported copies, whose retention remains separate.
 
 ### Companies may delete what they record
 
@@ -1515,6 +1534,20 @@ merging head and green CI. Targets are the whole PR run within **ten minutes on
 GitHub's runners**, and all tests together within **five minutes on the Mac**.
 Report actual counts and timings against those targets. Earlier timings and
 verification remain historical evidence, not proof of the new targets.
+
+### Forward migrations after the fresh baseline
+
+**Owner decision, 22 November 2026** ([#1748](https://github.com/Ledova/ledova/issues/1748)),
+accepted with the direction to proceed with the recommended changes and prepare a new phone build.
+
+Keep the existing fresh PostgreSQL baseline and add forward migrations for later model and guard
+changes. Applied migration files stay unchanged. A further baseline reset or squash needs the
+owner's decision, and live migrations or resets still need the owner's explicit direction.
+There is no adoption path for a database on an older initial graph.
+
+This clarifies the continuing workflow after the 11 October reset and the later #1421 baseline;
+it does not request another reset or rewrite deployed history. The
+[backend migration reference](engineering/backend.md#migrations) owns the implementation rules.
 
 ### Dependency advisories in ordinary CI
 

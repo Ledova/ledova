@@ -12,7 +12,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-it('saves only the full name, requires it and leaves retained details untouched', async () => {
+it('saves only the full name, requires it and leaves the existing address untouched', async () => {
   const api = axios.create();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: PropsWithChildren) => (
@@ -23,10 +23,7 @@ it('saves only the full name, requires it and leaves retained details untouched'
   const profile = {
     uuid: 'profile-a',
     fullName: 'Example Director',
-    dateOfBirth: '1990-01-01',
     residentialAddress: 'PO Box 123, Sydney NSW 2000',
-    phoneCountryCode: '+61',
-    phoneNumber: '0491570156',
   };
   jest.spyOn(api, 'get').mockResolvedValue({ data: { count: 1, results: [profile] } });
   const patch = jest.spyOn(api, 'patch').mockResolvedValue({ data: profile });

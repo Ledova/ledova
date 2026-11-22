@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { FIELD_LIMITS, failureSentence, formatDate } from '@ledova/shared';
+import { FIELD_LIMITS, failureSentence } from '@ledova/shared';
 import { Action, Actions, Fact, FormActions, Outcome, Rows, Section } from '../../components/Ledger';
 import { Field } from '../../components/Field';
 import { useThemedStyles } from '../../contexts';
@@ -53,24 +53,11 @@ export function PersonalProfile({ profile }: { profile: ReturnType<typeof useUse
             <Fact label="Email" inline>
               {userProfile.email || 'Not provided'}
             </Fact>
-            {userProfile.phoneNumber ? (
-              <Fact label="Phone" inline>
-                {`${userProfile.phoneCountryCode || ''} ${userProfile.phoneNumber}`.trim()}
-              </Fact>
-            ) : null}
-            {userProfile.dateOfBirth ? (
-              <Fact label="Date of birth" inline>
-                {formatDate(userProfile.dateOfBirth)}
-              </Fact>
-            ) : null}
             {!isEditing && (
               <Fact label="Address" inline>
                 {userProfile.residentialAddress || 'Not provided'}
               </Fact>
             )}
-            <Fact label="Citizenship" inline>
-              {userProfile.citizenshipCountryName || 'Not provided'}
-            </Fact>
           </Rows>
           {savedFor !== null && savedFor === ownerKey && <Outcome>Your personal details were saved.</Outcome>}
           {!isEditing && (

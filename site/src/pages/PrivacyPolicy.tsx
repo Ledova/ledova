@@ -55,8 +55,9 @@ export function PrivacyPolicy() {
                 <strong className={LABEL}>When you register:</strong> your email address, a password (kept only as a
                 one-way hash), and your full name. Signup, on the web or in the app, doesn&apos;t ask for a birth date,
                 phone number, address, occupation, source of funds or intended use. You can add or update an address in
-                Profile for linked shareholder particulars. Earlier preview records can retain these details. Ledova
-                does not check your identity.
+                Profile for linked shareholder particulars. The account profile no longer stores phone numbers, birth
+                dates, citizenship or residence country. Earlier financial-profile answers can remain in preview
+                records. Ledova does not check your identity.
               </li>
               <li>
                 <strong className={LABEL}>What you record:</strong> company details, share classes, holdings and awards,
@@ -93,8 +94,7 @@ export function PrivacyPolicy() {
               <li>
                 Company users see the records their company permissions allow; members see their own records. A company
                 can also share ownership totals and share-class figures with its members, without revealing other
-                holders&apos; names or private records. Companies don&apos;t see your account&apos;s phone number, date
-                of birth or financial profile.
+                holders&apos; names or private records. Companies don&apos;t see your account&apos;s financial profile.
               </li>
               <li>
                 Authorised operators can access private records only as needed for support, security or a lawful

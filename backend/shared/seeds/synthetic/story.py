@@ -88,7 +88,6 @@ ROLE_DAYS = {
     "discrepancy": 20,
 }
 RISKS = (("medium_occupation", 2), ("medium_sof", 2))
-FOREIGN_CITIZENSHIPS = ("NZ", "GB", "SG", "US", "IN")
 FUND_SOURCES = ("employment_income", "savings", "investment_income", "sale_of_assets", "inheritance")
 OTHER_FUND_SOURCES = ("Distribution from a family trust", "Proceeds of a business sale settled in instalments")
 INTENDED_OTHER = "Building a position in companies I know personally"
@@ -199,9 +198,6 @@ class Story:
         self.prices = self._price_series()
         self.taken = {f"{first}.{last}".lower() for first, last in STAFF_NAMES}
         self.pairs = self._name_pairs()
-        self.mobiles = list(identities.MOBILE_NUMBERS)
-        self.rng.shuffle(self.mobiles)
-        self.tester_mobile = self.mobiles.pop()
         self.acns = {DEMO_ACN}
         self.alerts = AlertBook(self)
 
@@ -297,20 +293,8 @@ class Story:
         first, last = self.pairs.pop()
         return f"{first} {last}", identities.email_for(first, last, self.taken)
 
-    def _contact(self):
-        address, state = identities.home_address(self.rng)
-        if self.mobiles and self.rng.random() < 0.85:
-            phone = self.mobiles.pop()
-        else:
-            phone = identities.landline(self.rng, state)
-        age = self.rng.randint(26, 71)
-        birth = self.calendar.today - timedelta(days=age * 365 + self.rng.randint(0, 364))
-        return phone, birth, address
-
-    def _citizenship(self, risk):
-        if risk == "medium_occupation":
-            return self.rng.choice(FOREIGN_CITIZENSHIPS)
-        return "AU" if self.rng.random() < 0.82 else self.rng.choice(FOREIGN_CITIZENSHIPS)
+    def _address(self):
+        return identities.home_address(self.rng)[0]
 
     def _financial(self, at, risk, role):
         occupation = self.rng.choice(identities.OCCUPATIONS)
@@ -376,8 +360,7 @@ class Story:
         step = STALLED_STEPS[index % len(STALLED_STEPS)] if cohort == "stalled" else None
         completed = None if cohort == "stalled" else self.after(joined, 18, 40)
         profiled = step in (None, "financial-profile")
-        phone, birth, address = self._contact() if profiled else (None, None, None)
-        citizenship = self._citizenship(risk)
+        address = self._address() if profiled else None
         financial = self._financial(self.after(joined, 14, 30), risk, role) if completed else None
         start = completed or joined
         status_changed = self.alerts.account_change(role) if role in ("suspended", "terminated") else None
@@ -391,10 +374,7 @@ class Story:
             email_verified_at=self.after(joined, 1, 4),
             signup_step=step,
             signup_completed_at=completed,
-            phone=phone,
-            birth_date=birth,
             address=address,
-            citizenship=citizenship if profiled else None,
             financial=financial,
             account_status=role if status_changed else "pending",
             status_changed_at=status_changed,
@@ -632,7 +612,7 @@ class Story:
             full_name, email = self._identity()
         joined = self.moment(spec.owner_days, 8, 18)
         completed = self.after(joined, 20, 45)
-        phone, birth, address = self._contact()
+        address = self._address()
         wallets = self._founder_wallet(spec, key, self.after(completed, 5, 240), tester)
         operator = wallets[0].address if wallets and spec.target == "active" else None
         acn = DEMO_ACN if tester else self._new_acn()
@@ -646,10 +626,7 @@ class Story:
             cohort="founder",
             email_verified_at=self.after(joined, 1, 3),
             signup_completed_at=completed,
-            phone=phone,
-            birth_date=birth,
             address=address,
-            citizenship="AU",
             last_login=self._last_login(completed),
             wallets=wallets,
             existing=tester,
@@ -695,10 +672,7 @@ class Story:
             cohort="tester",
             email_verified_at=self.after(joined, 1, 2),
             signup_completed_at=self.after(joined, 18, 24),
-            phone=self.tester_mobile,
-            birth_date=self.calendar.today - timedelta(days=41 * 365 + 120),
             address="27 Wattlebird Crescent, Lyrebird Downs NSW 2577",
-            citizenship="AU",
             financial=Financial(
                 occupation="Software engineer",
                 source_of_funds=("employment_income", "investment_income"),

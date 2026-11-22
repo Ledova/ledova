@@ -31,14 +31,13 @@ class UserProfileViewSet(mixins.ListModelMixin, mixins.UpdateModelMixin, Authent
         "are written only on the operator connection. Those companies and then this person's account are locked "
         "first, as register commands lock a company and then its actor, and a save that waited behind an account "
         "deletion stops there; then narrow() binds the save to the signed-in person's own "
-        "locked profile row, and the save marks its transaction so the profile trigger still refuses provider "
-        "identity results and any other person's row; the register guards accept only this person's own current "
+        "locked profile row, and the save marks its transaction so the profile trigger refuses any other "
+        "person's row; the register guards accept only this person's own current "
         "links and their profile's values."
     )
 
     def narrow(self, queryset):
         queryset = queryset.filter(user_id=self.request.user.pk)
-        queryset = queryset.select_related("citizenship_country")
         if getattr(self, "action", None) == "partial_update":
             return queryset.select_for_update(of=("self",))
         return queryset

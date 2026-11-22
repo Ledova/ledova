@@ -295,10 +295,12 @@ remain. No web or native signup sends financial-profile answers.
 
 Signup, on the web and in the app, submits only the full name through the shared profile hook;
 birth date, phone and address are not requested or sent, including when resuming a profile that
-already holds them. Profile edits only name and address on both clients, preserving historical
-phone, birth date and citizenship for their existing display, export and erasure paths. Address
-supports linked member particulars and can be postal; it is not required of every company
-administrator.
+already holds an address. Profile edits only name and address on both clients. Account-only phone,
+birth date, citizenship and residence country fields are removed from the model, API, displays and
+export; a forward migration drops their stored values
+([decision](../decisions.md#account-only-profile-details-removed)). Address supports linked member
+particulars and can be postal; it is not required of every company administrator. The migration
+does not erase copies in backups, support mail or earlier exports.
 
 Company deletion is separate from account deletion. A current company administrator, or the owner
 of a draft under the draft setup exception, deletes the company from Settings

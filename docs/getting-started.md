@@ -99,7 +99,7 @@ record; the main ones:
 
 | Module                       | What it adds                                                                                                                                                                                                               |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `reference.py`               | Countries, the operator's blank identity fields with an eleven-zero ABN, six months of BTC, ETH, USDC and USDT prices and a USD to AUD rate                                                                                |
+| `reference.py`               | The operator's blank identity fields with an eleven-zero ABN, six months of BTC, ETH, USDC and USDT prices and a USD to AUD rate                                                                                |
 | `staff.py`                   | A compliance officer, an operations officer who can open the operator console, and a deactivated former staff member                                                                                                       |
 | `people.py`, `identities.py` | 60 investors unless `--investors` asks for at least 20, in every signup and standing state, with wallets on Base, Ethereum and Bitcoin testnet, transactions, holdings, inactive device tokens and notifications |
 | `companies.py`               | Demo Robotics and two more active companies, and two companies whose signup is not complete                                                                                                                                |
@@ -112,8 +112,8 @@ notifications and wallet activity; the founder has a full
 profile and Demo Robotics' review history.
 
 A later run finds the population, adds nothing and says so. Synthetic people use
-`@demo.ledova.test` addresses, ACMA fictional phone numbers and made-up addresses; the companies use
-ACNs in the unissued 9xx range with matching ABNs; wallet keys come from a namespaced hash, except
+`@demo.ledova.test` email addresses and made-up addresses; the companies use fictional contact
+details and ACNs in the unissued 9xx range with matching ABNs; wallet keys come from a namespaced hash, except
 the testers' development accounts. The seed sends nothing and queues no job: no email, push
 notification. To start over, run `make dev-clean`, then `make dev-up`
 and `make dev-seed`; a run that stopped part-way says to start over.

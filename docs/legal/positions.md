@@ -674,6 +674,9 @@ name after email verification. Address can be supplied later for linked member p
 phone and DOB are not solicited. Existing values are preserved, and native collection is
 unchanged pending its separate release work. This follows the APP 3 minimisation approach,
 not an assumption that every account holder needs to supply statutory register particulars.
+The later [22 November decision](../decisions.md#account-only-profile-details-removed) removes
+account-only phone, birth date, citizenship and residence country; this dated checkpoint remains
+an account of the earlier collection and supplier review.
 
 Read-only operational evidence confirmed AWS hosting of current application records/files
 in Sydney and operator-controlled malware scanning. At that checkpoint, outgoing application

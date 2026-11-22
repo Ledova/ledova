@@ -13,11 +13,7 @@ class ExportedUserSerializer(serializers.Serializer):
 
 class ExportedProfileSerializer(serializers.Serializer):
     full_name = serializers.CharField(allow_null=True, allow_blank=True)
-    date_of_birth = serializers.DateField(allow_null=True)
-    phone_country_code = serializers.CharField(allow_null=True, allow_blank=True)
-    phone_number = serializers.CharField(allow_null=True, allow_blank=True)
     residential_address = serializers.CharField(allow_null=True, allow_blank=True)
-    citizenship_country = serializers.CharField(allow_null=True)
     created_at = serializers.DateTimeField()
 
 

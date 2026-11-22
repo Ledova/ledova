@@ -22,8 +22,6 @@ from wallets.models import Holding, Transaction, Wallet
 
 User = get_user_model()
 
-COUNTRY_CODE = "+61"
-
 
 def create_identity(person, seeded):
     user = User.objects.filter(email=person.email).first()
@@ -69,7 +67,7 @@ def apply_person(person, seeded):
     with use_migrate(), atomic():
         profile = UserProfile.objects.get(user=user)
         account = profile.user_account
-        _sign_up(person, user, profile, account, seeded)
+        _sign_up(person, profile, account)
         _financial_profile(person, profile)
         UserPreferences.objects.filter(user_profile=profile).update(transaction_alerts=person.alerts_enabled)
         for plan in person.wallets:
@@ -103,7 +101,7 @@ def apply_notifications(person, seeded):
                 Notification.objects.filter(pk=notification.pk).update(updated_at=note.read_at)
 
 
-def _sign_up(person, user, profile, account, seeded):
+def _sign_up(person, profile, account):
     if person.email_verified_at is None:
         return
     if person.signup_step != "account-type":
@@ -112,12 +110,7 @@ def _sign_up(person, user, profile, account, seeded):
             account.save(update_fields=["role", "updated_at"])
     if person.profiled:
         profile.full_name = person.full_name
-        profile.phone_country_code = COUNTRY_CODE
-        profile.phone_number = person.phone
-        profile.date_of_birth = person.birth_date
         profile.residential_address = person.address
-        profile.citizenship_country = seeded.countries[person.citizenship]
-        profile.residence_country = seeded.countries["AU"]
     if person.signup_completed_at:
         profile.terms_and_conditions = True
         profile.is_signup_completed = True
