@@ -54,7 +54,8 @@ stay here as history and are marked where they appear.
 | [One-step particulars edit](#one-step-particulars-edit)                                                            | 1 November 2026                                | Current; #1476; members without a current account link since 2 November (#1492)                                                    |
 | [Member certificate requests removed](#member-certificate-requests-removed)                                        | 2 November 2026                                | Current; #1476; amounts paid and unpaid on certificates delivered 2 November                                                       |
 | [Register particulars follow the linked member's profile](#register-particulars-follow-the-linked-members-profile) | 2 November 2026                                | Current; #1492                                                                                                                     |
-| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                          | 11 October 2026                                | Current                                                                                                                            |
+| [Minimum tests and fresh migrations](#minimum-tests-and-fresh-migrations)                                          | 11 October 2026                                | Current; forward-migration policy clarified 22 November                                                                             |
+| [Forward migrations after the fresh baseline](#forward-migrations-after-the-fresh-baseline)                       | 22 November 2026                               | Current; #1748                                                                                                                      |
 | [Dependency advisories in ordinary CI](#dependency-advisories-in-ordinary-ci)                                      | 11 October 2026                                | Current                                                                                                                            |
 | [GitHub runners and Mac retirement](#github-runners-and-mac-retirement)                                            | 11 October 2026                                | Current                                                                                                                            |
 | [Required CI and auto-merge on main](#required-ci-and-auto-merge-on-main)                                          | 29 October 2026                                | Current; #1409                                                                                                                     |
@@ -1531,6 +1532,20 @@ merging head and green CI. Targets are the whole PR run within **ten minutes on
 GitHub's runners**, and all tests together within **five minutes on the Mac**.
 Report actual counts and timings against those targets. Earlier timings and
 verification remain historical evidence, not proof of the new targets.
+
+### Forward migrations after the fresh baseline
+
+**Owner decision, 22 November 2026** ([#1748](https://github.com/Ledova/ledova/issues/1748)),
+accepted with the direction to proceed with the recommended changes and prepare a new phone build.
+
+Keep the existing fresh PostgreSQL baseline and add forward migrations for later model and guard
+changes. Applied migration files stay unchanged. A further baseline reset or squash needs the
+owner's decision, and live migrations or resets still need the owner's explicit direction.
+There is no adoption path for a database on an older initial graph.
+
+This clarifies the continuing workflow after the 11 October reset and the later #1421 baseline;
+it does not request another reset or rewrite deployed history. The
+[backend migration reference](engineering/backend.md#migrations) owns the implementation rules.
 
 ### Dependency advisories in ordinary CI
 

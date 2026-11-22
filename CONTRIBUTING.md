@@ -76,6 +76,8 @@ Follow [local setup](docs/getting-started.md), then the
 5. Write a clear pull request description: what changed, why, and how you
    verified it. Follow the title and issue-reference format below.
 
+Database changes follow the existing [migration rules](docs/engineering/backend.md#migrations).
+
 ### Pull request titles and issue ownership
 
 Every PR, including Dependabot and other automated PRs, has one owning issue in

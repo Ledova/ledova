@@ -29,10 +29,13 @@ when starting or resuming work, including after context compaction.
   Check references before deleting; do not leave parallel unused implementations.
 - Preserve useful history, retained records and evidence, the earlier journey
   artifacts and unrelated local work. Cleanup must not discard data or weaken
-  privacy, authority or execution safeguards. Migrations are fresh initial
-  migrations from current models, installing the PostgreSQL roles, grants, RLS
-  policies, functions and triggers; old migration source stays in Git history
-  and there is no older-database adoption path.
+  privacy, authority or execution safeguards. Database history starts with the
+  fresh PostgreSQL baseline, including roles, grants, RLS policies, functions and
+  triggers. Add forward migrations for later changes; never rewrite or delete
+  applied migration files. There is no older-database adoption path. A new baseline
+  reset or squash needs the owner's decision; live migrations and resets need
+  the owner's explicit direction. Follow the
+  [migration rules](docs/engineering/backend.md#migrations).
 - Update documentation to describe what is actually delivered, keeping planned
   capabilities distinct from current behaviour.
 - Keep only tests guarding the worst failures, within the binding suite caps of
