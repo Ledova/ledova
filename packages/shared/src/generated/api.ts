@@ -6748,7 +6748,7 @@ export interface ApiComponents {
       email?: string;
     };
     RoleEnum: 'investor' | 'company' | 'both';
-    ServiceTermsVersionEnum: '2026-11-21';
+    ServiceTermsVersionEnum: '2026-11-22';
     SettlementApprovalBroadcastRequest: {
       ownerAccountUuid: string;
       settlementDigest: string;

@@ -29,7 +29,7 @@ stay here as history and are marked where they appear.
 | [Company documents removed](#company-documents-removed)                                                            | 2 November 2026                                | Current; #1491 step 3; retained instructions take the company's own evidence                                                       |
 | [Company activation removed](#company-activation-removed)                                                          | 14 November 2026                               | Current; #1567; a company is Active when its signup completes, with no activation step or review                                                                 |
 | [Identity verification removed](#identity-verification-removed)                                                    | 21 November 2026                               | Current; #1739, delivered in steps                                                                                                                                |
-| [Terms as technology infrastructure](#terms-as-technology-infrastructure)                                          | 14 November 2026                               | Current; #1567; Terms v2026-11-15, prepared without legal review; v2026-11-21 replaces it for new acceptance                                                                             |
+| [Terms as technology infrastructure](#terms-as-technology-infrastructure)                                          | 14 November 2026                               | Current; #1567; Terms v2026-11-15, prepared without legal review; v2026-11-22 replaces it for new acceptance                                                                             |
 | [Retired company review removed](#retired-company-review-removed)                                                  | 15 November 2026                               | Current; #1567; review states and fields deleted, companies left in them return to Draft                                                                         |
 | [The stored register](#the-stored-register)                                                                        | September 2026; staff review retired 5 October | Current                                                                                                                            |
 | [Register CSV download removed](#register-csv-download-removed)                                                    | 28 October 2026                                | Current; inspection copies kept under Documents                                                                                    |
@@ -46,7 +46,8 @@ stay here as history and are marked where they appear.
 | [Eligibility check removed from sign-up](#eligibility-check-removed-from-sign-up)                                  | 9 November 2026                                | Current; #1567                                                                                                                     |
 | [App sign-up asks only for the full name](#app-sign-up-asks-only-for-the-full-name)                                | 20 November 2026                               | Current; #1711                                                                                                                     |
 | [Companies may delete what they record](#companies-may-delete-what-they-record)                                    | 20 November 2026                               | Current; #1723, delivered in steps                                                                                                 |
-| [Terms for companies deleting records](#terms-for-companies-deleting-records)                                    | 21 November 2026                               | Current; #1735; Terms v2026-11-21, prepared without legal review, for new acceptance                                                                              |
+| [Terms for companies deleting records](#terms-for-companies-deleting-records)                                    | 21 November 2026                               | Current; #1735; Terms v2026-11-21, prepared without legal review; v2026-11-22 replaces it for new acceptance                                                                              |
+| [Terms without identity checks](#terms-without-identity-checks) | 22 November 2026 | Current; #1753; Terms v2026-11-22 for new acceptance, earlier versions retained |
 | [First scopes for employee awards and external capital](#first-scopes-for-employee-awards-and-external-capital)    | 10 October 2026                                | Delivered 11 October (#973, #974)                                                                                                  |
 | [Member invitations and account association](#member-invitations-and-account-association)                          | 11 and 24 October 2026                         | Current; #866, web email invitations under #1165; particulars requests removed 31 October, certificate requests 2 November         |
 | [Member particulars requests removed](#member-particulars-requests-removed)                                        | 31 October 2026                                | Current; #1476; certificate requests removed 2 November; Profile card removed and linked members follow their profile (#1492)      |
@@ -683,10 +684,11 @@ these steps, each its own focused pull request:
    from identity results, the identity fields on profiles, the account-erasure work that asks a
    provider to erase an applicant, and their admin views. The migrations delete these records.
 
-A company stays responsible for any identity checks it needs. The Terms of Service mention identity
-checks only conditionally; a new version waits for the owner's approval of its wording. The local
-walkthrough database is migrated only on the owner's word, with a copy kept, and ledova.io and the
-app need the owner's go.
+A company stays responsible for any identity checks it needs. The owner approved removing the
+conditional identity-check sentences in [Terms v2026-11-22](#terms-without-identity-checks).
+The local walkthrough database is migrated only on the owner's word, with a copy kept, and
+ledova.io and the app need the owner's go; the new Terms decision records the later release
+direction.
 
 This supersedes keeping ID verification in [verification limited to ID checks](#verification-limited-to-id-checks),
 [identity verification after signup](#identity-verification-after-signup), the
@@ -2858,6 +2860,33 @@ identity-check data. Shown the corrected Terms and Privacy sentences the same da
 the version it accepted until it accepts the new one in the web's **Settings → Account**. A
 company's acceptance at signup is not renewed. The signup declaration names the new version, and
 earlier declarations stay valid for the appointments made under them.
+
+### Terms without identity checks
+
+**Owner decision, 22 November 2026**, given in the session and tracked in
+[#1753](https://github.com/Ledova/ledova/issues/1753). After reviewing the two proposed
+sentence replacements, the owner directed: “Proceed and deploy a new version to my phone.”
+
+Terms v2026-11-22 replace v2026-11-21 for new acceptance. In **The service**, “We do not check
+anyone’s identity.” replaces the conditional sentence about an identity provider. In **What the
+company is responsible for**, “Ledova’s features do not carry out these responsibilities for the
+company.” replaces the sentence that included a conditional identity check. Every other Terms
+paragraph remains unchanged, including the company’s own identity checks, statutory duties,
+record-keeping after deletion, liability and indemnity, non-excludable rights and the separate
+software licence. This follows [identity verification removed](#identity-verification-removed)
+and does not change the [accepted ownership-mirror position](legal/positions.md#6-where-and-in-what-form-the-register-is-kept).
+
+The 2026-11-21 text is archived unchanged and all earlier versions remain published. New account
+acceptance and company signup declarations name 2026-11-22; historical receipts and appointment
+declarations remain unchanged and valid for the authority recorded under them. Existing accounts
+keep their earlier acceptance until they explicitly accept the new Terms in the web’s
+**Settings → Account**; the mobile app has no Terms renewal control and a completed company’s
+signup acceptance is not renewed.
+
+The owner’s direction includes a new phone release. The backend, dashboard and website must
+match the new app build: builds sending an older version cannot finish signup against the new
+backend. Release and phone verification remain tracked under #1753 until completed; this source
+decision records no deployment or device result.
 
 ### Retired company review removed
 

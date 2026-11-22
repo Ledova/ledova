@@ -20,6 +20,10 @@ export const COMPANY_SIGNUP_DECLARATIONS: readonly { version: string; text: stri
     version: '2026-11-15',
     text: 'I am authorised to act for this company, including setting up and administering its workspace and users, and I accept the Terms of Service (version 2026-11-15) on its behalf. The company is responsible for its records and decisions, its legal and regulatory obligations, who may hold its shares and the identity checks it needs, and Ledova does not review or approve them.',
   },
+  {
+    version: '2026-11-21',
+    text: 'I am authorised to act for this company, including setting up and administering its workspace and users, and I accept the Terms of Service (version 2026-11-21) on its behalf. The company is responsible for its records and decisions, its legal and regulatory obligations, who may hold its shares and the identity checks it needs, and Ledova does not review or approve them.',
+  },
   { version: COMPANY_SIGNUP_DECLARATION_VERSION, text: COMPANY_SIGNUP_DECLARATION },
 ];
 
