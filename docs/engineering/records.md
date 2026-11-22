@@ -1144,7 +1144,8 @@ bound to the session current when the export was requested and hands it to the s
 The document is `AccountExportData` in the schema: `exportedAt`, `user`, `profile`,
 `financialProfile`, `account`, `wallets`, `transactions` (every transaction of the account's
 wallets), `portfolios` and `termsAcceptances` (version, acknowledgement and server recording time);
-a section with no row is `null`, or an empty list. Not in it:
+the profile contains full name, address and creation time. A section with no row is `null`, or an
+empty list. Not in it:
 per-asset holdings, orders, notifications, the transaction-alerts switch and register particulars.
 
 ### Transaction evidence fields

@@ -9,7 +9,6 @@ class Seeded:
         self.companies = {}
         self.transactions = {}
         self.assets = {}
-        self.countries = {}
 
     def resolve(self, value):
         if isinstance(value, dict):

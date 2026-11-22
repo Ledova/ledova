@@ -180,9 +180,10 @@ company decision stay as they are.
 Signup, on the web and in the app, collects a full name after email verification. It does not
 request a birth date, phone or address.
 
-Profile shows Personal information: full name, email, address and citizenship, with a phone number
-or date of birth only where the account already holds one. Personal-details editing opens inline,
-with aligned Cancel and save actions.
+Profile shows Personal information: full name, email and address. Personal-details editing opens
+inline, with aligned Cancel and save actions. Account-only phone, birth date, citizenship and
+residence country details have been removed, including their stored values
+([decision](../decisions.md#account-only-profile-details-removed)).
 
 To change your full name or address, choose **Edit**, change
 them and choose **Save**. These details are self-reported. A Profile save creates no company

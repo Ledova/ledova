@@ -93,12 +93,7 @@ def delete_account(user, *, automated=False):
 
 SIGNUP_ANSWERS = {
     "full_name": None,
-    "phone_country_code": None,
-    "phone_number": None,
-    "date_of_birth": None,
     "residential_address": None,
-    "citizenship_country": None,
-    "residence_country": None,
 }
 
 
@@ -191,11 +186,7 @@ def export_account_data(user):
 
     data["profile"] = {
         "full_name": profile.full_name,
-        "date_of_birth": profile.date_of_birth,
-        "phone_country_code": profile.phone_country_code,
-        "phone_number": profile.phone_number,
         "residential_address": profile.residential_address,
-        "citizenship_country": profile.citizenship_country.name if profile.citizenship_country else None,
         "created_at": profile.created_at,
     }
 

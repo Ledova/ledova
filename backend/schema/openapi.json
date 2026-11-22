@@ -3853,28 +3853,11 @@
       },
       "ExportedProfile": {
         "properties": {
-          "citizenshipCountry": {
-            "nullable": true,
-            "type": "string"
-          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
           },
-          "dateOfBirth": {
-            "format": "date",
-            "nullable": true,
-            "type": "string"
-          },
           "fullName": {
-            "nullable": true,
-            "type": "string"
-          },
-          "phoneCountryCode": {
-            "nullable": true,
-            "type": "string"
-          },
-          "phoneNumber": {
             "nullable": true,
             "type": "string"
           },
@@ -3884,12 +3867,8 @@
           }
         },
         "required": [
-          "citizenshipCountry",
           "createdAt",
-          "dateOfBirth",
           "fullName",
-          "phoneCountryCode",
-          "phoneNumber",
           "residentialAddress"
         ],
         "type": "object"
@@ -8298,16 +8277,6 @@
       },
       "PatchedUserProfileRequest": {
         "properties": {
-          "citizenshipCountry": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "type": "string"
-          },
-          "dateOfBirth": {
-            "format": "date",
-            "nullable": true,
-            "type": "string"
-          },
           "fullName": {
             "maxLength": 100,
             "nullable": true,
@@ -8315,21 +8284,6 @@
           },
           "isSignupCompleted": {
             "type": "boolean"
-          },
-          "phoneCountryCode": {
-            "maxLength": 5,
-            "nullable": true,
-            "type": "string"
-          },
-          "phoneNumber": {
-            "maxLength": 15,
-            "nullable": true,
-            "type": "string"
-          },
-          "residenceCountry": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "type": "string"
           },
           "residentialAddress": {
             "nullable": true,
@@ -19783,25 +19737,9 @@
       },
       "UserProfile": {
         "properties": {
-          "citizenshipCountry": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "citizenshipCountryName": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
           "dateJoined": {
             "format": "date-time",
             "readOnly": true,
-            "type": "string"
-          },
-          "dateOfBirth": {
-            "format": "date",
-            "nullable": true,
             "type": "string"
           },
           "email": {
@@ -19831,27 +19769,6 @@
             "readOnly": true,
             "type": "string"
           },
-          "phoneCountryCode": {
-            "maxLength": 5,
-            "nullable": true,
-            "type": "string"
-          },
-          "phoneNumber": {
-            "maxLength": 15,
-            "nullable": true,
-            "type": "string"
-          },
-          "residenceCountry": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "nullable": true,
-            "type": "string"
-          },
-          "residenceCountryName": {
-            "nullable": true,
-            "readOnly": true,
-            "type": "string"
-          },
           "residentialAddress": {
             "nullable": true,
             "type": "string"
@@ -19874,14 +19791,11 @@
           }
         },
         "required": [
-          "citizenshipCountry",
-          "citizenshipCountryName",
           "dateJoined",
           "email",
           "isActive",
           "isStaff",
           "lastLogin",
-          "residenceCountryName",
           "termsAcceptance",
           "uuid"
         ],
@@ -19889,16 +19803,6 @@
       },
       "UserProfileRequest": {
         "properties": {
-          "citizenshipCountry": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "type": "string"
-          },
-          "dateOfBirth": {
-            "format": "date",
-            "nullable": true,
-            "type": "string"
-          },
           "fullName": {
             "maxLength": 100,
             "nullable": true,
@@ -19906,21 +19810,6 @@
           },
           "isSignupCompleted": {
             "type": "boolean"
-          },
-          "phoneCountryCode": {
-            "maxLength": 5,
-            "nullable": true,
-            "type": "string"
-          },
-          "phoneNumber": {
-            "maxLength": 15,
-            "nullable": true,
-            "type": "string"
-          },
-          "residenceCountry": {
-            "description": "Unique identifier (primary key)",
-            "format": "uuid",
-            "type": "string"
           },
           "residentialAddress": {
             "nullable": true,
@@ -19938,9 +19827,6 @@
             "writeOnly": true
           }
         },
-        "required": [
-          "citizenshipCountry"
-        ],
         "type": "object"
       },
       "UserRoleEnum": {
@@ -22943,8 +22829,7 @@
                 "$ref": "#/components/schemas/UserProfileRequest"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {

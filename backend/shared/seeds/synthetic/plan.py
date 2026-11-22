@@ -1,6 +1,6 @@
 import random
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
 
 from shared.seeds.synthetic.keys import Derivation
@@ -109,10 +109,7 @@ class Person:
     email_verified_at: datetime | None = None
     signup_step: str | None = None
     signup_completed_at: datetime | None = None
-    phone: str | None = None
-    birth_date: date | None = None
     address: str | None = None
-    citizenship: str | None = None
     financial: Financial | None = None
     account_status: str = "pending"
     status_changed_at: datetime | None = None

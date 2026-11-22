@@ -10,14 +10,3 @@ class UserPreferencesSchema(OpenApiSerializerExtension):
         if direction == "response":
             schema["properties"]["user_account"]["nullable"] = True
         return schema
-
-
-class UserProfileSchema(OpenApiSerializerExtension):
-    target_class = "users.serializers.user_profile.UserProfileSerializer"
-
-    def map_serializer(self, auto_schema, direction):
-        schema = auto_schema._map_serializer(self.target, direction, bypass_extensions=True)
-        if direction == "response":
-            for name in ("citizenship_country", "residence_country"):
-                schema["properties"][name]["nullable"] = True
-        return schema

@@ -17,21 +17,18 @@ class UserProfileAdmin(admin.ModelAdmin):
         "uuid",
         "user",
         "full_name",
-        "full_phone_number",
         "email",
-        "citizenship_country",
-        "date_of_birth",
         "terms_and_conditions",
         "created_at",
     )
-    search_fields = ("user__email", "full_name", "phone_country_code", "phone_number", "residential_address")
+    search_fields = ("user__email", "full_name", "residential_address")
     list_filter = (
         "terms_and_conditions",
         "created_at",
         "is_signup_completed",
     )
     readonly_fields = ("uuid", "created_at", "updated_at")
-    list_select_related = ("user", "citizenship_country")
+    list_select_related = ("user",)
     inlines = [FinancialProfileInline]
 
     def get_readonly_fields(self, request, obj=None):
@@ -43,9 +40,3 @@ class UserProfileAdmin(admin.ModelAdmin):
     @admin.display(description="Email", ordering="user__email")
     def email(self, obj):
         return obj.user.email
-
-    @admin.display(description="Full Phone Number")
-    def full_phone_number(self, obj):
-        if obj.phone_country_code and obj.phone_number:
-            return f"{obj.phone_country_code} {obj.phone_number}"
-        return obj.phone_number or "-"

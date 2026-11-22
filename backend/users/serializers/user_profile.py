@@ -1,13 +1,10 @@
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from authentication.services.terms import TERMS_VERSION, current_terms_receipt
-from shared.models.country import Country
 from users.models.user_profile import UserProfile
 
 SIGNUP_IS_COMPLETE = "Sign-up cannot be reopened once it is complete."
-DATE_OF_BIRTH_IN_FUTURE = "Date of birth cannot be in the future."
 
 
 class TermsAcceptanceSerializer(serializers.Serializer):
@@ -18,10 +15,6 @@ class TermsAcceptanceSerializer(serializers.Serializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     uuid = serializers.CharField(read_only=True)
-    citizenship_country = serializers.PrimaryKeyRelatedField(queryset=Country.objects.none())
-    citizenship_country_name = serializers.SerializerMethodField()
-    residence_country = serializers.PrimaryKeyRelatedField(queryset=Country.objects.none(), required=False)
-    residence_country_name = serializers.SerializerMethodField()
     email = serializers.EmailField(source="user.email", read_only=True)
     is_active = serializers.SerializerMethodField()
     is_staff = serializers.SerializerMethodField()
@@ -40,20 +33,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
             "is_staff",
             "date_joined",
             "last_login",
-            "phone_country_code",
-            "phone_number",
-            "date_of_birth",
             "residential_address",
-            "citizenship_country",
-            "citizenship_country_name",
-            "residence_country",
-            "residence_country_name",
             "terms_and_conditions",
             "terms_version",
             "terms_acceptance",
             "is_signup_completed",
         )
-        read_only_fields = ("uuid", "residence_country")
+        read_only_fields = ("uuid",)
 
     @extend_schema_field(serializers.BooleanField())
     def get_is_active(self, obj):
@@ -71,22 +57,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_last_login(self, obj):
         return obj.user.last_login if obj.user else None
 
-    def get_citizenship_country_name(self, obj) -> str | None:
-        return obj.citizenship_country.name if obj.citizenship_country else None
-
-    def get_residence_country_name(self, obj) -> str | None:
-        return obj.residence_country.name if obj.residence_country else None
-
     @extend_schema_field(TermsAcceptanceSerializer(allow_null=True))
     def get_terms_acceptance(self, obj):
         request = self.context.get("request")
         receipt = current_terms_receipt(obj.user_id, request.user) if request is not None else None
         return TermsAcceptanceSerializer(receipt).data if receipt is not None else None
-
-    def validate_date_of_birth(self, value):
-        if value is not None and value > timezone.now().date():
-            raise serializers.ValidationError(DATE_OF_BIRTH_IN_FUTURE)
-        return value
 
     def validate_is_signup_completed(self, value):
         if self.instance is not None and self.instance.is_signup_completed and not value:
@@ -104,9 +79,3 @@ class UserProfileSerializer(serializers.ModelSerializer):
             if attrs.get("terms_version") != TERMS_VERSION or attrs.get("terms_and_conditions") is not True:
                 raise serializers.ValidationError({"terms_and_conditions": ["Accept the current Terms of Service."]})
         return super().validate(attrs)
-
-    def get_fields(self):
-        fields = super().get_fields()
-        fields["citizenship_country"].queryset = Country.objects.all()
-        fields["residence_country"].queryset = Country.objects.all()
-        return fields
