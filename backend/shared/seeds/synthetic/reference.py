@@ -4,11 +4,9 @@ from assets.models import Asset, AssetSnapshot, ExchangeRate
 from assets.services.sync import ensure_supported_assets, update_price
 from operators.models import Operator
 from shared.db import atomic
-from shared.models import Country
 from shared.seeds.synthetic.clock import frozen, utc_midnight
 from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 
-COUNTRY_CODES = ("AU", "NZ", "GB", "SG", "US", "IN")
 OPERATOR_IDENTITY = {
     "legal_name": "Ledova Demo Operator Pty Ltd",
     "abn": "00000000000",
@@ -19,7 +17,6 @@ SNAPSHOT_SOURCE = "manual"
 
 def seed_reference(plan, seeded):
     with atomic(), frozen(plan.now):
-        seeded.countries.update({code: Country.get_or_create_for_code(code) for code in COUNTRY_CODES})
         _operator_identity()
         ensure_supported_assets()
         seeded.assets.update(

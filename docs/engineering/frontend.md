@@ -1071,9 +1071,8 @@ web-only routes declare the same guard beside their address ([guards](#routes-au
   Settings keep their own navigation.
 - Data and privacy on web: account deletion clears cached account data after the server confirms.
 - Signup on both clients collects only `fullName` through `useSignupUserProfile`, which validates
-  and PATCHes that field alone, preserving existing identity and contact details. Profile edits the
-  name and address on both clients, and shows a retained phone number or birth date only where the
-  account holds one.
+  and PATCHes that field alone, preserving an existing address. Profile shows full name, email and
+  address on both clients, with editing for name and address.
 
 Next: [frontend UX standards](frontend-ux.md), [mobile](mobile.md), [authentication](security.md#authentication-and-sessions),
 [company workflow API](backend.md#company-workflow-api) and [testing](testing.md).

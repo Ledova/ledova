@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -20,7 +20,6 @@ from authentication.services.terms import TERMS_STATEMENT, TERMS_VERSION
 from authentication.services.tokens import TokenService
 from companies.models import Company
 from shared.db import reset_principal, use_operator
-from shared.models import Country
 from shared.tasks.job_retention import remove_old_jobs
 from shared.tests.core_fixtures import PASSWORD, CoreFixtures, person
 from tokens.models import (
@@ -48,14 +47,8 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
     def test_account_erasure_preserves_company_records_and_refuses_stale_writers(self):
         subject, profile = person("deletion-member")
         with use_operator():
-            country = Country.get_or_create_for_code("AU")
             profile.full_name = "Synthetic Member"
             profile.residential_address = "1 Example Street, Sydney NSW 2000"
-            profile.date_of_birth = date(1990, 1, 1)
-            profile.phone_country_code = "+61"
-            profile.phone_number = "491570157"
-            profile.citizenship_country = country
-            profile.residence_country = country
             profile.save()
             subject.email_verification_token = "synthetic-unused-verification-code"
             subject.email_verification_sent_at = timezone.now()
@@ -126,6 +119,24 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             format="json",
         )
         self.assertEqual(accepted_terms.status_code, 200, accepted_terms.content)
+        self.assertEqual(
+            set(accepted_terms.json()),
+            {
+                "uuid",
+                "fullName",
+                "email",
+                "isActive",
+                "isStaff",
+                "dateJoined",
+                "lastLogin",
+                "residentialAddress",
+                "termsAndConditions",
+                "termsAcceptance",
+                "isSignupCompleted",
+            },
+        )
+        self.assertEqual(accepted_terms.json()["fullName"], profile.full_name)
+        self.assertEqual(accepted_terms.json()["residentialAddress"], profile.residential_address)
         foreign_client = APIClient()
         foreign_client.force_authenticate(self.foreign)
         foreign_terms = foreign_client.patch(
@@ -151,6 +162,9 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
         exported = member_client.get("/api/user-profiles/export-data/")
         self.assertEqual(exported.status_code, 200, exported.content)
         self.assertEqual(exported.json()["user"]["email"], subject.email)
+        self.assertEqual(set(exported.json()["profile"]), {"fullName", "residentialAddress", "createdAt"})
+        self.assertEqual(exported.json()["profile"]["fullName"], profile.full_name)
+        self.assertEqual(exported.json()["profile"]["residentialAddress"], profile.residential_address)
         self.assertEqual(exported.json()["financialProfile"]["occupation"], "Synthetic engineer")
         self.assertEqual(len(exported.json()["termsAcceptances"]), 1)
         self.assertEqual(exported.json()["termsAcceptances"][0]["version"], TERMS_VERSION)
@@ -240,15 +254,7 @@ class AccountDeletionTest(CoreFixtures, APITransactionTestCase):
             self.assertFalse(TokenService.is_session_live(AccessToken(access)["rjti"]))
             self.assertTrue(TokenService.is_session_live(AccessToken(foreign_access)["rjti"]))
             self.assertEqual(profile.full_name, "Deleted User")
-            for field in (
-                "phone_country_code",
-                "phone_number",
-                "residential_address",
-                "date_of_birth",
-                "citizenship_country",
-                "residence_country",
-            ):
-                self.assertIsNone(getattr(profile, field), field)
+            self.assertIsNone(profile.residential_address)
             self.assertFalse(FinancialProfile.objects.filter(user_profile=profile).exists())
             self.assertFalse(UserPreferences.objects.filter(user_profile=profile).exists())
             self.assertFalse(DeviceToken.objects.filter(user=subject).exists())

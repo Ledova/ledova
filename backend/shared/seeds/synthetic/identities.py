@@ -54,12 +54,6 @@ STREETS = (
     "Tallowood Court",
 )
 
-MOBILE_NUMBERS = (
-    "491570006 491570156 491570157 491570158 491570159 491570110 491570313 491570737 491571266 491571491 "
-    "491571804 491572549 491572665 491572983 491573770 491573087 491574118 491574632 491575254 491575789 "
-    "491576398 491576801 491577426 491577644 491578957 491578148 491578888 491579212 491579455 491579760"
-).split()
-
 AREA_CODES = {"NSW": "2", "ACT": "2", "VIC": "3", "TAS": "3", "QLD": "7", "SA": "8", "WA": "8", "NT": "8"}
 
 OCCUPATIONS = (
@@ -111,10 +105,6 @@ def home_address(rng):
     suburb, state, postcode = rng.choice(SUBURBS)
     unit = f"{rng.randint(1, 24)}/" if rng.random() < 0.25 else ""
     return f"{unit}{rng.randint(2, 180)} {rng.choice(STREETS)}, {suburb} {state} {postcode}", state
-
-
-def landline(rng, state):
-    return f"{AREA_CODES[state]}{rng.choice(('5550', '7010'))}{rng.randint(0, 9999):04d}"
 
 
 def acn(number):

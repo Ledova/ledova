@@ -61,7 +61,7 @@ release are separate evidence
 ([mobile releases](mobile-releases.md)).
 
 The shared package has ten cases: the additional signup case verifies that signup, on the web and in
-the app, requires and saves only the full name, without erasing details an account already holds.
+the app, requires and saves only the full name, without changing an address an account already holds.
 
 ## Commands
 
