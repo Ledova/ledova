@@ -12,6 +12,7 @@ test('dead-code graph follows entry points, aliases, barrels, types, platform fi
     await writeFile(path.join(root, file), text);
   }
   try {
+    const typeModule = 'export const count = 1, destructured = 2, indexed = 3, indexedType = 4;';
     const fixture = {
       'dashboard/tsconfig.app.json': JSON.stringify({
         compilerOptions: {
@@ -30,12 +31,14 @@ test('dead-code graph follows entry points, aliases, barrels, types, platform fi
         'const record: RecordType = { used };',
         'type Values = typeof import("./type-module");',
         'declare const typedModule: Values;',
-        'console.log(typedModule.count);',
+        'const { destructured } = typedModule;',
+        'declare const indexedValue: (typeof import("./type-module"))["indexedType"];',
+        'console.log(typedModule.count, typedModule["indexed"], destructured, indexedValue);',
         'console.log(record, shared, names, required);',
       ].join('\n'),
       'dashboard/src/pages/live.ts': 'export const used = 1; export const redundant = 2;',
       'dashboard/src/types.ts': 'export interface RecordType { used: number }',
-      'dashboard/src/type-module.ts': 'export const count = 1; export const uncounted = 2;',
+      'dashboard/src/type-module.ts': `${typeModule} export const uncounted = 5;`,
       'dashboard/src/namespace.ts': 'export const selectedAtRuntime = 1;',
       'dashboard/src/lazy.ts': 'export const loaded = 1;',
       'dashboard/src/required.ts': 'export const loaded = 1;',
@@ -65,7 +68,7 @@ test('dead-code graph follows entry points, aliases, barrels, types, platform fi
       'mobile/src/orphan.android.ts: unused file',
     ]);
     await write('dashboard/src/pages/live.ts', 'export const used = 1;');
-    await write('dashboard/src/type-module.ts', 'export const count = 1;');
+    await write('dashboard/src/type-module.ts', typeModule);
     for (const file of ['dashboard/src/orphan-a.ts', 'dashboard/src/orphan-b.ts', 'mobile/src/orphan.android.ts']) {
       await rm(path.join(root, file));
     }

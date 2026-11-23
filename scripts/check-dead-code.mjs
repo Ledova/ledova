@@ -40,6 +40,30 @@ function canonical(checker, symbol) {
   return symbol?.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
 }
 
+function isLiteralIndex(node) {
+  return (
+    ts.isStringLiteralLike(node) &&
+    ((ts.isElementAccessExpression(node.parent) && node.parent.argumentExpression === node) ||
+      (ts.isLiteralTypeNode(node.parent) &&
+        ts.isIndexedAccessTypeNode(node.parent.parent) &&
+        node.parent.parent.indexType === node.parent))
+  );
+}
+
+function referencedSymbol(checker, node) {
+  const { parent } = node;
+  if (ts.isShorthandPropertyAssignment(parent)) return checker.getShorthandAssignmentValueSymbol(parent);
+  if (
+    ts.isBindingElement(parent) &&
+    parent.name === node &&
+    !parent.propertyName &&
+    ts.isObjectBindingPattern(parent.parent)
+  ) {
+    return checker.getTypeAtLocation(parent.parent).getProperty(node.text);
+  }
+  return checker.getSymbolAtLocation(node);
+}
+
 export function checkDeadCode(root = ROOT) {
   const filenames = [
     ...DIRECTORIES.flatMap((directory) => filesIn(path.join(root, directory))),
@@ -65,7 +89,6 @@ export function checkDeadCode(root = ROOT) {
     jsx: ts.JsxEmit.ReactJSX,
     allowJs: true,
     allowSyntheticDefaultImports: true,
-    resolveJsonModule: true,
     skipLibCheck: true,
     baseUrl: root,
     paths: {
@@ -142,11 +165,8 @@ export function checkDeadCode(root = ROOT) {
           }
         }
       }
-      if (ts.isIdentifier(node)) {
-        const reference = ts.isShorthandPropertyAssignment(node.parent)
-          ? checker.getShorthandAssignmentValueSymbol(node.parent)
-          : checker.getSymbolAtLocation(node);
-        const symbol = canonical(checker, reference);
+      if (ts.isIdentifier(node) || isLiteralIndex(node)) {
+        const symbol = canonical(checker, referencedSymbol(checker, node));
         if (symbol?.declarations?.some((declaration) => declaration.getSourceFile() !== source)) use(symbol);
       }
       ts.forEachChild(node, visit);
