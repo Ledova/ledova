@@ -16,7 +16,6 @@ import {
   useErrorSummary,
   usePersonRegistration,
   useSubmissionOwner,
-  useUserPreferences,
   type OrderSubmissionOwner,
   type Person,
   type RegisterEntryKind,
@@ -44,10 +43,10 @@ import { Page } from '../../components/Page';
 import { Pager } from '../../components/Pager';
 import { Field } from '../../components/Field';
 import { SelectField } from '../../components/SelectField';
-import { useAppTheme, useMemberRecordsState } from '../../contexts';
+import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
-import { useRetainedScope } from '../../hooks/useRetainedScope';
+import { useCompanyPageScope } from '../../hooks/useCompanyPageScope';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -63,21 +62,7 @@ const counted = (count: number) => `${formatShareCount(String(count))} ${count =
 
 export function ShareholdersScreen() {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company, companySelection } = useMemberRecordsState();
-  const preferences = useUserPreferences();
-  const choosing = directory.isLoading || (!company && companies.length > 0);
-  const scope = useRetainedScope(
-    owner,
-    boundary.get,
-    company?.uuid,
-    !preferences.isError &&
-      !preferences.isFetching &&
-      !!company?.canReadRegister &&
-      !directory.hasError &&
-      !choosing &&
-      !directory.isRefreshing,
-    companySelection,
-  );
+  const { scope, choosing, directory } = useCompanyPageScope(owner, boundary.get);
   if (owner && scope.scope)
     return (
       <CompanyShareholders
