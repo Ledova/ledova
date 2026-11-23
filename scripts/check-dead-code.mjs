@@ -57,6 +57,7 @@ function referencedSymbol(checker, node) {
     ts.isBindingElement(parent) &&
     parent.name === node &&
     !parent.propertyName &&
+    !parent.dotDotDotToken &&
     ts.isObjectBindingPattern(parent.parent)
   ) {
     return checker.getTypeAtLocation(parent.parent).getProperty(node.text);
