@@ -19,10 +19,6 @@ DOCUMENTED_ENTRY_POINTS = {
         "docs/operations/jobs-and-storage.md",
         "`ledova_backend/worker_entrypoint.py`",
     ),
-    "shared.tasks.catalogue": (
-        "docs/engineering/security.md",
-        "../../backend/shared/tasks/catalogue.py",
-    ),
 }
 
 

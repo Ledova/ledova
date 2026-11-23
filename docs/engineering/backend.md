@@ -44,7 +44,7 @@ modules re-exported by `settings/__init__.py`.
 | `documents`      | Nothing: since investor eligibility was removed it stays installed only for its migrations ([migrations](#migrations))                                                                                                                                                                                      |
 | `integrations`   | Chain client, Alchemy, CoinGecko, Blockstream, SendGrid, Expo push, Transak                                                                                                                                                                                                                  |
 | `feature_flags`  | `FeatureFlag` and the trading middleware                                                                                                                                                                                                                                                                    |
-| `shared`         | Base model, country lookup, health-check middleware, PostgreSQL connection and principal helpers, the policy catalogue and database setup, private storage and upload validation, the task catalogue, seeds and the backend test suite                                                                      |
+| `shared`         | Base model, country lookup, health-check middleware, PostgreSQL connection and principal helpers, the policy catalogue and database setup, private storage and upload validation, the task enqueue helper, seeds and the backend test suite                                                                 |
 
 Signing admission, locking and history are in [chain](chain.md).
 

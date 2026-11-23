@@ -7,10 +7,25 @@ import { sourceImports } from './source-imports.mjs';
 const ROOT = path.resolve(import.meta.dirname, '..');
 const require = createRequire(path.join(ROOT, 'package.json'));
 const ts = require('typescript');
-const DIRECTORIES = ['dashboard/src', 'site/src', 'mobile/src', 'packages/shared/src', 'packages/shared/tests'];
-const ENTRIES = ['dashboard/src/main.tsx', 'site/src/main.tsx', 'mobile/index.ts'];
+const DIRECTORIES = [
+  'dashboard/src',
+  'site/src',
+  'mobile/src',
+  'mobile/native-tests',
+  'packages/shared/src',
+  'packages/shared/tests',
+];
+const ENTRIES = [
+  'dashboard/src/main.tsx',
+  'site/src/main.tsx',
+  'mobile/index.ts',
+  'mobile/native-tests/index.tsx',
+  'mobile/native-tests/NetworkProbeHost.tsx',
+];
 const TEST = /(?:\.(?:test|spec)\.[jt]sx?$|\/(?:tests|__tests__|__mocks__)\/)/;
 const GENERATED = 'packages/shared/src/generated/api.ts';
+const PLATFORM_SUFFIXES = [[], ['.ios', '.native', ''], ['.android', '.native', '']];
+const PLATFORM = /\.(?:ios|android|native)\.[jt]sx?$/;
 
 function filesIn(directory) {
   if (!existsSync(directory)) return [];
@@ -50,6 +65,7 @@ export function checkDeadCode(root = ROOT) {
     jsx: ts.JsxEmit.ReactJSX,
     allowJs: true,
     allowSyntheticDefaultImports: true,
+    resolveJsonModule: true,
     skipLibCheck: true,
     baseUrl: root,
     paths: {
@@ -57,6 +73,11 @@ export function checkDeadCode(root = ROOT) {
       ...aliases,
     },
   };
+  const platforms = PLATFORM_SUFFIXES.map((moduleSuffixes) => ({ ...options, moduleSuffixes }));
+  const resolve = (specifier, filename) =>
+    platforms
+      .map((platform) => ts.resolveModuleName(specifier, filename, platform, ts.sys).resolvedModule?.resolvedFileName)
+      .filter(Boolean);
   const program = ts.createProgram(filenames, options);
   const checker = program.getTypeChecker();
   const files = new Map(filenames.map((filename) => [filename, program.getSourceFile(filename)]));
@@ -82,10 +103,10 @@ export function checkDeadCode(root = ROOT) {
     if (TEST.test(relative(filename)) || source.isDeclarationFile) roots.add(filename);
     const dependencies = [];
     for (const { specifier, line } of sourceImports(ts, source.text, filename)) {
-      const target = ts.resolveModuleName(specifier, filename, options, ts.sys).resolvedModule?.resolvedFileName;
-      if (target && files.has(target)) dependencies.push(target);
-      else if (
-        !target &&
+      const targets = resolve(specifier, filename);
+      dependencies.push(...targets.filter((target) => files.has(target)));
+      if (
+        !targets.length &&
         (specifier.startsWith('.') ||
           Object.keys(options.paths).some((alias) =>
             alias.includes('*') ? specifier.startsWith(alias.split('*')[0]) : specifier === alias,
@@ -108,20 +129,18 @@ export function checkDeadCode(root = ROOT) {
     const source = files.get(filename);
     function visit(node) {
       if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
-      let loaded;
       if (
         ts.isCallExpression(node) &&
         (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
           (ts.isIdentifier(node.expression) && node.expression.text === 'require'))
       ) {
-        loaded = node.arguments[0];
-      } else if (ts.isImportTypeNode(node) && !node.qualifier && ts.isLiteralTypeNode(node.argument)) {
-        loaded = node.argument.literal;
-      }
-      if (loaded && ts.isStringLiteralLike(loaded)) {
-        const target = ts.resolveModuleName(loaded.text, filename, options, ts.sys).resolvedModule?.resolvedFileName;
-        const imported = target && files.get(target);
-        if (imported) use(checker.getSymbolAtLocation(imported));
+        const specifier = node.arguments[0];
+        if (specifier && ts.isStringLiteralLike(specifier)) {
+          for (const target of resolve(specifier.text, filename)) {
+            const imported = files.get(target);
+            if (imported) use(checker.getSymbolAtLocation(imported));
+          }
+        }
       }
       if (ts.isIdentifier(node)) {
         const reference = ts.isShorthandPropertyAssignment(node.parent)
@@ -141,7 +160,7 @@ export function checkDeadCode(root = ROOT) {
       findings.push(`${file}: unused file`);
       continue;
     }
-    if (roots.has(filename) || file === GENERATED || source.isDeclarationFile) continue;
+    if (roots.has(filename) || file === GENERATED || source.isDeclarationFile || PLATFORM.test(file)) continue;
     const module = checker.getSymbolAtLocation(source);
     if (!module) continue;
     for (const exported of checker.getExportsOfModule(module)) {

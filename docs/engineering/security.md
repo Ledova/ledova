@@ -153,10 +153,13 @@ successful path, no automated test covers the reads the catalogue records as wid
 no redundant Python tenancy predicate; writable foreign keys stay scoped in serializer
 `get_fields()`.
 
-A scoped task requires its principal in the enqueue contract; where its required recipient ID is
-the principal, it refuses a missing ID. Worker ambient authority is operator, so omitting a scope
-would widen access; `acting_for(None)` deliberately selects operator authority and suits only a
-classified administrative invocation.
+A scoped task requires its principal in the enqueue contract and runs its body inside
+`shared.db.acting_for(principal)`, which selects the app connection and sets the principal the
+policies read; where its required recipient ID is the principal, it refuses a missing ID. Worker
+ambient authority is operator: `manage.py`, which runs the worker, defaults `RLS_AMBIENT_ALIAS` to
+`operator` for every command except `runserver`. A task that enters no scope therefore runs as the
+operator, as `acting_for(None)` deliberately does; both suit only administrative work that acts for
+no person.
 
 Procrastinate's queue connection is separate from the task's ORM scope.
 `PROCRASTINATE_DATABASE_ALIAS` selects `operator` for the global Django connector and the
@@ -171,11 +174,11 @@ payloads, queue and lock defaults, and existing delays are retained. The
 [connection-binding gate](gates.md#the-connection-binding-gate) refuses direct task deferrals
 and separate queue connector construction outside the helper.
 
-The [task catalogue](../../backend/shared/tasks/catalogue.py) records authority and bounded operator
-handoffs. Deployments, issuance execution, capital increases and pause changes are operator jobs
-that a company's applied decision produces; `executed_by` records the
-actor for audit, not a tenant principal. New work needs explicit company authority and a bounded
-handoff, not just a changed enqueueing UI or an omitted principal.
+No automated check classifies tasks: a task's authority is the scope its body enters, and review
+checks it for each new or changed task. Deployments, issuance execution, capital increases and
+pause changes are operator jobs that a company's applied decision produces; `executed_by` records
+the actor for audit, not a tenant principal. New work needs explicit company authority and a
+bounded handoff, not just a changed enqueueing UI or an omitted principal.
 
 Wallet producers insert transaction-screening jobs inside the wallet transaction; the worker
 selects operator authority and commits alerts with `monitoring_completed_at`, so rollback removes
