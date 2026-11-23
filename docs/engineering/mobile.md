@@ -61,9 +61,10 @@ check, company notice and register access notice that several areas show (`Accou
 while access is rechecked, and the notice
 only once the check settles. Member access, Shareholders, Employee scheme, Issue shares, Transfer
 shares, Corrections, Company pack and Inspection copies do the same through
-`hooks/useCompanyPageScope.ts`, including when one is opened during a reread; Ledger keeps showing
-the register from the cached company list while access is reread. Ledger and Shareholders read the
-selected company's classes and holders through `hooks/useCompanyRegisters.ts`. Production screens import no other area's internals.
+`hooks/useCompanyPageScope.ts`, including when one is opened during a reread. Ledger keeps showing
+the register from the cached company list while the company list is reread, and shows its own
+loading while the account is reread. Ledger and Shareholders read the selected company's classes
+and holders through `hooks/useCompanyRegisters.ts`. Production screens import no other area's internals.
 Profile, member, company list, appointment and company ownership reads, Team's reads
 and forms, representative authority's reads, actions
 and request form, Documents' class source, certificate records, preparations and prepared
