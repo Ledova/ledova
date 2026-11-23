@@ -21,7 +21,6 @@ import {
   useRegisterEntryDeletion,
   useRegisterImports,
   useSubmissionOwner,
-  useUserPreferences,
   type OrderSubmissionOwner,
   type OwnCompanyAppointment,
   type RegisterEntry,
@@ -34,10 +33,10 @@ import { Action, LinkRow, LoadError, LoadMore, Loading, Outcome, Rows, useCardSt
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
 import { SelectField } from '../../components/SelectField';
-import { useAppTheme, useMemberRecordsState } from '../../contexts';
+import { useAppTheme } from '../../contexts';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
-import { useRetainedScope } from '../../hooks/useRetainedScope';
+import { useCompanyPageScope } from '../../hooks/useCompanyPageScope';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -53,21 +52,7 @@ type Landing = SignedInStackParamList['Corrections'];
 
 export function CorrectionsScreen({ route }: { route: RouteProp<SignedInStackParamList, 'Corrections'> }) {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company, companySelection } = useMemberRecordsState();
-  const preferences = useUserPreferences();
-  const choosing = directory.isLoading || (!company && companies.length > 0);
-  const scope = useRetainedScope(
-    owner,
-    boundary.get,
-    company?.uuid,
-    !preferences.isError &&
-      !preferences.isFetching &&
-      !!company?.canReadRegister &&
-      !directory.hasError &&
-      !choosing &&
-      !directory.isRefreshing,
-    companySelection,
-  );
+  const { scope, choosing, directory } = useCompanyPageScope(owner, boundary.get);
   if (owner && scope.scope)
     return (
       <CompanyCorrections

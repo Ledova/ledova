@@ -10,7 +10,6 @@ import {
   useClassRegister,
   useErrorSummary,
   useSubmissionOwner,
-  useUserPreferences,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
 } from '@ledova/shared';
@@ -30,10 +29,10 @@ import {
 } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
-import { useRetainedScope } from '../../hooks/useRetainedScope';
+import { useCompanyPageScope } from '../../hooks/useCompanyPageScope';
 import { Field } from '../../components/Field';
 import { SelectField } from '../../components/SelectField';
-import { useAppTheme, useMemberRecordsState } from '../../contexts';
+import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -44,21 +43,7 @@ const LEDE = 'Prepare a copy of the register for someone who requests one.';
 
 export function InspectionCopiesScreen() {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company, companySelection } = useMemberRecordsState();
-  const preferences = useUserPreferences();
-  const choosing = directory.isLoading || (!company && companies.length > 0);
-  const scope = useRetainedScope(
-    owner,
-    boundary.get,
-    company?.uuid,
-    !preferences.isError &&
-      !preferences.isFetching &&
-      !!company?.canReadRegister &&
-      !directory.hasError &&
-      !choosing &&
-      !directory.isRefreshing,
-    companySelection,
-  );
+  const { scope, choosing, directory } = useCompanyPageScope(owner, boundary.get);
   if (owner && scope.scope)
     return (
       <CompanyInspectionCopies

@@ -9,7 +9,6 @@ import {
   useCompanyPackAuthority,
   useErrorSummary,
   useSubmissionOwner,
-  useUserPreferences,
   type OrderSubmissionOwner,
 } from '@ledova/shared';
 import { AccountCheck } from '../../components/AccountCheck';
@@ -17,9 +16,9 @@ import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Action, Actions, FormActions, LoadError, Loading, Outcome, Section, ShowMore } from '../../components/Ledger';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
-import { useRetainedScope } from '../../hooks/useRetainedScope';
+import { useCompanyPageScope } from '../../hooks/useCompanyPageScope';
 import { Field } from '../../components/Field';
-import { useAppTheme, useMemberRecordsState } from '../../contexts';
+import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { SHARE_SHEET_FILES } from '../../services/documentCopies';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -30,21 +29,7 @@ const LEDE = 'Prepare a package of the company’s records.';
 
 export function CompanyPackScreen() {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company, companySelection } = useMemberRecordsState();
-  const preferences = useUserPreferences();
-  const choosing = directory.isLoading || (!company && companies.length > 0);
-  const scope = useRetainedScope(
-    owner,
-    boundary.get,
-    company?.uuid,
-    !preferences.isError &&
-      !preferences.isFetching &&
-      !!company?.canReadRegister &&
-      !directory.hasError &&
-      !choosing &&
-      !directory.isRefreshing,
-    companySelection,
-  );
+  const { scope, choosing, directory } = useCompanyPageScope(owner, boundary.get);
   if (owner && scope.scope)
     return (
       <OwnCompanyPack
