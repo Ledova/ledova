@@ -22,4 +22,3 @@ bech32>=1.2.0
 WeasyPrint==70.0
 pypdf==7.1.0
 Pillow>=13.0.0
-pycountry>=26.2.16

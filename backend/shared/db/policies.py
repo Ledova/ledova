@@ -537,7 +537,6 @@ NOT_TENANCY = {
     "asset_chain_deployments": "Part of the asset catalogue.",
     "asset_snapshots": "Price history for the catalogue, identical for every tenant.",
     "assets_exchangerate": "Published rates, identical for every tenant.",
-    "shared_country": "A reference list of countries, identical for every tenant.",
     "operators_operator": "A singleton naming the operator of this deployment.",
     "operators_operator_supported_settlement_assets": "Which assets that singleton settles in.",
     "portfolios_wallets": "A link row between a scoped portfolio and a scoped wallet, reached through either, "
