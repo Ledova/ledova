@@ -5,13 +5,14 @@ import path from 'node:path';
 import test from 'node:test';
 import { checkDeadCode } from '../check-dead-code.mjs';
 
-test('dead-code graph follows entry points, aliases, barrels, types and literal module loads', async () => {
+test('dead-code graph follows entry points, aliases, barrels, types, platform files and literal module loads', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'ledova-dead-code-'));
   async function write(file, text) {
     await mkdir(path.dirname(path.join(root, file)), { recursive: true });
     await writeFile(path.join(root, file), text);
   }
   try {
+    const typeModule = 'export const count = 1, destructured = 2, indexed = 3, indexedType = 4;';
     const fixture = {
       'dashboard/tsconfig.app.json': JSON.stringify({
         compilerOptions: {
@@ -29,13 +30,16 @@ test('dead-code graph follows entry points, aliases, barrels, types and literal 
         'const required = require("./required");',
         'const record: RecordType = { used };',
         'type Values = typeof import("./type-module");',
-        'const typedModule: Values = { count: 1 };',
-        'console.log(typedModule);',
-        'console.log(record, shared, names, required);',
+        'declare const typedModule: Values;',
+        'const { destructured } = typedModule;',
+        'const { ...uncounted } = typedModule;',
+        'declare const indexedValue: (typeof import("./type-module"))["indexedType"];',
+        'console.log(typedModule.count, typedModule["indexed"], destructured, indexedValue);',
+        'console.log(record, shared, names, required, uncounted);',
       ].join('\n'),
       'dashboard/src/pages/live.ts': 'export const used = 1; export const redundant = 2;',
       'dashboard/src/types.ts': 'export interface RecordType { used: number }',
-      'dashboard/src/type-module.ts': 'export const count = 1;',
+      'dashboard/src/type-module.ts': `${typeModule} export const uncounted = 5;`,
       'dashboard/src/namespace.ts': 'export const selectedAtRuntime = 1;',
       'dashboard/src/lazy.ts': 'export const loaded = 1;',
       'dashboard/src/required.ts': 'export const loaded = 1;',
@@ -47,7 +51,12 @@ test('dead-code graph follows entry points, aliases, barrels, types and literal 
       'packages/shared/src/generated/api.ts': 'export interface Generated { value: number }',
       'mobile/index.ts': 'import App from "./App"; console.log(App);',
       'mobile/App.tsx': 'import { mobile } from "./src/value"; export default mobile;',
-      'mobile/src/value.ts': 'export const mobile = 1;',
+      'mobile/src/value.ts':
+        'import { platform } from "./platform"; export const mobile = platform; export const probe = 2;',
+      'mobile/src/platform.ios.ts': 'export const platform = "ios";',
+      'mobile/src/platform.native.ts': 'export const platform = "native";',
+      'mobile/src/orphan.android.ts': 'export const platform = "android";',
+      'mobile/native-tests/index.tsx': 'import { probe } from "../src/value"; console.log(probe);',
       'site/src/theme.test.ts': 'import { testHelper } from "./testHelper"; console.log(testHelper);',
       'site/src/testHelper.ts': 'export const testHelper = 1;',
     };
@@ -56,10 +65,14 @@ test('dead-code graph follows entry points, aliases, barrels, types and literal 
       'dashboard/src/orphan-a.ts: unused file',
       'dashboard/src/orphan-b.ts: unused file',
       "dashboard/src/pages/live.ts: unused export 'redundant'",
+      "dashboard/src/type-module.ts: unused export 'uncounted'",
+      'mobile/src/orphan.android.ts: unused file',
     ]);
     await write('dashboard/src/pages/live.ts', 'export const used = 1;');
-    await rm(path.join(root, 'dashboard/src/orphan-a.ts'));
-    await rm(path.join(root, 'dashboard/src/orphan-b.ts'));
+    await write('dashboard/src/type-module.ts', typeModule);
+    for (const file of ['dashboard/src/orphan-a.ts', 'dashboard/src/orphan-b.ts', 'mobile/src/orphan.android.ts']) {
+      await rm(path.join(root, file));
+    }
     assert.deepEqual(checkDeadCode(root).findings, []);
     await write('dashboard/src/main.tsx', fixture['dashboard/src/main.tsx'] + '\nimport "./missing";');
     assert.match(checkDeadCode(root).findings.join('\n'), /unresolved local import '.\/missing'/);

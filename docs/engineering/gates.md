@@ -53,25 +53,30 @@ merely to make a check green.
 ## The dead-code gate
 
 `make check-dead-code` runs in `make check`, CI and preflight. Its TypeScript compiler graph covers
-the dashboard, website, mobile and shared source trees, plus shared tests and the mobile root
-entry files. It reports unreachable files and exports with no reference outside their defining
-module, resolving the dashboard aliases and shared package from source. Application entry points,
-tests and ambient declarations are roots; the generated API snapshot is retained as generated
-contract data. Literal lazy imports, `require`, module namespace types and namespace values conservatively keep the loaded
-module's exports. Re-exporting a name alone does not establish a consumer.
+the dashboard, website, mobile and shared source trees, plus shared tests, the mobile root entry
+files and the native smoke-test entries in `mobile/native-tests`. It reports unreachable files and
+exports with no reference outside their defining module, resolving the dashboard aliases and shared
+package from source. Application entry points, tests and ambient declarations are roots; the
+generated API snapshot is retained as generated contract data. Literal lazy imports, `require` and
+namespace values conservatively keep the loaded module's exports; a `typeof import()` type keeps
+its module reachable but counts only the exports read through it. Re-exporting a name alone does not
+establish a consumer. Imports also resolve as Metro resolves them for iOS and Android, so `.ios`,
+`.android` and `.native` platform files are reachable when their base module is; their exports are
+not checked, because each platform loads a different file.
 
 The Python AST graph reports unreachable backend modules. Django models/admin entry modules,
 apps, settings, migrations, management commands, template tags, tests and Procrastinate task entry
 modules are discovery roots. Imports, relative imports and literal dotted configuration references
 connect them to their dependencies, including database guard installers. Upload subprocesses have
-explicit edges tied to their filename references; the optional worker launcher and the task
-authority catalogue have documented external consumers. Missing consumers or stale exceptions fail
-the check. An empty source tree or unparseable source also fails.
+explicit edges tied to their filename references; the optional worker launcher has a documented
+external consumer. Missing consumers or stale exceptions fail the check. An empty source tree or
+unparseable source also fails.
 
 This is a static aid, not proof that every function, class member, dependency or runtime path is
-used. Computed imports and configuration require review; build configuration and native test
-harnesses outside the source trees are not scanned. Check consumers before deleting a finding.
-Keep a justified framework or external entry point explicit rather than adding a blanket exemption.
+used. Computed imports and configuration require review; build configuration and the mobile
+scripts that build and run the native smoke tests are not scanned. Check consumers before deleting
+a finding. Keep a justified framework or external entry point explicit rather than adding a blanket
+exemption.
 
 ## The PR metadata gate
 
