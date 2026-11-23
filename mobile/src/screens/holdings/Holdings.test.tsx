@@ -1717,9 +1717,20 @@ it('associates a member by invitation code, switches to their company on Dashboa
   await act(async () => {
     accessRead = client.refetchQueries({ queryKey: ownAppointmentsKey(owner), exact: true });
   });
-  await view.rerender(<MemberAccessScreen route={{ key: 'access', name: 'MemberAccess', params: undefined }} />);
-  expect(screen.getByText('Loading the register…')).toBeTruthy();
-  expect(screen.queryByText('The selected company is unavailable for this page. ')).toBeNull();
+  for (const page of [
+    <MemberAccessScreen key="access" route={{ key: 'access', name: 'MemberAccess', params: undefined }} />,
+    <ShareholdersScreen key="shareholders" />,
+    <EmployeeSchemeScreen key="scheme" />,
+    <IssueSharesScreen key="issue" route={{ key: 'issue', name: 'IssueShares', params: undefined }} />,
+    <TransferSharesScreen key="transfer" route={{ key: 'transfer', name: 'TransferShares', params: undefined }} />,
+    <CorrectionsScreen key="corrections" route={{ key: 'corrections', name: 'Corrections', params: undefined }} />,
+    <CompanyPackScreen key="pack" />,
+    <InspectionCopiesScreen key="copies" />,
+  ]) {
+    await view.rerender(page);
+    expect(screen.getByText('Loading the register…')).toBeTruthy();
+    expect(screen.queryByText(/The selected company is unavailable for this page/)).toBeNull();
+  }
   await act(async () => {
     appointmentsWait = null;
     finishAccessRead();
@@ -1729,7 +1740,7 @@ it('associates a member by invitation code, switches to their company on Dashboa
   const finishAccessAccountRead = await pauseAccountRead();
   await view.rerender(<MemberAccessScreen route={{ key: 'access', name: 'MemberAccess', params: undefined }} />);
   expect(screen.getByText('Loading the register…')).toBeTruthy();
-  expect(screen.queryByText('The selected company is unavailable for this page. ')).toBeNull();
+  expect(screen.queryByText(/The selected company is unavailable for this page/)).toBeNull();
   await finishAccessAccountRead();
   await fireEvent.press(
     await screen.findByRole('button', { name: 'Revoke access (Synthetic Holder A, holder-a@example.test)' }),
