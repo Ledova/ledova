@@ -11,7 +11,6 @@ import {
   useErrorSummary,
   useMemberAccessForm,
   useSubmissionOwner,
-  useUserPreferences,
   type MemberInvitation,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
@@ -22,10 +21,10 @@ import { Action, Actions, FormActions, LoadError, Loading, Outcome, Rows, Sectio
 import { CustomModal } from '../../components/modal';
 import { Page } from '../../components/Page';
 import { Field } from '../../components/Field';
-import { useAppTheme, useMemberRecordsState } from '../../contexts';
+import { useAppTheme } from '../../contexts';
 import { useCompanyStyles } from '../../hooks/useCompanyStyles';
 import { useCompanyRegisters } from '../../hooks/useCompanyRegisters';
-import { useRetainedScope } from '../../hooks/useRetainedScope';
+import { useCompanyPageScope } from '../../hooks/useCompanyPageScope';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import type { SignedInStackParamList } from '../../navigation/SignedInNavigator';
 import { orderSubmissionSession } from '../../services/orderSubmissions';
@@ -37,17 +36,7 @@ const LEDE = 'Invite people to their records and manage their access.';
 
 export function MemberAccessScreen({ route }: { route: RouteProp<SignedInStackParamList, 'MemberAccess'> }) {
   const { owner, boundary } = useSubmissionOwner(orderSubmissionSession);
-  const { directory, companies, company, companySelection } = useMemberRecordsState();
-  const preferences = useUserPreferences();
-  const choosing =
-    directory.isLoading || directory.isRefreshing || preferences.isFetching || (!company && companies.length > 0);
-  const scope = useRetainedScope(
-    owner,
-    boundary.get,
-    company?.uuid,
-    !preferences.isError && !!company?.canReadRegister && !directory.hasError && !choosing,
-    companySelection,
-  );
+  const { scope, choosing, directory } = useCompanyPageScope(owner, boundary.get);
   if (owner && scope.scope) {
     const inviteMember = route.params?.company === scope.scope ? route.params.inviteMember : undefined;
     return (

@@ -59,8 +59,12 @@ with its notices and pull to refresh in `mobile/src/components/MemberRecords.tsx
 check, company notice and register access notice that several areas show (`AccountCheck.tsx`,
 `CompanyContextNotice.tsx`, `RegisterAccess.tsx`) in `components/`. `RegisterAccess` shows loading
 while access is rechecked, and the notice
-only once the check settles. Ledger and Shareholders read the selected company's classes and
-holders through `hooks/useCompanyRegisters.ts`. Production screens import no other area's internals.
+only once the check settles. Member access, Shareholders, Employee scheme, Issue shares, Transfer
+shares, Corrections, Company pack and Inspection copies do the same through
+`hooks/useCompanyPageScope.ts`, including when one is opened during a reread. Ledger keeps showing
+the register from the cached company list while the company list is reread, and shows its own
+loading while the account is reread. Ledger and Shareholders read the selected company's classes
+and holders through `hooks/useCompanyRegisters.ts`. Production screens import no other area's internals.
 Profile, member, company list, appointment and company ownership reads, Team's reads
 and forms, representative authority's reads, actions
 and request form, Documents' class source, certificate records, preparations and prepared
@@ -253,9 +257,7 @@ than one class. `screens/shareholders/ShareholderDocuments.tsx` uses
 `useMemberDocuments`, with the same appointment checks and uncertain-save recovery. Picking a file
 locks its class, and pulling down waits while the editor or a save is open.
 Member access
-(`MemberAccessScreen.tsx`, through the shared `useMemberAccessForm`) waits for company and account
-rechecks before showing an unavailable-company notice, including when entered during a reread.
-It has the web's People and
+(`MemberAccessScreen.tsx`, through the shared `useMemberAccessForm`) has the web's People and
 Invitations in the web's two-line rows: each person's name and access, then their email and short
 linked date, with a compact **Revoke**, whose reason form and confirmation dialog send nothing
 until confirmed, and each invitation's name and status, then its email and short invited date, with
