@@ -2613,7 +2613,21 @@ it('records an accepted officer invitation without changing the chosen company, 
     });
   });
   const posted = importPosts().length;
-  await view.rerender(<ShareClassScreen route={{ key: 'new-class', name: 'RegisterSetup', params: setup }} />);
+  let releaseSetupClasses: () => void = () => undefined;
+  classesWait = new Promise<void>((resolve) => {
+    releaseSetupClasses = resolve;
+  });
+  try {
+    await view.rerender(<ShareClassScreen route={{ key: 'new-class', name: 'RegisterSetup', params: setup }} />);
+    await waitFor(() => expect(client.getQueryState(registerClassesKey(owner))?.fetchStatus).toBe('fetching'));
+    expect(screen.getByText('Loading the register…')).toBeTruthy();
+    expect(screen.queryByText(/The selected company is unavailable for this page/)).toBeNull();
+  } finally {
+    await act(async () => {
+      classesWait = null;
+      releaseSetupClasses();
+    });
+  }
   await fireEvent.press(await screen.findByRole('radio', { name: 'Preference (PRF)' }));
   await settled();
   expect(screen.queryByRole('radio', { name: 'Redeemable' })).toBeNull();
