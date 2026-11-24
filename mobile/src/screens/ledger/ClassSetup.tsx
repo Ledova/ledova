@@ -188,8 +188,6 @@ export function NewClassSetup({
     );
   else if (appointments.isSuccess && !appointments.isFetching && !steps?.prepare)
     content = <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>;
-  else if (!context) content = <Loading>Loading the register…</Loading>;
-  else if (!context.steps.prepare) content = <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>;
   return (
     <Page
       testID="register-setup-scroll"
@@ -226,7 +224,6 @@ export function NewClassSetup({
           {...flow}
         />
       )}
-      {!!content && <Cancel onCancel={flow.onCancel} />}
     </Page>
   );
 }

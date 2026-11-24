@@ -2619,7 +2619,8 @@ it('records an accepted officer invitation without changing the chosen company, 
   });
   try {
     await view.rerender(<ShareClassScreen route={{ key: 'new-class', name: 'RegisterSetup', params: setup }} />);
-    expect(await screen.findByText('Loading the register…')).toBeTruthy();
+    await waitFor(() => expect(client.getQueryState(registerClassesKey(owner))?.fetchStatus).toBe('fetching'));
+    expect(screen.getByText('Loading the register…')).toBeTruthy();
     expect(screen.queryByText(/The selected company is unavailable for this page/)).toBeNull();
   } finally {
     await act(async () => {
