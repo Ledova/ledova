@@ -126,7 +126,7 @@ export function CompanyMemberAccess({
           {!access.readFailed && (!access.access || associations.length === 0) && (
             <Section title="People">
               {!access.access ? (
-                access.readable && !access.canAdminister ? (
+                access.checked && !access.canAdminister ? (
                   <p className="text-sm text-text-muted">A company administrator manages member access.</p>
                 ) : (
                   <Loading>Loading member access…</Loading>

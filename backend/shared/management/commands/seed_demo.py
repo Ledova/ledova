@@ -27,6 +27,7 @@ from shared.seeds.demo import (
     DEMO_TOKEN_NAME,
     DEMO_TOKEN_SYMBOL,
 )
+from shared.seeds.synthetic.authority import historical_owner_appointment
 from shared.seeds.synthetic.chain import layer as chain_layer
 from shared.seeds.synthetic.identities import EMAIL_DOMAIN
 from shared.seeds.synthetic.layer import PARTIAL, PRESENT, seed_population, summary
@@ -48,13 +49,12 @@ User = get_user_model()
 
 class Command(BaseCommand):
     help = (
-        "Seed a browser-ready local demo: the operator row, a superuser, an active company with a draft "
-        "share class and a verified issuer wallet, and an investor whose wallet has a whitelist entry. "
+        "Seed a browser-ready local demo: the operator row, a superuser, an active company administered by "
+        "its founder, with a draft share class and a verified issuer wallet, and an investor whose wallet "
+        "has a whitelist entry. "
         "The first run also adds six months of synthetic history: staff, investors, companies, wallets, "
-        "notifications and compliance work. When the local chain (31337) is configured, the first run on it "
-        "also deploys share classes, approves wallets, mints and allots shares, opens the registers and "
-        "seeds issuance and capital requests, then mints AUDY deposits, settles trades and leaves an order "
-        "book; without it, nothing is written to any chain."
+        "notifications and compliance work. The retained chain and market layers add nothing on a fresh "
+        "database, and nothing is written to any chain."
     )
 
     def add_arguments(self, parser):
@@ -95,6 +95,7 @@ class Command(BaseCommand):
 
         with use_migrate(), atomic():
             company, token = self._seed_testers(password)
+        historical_owner_appointment(company)
 
         started = time.monotonic()
         disabled = logging.root.manager.disable

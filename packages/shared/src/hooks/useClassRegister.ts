@@ -67,13 +67,9 @@ export function useClassRegister(
     },
     [sourceGuard, client, company, owner, token],
   );
-  const sourceReady =
-    available &&
-    classes.isSuccess &&
-    classes.fetchStatus === 'idle' &&
-    appointments.isSuccess &&
-    appointments.fetchStatus === 'idle' &&
-    hasCurrentRegisterReadAuthority(appointments.data, company);
+  const authorityChecked = appointments.isSuccess && appointments.fetchStatus === 'idle';
+  const authorised = authorityChecked && hasCurrentRegisterReadAuthority(appointments.data, company);
+  const sourceReady = available && classes.isSuccess && classes.fetchStatus === 'idle' && authorised;
   const register = useQuery({
     queryKey: [...registerHoldersKey(owner), purpose, token],
     enabled: sourceReady && options.some((item) => item.uuid === token),
@@ -95,6 +91,7 @@ export function useClassRegister(
     guard,
     register,
     sourceReady,
+    unauthorised: available && authorityChecked && !authorised,
     ready:
       sourceReady &&
       options.some((item) => item.uuid === token) &&

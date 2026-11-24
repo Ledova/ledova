@@ -103,12 +103,14 @@ export function useCompanyMemberAccess(
     rows.find((row) => row.company === company && isCurrentAppointment(row) && row.capabilities.includes('admin'));
   const rows = appointments.isSuccess && appointments.fetchStatus === 'idle' ? appointments.data : [];
   const preferences = client.getQueryState(USER_PREFERENCES_QUERY_KEY);
-  const readable =
+  const checked =
     !!owner &&
     sourceReady &&
     preferences?.status === 'success' &&
     preferences.fetchStatus === 'idle' &&
-    hasCurrentRegisterReadAuthority(rows, company);
+    appointments.isSuccess &&
+    appointments.fetchStatus === 'idle';
+  const readable = checked && hasCurrentRegisterReadAuthority(rows, company);
   const admin = adminAppointment(rows);
   const guardAdmin = () => {
     guardRead();
@@ -199,6 +201,7 @@ export function useCompanyMemberAccess(
   const accessReady = readable && !!admin && access.isSuccess && access.fetchStatus === 'idle';
   const readFailed = [appointments, access].some((query) => query.isError);
   return {
+    checked,
     readable,
     admin: accessReady ? admin : undefined,
     canAdminister: readable && !!admin,

@@ -87,8 +87,8 @@ founder are
 `investor@ledova.io` and `founder@ledova.io`; the superuser is `admin@demo.ledova.test`. The command
 adopts any existing account at those addresses and resets its password, active flag and email
 verification. For the investor and founder it also overwrites the profile, role and status and adds
-a verified wallet: the founder becomes the owner of the active Demo Robotics company with a draft
-share class, and the investor gets a whitelist entry. Check that
+a verified wallet: the founder becomes the owner of the active Demo Robotics company, with an
+administrator appointment and a draft share class, and the investor gets a whitelist entry. Check that
 nobody uses the two `ledova.io` addresses on an environment before seeding it.
 
 The first run on a database also adds a synthetic population with six months of history. A fixed
@@ -120,9 +120,9 @@ and `make dev-seed`; a run that stopped part-way says to start over.
 
 The chain layer ([`seeds/synthetic/chain/`](../backend/shared/seeds/synthetic/chain)) and the market
 layer ([`seeds/synthetic/market/`](../backend/shared/seeds/synthetic/market)) are retained code; on
-a fresh database both report `skipped` with the reason. Even with a reachable local chain, the
-chain layer's issuance plan includes the companies' employee share trust addresses, which have no
-held signing key, and fresh treasury approval is unsupported, so it adds no chain records or
+a fresh database the chain layer reports `skipped` with the reason. Even with a reachable local
+chain, the chain layer's issuance plan includes the companies' employee share trust addresses, which
+have no held signing key, and fresh treasury approval is unsupported, so it adds no chain records or
 transactions; the market layer runs only after a present chain layer. Their earlier output is
 historical evidence, not a fresh-seed claim.
 

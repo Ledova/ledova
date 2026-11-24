@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import { Field, TextInput } from '@components/Field';
 import {
   FIELD_LIMITS,
+  hasCurrentRegisterReadAuthority,
   inspectionCopiesKey,
   useClassInspectionCopy,
+  useOwnAppointments,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
   formatDate,
 } from '@ledova/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { Outcome, Row, Rows, Section, Failure } from '@components/Ledger';
+import { LoadError, Outcome, Row, Rows, Section, Failure } from '@components/Ledger';
 import { Actions, FormActions, PageAction } from '@components/Page';
 import { ErrorSummary } from '@components/ErrorSummary';
 import { useErrorSummary } from '@hooks/useErrorSummary';
@@ -18,28 +20,45 @@ import { InspectionCopyHistory } from './OutputHistory';
 
 export function ClassInspectionCopy({
   owner,
+  company,
   register,
   guard,
   sourceReady,
   onEditingChange,
 }: {
   owner: OrderSubmissionOwner;
+  company: string;
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady: boolean;
   onEditingChange?: (key: string, open: boolean) => void;
 }) {
   const client = useQueryClient();
+  const appointments = useOwnAppointments(owner, guard);
+  const authorised = appointments.isSuccess && hasCurrentRegisterReadAuthority(appointments.data, company);
+  if (appointments.isError)
+    return (
+      <LoadError retry={() => appointments.refetch()} busy={appointments.isFetching}>
+        Your appointments could not be loaded.
+      </LoadError>
+    );
+  if (appointments.isSuccess && appointments.fetchStatus === 'idle' && !authorised)
+    return (
+      <p className="text-sm text-text-muted">
+        A current company register appointment is required to prepare inspection copies.
+      </p>
+    );
+  const ready = sourceReady && authorised;
   return (
     <div className="space-y-6">
       <Section title="Prepared copies">
-        <InspectionCopyHistory owner={owner} token={register.token.uuid} guard={guard} enabled={sourceReady} />
+        <InspectionCopyHistory owner={owner} token={register.token.uuid} guard={guard} enabled={ready} />
       </Section>
       <InspectionForm
-        key={JSON.stringify([register, sourceReady])}
+        key={JSON.stringify([register, ready])}
         register={register}
         guard={guard}
-        sourceReady={sourceReady}
+        sourceReady={ready}
         onEditingChange={onEditingChange}
         onPrepared={() => void client.invalidateQueries({ queryKey: inspectionCopiesKey(owner, register.token.uuid) })}
       />
