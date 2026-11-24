@@ -120,9 +120,9 @@ and `make dev-seed`; a run that stopped part-way says to start over.
 
 The chain layer ([`seeds/synthetic/chain/`](../backend/shared/seeds/synthetic/chain)) and the market
 layer ([`seeds/synthetic/market/`](../backend/shared/seeds/synthetic/market)) are retained code; on
-a fresh database both report `skipped` with the reason. Even with a reachable local chain, the
-chain layer's issuance plan includes the companies' employee share trust addresses, which have no
-held signing key, and fresh treasury approval is unsupported, so it adds no chain records or
+a fresh database the chain layer reports `skipped` with the reason. Even with a reachable local
+chain, the chain layer's issuance plan includes the companies' employee share trust addresses, which
+have no held signing key, and fresh treasury approval is unsupported, so it adds no chain records or
 transactions; the market layer runs only after a present chain layer. Their earlier output is
 historical evidence, not a fresh-seed claim.
 

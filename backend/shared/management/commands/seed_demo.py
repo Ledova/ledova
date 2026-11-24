@@ -54,7 +54,7 @@ class Command(BaseCommand):
         "has a whitelist entry. "
         "The first run also adds six months of synthetic history: staff, investors, companies, wallets, "
         "notifications and compliance work. The retained chain and market layers add nothing on a fresh "
-        "database and say why; nothing is written to any chain."
+        "database, and nothing is written to any chain."
     )
 
     def add_arguments(self, parser):
