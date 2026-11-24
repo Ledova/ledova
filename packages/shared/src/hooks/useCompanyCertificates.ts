@@ -69,6 +69,7 @@ export function useCompanyCertificates(
       : [],
     ready,
     sourceReady: source.sourceReady,
+    unauthorised: source.unauthorised,
     hasError: source.hasError || pages.hasError,
     isRefreshing: source.isRefreshing || history.fetchStatus !== 'idle',
     retry: async () => {

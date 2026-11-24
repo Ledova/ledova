@@ -94,6 +94,10 @@ export function CompanyCertificates({
           <LoadError retry={retry} busy={source.isRefreshing}>
             Certificate records could not be loaded.
           </LoadError>
+        ) : source.unauthorised ? (
+          <Text style={styles.muted}>
+            A current company register appointment is required to read certificate records.
+          </Text>
         ) : !source.sourceReady ? (
           <Loading>Loading certificate records…</Loading>
         ) : chosen && !selected ? (

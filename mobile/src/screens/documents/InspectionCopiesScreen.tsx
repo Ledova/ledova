@@ -144,6 +144,10 @@ function CompanyInspectionCopies({
         <LoadError retry={retry} busy={source.isRefreshing}>
           The register could not be loaded.
         </LoadError>
+      ) : source.unauthorised ? (
+        <Text style={styles.muted}>
+          A current company register appointment is required to prepare inspection copies.
+        </Text>
       ) : !source.sourceReady || (!register && source.options.length > 0) ? (
         <Loading>Loading the register…</Loading>
       ) : null}

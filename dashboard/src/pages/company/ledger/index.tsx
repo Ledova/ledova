@@ -717,6 +717,7 @@ function OwnRegister({
                     {readable && (
                       <ClassInspectionCopy
                         owner={owner}
+                        company={scope.company.uuid}
                         register={register}
                         guard={guard}
                         sourceReady={

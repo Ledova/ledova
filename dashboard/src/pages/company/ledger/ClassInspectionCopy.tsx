@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Field, TextInput } from '@components/Field';
 import {
   FIELD_LIMITS,
+  hasCurrentRegisterReadAuthority,
   inspectionCopiesKey,
   useClassInspectionCopy,
+  useOwnAppointments,
   type OrderSubmissionOwner,
   type TokenHoldersResponse,
   formatDate,
@@ -18,18 +20,31 @@ import { InspectionCopyHistory } from './OutputHistory';
 
 export function ClassInspectionCopy({
   owner,
+  company,
   register,
   guard,
   sourceReady,
   onEditingChange,
 }: {
   owner: OrderSubmissionOwner;
+  company: string;
   register: TokenHoldersResponse;
   guard: () => void;
   sourceReady: boolean;
   onEditingChange?: (key: string, open: boolean) => void;
 }) {
   const client = useQueryClient();
+  const appointments = useOwnAppointments(owner, guard);
+  if (
+    appointments.isSuccess &&
+    appointments.fetchStatus === 'idle' &&
+    !hasCurrentRegisterReadAuthority(appointments.data, company)
+  )
+    return (
+      <p className="text-sm text-text-muted">
+        A current company register appointment is required to prepare inspection copies.
+      </p>
+    );
   return (
     <div className="space-y-6">
       <Section title="Prepared copies">
