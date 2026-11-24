@@ -53,10 +53,8 @@ class Command(BaseCommand):
         "its founder, with a draft share class and a verified issuer wallet, and an investor whose wallet "
         "has a whitelist entry. "
         "The first run also adds six months of synthetic history: staff, investors, companies, wallets, "
-        "notifications and compliance work. When the local chain (31337) is configured, the first run on it "
-        "also deploys share classes, approves wallets, mints and allots shares, opens the registers and "
-        "seeds issuance and capital requests, then mints AUDY deposits, settles trades and leaves an order "
-        "book; without it, nothing is written to any chain."
+        "notifications and compliance work. The retained chain and market layers add nothing on a fresh "
+        "database and say why; nothing is written to any chain."
     )
 
     def add_arguments(self, parser):

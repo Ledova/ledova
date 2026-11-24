@@ -87,7 +87,7 @@ founder are
 `investor@ledova.io` and `founder@ledova.io`; the superuser is `admin@demo.ledova.test`. The command
 adopts any existing account at those addresses and resets its password, active flag and email
 verification. For the investor and founder it also overwrites the profile, role and status and adds
-a verified wallet: the founder becomes the owner of the active Demo Robotics company, with a current
+a verified wallet: the founder becomes the owner of the active Demo Robotics company, with an
 administrator appointment and a draft share class, and the investor gets a whitelist entry. Check that
 nobody uses the two `ledova.io` addresses on an environment before seeding it.
 
