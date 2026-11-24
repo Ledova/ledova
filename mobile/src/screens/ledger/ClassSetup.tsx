@@ -38,7 +38,6 @@ import {
   type TokenHoldersResponse,
 } from '@ledova/shared';
 import { Action, FormActions, LoadError, Loading, Section } from '../../components/Ledger';
-import { CompanyContextNotice } from '../../components/CompanyContextNotice';
 import { Page } from '../../components/Page';
 import { RegisterAccess } from '../../components/RegisterAccess';
 import { Choices, Field } from '../../components/Field';
@@ -187,11 +186,8 @@ export function NewClassSetup({
         The register or your appointments could not be loaded.
       </LoadError>
     );
-  else if (!context && (!classes.data || !appointments.data)) content = <Loading>Loading the register…</Loading>;
   else if (appointments.isSuccess && !appointments.isFetching && !steps?.prepare)
     content = <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>;
-  else if (!context) content = <CompanyContextNotice />;
-  else if (!context.steps.prepare) content = <Text style={look.muted}>{COPY.READ_ONLY_NOTE}</Text>;
   return (
     <Page
       testID="register-setup-scroll"
@@ -228,7 +224,6 @@ export function NewClassSetup({
           {...flow}
         />
       )}
-      {!!content && <Cancel onCancel={flow.onCancel} />}
     </Page>
   );
 }
